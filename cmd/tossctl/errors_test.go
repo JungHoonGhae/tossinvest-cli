@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	tossclient "github.com/junghoonkye/tossinvest-cli/internal/client"
 	"github.com/junghoonkye/tossinvest-cli/internal/config"
 	"github.com/junghoonkye/tossinvest-cli/internal/trading"
 )
@@ -114,6 +115,29 @@ func TestUserFacingPlaceErrorFormatsPostPrepareFXGuidance(t *testing.T) {
 	}
 	if !strings.Contains(message, "accept_fx_consent=true") {
 		t.Fatalf("expected config guidance for automation, got %q", message)
+	}
+}
+
+func TestUserFacingCommandErrorIncludesAuthEndpointAndStatus(t *testing.T) {
+	t.Parallel()
+
+	err := userFacingCommandError(&tossclient.AuthError{
+		StatusCode: 403,
+		Endpoint:   "https://wts-cert-api.tossinvest.com/api/v3/my-assets/summaries/markets/all/overview",
+	})
+	if err == nil {
+		t.Fatal("expected transformed error")
+	}
+
+	text := err.Error()
+	if !strings.Contains(text, "status 403") {
+		t.Fatalf("expected status code in error, got %q", text)
+	}
+	if !strings.Contains(text, "/api/v3/my-assets/summaries/markets/all/overview") {
+		t.Fatalf("expected endpoint path in error, got %q", text)
+	}
+	if !strings.Contains(text, "tossctl auth login") {
+		t.Fatalf("expected login hint in error, got %q", text)
 	}
 }
 

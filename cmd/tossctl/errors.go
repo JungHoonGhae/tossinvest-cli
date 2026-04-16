@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -22,6 +23,14 @@ func userFacingCommandError(err error) error {
 		return fmt.Errorf("no active session; run `tossctl auth login`")
 	}
 
+	var authErr *tossclient.AuthError
+	if errors.As(err, &authErr) {
+		return fmt.Errorf(
+			"stored session is not ready for authenticated reads: status %d at %s; run `tossctl auth login`",
+			authErr.StatusCode,
+			summarizeEndpoint(authErr.Endpoint),
+		)
+	}
 	if tossclient.IsAuthError(err) {
 		return fmt.Errorf("stored session is no longer valid; run `tossctl auth login`")
 	}
@@ -54,6 +63,20 @@ func userFacingCommandError(err error) error {
 	}
 
 	return err
+}
+
+func summarizeEndpoint(endpoint string) string {
+	parsed, err := url.Parse(endpoint)
+	if err != nil {
+		return endpoint
+	}
+	if parsed.Path == "" {
+		return endpoint
+	}
+	if parsed.RawQuery == "" {
+		return parsed.Path
+	}
+	return parsed.Path + "?" + parsed.RawQuery
 }
 
 func userFacingTradingError(paths config.Paths, err error) error {
