@@ -299,8 +299,11 @@ func (c *Client) ValidateSession(ctx context.Context) error {
 		return err
 	}
 
-	var envelope accountListEnvelope
-	return c.getJSON(ctx, c.apiBaseURL+"/api/v1/account/list", &envelope)
+	if _, err := c.GetAccountSummary(ctx); err != nil {
+		return err
+	}
+	_, err := c.ListPositions(ctx)
+	return err
 }
 
 func (c *Client) requireSession() error {

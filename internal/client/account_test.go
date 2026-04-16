@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -98,6 +99,132 @@ func TestValidateSessionRequiresStoredSession(t *testing.T) {
 	err := client.ValidateSession(context.Background())
 	if !IsAuthError(err) {
 		t.Fatalf("expected auth error, got %v", err)
+	}
+}
+
+func TestValidateSessionRejectsHalfSession(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v3/my-assets/summaries/markets/all/overview":
+			http.Error(w, "forbidden", http.StatusForbidden)
+		default:
+			t.Fatalf("unexpected request path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := New(Config{
+		HTTPClient:  server.Client(),
+		APIBaseURL:  server.URL,
+		InfoBaseURL: server.URL,
+		CertBaseURL: server.URL,
+		Session: &session.Session{
+			Cookies: map[string]string{"SESSION": "test-session"},
+		},
+	})
+
+	err := client.ValidateSession(context.Background())
+	if err == nil {
+		t.Fatal("expected half-session validation error")
+	}
+	if !IsAuthError(err) {
+		t.Fatalf("expected auth error, got %v", err)
+	}
+
+	var authErr *AuthError
+	if !errors.As(err, &authErr) {
+		t.Fatalf("expected underlying auth error, got %T", err)
+	}
+	if authErr.StatusCode != http.StatusForbidden {
+		t.Fatalf("unexpected status code: %d", authErr.StatusCode)
+	}
+	if authErr.Endpoint != server.URL+"/api/v3/my-assets/summaries/markets/all/overview" {
+		t.Fatalf("unexpected endpoint: %s", authErr.Endpoint)
+	}
+}
+
+func TestValidateSessionDoesNotDependOnAccountList(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v3/my-assets/summaries/markets/all/overview":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"result":{"totalAssetAmount":1,"evaluatedProfitAmount":0,"profitRate":0,"overviewByMarket":{"us":{"market":"us","pendingBuyOrderAmount":0,"evaluatedAmount":1,"principalAmount":1,"evaluatedProfitAmount":0,"profitRate":0,"totalAssetAmount":1,"orderableAmount":{"krw":0,"usd":1}}}}}`))
+		case "/api/v1/dashboard/common/cached-orderable-amount":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"result":{"orderableAmountKr":{"krw":0,"usd":0},"orderableAmountUs":{"krw":0,"usd":1}}}`))
+		case "/api/v1/my-assets/summaries/markets/kr/withdrawable-amount":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"result":{"krw":0}}`))
+		case "/api/v1/my-assets/summaries/markets/us/withdrawable-amount":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"result":{"usd":1}}`))
+		case "/api/v2/dashboard/asset/sections/all":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"result":{"sections":[{"type":"SORTED_OVERVIEW","data":{"products":[{"marketType":"us","items":[{"stockCode":"NVDA","stockName":"NVIDIA","quantity":1,"currentPrice":{"usd":1},"purchasePrice":{"usd":1},"evaluatedAmount":{"usd":1},"profitLossAmount":{"usd":0},"profitLossRate":{"usd":0},"dailyProfitLossAmount":{"usd":0},"dailyProfitLossRate":{"usd":0},"marketCode":"NASD"}]}]}}]}}`))
+		case "/api/v1/account/list":
+			http.Error(w, "forbidden", http.StatusForbidden)
+		default:
+			t.Fatalf("unexpected request path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := New(Config{
+		HTTPClient:  server.Client(),
+		APIBaseURL:  server.URL,
+		InfoBaseURL: server.URL,
+		CertBaseURL: server.URL,
+		Session: &session.Session{
+			Cookies: map[string]string{"SESSION": "test-session"},
+		},
+	})
+
+	if err := client.ValidateSession(context.Background()); err != nil {
+		t.Fatalf("expected validation success, got %v", err)
+	}
+}
+
+func TestGetAccountSummaryReturnsCertEndpointAuthError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v3/my-assets/summaries/markets/all/overview":
+			http.Error(w, "forbidden", http.StatusForbidden)
+		default:
+			t.Fatalf("unexpected request path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := New(Config{
+		HTTPClient:  server.Client(),
+		APIBaseURL:  server.URL,
+		InfoBaseURL: server.URL,
+		CertBaseURL: server.URL,
+		Session: &session.Session{
+			Cookies: map[string]string{"SESSION": "test-session"},
+		},
+	})
+
+	_, err := client.GetAccountSummary(context.Background())
+	if err == nil {
+		t.Fatal("expected summary error")
+	}
+
+	var authErr *AuthError
+	if !errors.As(err, &authErr) {
+		t.Fatalf("expected auth error, got %T", err)
+	}
+	if authErr.StatusCode != http.StatusForbidden {
+		t.Fatalf("unexpected status code: %d", authErr.StatusCode)
+	}
+	if authErr.Endpoint != server.URL+"/api/v3/my-assets/summaries/markets/all/overview" {
+		t.Fatalf("unexpected endpoint: %s", authErr.Endpoint)
 	}
 }
 

@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -43,6 +44,46 @@ func TestListPositionsFromFixtures(t *testing.T) {
 	}
 	if positions[0].Name == "" {
 		t.Fatal("expected first position to have a name")
+	}
+}
+
+func TestListPositionsReturnsCertEndpointAuthError(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v2/dashboard/asset/sections/all":
+			http.Error(w, "forbidden", http.StatusForbidden)
+		default:
+			t.Fatalf("unexpected request path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := New(Config{
+		HTTPClient:  server.Client(),
+		APIBaseURL:  server.URL,
+		InfoBaseURL: server.URL,
+		CertBaseURL: server.URL,
+		Session: &session.Session{
+			Cookies: map[string]string{"SESSION": "test-session"},
+		},
+	})
+
+	_, err := client.ListPositions(context.Background())
+	if err == nil {
+		t.Fatal("expected positions error")
+	}
+
+	var authErr *AuthError
+	if !errors.As(err, &authErr) {
+		t.Fatalf("expected auth error, got %T", err)
+	}
+	if authErr.StatusCode != http.StatusForbidden {
+		t.Fatalf("unexpected status code: %d", authErr.StatusCode)
+	}
+	if authErr.Endpoint != server.URL+"/api/v2/dashboard/asset/sections/all" {
+		t.Fatalf("unexpected endpoint: %s", authErr.Endpoint)
 	}
 }
 

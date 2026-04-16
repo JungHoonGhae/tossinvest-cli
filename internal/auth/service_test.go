@@ -4,11 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/junghoonkye/tossinvest-cli/internal/client"
 	"github.com/junghoonkye/tossinvest-cli/internal/session"
 )
 
@@ -168,6 +172,65 @@ func TestStatusCapturesValidationError(t *testing.T) {
 	}
 	if status.ValidationError != "session rejected" {
 		t.Fatalf("unexpected validation error: %q", status.ValidationError)
+	}
+}
+
+func TestStatusMarksHalfSessionInvalid(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+	sessionPath := filepath.Join(tmpDir, "session.json")
+	sess := &session.Session{
+		Provider:    "playwright-storage-state",
+		Cookies:     map[string]string{"SESSION": "session-token"},
+		RetrievedAt: mustTime(t, "2026-03-11T05:00:00Z"),
+	}
+	if err := session.NewFileStore(sessionPath).Save(context.Background(), sess); err != nil {
+		t.Fatalf("Save returned error: %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/account/list":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"result":{"accountList":[{"key":"1","name":"기본계좌","displayName":"기본계좌","type":"BROKERAGE","markets":["US"]}],"primaryKey":"1"}}`))
+		case "/api/v3/my-assets/summaries/markets/all/overview":
+			http.Error(w, "forbidden", http.StatusForbidden)
+		default:
+			t.Fatalf("unexpected request path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	validator := client.New(client.Config{
+		HTTPClient:  server.Client(),
+		APIBaseURL:  server.URL,
+		InfoBaseURL: server.URL,
+		CertBaseURL: server.URL,
+		Session:     sess,
+	})
+
+	svc := NewService(
+		session.NewFileStore(sessionPath),
+		sessionPath,
+		Options{Validator: validator},
+	)
+
+	status, err := svc.Status(context.Background())
+	if err != nil {
+		t.Fatalf("Status returned error: %v", err)
+	}
+	if !status.Validated {
+		t.Fatal("expected validated status")
+	}
+	if status.Valid {
+		t.Fatal("expected invalid half-session status")
+	}
+	if status.ValidationError == "" {
+		t.Fatal("expected validation error detail")
+	}
+	if want := "/api/v3/my-assets/summaries/markets/all/overview"; !strings.Contains(status.ValidationError, want) {
+		t.Fatalf("expected validation error to mention %s, got %q", want, status.ValidationError)
 	}
 }
 
