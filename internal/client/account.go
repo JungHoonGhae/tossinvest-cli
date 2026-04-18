@@ -276,6 +276,9 @@ func (c *Client) getJSON(ctx context.Context, endpoint string, target any) error
 		return err
 	}
 	c.applySession(req)
+	if err := c.prepareCertRequest(ctx, endpoint, req); err != nil {
+		return err
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -341,4 +344,15 @@ func (c *Client) applyTradingHeaders(req *http.Request) {
 	if strings.TrimSpace(c.appVersion) != "" {
 		req.Header.Set("App-Version", c.appVersion)
 	}
+}
+
+func (c *Client) prepareCertRequest(ctx context.Context, endpoint string, req *http.Request) error {
+	if !strings.HasPrefix(endpoint, c.certBaseURL+"/") {
+		return nil
+	}
+	if err := c.ensureTradingMetadata(ctx); err != nil {
+		return err
+	}
+	c.applyTradingHeaders(req)
+	return nil
 }

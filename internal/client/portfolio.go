@@ -130,6 +130,9 @@ func (c *Client) postJSON(ctx context.Context, endpoint string, body json.RawMes
 		return err
 	}
 	c.applySession(req)
+	if err := c.prepareCertRequest(ctx, endpoint, req); err != nil {
+		return err
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)

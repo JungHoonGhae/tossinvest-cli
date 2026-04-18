@@ -46,6 +46,47 @@ func TestListPositionsFromFixtures(t *testing.T) {
 	}
 }
 
+func TestListPositionsAppliesCertHeaders(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v2/dashboard/asset/sections/all":
+			if got := r.Header.Get("Browser-Tab-Id"); got != "browser-tab-test" {
+				t.Fatalf("unexpected Browser-Tab-Id: %q", got)
+			}
+			if got := r.Header.Get("App-Version"); got != "v260311.1636" {
+				t.Fatalf("unexpected App-Version: %q", got)
+			}
+			if got := r.Header.Get("X-Tossinvest-Account"); got != "1" {
+				t.Fatalf("unexpected X-Tossinvest-Account: %q", got)
+			}
+			http.ServeFile(w, r, portfolioFixturePath(t))
+		default:
+			t.Fatalf("unexpected request path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := New(Config{
+		HTTPClient:  server.Client(),
+		APIBaseURL:  server.URL,
+		InfoBaseURL: server.URL,
+		CertBaseURL: server.URL,
+		Session: &session.Session{
+			Cookies: map[string]string{"SESSION": "test-session"},
+			Headers: map[string]string{
+				"Browser-Tab-Id": "browser-tab-test",
+				"App-Version":    "v260311.1636",
+			},
+		},
+	})
+
+	if _, err := client.ListPositions(context.Background()); err != nil {
+		t.Fatalf("ListPositions returned error: %v", err)
+	}
+}
+
 func portfolioFixturePath(t *testing.T) string {
 	t.Helper()
 	_, filename, _, ok := runtime.Caller(0)

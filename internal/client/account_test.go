@@ -118,6 +118,51 @@ func TestApplySessionPreservesExplicitUserAgent(t *testing.T) {
 	}
 }
 
+func TestGetAccountSummaryAppliesCertHeaders(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v3/my-assets/summaries/markets/all/overview",
+			"/api/v1/dashboard/common/cached-orderable-amount":
+			if got := r.Header.Get("Browser-Tab-Id"); got != "browser-tab-test" {
+				t.Fatalf("unexpected Browser-Tab-Id: %q", got)
+			}
+			if got := r.Header.Get("App-Version"); got != "v260311.1636" {
+				t.Fatalf("unexpected App-Version: %q", got)
+			}
+			if got := r.Header.Get("X-Tossinvest-Account"); got != "1" {
+				t.Fatalf("unexpected X-Tossinvest-Account: %q", got)
+			}
+			http.ServeFile(w, r, authenticatedFixturePathForRequest(t, r.URL.Path))
+		case "/api/v1/my-assets/summaries/markets/kr/withdrawable-amount",
+			"/api/v1/my-assets/summaries/markets/us/withdrawable-amount":
+			http.ServeFile(w, r, authenticatedFixturePathForRequest(t, r.URL.Path))
+		default:
+			t.Fatalf("unexpected request path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client := New(Config{
+		HTTPClient:  server.Client(),
+		APIBaseURL:  server.URL,
+		InfoBaseURL: server.URL,
+		CertBaseURL: server.URL,
+		Session: &session.Session{
+			Cookies: map[string]string{"SESSION": "test-session"},
+			Headers: map[string]string{
+				"Browser-Tab-Id": "browser-tab-test",
+				"App-Version":    "v260311.1636",
+			},
+		},
+	})
+
+	if _, err := client.GetAccountSummary(context.Background()); err != nil {
+		t.Fatalf("GetAccountSummary returned error: %v", err)
+	}
+}
+
 func authenticatedFixturePathForRequest(t *testing.T, path string) string {
 	t.Helper()
 
