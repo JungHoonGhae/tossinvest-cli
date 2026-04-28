@@ -178,6 +178,17 @@ def decode_qr_url(page) -> str | None:
         return None
 
 
+def _set_private_permissions(fd: int, mode: int = 0o600) -> None:
+    fchmod = getattr(os, "fchmod", None)
+    if callable(fchmod):
+        fchmod(fd, mode)
+        return
+
+    chmod = getattr(os, "chmod", None)
+    if callable(chmod):
+        chmod(fd, mode)
+
+
 def save_qr_png(data_uri: str, output_path: Path) -> bool:
     # Write with 0600 permissions so other local users cannot read the QR and
     # complete login before the intended phone holder does. Overwrite on each
@@ -194,7 +205,7 @@ def save_qr_png(data_uri: str, output_path: Path) -> bool:
             0o600,
         )
         try:
-            os.fchmod(fd, 0o600)
+            _set_private_permissions(fd, 0o600)
             os.write(fd, payload)
         finally:
             os.close(fd)
@@ -357,7 +368,7 @@ def command_login(args: argparse.Namespace) -> int:
                         0o600,
                     )
                     try:
-                        os.fchmod(fd, 0o600)
+                        _set_private_permissions(fd, 0o600)
                         os.write(fd, payload)
                     finally:
                         os.close(fd)
