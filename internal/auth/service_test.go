@@ -241,7 +241,14 @@ func TestDefaultLoginConfigHonorsExplicitPythonOverride(t *testing.T) {
 
 func TestDefaultLoginConfigPrefersUvToolPython(t *testing.T) {
 	toolDir := t.TempDir()
-	pythonPath := filepath.Join(toolDir, "tossctl-auth-helper", "bin", "python")
+	// On Windows exec.LookPath only treats files with a PATHEXT extension as
+	// runnable, and uv installs the interpreter under Scripts\python.exe rather
+	// than bin/python, so mirror that layout to match resolveDefaultPythonBin.
+	rel := filepath.Join("tossctl-auth-helper", "bin", "python")
+	if runtime.GOOS == "windows" {
+		rel = filepath.Join("tossctl-auth-helper", "Scripts", "python.exe")
+	}
+	pythonPath := filepath.Join(toolDir, rel)
 	if err := os.MkdirAll(filepath.Dir(pythonPath), 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
 	}
