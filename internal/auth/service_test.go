@@ -271,6 +271,10 @@ func TestDefaultLoginConfigFallsBackToPython3(t *testing.T) {
 	t.Setenv("XDG_DATA_HOME", filepath.Join(t.TempDir(), "nonexistent"))
 	t.Setenv("APPDATA", "")
 	t.Setenv("HOME", t.TempDir())
+	// Clear PATH so no python* candidate resolves via exec.LookPath, forcing
+	// resolveDefaultPythonBin to exercise its final GOOS-based fallback rather
+	// than whatever interpreter happens to be installed on the test machine.
+	t.Setenv("PATH", "")
 
 	cfg := DefaultLoginConfig(t.TempDir())
 

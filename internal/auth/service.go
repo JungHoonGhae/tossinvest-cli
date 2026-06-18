@@ -117,7 +117,9 @@ func defaultPythonCandidates() []string {
 		}
 	}
 	if runtime.GOOS == "windows" {
-		return append(candidates, "python", "python.exe", "python3")
+		// `py` (the Windows Python launcher) is frequently present even when
+		// `python` is missing from PATH; install.ps1 falls back to it too.
+		return append(candidates, "python", "python.exe", "python3", "py")
 	}
 	return append(candidates, "python3")
 }
