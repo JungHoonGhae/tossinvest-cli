@@ -13,6 +13,13 @@
 function Install-Tossctl {
     $ErrorActionPreference = "Stop"
 
+    # Windows PowerShell 5.1 on older hosts may negotiate TLS 1.0/1.1, which
+    # GitHub rejects. Ensure TLS 1.2 is enabled before any HTTPS request.
+    try {
+        [Net.ServicePointManager]::SecurityProtocol =
+            [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    } catch {}
+
     $REPO        = "JungHoonGhae/tossinvest-cli"
     $BINARY      = "tossctl.exe"
     $ASSET       = "tossctl-windows-amd64"
