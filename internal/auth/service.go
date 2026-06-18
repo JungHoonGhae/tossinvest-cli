@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/junghoonkye/tossinvest-cli/internal/client"
@@ -98,6 +99,9 @@ func resolveDefaultPythonBin() string {
 			return candidate
 		}
 	}
+	if runtime.GOOS == "windows" {
+		return "python"
+	}
 	return "python3"
 }
 
@@ -111,6 +115,9 @@ func defaultPythonCandidates() []string {
 				filepath.Join(toolDir, tool, "Scripts", "python.exe"),
 			)
 		}
+	}
+	if runtime.GOOS == "windows" {
+		return append(candidates, "python", "python.exe", "python3")
 	}
 	return append(candidates, "python3")
 }

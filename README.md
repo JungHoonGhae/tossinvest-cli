@@ -86,11 +86,21 @@ Always run `tossctl order preview` before any trading mutation.
 
 ### For Human
 
-```bash
-# macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.sh | sh
+macOS / Linux:
 
-# 설치 확인
+```bash
+curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.sh | sh
+```
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.ps1 | iex
+```
+
+설치 확인:
+
+```bash
 tossctl version
 tossctl doctor
 tossctl auth login
@@ -353,9 +363,13 @@ brew install tossctl
 #### Windows (PowerShell)
 
 ```powershell
-Invoke-WebRequest -Uri https://github.com/JungHoonGhae/tossinvest-cli/releases/latest/download/tossctl-windows-amd64.zip -OutFile tossctl.zip
-Expand-Archive tossctl.zip -DestinationPath .
+irm https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.ps1 | iex
 ```
+
+스크립트는 `%LOCALAPPDATA%\tossctl`에 설치하고, 사용자 PATH에 자동으로 추가합니다.
+새 터미널을 열면 `tossctl` 명령을 바로 사용할 수 있습니다.
+
+수동 설치가 필요한 경우 [Releases](https://github.com/JungHoonGhae/tossinvest-cli/releases/latest)에서 `tossctl-windows-amd64.zip`을 직접 다운로드하세요.
 
 #### From source
 

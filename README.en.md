@@ -56,10 +56,21 @@ Always run `tossctl order preview` before any trading mutation.
 
 ### For Humans
 
-```bash
-# macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.sh | sh
+macOS / Linux:
 
+```bash
+curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.sh | sh
+```
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.ps1 | iex
+```
+
+Verify:
+
+```bash
 tossctl version
 tossctl doctor
 tossctl auth login
@@ -301,9 +312,13 @@ brew install tossctl
 #### Windows (PowerShell)
 
 ```powershell
-Invoke-WebRequest -Uri https://github.com/JungHoonGhae/tossinvest-cli/releases/latest/download/tossctl-windows-amd64.zip -OutFile tossctl.zip
-Expand-Archive tossctl.zip -DestinationPath .
+irm https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.ps1 | iex
 ```
+
+Installs to `%LOCALAPPDATA%\tossctl` and adds it to the user PATH automatically.
+Open a new terminal window and `tossctl` is ready to use.
+
+For a manual install, download `tossctl-windows-amd64.zip` from [Releases](https://github.com/JungHoonGhae/tossinvest-cli/releases/latest).
 
 #### From source
 
