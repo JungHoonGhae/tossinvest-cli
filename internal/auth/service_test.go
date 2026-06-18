@@ -265,7 +265,7 @@ func TestDefaultLoginConfigPrefersUvToolPython(t *testing.T) {
 	}
 }
 
-func TestDefaultLoginConfigFallsBackToPython3(t *testing.T) {
+func TestDefaultLoginConfigFallsBackToPlatformPython(t *testing.T) {
 	t.Setenv("TOSSCTL_AUTH_HELPER_PYTHON", "")
 	t.Setenv("UV_TOOL_DIR", filepath.Join(t.TempDir(), "nonexistent"))
 	t.Setenv("XDG_DATA_HOME", filepath.Join(t.TempDir(), "nonexistent"))
