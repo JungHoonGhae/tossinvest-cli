@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -265,8 +266,13 @@ func TestDefaultLoginConfigFallsBackToPython3(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 
 	cfg := DefaultLoginConfig(t.TempDir())
-	if cfg.PythonBin != "python3" {
-		t.Fatalf("expected python3 fallback, got %q", cfg.PythonBin)
+
+	want := "python3"
+	if runtime.GOOS == "windows" {
+		want = "python"
+	}
+	if cfg.PythonBin != want {
+		t.Fatalf("expected %q fallback, got %q", want, cfg.PythonBin)
 	}
 }
 
