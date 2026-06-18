@@ -118,11 +118,13 @@ function Install-Tossctl {
         # ── Google Chrome check ───────────────────────────────────────────────
         Write-Host ""
         Write-Step "Checking for Google Chrome (required for auth login)..."
-        $chromePaths = @(
-            (Join-Path $env:ProgramFiles       "Google\Chrome\Application\chrome.exe"),
-            (Join-Path ${env:ProgramFiles(x86)} "Google\Chrome\Application\chrome.exe"),
-            (Join-Path $env:LOCALAPPDATA       "Google\Chrome\Application\chrome.exe")
-        )
+        # Some roots can be undefined (e.g. ProgramFiles(x86) on 32-bit Windows);
+        # filter nulls first so Join-Path never throws under -ErrorAction Stop.
+        $chromeRoots = @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:LOCALAPPDATA) |
+            Where-Object { $_ }
+        $chromePaths = $chromeRoots | ForEach-Object {
+            Join-Path $_ "Google\Chrome\Application\chrome.exe"
+        }
         $chromeFound = $chromePaths | Where-Object { Test-Path $_ }
         if ($chromeFound) {
             Write-Ok "Google Chrome found."
