@@ -15,6 +15,7 @@ type LoginResult struct {
 	StorageStatePath string `json:"storage_state_path"`
 	CookieCount      int    `json:"cookie_count,omitempty"`
 	OriginCount      int    `json:"origin_count,omitempty"`
+	UserAgent        string `json:"user_agent,omitempty"`
 }
 
 type LoginRunner interface {

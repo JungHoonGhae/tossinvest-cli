@@ -211,6 +211,17 @@ func (s *Service) LoginWith(ctx context.Context, cfg LoginConfig) (*session.Sess
 		return nil, err
 	}
 
+	// Pin the User-Agent to the exact browser that established this session.
+	// Toss's WTS API rejects fingerprint-incoherent requests, so replaying a
+	// Windows/Linux login with the built-in fallback UA can be refused (403).
+	// applySession lets a session header override the default UA.
+	if result.UserAgent != "" {
+		sess.Headers["User-Agent"] = result.UserAgent
+		if err := s.store.Save(ctx, sess); err != nil {
+			return nil, err
+		}
+	}
+
 	// The helper-managed storage-state file holds a redundant copy of the full
 	// cookie set (SESSION/UTK/LTK/FTK/XSRF-TOKEN) that we have just persisted
 	// into session.json. Remove it so `auth logout` (which only clears

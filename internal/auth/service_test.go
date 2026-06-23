@@ -73,6 +73,7 @@ func TestLoginImportsHelperStorageState(t *testing.T) {
 				result: &LoginResult{
 					Status:           "ok",
 					StorageStatePath: storageStatePath,
+					UserAgent:        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) HeadlessChrome/149.0.0.0",
 				},
 			},
 		},
@@ -90,6 +91,11 @@ func TestLoginImportsHelperStorageState(t *testing.T) {
 	}
 	if sess.Headers["Browser-Tab-Id"] != "browser-tab-login" {
 		t.Fatalf("unexpected browser-tab-id header: %q", sess.Headers["Browser-Tab-Id"])
+	}
+	// The browser's real UA is pinned so API traffic stays fingerprint-coherent
+	// with the platform the login ran on (else Toss can reject with 403).
+	if sess.Headers["User-Agent"] != "Mozilla/5.0 (Windows NT 10.0; Win64; x64) HeadlessChrome/149.0.0.0" {
+		t.Fatalf("unexpected pinned user-agent: %q", sess.Headers["User-Agent"])
 	}
 	if sess.Storage["localStorage:WTS-DEVICE-ID"] != "device-123" {
 		t.Fatalf("unexpected storage value: %q", sess.Storage["localStorage:WTS-DEVICE-ID"])

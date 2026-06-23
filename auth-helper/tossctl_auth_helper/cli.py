@@ -377,6 +377,14 @@ def command_login(args: argparse.Namespace) -> int:
                         os.write(fd, payload)
                     finally:
                         os.close(fd)
+                    # Capture the browser's real User-Agent so the CLI sends a
+                    # UA coherent with the session it just established. Toss's
+                    # WTS API rejects fingerprint-incoherent requests (e.g. a
+                    # Windows login replayed with a hardcoded macOS UA → 403).
+                    try:
+                        user_agent = page.evaluate("() => navigator.userAgent")
+                    except Exception:
+                        user_agent = ""
                     browser.close()
                     return emit(
                         {
@@ -388,6 +396,7 @@ def command_login(args: argparse.Namespace) -> int:
                             "storage_state_path": str(storage_state_path),
                             "cookie_count": final_cookie_count,
                             "origin_count": len(storage_state.get("origins", [])),
+                            "user_agent": user_agent or "",
                         }
                     )
 

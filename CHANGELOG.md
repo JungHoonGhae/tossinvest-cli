@@ -5,6 +5,7 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 ## [Unreleased]
 
 ### 버그 수정
+- Windows·Linux 에서 로그인은 성공하는데 `auth status` 와 모든 인증 요청이 거부(400/401/403)되던 문제 수정. tossctl 이 보내는 User-Agent 가 macOS 로 고정돼 있어, 다른 OS 에서 로그인한 세션과 불일치해 토스 서버가 거부하던 것이 원인이었습니다. 이제 로그인한 브라우저의 실제 User-Agent 를 세션에 저장해 그대로 쓰고, 기본값도 실행 OS 에 맞춰 만듭니다. (제보: @1jfollower-lang, #36)
 - Windows 설치 시 playwright 설치 단계에서 실제로는 성공했는데도 빨간 `NativeCommandError` 가 표시되던 문제 수정 (PowerShell이 pip 진행 메시지를 오류로 처리). 이제 종료 코드로만 성공/실패를 판정합니다. (제보: @vvdlife, #35)
 
 ## [0.10.0] - 2026-06-21

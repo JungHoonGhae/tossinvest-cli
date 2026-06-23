@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -18,14 +19,28 @@ import (
 const defaultAPIBaseURL = "https://wts-api.tossinvest.com"
 const defaultInfoBaseURL = "https://wts-info-api.tossinvest.com"
 const defaultCertBaseURL = "https://wts-cert-api.tossinvest.com"
+
 // DefaultBrowserUserAgent is the User-Agent that tossctl HTTP traffic uses
 // when the caller does not set one explicitly. Toss servers (wts-api,
 // wts-cert-api, wts-info-api, sse-message) reject the default Go HTTP UA with
-// 403; matching a current Chrome string keeps the fingerprint coherent.
-// Exported so packages outside `client` (e.g. `internal/push` for the SSE
-// listener) can reuse the same string instead of drifting copies — bumping
-// the Chrome version is a single-edit operation.
-const DefaultBrowserUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
+// 403, and reject requests whose UA is incoherent with the session's origin
+// platform — so this is built per-OS to match the machine the login ran on
+// (a hardcoded macOS UA on Windows/Linux was being refused). The normal login
+// path stores the browser's exact UA on the session, which overrides this;
+// this fallback covers manual `import-playwright-state` and the SSE listener.
+// Exported so packages outside `client` (e.g. `internal/push`) reuse one value.
+var DefaultBrowserUserAgent = browserUserAgent(runtime.GOOS)
+
+func browserUserAgent(goos string) string {
+	platform := "X11; Linux x86_64"
+	switch goos {
+	case "darwin":
+		platform = "Macintosh; Intel Mac OS X 10_15_7"
+	case "windows":
+		platform = "Windows NT 10.0; Win64; x64"
+	}
+	return "Mozilla/5.0 (" + platform + ") AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
+}
 
 type Config struct {
 	HTTPClient    *http.Client
