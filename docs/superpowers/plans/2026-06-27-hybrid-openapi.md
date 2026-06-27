@@ -483,16 +483,16 @@ func TestGetAvailableActionsAlwaysWTS(t *testing.T) { /* off 설정돼 있어도
 - Consumes: `official.SaveCredentials/DeleteCredentials/LoadCredentials`, `official.New`, `paths`.
 - Produces: `tossctl openapi login|test|logout`. 표현 계층은 얇게(플래그/stdin + `internal/output`) — 이후 UX 트랙이 TUI로 감쌀 수 있게 로직과 렌더 분리.
 
-- [ ] **Step 1: 실패 테스트** — `login --key K --secret S`가 0600 파일 생성(프롬프트 없이), `logout`이 삭제, 출력에 시크릿 평문 없음, **非TTY + 플래그 누락이면 프롬프트 없이 에러**(AI 우선 조작성).
+- [ ] **Step 1: 실패 테스트** — `login --key K --secret S`가 0600 파일 생성, `logout`이 삭제, 출력에 시크릿 평문 없음, **플래그 누락이면 즉시 에러**(대화형 대기 없음 — AI 우선). 대화형 마스킹 입력은 이 태스크가 아니라 위저드(Task 18) 전담.
 
 ```go
-func TestOpenAPILoginNonInteractiveErrorsWhenMissingFlags(t *testing.T) {
-	// stdin 非TTY, --key/--secret 미지정 → 즉시 에러("provide --key/--secret or run in a terminal"), 입력 대기 없음
+func TestOpenAPILoginFlagsOnlyErrorsWhenMissing(t *testing.T) {
+	// --key/--secret 미지정 → 즉시 에러("provide --key and --secret, or run `tossctl init`"), 입력 대기 없음
 }
 ```
 
 - [ ] **Step 2: 실패 확인** — Run: `go test ./cmd/tossctl/ -run TestOpenAPILogin -v` · Expected: FAIL.
-- [ ] **Step 3: 구현** — `login`: `--key/--secret` 있으면 그대로 저장(완전 비대화형). 없을 때 **TTY면** stdin 프롬프트(secret 에코는 `golang.org/x/term` 의존성 금지 → 라인 읽기 + 경고), **非TTY면 에러**(대기 금지). TTY 감지는 `term.IsTerminal` 대신 표준 라이브러리 `os.Stdin.Stat()`의 `ModeCharDevice` 비트로 판정(의존성 없음). `test`: `official.New` + 토큰 + `/accounts`, 결과 분류 메시지(+`--output json`). `logout`: 파일 삭제. 시크릿 절대 출력 안 함.
+- [ ] **Step 3: 구현** — `login`: **플래그 전용**(`--key`+`--secret`). 둘 다 있으면 0600 저장(완전 비대화형). 누락이면 에러로 안내(`--key/--secret 주거나 \`tossctl init\` 위저드 사용`) — TTY 프롬프트 없음(대화형은 Task 18). `test`: `official.New` + 토큰 + `/accounts`(Task 5), 결과 분류 메시지(IP 미허용 등) + `--output json`. `logout`: 자격증명/토큰 파일 삭제. 시크릿 절대 출력 안 함. 커맨드 등록은 기존 cobra 패턴(`cmd/tossctl/root.go`, `auth.go`/`config.go` 참고). **저장·검증 로직은 Task 18 위저드가 재사용하도록 함수로 분리**.
 - [ ] **Step 4: 통과 확인** — Run: `go test ./cmd/tossctl/ -v`
 - [ ] **Step 5: 커밋** — `git commit -am "feat(cmd): openapi login/test/logout"`
 
