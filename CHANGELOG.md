@@ -4,6 +4,9 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 
 ## [Unreleased]
 
+### 버그 수정
+- 설치 스크립트(`curl ... install.sh | sh`)가 `/usr/local/bin` 이 없는 환경(주로 새로 설정한 Apple Silicon Mac — Homebrew 가 `/opt/homebrew` 에 있어 `/usr/local/bin` 이 아직 없는 경우)에서 `mv: ... No such file or directory` 로 설치에 실패하던 문제 수정. 설치 디렉터리를 먼저 만들고, 쓰기 권한이 있으면 sudo 없이 설치합니다. `INSTALL_DIR`·`SHARE_DIR` 환경변수로 설치 위치를 바꿀 수도 있습니다.
+
 ## [0.11.1] - 2026-06-25
 
 ### 버그 수정

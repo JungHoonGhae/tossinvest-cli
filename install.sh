@@ -3,8 +3,8 @@ set -e
 
 REPO="JungHoonGhae/tossinvest-cli"
 BINARY="tossctl"
-INSTALL_DIR="/usr/local/bin"
-SHARE_DIR="/usr/local/share/tossctl"
+INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
+SHARE_DIR="${SHARE_DIR:-/usr/local/share/tossctl}"
 
 main() {
     os=$(detect_os)
@@ -37,22 +37,24 @@ main() {
     tar -xzf "${tmpdir}/${asset}" -C "$tmpdir"
 
     echo "Installing to ${INSTALL_DIR}..."
-    if [ -w "$INSTALL_DIR" ]; then
-        mv "${tmpdir}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
-        chmod +x "${INSTALL_DIR}/${BINARY}"
-        mkdir -p "${SHARE_DIR}"
-        if [ -d "${tmpdir}/auth-helper" ]; then
-            rm -rf "${SHARE_DIR}/auth-helper"
-            mv "${tmpdir}/auth-helper" "${SHARE_DIR}/auth-helper"
-        fi
+
+    # Use sudo only when we can't write the target ourselves. On a fresh
+    # Apple Silicon Mac /usr/local/bin frequently doesn't exist yet (Homebrew
+    # lives in /opt/homebrew), so we must create it before moving the binary —
+    # otherwise mv fails with "No such file or directory" on the destination.
+    if can_write "$INSTALL_DIR" && can_write "$SHARE_DIR"; then
+        SUDO=""
     else
-        sudo mv "${tmpdir}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
-        sudo chmod +x "${INSTALL_DIR}/${BINARY}"
-        sudo mkdir -p "${SHARE_DIR}"
-        if [ -d "${tmpdir}/auth-helper" ]; then
-            sudo rm -rf "${SHARE_DIR}/auth-helper"
-            sudo mv "${tmpdir}/auth-helper" "${SHARE_DIR}/auth-helper"
-        fi
+        SUDO="sudo"
+        echo "Elevated permissions required to write ${INSTALL_DIR}."
+    fi
+
+    $SUDO mkdir -p "${INSTALL_DIR}" "${SHARE_DIR}"
+    $SUDO mv "${tmpdir}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
+    $SUDO chmod +x "${INSTALL_DIR}/${BINARY}"
+    if [ -d "${tmpdir}/auth-helper" ]; then
+        $SUDO rm -rf "${SHARE_DIR}/auth-helper"
+        $SUDO mv "${tmpdir}/auth-helper" "${SHARE_DIR}/auth-helper"
     fi
 
     echo ""
@@ -70,6 +72,16 @@ main() {
     echo "Next steps:"
     echo "  tossctl doctor"
     echo "  tossctl auth login"
+}
+
+# True if we can create/write inside dir. When dir doesn't exist yet, walk up
+# to the first existing ancestor and test that (mkdir -p will create the rest).
+can_write() {
+    d="$1"
+    while [ ! -e "$d" ]; do
+        d=$(dirname "$d")
+    done
+    [ -w "$d" ]
 }
 
 detect_os() {
