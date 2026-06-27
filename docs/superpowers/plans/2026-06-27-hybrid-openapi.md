@@ -534,16 +534,23 @@ func TestOpenAPILoginNonInteractiveErrorsWhenMissingFlags(t *testing.T) {
 
 ---
 
-## Task 15: 문서 · 카탈로그 · CHANGELOG
+## Task 15: 문서 · 문서 페이지 · 카탈로그 · CHANGELOG
+
+하이브리드 지원을 **docs 사이트(Fumadocs)·README·랜딩**에 충실히 반영한다(사용자 요청).
 
 **Files:**
-- Modify: `content/docs/reference/support-scope.mdx`(+`.en.mdx`), `README.md`, `CHANGELOG.md`, `docs/reverse-engineering/wts-endpoints.json`(Task 7에서 처리됐으면 확인만).
+- Create: `website-fumadocs/content/docs/guide/hybrid-openapi.mdx`(+`.en.mdx`) — 전용 가이드 페이지.
+- Modify: `website-fumadocs/content/docs/reference/support-scope.mdx`(+`.en.mdx`), `README.md`, `CHANGELOG.md`, `docs/reverse-engineering/wts-endpoints.json`(Task 7에서 처리됐으면 확인만), 랜딩 `website-fumadocs/app/[lang]/(home)/page.tsx`(해당 시 "선택적 하이브리드" 카피).
+- 사이드바/메타(`meta.json` 등) 등록은 기존 docs 구조 관례 따름.
 
-- [ ] **Step 1** — support-scope: 공식 칼럼이 *실제 라우팅*됨을 반영(주문/조회 행에 하이브리드 주석), `openapi` 커맨드 + `--backend` 문서화. README 비교표 + `<!--since:2026-06-27-->` 마커.
-- [ ] **Step 2** — `CHANGELOG.md` `[Unreleased]`에 사용자 관점 항목 추가(공식 키 연결 시 더 안정적, `openapi` 커맨드, status 진단, doctor 통합).
-- [ ] **Step 3** — `python3 tools/update_new_markers.py` 실행(있으면).
-- [ ] **Step 4** — 전체 검증: `make build && make test && make lint`(또는 `go build ./... && go test ./... && go vet ./...`).
-- [ ] **Step 5: 커밋** — `git commit -am "docs: 하이브리드 공식 Open API 지원 문서/카탈로그/CHANGELOG"`
+- [ ] **Step 1 — 전용 가이드 페이지** — `guide/hybrid-openapi.mdx`(+en): (1) 하이브리드가 무엇인지(공식이 지원하는 op는 공식 OAuth 경로, 나머지는 WTS, 실패 시 폴백), (2) 공식 Open API 키 발급 방법(토스 설정 > Open API, 허용 IP 등록 필수) + 보안 주의(시크릿 0600·env), (3) `tossctl openapi login/status/test/logout` 사용법, (4) `--backend`·config `openapi.{enabled,prefer,fallback}`, (5) 폴백·소스 표시(stderr), 주문 보수적 폴백, (6) `status`로 "왜 안 되는지" 진단(IP 미허용·만료 등). 더미 값만 사용(실제 키 금지).
+- [ ] **Step 2 — support-scope** — 공식 칼럼이 *실제 라우팅*됨을 반영(주문/조회 행에 하이브리드 주석), 전용 가이드로 링크. `openapi` 커맨드 + `--backend` 문서화.
+- [ ] **Step 3 — README** — 비교표/소개에 하이브리드 한 단락 + `tossctl openapi` 빠른 시작, `<!--since:2026-06-27-->` 마커.
+- [ ] **Step 4 — 랜딩 카피** — `page.tsx`의 "선택적 하이브리드"/`thesis.points` 문구가 이제 실재 기능과 일치하는지 점검·정정(과장 없이).
+- [ ] **Step 5 — CHANGELOG** — `[Unreleased]`에 사용자 관점 항목(공식 키 연결 시 더 안정적, `openapi` 커맨드, status 진단, doctor 통합).
+- [ ] **Step 6** — `python3 tools/update_new_markers.py` 실행(있으면).
+- [ ] **Step 7 — 검증** — `make build && make test && make lint`(또는 `go build ./... && go test ./... && go vet ./...`). docs 사이트는 `website-fumadocs`에서 빌드 점검(가능 시).
+- [ ] **Step 8: 커밋** — `git commit -am "docs: 하이브리드 공식 Open API 가이드 페이지·support-scope·README·랜딩·CHANGELOG"`
 
 ---
 
