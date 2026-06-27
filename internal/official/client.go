@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -18,9 +19,10 @@ const defaultTimeout = 15 * time.Second
 // Client is the official Toss Open API client.
 // It manages OAuth2 token acquisition/refresh and provides authed HTTP helpers.
 type Client struct {
-	base  string
-	hc    *http.Client
-	tm    *tokenManager
+	base       string
+	hc         *http.Client
+	tm         *tokenManager
+	accountSeq int // used for X-Tossinvest-Account header (0 = unset)
 }
 
 // Option configures a Client.
@@ -37,6 +39,14 @@ func WithBaseURL(u string) Option {
 func WithHTTPClient(hc *http.Client) Option {
 	return func(c *Client) {
 		c.hc = hc
+	}
+}
+
+// WithAccountSeq sets the default account sequence number sent as the
+// X-Tossinvest-Account header on account-scoped endpoints (BuyingPower, Holdings).
+func WithAccountSeq(seq int) Option {
+	return func(c *Client) {
+		c.accountSeq = seq
 	}
 }
 
@@ -137,6 +147,64 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 
 	if code == http.StatusUnauthorized {
 		// Force-refresh the token and retry once.
+		tok, err = c.tm.refresh(ctx)
+		if err != nil {
+			return err
+		}
+		req, err = makeReq(tok)
+		if err != nil {
+			return err
+		}
+		code, body, err = c.doRequest(req)
+		if err != nil {
+			return err
+		}
+	}
+
+	if code < 200 || code >= 300 {
+		return classifyStatus(code, body)
+	}
+
+	return unwrapAndDecode(body, out)
+}
+
+// getAcct is like get but also sets the X-Tossinvest-Account header when the
+// client's accountSeq is non-zero. Used by account-scoped endpoints such as
+// BuyingPower and Holdings that require the header per the official API spec.
+func (c *Client) getAcct(ctx context.Context, path string, q url.Values, out any) error {
+	rawURL := c.base + path
+	if len(q) > 0 {
+		rawURL += "?" + q.Encode()
+	}
+
+	makeReq := func(tok string) (*http.Request, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s", ErrTransport, err)
+		}
+		req.Header.Set("Authorization", "Bearer "+tok)
+		if c.accountSeq != 0 {
+			req.Header.Set("X-Tossinvest-Account", strconv.Itoa(c.accountSeq))
+		}
+		return req, nil
+	}
+
+	tok, err := c.tm.token(ctx)
+	if err != nil {
+		return err
+	}
+
+	req, err := makeReq(tok)
+	if err != nil {
+		return err
+	}
+
+	code, body, err := c.doRequest(req)
+	if err != nil {
+		return err
+	}
+
+	if code == http.StatusUnauthorized {
 		tok, err = c.tm.refresh(ctx)
 		if err != nil {
 			return err

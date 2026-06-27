@@ -595,3 +595,12 @@ type Sectors struct {
 	Items     []Sector  `json:"items"`
 	FetchedAt time.Time `json:"fetched_at"`
 }
+
+// BuyingPower is the cash-based buying power for a given currency.
+// Endpoint: GET /api/v1/buying-power (official API).
+// cashBuyingPower (string decimal) is parsed to float64.
+// CashBuyingPower maps to WTS OrderableAmountKr.KRW or OrderableAmountUs.USD.
+type BuyingPower struct {
+	Currency        string  `json:"currency"`
+	CashBuyingPower float64 `json:"cash_buying_power"`
+}
