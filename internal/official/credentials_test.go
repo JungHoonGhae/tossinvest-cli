@@ -30,7 +30,10 @@ func TestSaveCredentialsIs0600(t *testing.T) {
 	if err := official.SaveCredentials(file, official.Credentials{APIKey: "k", SecretKey: "s"}); err != nil {
 		t.Fatal(err)
 	}
-	fi, _ := os.Stat(file)
+	fi, err := os.Stat(file)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if fi.Mode().Perm() != 0o600 {
 		t.Fatalf("want 0600, got %v", fi.Mode().Perm())
 	}
@@ -80,7 +83,10 @@ func TestSaveCredentialsCreatesParentDir(t *testing.T) {
 		t.Fatalf("file not created: %v", err)
 	}
 	// Check parent dir perms.
-	fi, _ := os.Stat(filepath.Join(dir, "nested"))
+	fi, err := os.Stat(filepath.Join(dir, "nested"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	if fi.Mode().Perm() != 0o700 {
 		t.Fatalf("want dir 0700, got %v", fi.Mode().Perm())
 	}
@@ -101,6 +107,22 @@ func TestDeleteCredentials(t *testing.T) {
 	// Deleting absent file is not an error.
 	if err := official.DeleteCredentials(file); err != nil {
 		t.Fatalf("delete absent should be nil, got %v", err)
+	}
+}
+
+func TestLoadCredentialsMalformedReturnsError(t *testing.T) {
+	dir := t.TempDir()
+	file := filepath.Join(dir, "c.json")
+	if err := os.WriteFile(file, []byte("not json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	emptyEnv := func(string) string { return "" }
+	c, err := official.LoadCredentials(emptyEnv, file)
+	if err == nil {
+		t.Fatal("expected error for malformed file, got nil")
+	}
+	if c != nil {
+		t.Fatalf("expected nil credentials on error, got %v", c)
 	}
 }
 
