@@ -3,7 +3,7 @@
 <div align="center">
   <h1>tossinvest-cli</h1>
   <p><strong>AI 에이전트를 토스증권에 연결하는 비공식 CLI — 공식 Open API(예정)보다 넓은 조회·거래 범위.</strong></p>
-  <p>Claude Code · Codex · Cursor · OpenClaw · bash · HTTP — 어떤 도구든 동일한 명령 체계(<code>tossctl</code>)로 토스증권 계좌·시세·거래를 다룰 수 있습니다. 사람이 직접 터미널에서 쓸 수도 있습니다.</p>
+  <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot 등 어떤 AI 에이전트든 동일한 명령 체계(<code>tossctl</code>)로 토스증권 계좌·시세·거래를 다룰 수 있습니다. 사람이 직접 터미널에서 쓸 수도 있습니다.</p>
   <p><sub>수급 · 시장지수 · 토스 AI 시그널 · 조건검색(스크리너) · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview — <strong>공식 Open API(예정) 로드맵에 없는 영역까지</strong> 커버합니다. <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
   <p><sub><em>An unofficial Toss Securities CLI for AI agents — broader read &amp; trade coverage than the (upcoming) official Open API.</em></sub></p>
 </div>
@@ -47,17 +47,19 @@
 </p>
 
 <div align="center">
-<table>
-  <tr>
-    <td align="center"><strong>Works with</strong></td>
-    <td align="center"><img src="docs/assets/logos/openclaw.svg" width="32" alt="OpenClaw" /><br /><sub>OpenClaw</sub></td>
-    <td align="center"><img src="docs/assets/logos/claude.svg" width="32" alt="Claude Code" /><br /><sub>Claude Code</sub></td>
-    <td align="center"><img src="docs/assets/logos/codex.svg" width="32" alt="Codex" /><br /><sub>Codex</sub></td>
-    <td align="center"><img src="docs/assets/logos/cursor.svg" width="32" alt="Cursor" /><br /><sub>Cursor</sub></td>
-    <td align="center"><img src="docs/assets/logos/bash.svg" width="32" alt="Bash" /><br /><sub>Bash</sub></td>
-    <td align="center"><img src="docs/assets/logos/http.svg" width="32" alt="HTTP" /><br /><sub>HTTP</sub></td>
-  </tr>
-</table>
+<sub><strong>WORKS WITH</strong></sub>
+<br /><br />
+<img src="docs/assets/logos/claude.svg" height="30" alt="Claude Code" title="Claude Code" />&nbsp;&nbsp;
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/codex.svg" /><img src="docs/assets/logos/codex-light.svg" height="30" alt="Codex" title="Codex" /></picture>&nbsp;&nbsp;
+<img src="docs/assets/logos/googlegemini.svg" height="30" alt="Gemini CLI" title="Gemini CLI" />&nbsp;&nbsp;
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/cursor.svg" /><img src="docs/assets/logos/cursor-light.svg" height="30" alt="Cursor" title="Cursor" /></picture>&nbsp;&nbsp;
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/githubcopilot.svg" /><img src="docs/assets/logos/githubcopilot-light.svg" height="30" alt="GitHub Copilot" title="GitHub Copilot" /></picture>&nbsp;&nbsp;
+<img src="docs/assets/logos/opencode.svg" height="30" alt="OpenCode" title="OpenCode" />&nbsp;&nbsp;
+<img src="docs/assets/logos/qwen.svg" height="30" alt="Qwen Code" title="Qwen Code" />&nbsp;&nbsp;
+<img src="docs/assets/logos/deepseek.svg" height="30" alt="DeepSeek" title="DeepSeek" />&nbsp;&nbsp;
+<img src="docs/assets/logos/mistralai.svg" height="30" alt="Mistral" title="Mistral" />&nbsp;&nbsp;
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/moonshotai.svg" /><img src="docs/assets/logos/moonshotai-light.svg" height="30" alt="Kimi CLI" title="Kimi CLI" /></picture>&nbsp;&nbsp;
+<img src="docs/assets/logos/openclaw.svg" height="30" alt="OpenClaw" title="OpenClaw" />
 </div>
 
 <p align="center">

@@ -3,7 +3,7 @@
 <div align="center">
   <h1>tossinvest-cli</h1>
   <p><strong>An unofficial Toss Securities CLI that connects AI agents to your brokerage — with a broader read &amp; trade coverage than the (upcoming) official Open API.</strong></p>
-  <p>Claude Code · Codex · Cursor · OpenClaw · bash · HTTP — any tool drives Toss Securities accounts, quotes, and trades through one command interface (<code>tossctl</code>). It works just as well by hand in a terminal.</p>
+  <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot and any AI agent drive Toss Securities accounts, quotes, and trades through one command interface (<code>tossctl</code>). It works just as well by hand in a terminal.</p>
   <p><sub>Investor flows · market indices · Toss AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — <strong>tossctl covers areas the official Open API (upcoming) roadmap does not.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
 </div>
 
