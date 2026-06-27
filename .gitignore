@@ -32,3 +32,6 @@ CLAUDE.md
 # docs site build artifacts
 website/site/
 website/.venv/
+
+# SDD 스크래치(브리프/보고서/리뷰 패키지/레저)
+.superpowers/
