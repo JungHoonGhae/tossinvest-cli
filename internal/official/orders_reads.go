@@ -110,6 +110,16 @@ func (c *Client) Orders(ctx context.Context, filter OrdersFilter) ([]domain.Orde
 	return adaptOrders(raw.Orders), nil
 }
 
+// OrderByID fetches a single order by its unique ID.
+// Requires the X-Tossinvest-Account header; configure via WithAccountSeq.
+func (c *Client) OrderByID(ctx context.Context, orderID string) (domain.Order, error) {
+	var raw apiOrder
+	if err := c.getAcct(ctx, "/api/v1/orders/"+orderID, nil, &raw); err != nil {
+		return domain.Order{}, err
+	}
+	return adaptOrder(raw), nil
+}
+
 // adaptOrders converts a slice of official Order records to []domain.Order.
 func adaptOrders(raw []apiOrder) []domain.Order {
 	out := make([]domain.Order, 0, len(raw))

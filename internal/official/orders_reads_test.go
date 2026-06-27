@@ -218,3 +218,49 @@ func TestOrdersFilterEmpty(t *testing.T) {
 		t.Fatalf("want 0 orders, got %d", len(got))
 	}
 }
+
+// ---------------------------------------------------------------------------
+// OrderByID integration tests
+// ---------------------------------------------------------------------------
+
+// TestOrderByIDIntegration tests OrderByID() against an httptest server.
+func TestOrderByIDIntegration(t *testing.T) {
+	var gotHeader string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/orders/abc123":
+			gotHeader = r.Header.Get("X-Tossinvest-Account")
+			_, _ = w.Write([]byte(`{"result":{"orderId":"abc123","symbol":"005930","side":"BUY","orderType":"LIMIT","timeInForce":"DAY","status":"OPEN","quantity":"10","price":"70000","currency":"KRW","orderedAt":"2026-03-29T09:30:00+09:00","canceledAt":null,"orderAmount":null,"execution":{"filledQuantity":"0","averageFilledPrice":null,"filledAmount":null,"commission":null,"tax":null,"filledAt":null,"settlementDate":null}}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+		WithAccountSeq(5),
+	)
+
+	got, err := c.OrderByID(context.Background(), "abc123")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.ID != "abc123" {
+		t.Fatalf("ID: want abc123, got %q", got.ID)
+	}
+	if got.Symbol != "005930" {
+		t.Fatalf("Symbol: want 005930, got %q", got.Symbol)
+	}
+	if got.Price != 70000 {
+		t.Fatalf("Price: want 70000, got %v", got.Price)
+	}
+	if gotHeader != "5" {
+		t.Fatalf("X-Tossinvest-Account: want 5, got %q", gotHeader)
+	}
+}
