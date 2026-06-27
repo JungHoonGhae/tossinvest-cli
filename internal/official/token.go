@@ -64,20 +64,24 @@ func (m *tokenManager) token(ctx context.Context) (string, error) {
 	now := time.Now()
 
 	// 1. In-memory cache.
-	if m.cache != nil && m.cache.ExpiresAt.Add(-60*time.Second).After(now) {
+	if isStillValid(m.cache, now) {
 		return m.cache.AccessToken, nil
 	}
 
 	// 2. Disk cache.
-	if ct, err := m.loadCache(); err == nil && ct != nil {
-		if ct.ExpiresAt.Add(-60 * time.Second).After(now) {
-			m.cache = ct
-			return ct.AccessToken, nil
-		}
+	if ct, err := m.loadCache(); err == nil && isStillValid(ct, now) {
+		m.cache = ct
+		return ct.AccessToken, nil
 	}
 
 	// 3. Exchange.
 	return m.exchange(ctx)
+}
+
+// isStillValid reports whether ct is non-nil and not expired, applying a
+// 60-second skew so a token is refreshed slightly before it actually expires.
+func isStillValid(ct *cachedToken, now time.Time) bool {
+	return ct != nil && ct.ExpiresAt.Add(-60*time.Second).After(now)
 }
 
 // refresh forces a new token exchange regardless of whether a cached token is
@@ -123,6 +127,9 @@ func (m *tokenManager) exchange(ctx context.Context) (string, error) {
 	if err := json.Unmarshal(body, &tr); err != nil {
 		return "", fmt.Errorf("%w: parsing token response: %s", ErrServer, err)
 	}
+	if tr.AccessToken == "" {
+		return "", fmt.Errorf("%w: empty access_token", ErrServer)
+	}
 
 	ct := &cachedToken{
 		AccessToken: tr.AccessToken,
@@ -141,6 +148,9 @@ func (m *tokenManager) loadCache() (*cachedToken, error) {
 		if os.IsNotExist(err) {
 			return nil, nil
 		}
+		// Other read errors (e.g. permission, corruption) are returned but
+		// treated as best-effort by the caller: a failed cache read should
+		// never block token acquisition, it just forces a fresh exchange.
 		return nil, err
 	}
 	var ct cachedToken

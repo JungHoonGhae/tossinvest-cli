@@ -12,6 +12,9 @@ func TestClassifyStatus(t *testing.T) {
 	if !errors.Is(classifyStatus(401, nil), ErrAuth) {
 		t.Fatal("401")
 	}
+	if !errors.Is(classifyStatus(401, []byte(`{"message":"ip not allowed"}`)), ErrIPNotAllowed) {
+		t.Fatal("401 ip")
+	}
 	if !errors.Is(classifyStatus(429, nil), ErrRateLimited) {
 		t.Fatal("429")
 	}

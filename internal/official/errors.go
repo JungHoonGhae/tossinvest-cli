@@ -32,9 +32,7 @@ func (e *APIError) Error() string {
 // ErrServer. All other 4xx → *APIError (passthrough, no fallback).
 func classifyStatus(code int, body []byte) error {
 	switch {
-	case code == 401:
-		return ErrAuth
-	case code == 403:
+	case code == 401 || code == 403:
 		if bytes.Contains(bytes.ToLower(body), []byte("ip")) {
 			return ErrIPNotAllowed
 		}
