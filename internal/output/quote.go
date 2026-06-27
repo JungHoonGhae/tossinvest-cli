@@ -13,7 +13,8 @@ import (
 func WriteQuote(w io.Writer, format Format, quote domain.Quote) error {
 	switch format {
 	case FormatTable:
-		return writeQuoteTable(w, quote)
+		enabled := colorEnabled(w, format)
+		return writeQuoteTable(w, quote, enabled)
 	case FormatJSON:
 		return writeQuoteJSON(w, quote)
 	case FormatCSV:
@@ -75,10 +76,12 @@ func writeQuoteCSV(w io.Writer, quote domain.Quote) error {
 	return writer.Error()
 }
 
-func writeQuoteTable(w io.Writer, quote domain.Quote) error {
+func writeQuoteTable(w io.Writer, quote domain.Quote, enabled bool) error {
+	changeStr := formatFloat(quote.Change)
+	changeRateStr := fmt.Sprintf("%.2f%%", quote.ChangeRate*100)
 	if _, err := fmt.Fprintf(
 		w,
-		"Product Code: %s\nSymbol: %s\nName: %s\nMarket: %s (%s)\nCurrency: %s\nReference Price: %s\nLast: %s\nChange: %s\nChange Rate: %.2f%%\nVolume: %s\n",
+		"Product Code: %s\nSymbol: %s\nName: %s\nMarket: %s (%s)\nCurrency: %s\nReference Price: %s\nLast: %s\nChange: %s\nChange Rate: %s\nVolume: %s\n",
 		quote.ProductCode,
 		quote.Symbol,
 		quote.Name,
@@ -87,8 +90,8 @@ func writeQuoteTable(w io.Writer, quote domain.Quote) error {
 		quote.Currency,
 		formatFloat(quote.ReferencePrice),
 		formatFloat(quote.Last),
-		formatFloat(quote.Change),
-		quote.ChangeRate*100,
+		profitText(changeStr, quote.Change, enabled),
+		profitText(changeRateStr, quote.ChangeRate, enabled),
 		formatFloat(quote.Volume),
 	); err != nil {
 		return err
@@ -161,34 +164,45 @@ func WriteQuotesWithCharts(w io.Writer, format Format, quotes []domain.Quote, ch
 		writer.Flush()
 		return writer.Error()
 	case FormatTable:
+		enabled := colorEnabled(w, format)
 		showCharts := charts != nil
 		headers := []string{"종목", "이름", "현재가", "변동", "변동률"}
 		if showCharts {
 			headers = append(headers, "차트")
 		}
-		var rows [][]string
+		var plainRows, coloredRows [][]string
 		for i, q := range quotes {
 			changeStr := formatKRW(q.Change)
 			if q.Change > 0 {
 				changeStr = "+" + changeStr
 			}
-			row := []string{
+			rateStr := formatPct(q.ChangeRate)
+			plain := []string{
 				q.Symbol,
 				q.Name,
 				formatKRW(q.Last),
 				changeStr,
-				formatPct(q.ChangeRate),
+				rateStr,
+			}
+			colored := []string{
+				q.Symbol,
+				q.Name,
+				formatKRW(q.Last),
+				profitText(changeStr, q.Change, enabled),
+				profitText(rateStr, q.ChangeRate, enabled),
 			}
 			if showCharts {
 				sparkline := ""
 				if i < len(charts) && len(charts[i].Candles) > 0 {
 					sparkline = renderSparkline(charts[i].Candles, 20)
 				}
-				row = append(row, sparkline)
+				plain = append(plain, sparkline)
+				colored = append(colored, sparkline)
 			}
-			rows = append(rows, row)
+			plainRows = append(plainRows, plain)
+			coloredRows = append(coloredRows, colored)
 		}
-		return renderTable(w, headers, rows)
+		return renderTableColored(w, headers, plainRows, coloredRows)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}

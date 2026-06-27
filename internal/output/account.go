@@ -89,12 +89,15 @@ func WriteAccountSummary(w io.Writer, format Format, summary domain.AccountSumma
 		writer.Flush()
 		return writer.Error()
 	case FormatTable:
+		enabled := colorEnabled(w, format)
+		profitAmtStr := formatFloat(summary.EvaluatedProfitAmount)
+		profitRateStr := fmt.Sprintf("%.2f%%", summary.ProfitRate*100)
 		if _, err := fmt.Fprintf(
 			w,
-			"Total Asset Amount: %s\nEvaluated Profit Amount: %s\nProfit Rate: %.2f%%\nOrderable KRW: %s\nOrderable USD: %s\n",
+			"Total Asset Amount: %s\nEvaluated Profit Amount: %s\nProfit Rate: %s\nOrderable KRW: %s\nOrderable USD: %s\n",
 			formatFloat(summary.TotalAssetAmount),
-			formatFloat(summary.EvaluatedProfitAmount),
-			summary.ProfitRate*100,
+			profitText(profitAmtStr, summary.EvaluatedProfitAmount, enabled),
+			profitText(profitRateStr, summary.ProfitRate, enabled),
 			formatFloat(summary.OrderableAmountKRW),
 			formatFloat(summary.OrderableAmountUSD),
 		); err != nil {

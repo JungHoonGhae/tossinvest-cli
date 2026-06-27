@@ -11,24 +11,45 @@ import (
 // renderTable writes a formatted table with the first column left-aligned
 // and all other columns right-aligned.
 func renderTable(w io.Writer, headers []string, rows [][]string) error {
+	return renderTableColored(w, headers, rows, nil)
+}
+
+// renderTableColored is like renderTable but accepts a separate displayRows slice
+// whose cells may contain ANSI escape sequences.  plainRows is always used for
+// column-width computation (so ANSI codes never distort padding), while
+// displayRows is used for the actual cell content that is written to w.
+// When displayRows is nil the function behaves identically to renderTable.
+func renderTableColored(w io.Writer, headers []string, plainRows [][]string, displayRows [][]string) error {
+	if displayRows == nil {
+		displayRows = plainRows
+	}
 	colWidths := make([]int, len(headers))
 	for i, h := range headers {
 		colWidths[i] = displayWidth(h)
 	}
-	for _, row := range rows {
+	for _, row := range plainRows {
 		for i, cell := range row {
-			if dw := displayWidth(cell); dw > colWidths[i] {
-				colWidths[i] = dw
+			if i < len(colWidths) {
+				if dw := displayWidth(cell); dw > colWidths[i] {
+					colWidths[i] = dw
+				}
 			}
 		}
 	}
 
-	writeRow := func(cells []string) {
+	writeRow := func(cells []string, plainCells []string) {
 		for i, cell := range cells {
+			if i >= len(colWidths) {
+				break
+			}
 			if i > 0 {
 				fmt.Fprint(w, "  ")
 			}
-			pad := colWidths[i] - displayWidth(cell)
+			plain := cell
+			if i < len(plainCells) {
+				plain = plainCells[i]
+			}
+			pad := colWidths[i] - displayWidth(plain)
 			if pad < 0 {
 				pad = 0
 			}
@@ -41,16 +62,20 @@ func renderTable(w io.Writer, headers []string, rows [][]string) error {
 		fmt.Fprint(w, "\n")
 	}
 
-	writeRow(headers)
+	writeRow(headers, headers)
 
 	sep := make([]string, len(headers))
 	for i, cw := range colWidths {
 		sep[i] = strings.Repeat("─", cw)
 	}
-	writeRow(sep)
+	writeRow(sep, sep)
 
-	for _, row := range rows {
-		writeRow(row)
+	for i, row := range displayRows {
+		var plain []string
+		if i < len(plainRows) {
+			plain = plainRows[i]
+		}
+		writeRow(row, plain)
 	}
 
 	return nil

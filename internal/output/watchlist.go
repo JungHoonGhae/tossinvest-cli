@@ -35,19 +35,44 @@ func WriteWatchlist(w io.Writer, format Format, items []domain.WatchlistItem) er
 		writer.Flush()
 		return writer.Error()
 	case FormatTable:
-		headers := []string{"그룹", "종목", "이름", "기준가", "현재가", "통화"}
-		var rows [][]string
+		enabled := colorEnabled(w, format)
+		headers := []string{"그룹", "종목", "이름", "기준가", "현재가", "등락", "등락률", "통화"}
+		var plainRows, coloredRows [][]string
 		for _, item := range items {
-			rows = append(rows, []string{
+			change := item.Last - item.Base
+			var changeRate float64
+			if item.Base != 0 {
+				changeRate = change / item.Base
+			}
+			changeStr := formatKRW(change)
+			if change > 0 {
+				changeStr = "+" + changeStr
+			}
+			rateStr := formatPct(changeRate)
+			plain := []string{
 				item.Group,
 				item.Symbol,
 				item.Name,
 				formatKRW(item.Base),
 				formatKRW(item.Last),
+				changeStr,
+				rateStr,
 				item.Currency,
-			})
+			}
+			colored := []string{
+				item.Group,
+				item.Symbol,
+				item.Name,
+				formatKRW(item.Base),
+				formatKRW(item.Last),
+				profitText(changeStr, change, enabled),
+				profitText(rateStr, changeRate, enabled),
+				item.Currency,
+			}
+			plainRows = append(plainRows, plain)
+			coloredRows = append(coloredRows, colored)
 		}
-		return renderTable(w, headers, rows)
+		return renderTableColored(w, headers, plainRows, coloredRows)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}

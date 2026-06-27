@@ -145,3 +145,14 @@ func TestWritePositionsUnsupportedFormat(t *testing.T) {
 		t.Fatal("expected error for unsupported format")
 	}
 }
+
+// Regression guard: buffer (non-TTY) must produce no ANSI codes.
+func TestPortfolioPlainWhenNotTTY(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WritePositions(&buf, FormatTable, testPositions); err != nil {
+		t.Fatalf("WritePositions error: %v", err)
+	}
+	if strings.Contains(buf.String(), "\x1b[") {
+		t.Fatal("non-TTY table output must contain no ANSI escape sequences")
+	}
+}

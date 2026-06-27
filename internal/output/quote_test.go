@@ -102,3 +102,25 @@ func TestWriteQuotesCSV(t *testing.T) {
 		t.Fatalf("expected 2 lines, got %d", len(lines))
 	}
 }
+
+// Regression guards: buffer (non-TTY) must produce no ANSI codes.
+func TestQuotePlainWhenNotTTY(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteQuote(&buf, FormatTable, testQuote); err != nil {
+		t.Fatalf("WriteQuote error: %v", err)
+	}
+	if strings.Contains(buf.String(), "\x1b[") {
+		t.Fatal("non-TTY WriteQuote table output must contain no ANSI escape sequences")
+	}
+}
+
+func TestQuotesPlainWhenNotTTY(t *testing.T) {
+	quotes := []domain.Quote{testQuote, {Symbol: "TSLL", Name: "TSLL", Last: 12.12, Change: -0.85, ChangeRate: -0.065}}
+	var buf bytes.Buffer
+	if err := WriteQuotes(&buf, FormatTable, quotes); err != nil {
+		t.Fatalf("WriteQuotes error: %v", err)
+	}
+	if strings.Contains(buf.String(), "\x1b[") {
+		t.Fatal("non-TTY WriteQuotes table output must contain no ANSI escape sequences")
+	}
+}

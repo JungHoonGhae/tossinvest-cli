@@ -50,7 +50,8 @@ func WritePositions(w io.Writer, format Format, positions []domain.Position) err
 		writer.Flush()
 		return writer.Error()
 	case FormatTable:
-		return writePositionsTable(w, positions)
+		enabled := colorEnabled(w, format)
+		return writePositionsTable(w, positions, enabled)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
@@ -104,7 +105,7 @@ func WriteAllocation(w io.Writer, format Format, markets map[string]domain.Accou
 	}
 }
 
-func writePositionsTable(w io.Writer, positions []domain.Position) error {
+func writePositionsTable(w io.Writer, positions []domain.Position, enabled bool) error {
 	hasUS := false
 	for _, p := range positions {
 		if p.MarketType == "US_STOCK" {
@@ -118,31 +119,55 @@ func writePositionsTable(w io.Writer, positions []domain.Position) error {
 		headers = append(headers, "USD 손익", "USD 률")
 	}
 
-	var rows [][]string
+	var plainRows, coloredRows [][]string
 	for _, p := range positions {
 		label := fmt.Sprintf("%s (%s)", truncateName(p.Name, 16), p.Symbol)
-		row := []string{
+		pnlStr := formatKRW(p.UnrealizedPnL)
+		rateStr := formatPct(p.ProfitRate)
+		dailyStr := formatKRW(p.DailyProfitLoss)
+		dailyRateStr := formatPct(p.DailyProfitRate)
+
+		plain := []string{
 			label,
 			formatQty(p.Quantity),
 			formatKRW(p.AveragePrice),
 			formatKRW(p.CurrentPrice),
 			formatKRW(p.MarketValue),
-			formatKRW(p.UnrealizedPnL),
-			formatPct(p.ProfitRate),
-			formatKRW(p.DailyProfitLoss),
-			formatPct(p.DailyProfitRate),
+			pnlStr,
+			rateStr,
+			dailyStr,
+			dailyRateStr,
+		}
+		colored := []string{
+			label,
+			formatQty(p.Quantity),
+			formatKRW(p.AveragePrice),
+			formatKRW(p.CurrentPrice),
+			formatKRW(p.MarketValue),
+			profitText(pnlStr, p.UnrealizedPnL, enabled),
+			profitText(rateStr, p.ProfitRate, enabled),
+			profitText(dailyStr, p.DailyProfitLoss, enabled),
+			profitText(dailyRateStr, p.DailyProfitRate, enabled),
 		}
 		if hasUS {
 			if p.MarketType == "US_STOCK" {
-				row = append(row, formatUSD(p.UnrealizedPnLUSD), formatPct(p.ProfitRateUSD))
+				usdPnlStr := formatUSD(p.UnrealizedPnLUSD)
+				usdRateStr := formatPct(p.ProfitRateUSD)
+				plain = append(plain, usdPnlStr, usdRateStr)
+				colored = append(colored,
+					profitText(usdPnlStr, p.UnrealizedPnLUSD, enabled),
+					profitText(usdRateStr, p.ProfitRateUSD, enabled),
+				)
 			} else {
-				row = append(row, "", "")
+				plain = append(plain, "", "")
+				colored = append(colored, "", "")
 			}
 		}
-		rows = append(rows, row)
+		plainRows = append(plainRows, plain)
+		coloredRows = append(coloredRows, colored)
 	}
 
-	return renderTable(w, headers, rows)
+	return renderTableColored(w, headers, plainRows, coloredRows)
 }
 
 func sortedMarketKeys(markets map[string]domain.AccountMarketSummary) []string {
