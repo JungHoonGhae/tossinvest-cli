@@ -35,3 +35,6 @@ website/.venv/
 
 # SDD 스크래치(브리프/보고서/리뷰 패키지/레저)
 .superpowers/
+
+# Superpowers 설계 산출물(스펙/플랜) — GitHub 제외, 로컬만
+docs/superpowers/
