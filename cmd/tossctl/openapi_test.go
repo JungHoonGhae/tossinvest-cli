@@ -3,13 +3,16 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 )
@@ -385,5 +388,217 @@ func TestWriteProbeResultTableFailure(t *testing.T) {
 	}
 	if !strings.Contains(buf.String(), "✗") {
 		t.Fatalf("expected cross in table output, got %q", buf.String())
+	}
+}
+
+// ── openapi status: no credentials → guidance + exit 0 ──────────────────────
+
+func TestOpenAPIStatusNoCredentials(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	opts := &rootOptions{configDir: dir, outputFormat: "table"}
+
+	cmd := newOpenAPICmd(opts)
+	cmd.SetArgs([]string{"status"})
+	var outBuf bytes.Buffer
+	cmd.SetOut(&outBuf)
+
+	// Should succeed (exit 0) even with no credentials.
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("expected no error with no credentials, got %v", err)
+	}
+
+	out := outBuf.String()
+	// Should mention setup guidance.
+	if !strings.Contains(out, "미설정") && !strings.Contains(out, "login") && !strings.Contains(out, "init") {
+		t.Fatalf("expected setup guidance in output, got %q", out)
+	}
+}
+
+// ── buildStatusReport: active key, expiry in 10 days → D-10 warning ─────────
+
+func TestBuildStatusReportExpiryWarning(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	expiresAt := now.Add(10 * 24 * time.Hour)
+	issuedAt := now.Add(-30 * 24 * time.Hour)
+
+	keyInfo := tossclient.OpenAPIClientInfo{
+		Status:    "ACTIVE",
+		IssuedAt:  issuedAt,
+		ExpiresAt: expiresAt,
+		Active:    true,
+	}
+
+	in := statusInputs{
+		creds:       &official.Credentials{APIKey: "tsck_live_9I24L3TIMVtestZJaVLA"},
+		credsSource: "file",
+		keyInfo:     &keyInfo,
+		allowedIPs:  []string{"203.0.113.1", "203.0.113.2"},
+		probe:       probeResult{OK: true, Message: "ok"},
+		prefer:      "auto",
+		fallback:    true,
+	}
+
+	r := buildStatusReport(in)
+
+	if !r.CredentialsConfigured {
+		t.Error("expected CredentialsConfigured=true")
+	}
+	if r.KeyExpiryWarning == "" {
+		t.Errorf("expected expiry warning (D-10), got empty")
+	}
+	if !strings.Contains(r.KeyExpiryWarning, "D-") {
+		t.Errorf("expected D-NN in warning, got %q", r.KeyExpiryWarning)
+	}
+	if !r.KeyActive {
+		t.Error("expected KeyActive=true")
+	}
+	if r.ConnectionOK != true {
+		t.Error("expected ConnectionOK=true")
+	}
+	if r.CurrentIPStatus != "현재 IP 허용됨" {
+		t.Errorf("expected '현재 IP 허용됨', got %q", r.CurrentIPStatus)
+	}
+}
+
+// ── buildStatusReport: ip_not_allowed → "add IP" instruction appears ─────────
+
+func TestBuildStatusReportIPNotAllowed(t *testing.T) {
+	t.Parallel()
+	expiresAt := time.Now().Add(365 * 24 * time.Hour)
+	issuedAt := time.Now().Add(-30 * 24 * time.Hour)
+
+	keyInfo := tossclient.OpenAPIClientInfo{
+		Status:    "ACTIVE",
+		IssuedAt:  issuedAt,
+		ExpiresAt: expiresAt,
+		Active:    true,
+	}
+
+	in := statusInputs{
+		creds:       &official.Credentials{APIKey: "tsck_live_9I24L3TIMVtestZJaVLA"},
+		credsSource: "file",
+		keyInfo:     &keyInfo,
+		allowedIPs:  []string{"203.0.113.10"},
+		probe: probeResult{
+			OK:        false,
+			ErrorKind: "ip_not_allowed",
+			Message:   "이 IP에서 API 접근이 허용되지 않습니다.",
+		},
+		prefer:   "auto",
+		fallback: true,
+	}
+
+	r := buildStatusReport(in)
+
+	// Current IP status should contain "add IP" guidance.
+	if !strings.Contains(r.CurrentIPStatus, "허용") && !strings.Contains(r.CurrentIPStatus, "추가") {
+		t.Errorf("expected IP add instruction in CurrentIPStatus, got %q", r.CurrentIPStatus)
+	}
+	if r.ConnectionOK {
+		t.Error("expected ConnectionOK=false")
+	}
+	if !strings.Contains(r.ConnectionStatus, "IP") {
+		t.Errorf("expected IP mention in ConnectionStatus, got %q", r.ConnectionStatus)
+	}
+}
+
+// ── buildStatusReport: WTS metadata error → graceful degrade, probe shown ────
+
+func TestBuildStatusReportGracefulDegrade(t *testing.T) {
+	t.Parallel()
+
+	in := statusInputs{
+		creds:         &official.Credentials{APIKey: "tsck_live_9I24L3TIMVtestZJaVLA"},
+		credsSource:   "file",
+		keyInfo:       nil, // WTS call failed
+		keyInfoErr:    context.DeadlineExceeded,
+		allowedIPs:    nil,
+		allowedIPsErr: context.DeadlineExceeded,
+		probe: probeResult{
+			OK:        false,
+			ErrorKind: "auth",
+			Message:   "인증 실패",
+		},
+		prefer:   "auto",
+		fallback: true,
+	}
+
+	r := buildStatusReport(in)
+
+	// WTS metadata error should be surfaced.
+	if r.KeyMetaError == "" {
+		t.Error("expected KeyMetaError to be set on WTS failure")
+	}
+	// Probe result must still be shown.
+	if r.ConnectionOK {
+		t.Error("expected ConnectionOK=false")
+	}
+	if r.ConnectionStatus == "" {
+		t.Error("expected ConnectionStatus to be populated even on WTS degrade")
+	}
+	if r.ConnectionDetail == "" {
+		t.Error("expected ConnectionDetail to be populated")
+	}
+}
+
+// ── buildStatusReport: --output json has expected fields ─────────────────────
+
+func TestBuildStatusReportJSONFields(t *testing.T) {
+	t.Parallel()
+	expiresAt := time.Now().Add(365 * 24 * time.Hour)
+	issuedAt := time.Now().Add(-10 * 24 * time.Hour)
+
+	keyInfo := tossclient.OpenAPIClientInfo{
+		Status:    "ACTIVE",
+		IssuedAt:  issuedAt,
+		ExpiresAt: expiresAt,
+		Active:    true,
+	}
+
+	in := statusInputs{
+		creds:       &official.Credentials{APIKey: "tsck_live_9I24L3TIMVtestZJaVLA"},
+		credsSource: "env",
+		keyInfo:     &keyInfo,
+		allowedIPs:  []string{"203.0.113.5"},
+		probe:       probeResult{OK: true, Message: "ok"},
+		prefer:      "official",
+		fallback:    false,
+	}
+
+	r := buildStatusReport(in)
+
+	data, err := json.Marshal(r)
+	if err != nil {
+		t.Fatalf("json.Marshal failed: %v", err)
+	}
+	got := string(data)
+
+	requiredKeys := []string{
+		"credentials_configured",
+		"credentials_source",
+		"masked_key",
+		"connection_ok",
+		"connection_status",
+		"routing_prefer",
+		"routing_fallback",
+		"eligible_ops_count",
+		"current_ip_status",
+		"token_status",
+	}
+	for _, key := range requiredKeys {
+		if !strings.Contains(got, `"`+key+`"`) {
+			t.Errorf("expected JSON key %q in output, got: %s", key, got)
+		}
+	}
+
+	// credentials_source should be "env"
+	if !strings.Contains(got, `"env"`) {
+		t.Errorf("expected env source in JSON, got %s", got)
+	}
+	// Masked key must not contain the full key
+	if strings.Contains(got, "9I24L3TIMVtestZJaVLA") {
+		t.Error("full API key must not appear in JSON output")
 	}
 }
