@@ -5,6 +5,7 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 ## [Unreleased]
 
 ### 새 기능
+- **대화형 주문·폴더 선택** — 터미널에서 `order cancel`, `order amend`, `order show`를 `--order-id` 없이 실행하면 대기/최근 주문 목록을 직접 골라 진행할 수 있습니다. `watchlist group delete`·`rename`도 폴더 이름 없이 실행하면 목록에서 선택합니다 (`rename "새이름"`처럼 새 이름만 전달하면 폴더를 고릅니다). 플래그·인자를 지정하면 기존과 동일하게 비대화형으로 동작하며, 파이프·비TTY에서는 프롬프트 없이 명확한 오류를 반환합니다.
 - **하이브리드 공식 Open API 연동** — 토스 공식 Open API 키를 선택적으로 연결할 수 있습니다. 연결하면 공식이 지원하는 조회·거래 기능은 OAuth 경로로 처리되어 더 안정적이며, 토큰을 자동 갱신합니다. 공식에 없는 기능은 기존대로 WTS 경로를 씁니다. 키 없이도 모든 기능이 동작하며, 원하는 시점에 선택적으로 추가할 수 있습니다.
 - **`tossctl init`** — 온보딩 위저드. 처음 설치한 사용자를 위해 웹 세션 로그인·공식 키 등록·거래 설정을 단계별로 안내합니다.
 - **`tossctl openapi login`** — 공식 API Key·Secret을 등록합니다. 환경변수(`TOSSCTL_OPENAPI_KEY`/`TOSSCTL_OPENAPI_SECRET`) 또는 플래그로 전달하거나 대화형으로 입력할 수 있습니다. 자격증명 파일은 `0600` 권한으로 저장됩니다.
@@ -13,6 +14,10 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 - **`tossctl openapi logout`** — 자격증명 파일을 삭제합니다.
 - **`--backend auto|wts|official`** 전역 플래그 — 요청별로 라우팅 백엔드를 직접 지정합니다.
 - **`doctor` 하이브리드 진단** — `tossctl doctor` 가 공식 키·토큰·IP 허용 상태를 함께 점검합니다.
+
+### 개선
+- **핵심 출력 손익 색상** — 포트폴리오·계좌·시세·관심종목의 주요 손익 수치에 한국식 색(상승/이익=빨강, 하락/손실=파랑)을 표시합니다. 파이프·비TTY·`NO_COLOR` 환경 및 `--output json|csv` 에서는 색 없이 기존과 동일하게 동작합니다.
+- **관심종목 등락·등락률 컬럼** — `watchlist list` 결과 표에 기준가 대비 등락액·등락률 컬럼이 추가됐습니다. JSON/CSV 출력은 변경 없습니다.
 
 ### 버그 수정
 - 설치 스크립트(`curl ... install.sh | sh`)가 `/usr/local/bin` 이 없는 환경(주로 새로 설정한 Apple Silicon Mac — Homebrew 가 `/opt/homebrew` 에 있어 `/usr/local/bin` 이 아직 없는 경우)에서 `mv: ... No such file or directory` 로 설치에 실패하던 문제 수정. 설치 디렉터리를 먼저 만들고, 쓰기 권한이 있으면 sudo 없이 설치합니다. `INSTALL_DIR`·`SHARE_DIR` 환경변수로 설치 위치를 바꿀 수도 있습니다.

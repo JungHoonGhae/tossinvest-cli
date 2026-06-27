@@ -476,6 +476,8 @@ tossctl order cancel --order-id <id> --symbol <sym> ...
 tossctl order amend --order-id <id> ...
 ```
 
+`order cancel`·`order amend`·`order show`를 `--order-id` 없이 실행하면 대기/최근 주문 목록에서 직접 골라 진행할 수 있습니다. `watchlist group delete`·`rename`도 폴더 이름 없이 실행하면 목록에서 선택합니다. 파이프·비TTY에서는 프롬프트 없이 오류를 반환해 스크립트·에이전트와 안전하게 연동됩니다. 포트폴리오·시세 등 핵심 출력에는 한국식 손익 색(상승/이익=빨강, 하락/손실=파랑)이 적용되며, 파이프·비TTY·`NO_COLOR`·`--output json|csv`에서는 색 없이 동작합니다.
+
 ### 실시간 푸시
 
 ```bash
