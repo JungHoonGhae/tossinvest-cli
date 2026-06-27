@@ -41,6 +41,8 @@ can be pasted into bug reports without leaking the local username.`,
 				if err != nil {
 					return err
 				}
+				// Graceful Open API summary — never fails doctor.
+				report.OpenAPISummary = computeDoctorOpenAPISummary(cmd.Context(), opts, app)
 				enc := json.NewEncoder(cmd.OutOrStdout())
 				enc.SetIndent("", "  ")
 				return enc.Encode(report)
@@ -50,6 +52,9 @@ can be pasted into bug reports without leaking the local username.`,
 			if err != nil {
 				return err
 			}
+
+			// Graceful Open API summary — never fails doctor.
+			report.OpenAPISummary = computeDoctorOpenAPISummary(cmd.Context(), opts, app)
 
 			return output.WriteDoctorReport(cmd.OutOrStdout(), app.format, report)
 		},

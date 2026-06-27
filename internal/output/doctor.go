@@ -50,6 +50,11 @@ func WriteDoctorReport(w io.Writer, format Format, report doctor.Report) error {
 				return err
 			}
 		}
+		if report.OpenAPISummary != "" {
+			if _, err := fmt.Fprintf(w, "\n%s\n", report.OpenAPISummary); err != nil {
+				return err
+			}
+		}
 		return nil
 	default:
 		return fmt.Errorf("unsupported format: %s", format)

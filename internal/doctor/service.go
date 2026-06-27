@@ -49,6 +49,11 @@ type Report struct {
 	Auth        AuthReport    `json:"auth"`
 	Checks      []Check       `json:"checks"`
 	Diagnostics *Diagnostics  `json:"diagnostics,omitempty"`
+
+	// OpenAPISummary is a one-line hybrid/Open API status note set by the
+	// doctor command after Run() returns. It is omitted when empty (e.g. when
+	// this field is not populated in --report mode).
+	OpenAPISummary string `json:"open_api_summary,omitempty"`
 }
 
 // Diagnostics captures extra signals that are only useful for bug reports /
