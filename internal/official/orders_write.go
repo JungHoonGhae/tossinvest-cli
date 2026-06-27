@@ -89,6 +89,9 @@ func buildOrderCreate(intent orderintent.PlaceIntent) (any, error) {
 
 	if intent.Fractional && intent.Side == "buy" {
 		// variant1: amount-based (US MARKET fractional buy)
+		if intent.Amount <= 0 {
+			return nil, fmt.Errorf("fractional buy requires a positive amount, got %v", intent.Amount)
+		}
 		return orderCreateV1{
 			Symbol:                intent.Symbol,
 			Side:                  side,
@@ -107,9 +110,16 @@ func buildOrderCreate(intent orderintent.PlaceIntent) (any, error) {
 
 	if intent.Fractional && intent.Side == "sell" {
 		// fractional sell: MARKET, decimal quantity, no price
+		if intent.Quantity <= 0 {
+			return nil, fmt.Errorf("fractional sell requires a positive quantity, got %v", intent.Quantity)
+		}
 		v0.OrderType = "MARKET"
 		v0.Quantity = formatDecimal(intent.Quantity)
 		return v0, nil
+	}
+
+	if intent.Quantity <= 0 {
+		return nil, fmt.Errorf("order requires a positive quantity, got %v", intent.Quantity)
 	}
 
 	orderType := strings.ToUpper(intent.OrderType)
@@ -117,6 +127,9 @@ func buildOrderCreate(intent orderintent.PlaceIntent) (any, error) {
 	v0.Quantity = formatDecimal(intent.Quantity)
 
 	if orderType == "LIMIT" {
+		if intent.Price <= 0 {
+			return nil, fmt.Errorf("limit order requires a positive price, got %v", intent.Price)
+		}
 		v0.Price = formatDecimal(intent.Price)
 		v0.TimeInForce = "DAY"
 	}
@@ -158,9 +171,13 @@ func (c *Client) PlaceOrder(ctx context.Context, intent orderintent.PlaceIntent)
 		return trading.MutationResult{}, err
 	}
 	return trading.MutationResult{
-		Kind:    "place",
-		Status:  "accepted",
-		OrderID: resp.OrderID,
+		Kind:     "place",
+		Status:   "accepted",
+		OrderID:  resp.OrderID,
+		Symbol:   intent.Symbol,
+		Market:   intent.Market,
+		Quantity: intent.Quantity,
+		Price:    intent.Price,
 	}, nil
 }
 
@@ -214,8 +231,9 @@ func (c *Client) ModifyOrder(ctx context.Context, intent orderintent.AmendIntent
 		return trading.MutationResult{}, err
 	}
 	return trading.MutationResult{
-		Kind:    "amend",
-		Status:  "accepted",
-		OrderID: resp.OrderID,
+		Kind:            "amend",
+		Status:          "accepted",
+		OriginalOrderID: intent.OrderID,
+		CurrentOrderID:  resp.OrderID,
 	}, nil
 }

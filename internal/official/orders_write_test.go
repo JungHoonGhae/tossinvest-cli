@@ -178,6 +178,7 @@ func TestPlaceOrder(t *testing.T) {
 
 	intent := orderintent.PlaceIntent{
 		Symbol:    "TSLA",
+		Market:    "us",
 		Side:      "buy",
 		OrderType: "limit",
 		Quantity:  3,
@@ -195,6 +196,19 @@ func TestPlaceOrder(t *testing.T) {
 	}
 	if res.OrderID != "O1" {
 		t.Fatalf("OrderID: want O1, got %q", res.OrderID)
+	}
+	// intent summary fields echoed back onto the result.
+	if res.Symbol != "TSLA" {
+		t.Fatalf("Symbol: want TSLA, got %q", res.Symbol)
+	}
+	if res.Market != "us" {
+		t.Fatalf("Market: want us, got %q", res.Market)
+	}
+	if res.Quantity != 3 {
+		t.Fatalf("Quantity: want 3, got %v", res.Quantity)
+	}
+	if res.Price != 150.25 {
+		t.Fatalf("Price: want 150.25, got %v", res.Price)
 	}
 	if gotAcctHeader != "7" {
 		t.Fatalf("X-Tossinvest-Account: want 7, got %q", gotAcctHeader)
@@ -320,8 +334,16 @@ func TestModifyOrder(t *testing.T) {
 	if res.Status != "accepted" {
 		t.Fatalf("Status: want accepted, got %q", res.Status)
 	}
-	if res.OrderID != "M1" {
-		t.Fatalf("OrderID: want M1, got %q", res.OrderID)
+	// amend uses OriginalOrderID (the request target) and CurrentOrderID
+	// (the new id issued by the server); the OrderID field is left empty.
+	if res.OriginalOrderID != "order-xyz-456" {
+		t.Fatalf("OriginalOrderID: want order-xyz-456, got %q", res.OriginalOrderID)
+	}
+	if res.CurrentOrderID != "M1" {
+		t.Fatalf("CurrentOrderID: want M1, got %q", res.CurrentOrderID)
+	}
+	if res.OrderID != "" {
+		t.Fatalf("OrderID: want empty, got %q", res.OrderID)
 	}
 	wantPath := "/api/v1/orders/order-xyz-456/modify"
 	if gotPath != wantPath {
@@ -334,5 +356,104 @@ func TestModifyOrder(t *testing.T) {
 		if !strings.Contains(gotBody, want) {
 			t.Fatalf("body missing %s; got %s", want, gotBody)
 		}
+	}
+}
+
+// TestModifyOrderMarket verifies the MARKET inference path: when intent.Price is
+// nil, orderType is MARKET and no price field is sent. quantity is forwarded.
+func TestModifyOrderMarket(t *testing.T) {
+	var gotBody string
+	var gotPath string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		default:
+			if strings.HasSuffix(r.URL.Path, "/modify") {
+				gotPath = r.URL.Path
+				var m map[string]any
+				_ = json.NewDecoder(r.Body).Decode(&m)
+				b, _ := json.Marshal(m)
+				gotBody = string(b)
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"result":{"orderId":"M2"}}`))
+			} else {
+				http.NotFound(w, r)
+			}
+		}
+	}))
+	defer srv.Close()
+
+	c := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+		WithAccountSeq(11),
+	)
+
+	newQty := 4.0
+	intent := orderintent.AmendIntent{
+		OrderID:  "order-mkt-789",
+		Quantity: &newQty,
+	}
+	res, err := c.ModifyOrder(context.Background(), intent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.OriginalOrderID != "order-mkt-789" {
+		t.Fatalf("OriginalOrderID: want order-mkt-789, got %q", res.OriginalOrderID)
+	}
+	if res.CurrentOrderID != "M2" {
+		t.Fatalf("CurrentOrderID: want M2, got %q", res.CurrentOrderID)
+	}
+	wantPath := "/api/v1/orders/order-mkt-789/modify"
+	if gotPath != wantPath {
+		t.Fatalf("path: want %q, got %q", wantPath, gotPath)
+	}
+	if !strings.Contains(gotBody, `"orderType":"MARKET"`) {
+		t.Fatalf("body missing orderType MARKET; got %s", gotBody)
+	}
+	if !strings.Contains(gotBody, `"quantity":"4"`) {
+		t.Fatalf("body missing quantity; got %s", gotBody)
+	}
+	if strings.Contains(gotBody, `"price"`) {
+		t.Fatalf("market modify must not include price; got %s", gotBody)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// buildOrderCreate error cases
+// ---------------------------------------------------------------------------
+
+// TestBuildOrderCreateErrors verifies the builder rejects incoherent intents.
+func TestBuildOrderCreateErrors(t *testing.T) {
+	cases := []struct {
+		name   string
+		intent orderintent.PlaceIntent
+	}{
+		{
+			name:   "fractional buy without amount",
+			intent: orderintent.PlaceIntent{Symbol: "TSLA", Side: "buy", Fractional: true},
+		},
+		{
+			name:   "fractional sell without quantity",
+			intent: orderintent.PlaceIntent{Symbol: "TSLA", Side: "sell", Fractional: true},
+		},
+		{
+			name:   "non-fractional without quantity",
+			intent: orderintent.PlaceIntent{Symbol: "005930", Side: "buy", OrderType: "market"},
+		},
+		{
+			name:   "limit without price",
+			intent: orderintent.PlaceIntent{Symbol: "005930", Side: "buy", OrderType: "limit", Quantity: 10},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := buildOrderCreate(tc.intent); err == nil {
+				t.Fatalf("expected error for %s, got nil", tc.name)
+			}
+		})
 	}
 }
