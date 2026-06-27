@@ -601,15 +601,15 @@ $ tossctl order preview --symbol TSLA --side buy --qty 1 --price 250`}</code>
 
       {/* ── Why the official API lags (editorial) ──────────── */}
       <section className="border-b border-white/10">
-        <div className="mx-auto w-full max-w-3xl px-4 py-20 md:py-28">
+        <div className="mx-auto w-full max-w-5xl px-4 py-20 md:py-28">
           <h2 className="max-w-2xl break-keep text-2xl font-semibold leading-tight tracking-tight md:text-4xl">
             {t.why.headline}
           </h2>
-          <div className="mt-7 space-y-5 break-keep text-[15px] leading-relaxed text-white/55 md:text-base">
+          <div className="mt-7 max-w-3xl space-y-5 break-keep text-[15px] leading-relaxed text-white/55 md:text-base">
             <p>{t.why.p1}</p>
             <p>{t.why.p2}</p>
           </div>
-          <p className="mt-9 border-l-2 border-brand-200/60 pl-4 text-lg font-medium leading-snug text-white/90 md:text-xl">
+          <p className="mt-9 max-w-3xl border-l-2 border-brand-200/60 pl-4 text-lg font-medium leading-snug text-white/90 md:text-xl">
             {t.why.kicker}
           </p>
         </div>
@@ -701,7 +701,7 @@ $ tossctl order preview --symbol TSLA --side buy --qty 1 --price 250`}</code>
 
       {/* ── FAQ ────────────────────────────────────────────── */}
       <section className="border-t border-white/10">
-        <div className="mx-auto w-full max-w-3xl px-4 py-20 md:py-24">
+        <div className="mx-auto w-full max-w-5xl px-4 py-20 md:py-24">
           <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">{t.faqTitle}</h2>
           <p className="mt-2 mb-8 text-sm text-white/45">{t.faqSub}</p>
           <div>
