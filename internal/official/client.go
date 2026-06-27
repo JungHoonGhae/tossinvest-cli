@@ -197,6 +197,15 @@ func (c *Client) getWithHeaders(ctx context.Context, path string, q url.Values, 
 // classifyStatus is returned. On 2xx the `result` envelope is unwrapped into
 // out (out may be nil).
 func (c *Client) post(ctx context.Context, path string, body any, out any) error {
+	return c.postWithHeaders(ctx, path, body, nil, out)
+}
+
+// postWithHeaders is like post but also injects extraHeaders (e.g.
+// X-Tossinvest-Account) on top of the Authorization header. extraHeaders may
+// be nil. On 401 the token is refreshed and the request is retried once. On
+// non-2xx classifyStatus is returned. On 2xx the `result` envelope is
+// unwrapped into out (out may be nil).
+func (c *Client) postWithHeaders(ctx context.Context, path string, body any, extraHeaders map[string]string, out any) error {
 	rawURL := c.base + path
 
 	encoded, err := json.Marshal(body)
@@ -211,6 +220,9 @@ func (c *Client) post(ctx context.Context, path string, body any, out any) error
 		}
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+tok)
+		for k, v := range extraHeaders {
+			req.Header.Set(k, v)
+		}
 		return req, nil
 	}
 
