@@ -24,7 +24,7 @@ var (
 )
 
 func init() {
-	if !colorEnabled() {
+	if os.Getenv("NO_COLOR") != "" || !isTerminalWriter(os.Stdout) {
 		return
 	}
 	chartColorReset = "\033[0m"
@@ -32,17 +32,6 @@ func init() {
 	chartColorBlue = "\033[34m"
 	chartColorBold = "\033[1m"
 	chartColorDim = "\033[2m"
-}
-
-func colorEnabled() bool {
-	if os.Getenv("NO_COLOR") != "" {
-		return false
-	}
-	fi, err := os.Stdout.Stat()
-	if err != nil {
-		return false
-	}
-	return (fi.Mode() & os.ModeCharDevice) != 0
 }
 
 func WriteChart(w io.Writer, format Format, chart domain.Chart) error {
