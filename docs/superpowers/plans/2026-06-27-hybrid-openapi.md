@@ -547,6 +547,7 @@ func TestOpenAPILoginNonInteractiveErrorsWhenMissingFlags(t *testing.T) {
 - [ ] **Step 2 — support-scope** — 공식 칼럼이 *실제 라우팅*됨을 반영(주문/조회 행에 하이브리드 주석), 전용 가이드로 링크. `openapi` 커맨드 + `--backend` 문서화.
 - [ ] **Step 3 — README** — 비교표/소개에 하이브리드 한 단락 + `tossctl openapi` 빠른 시작, `<!--since:2026-06-27-->` 마커.
 - [ ] **Step 4 — 랜딩 카피** — `page.tsx`의 "선택적 하이브리드"/`thesis.points` 문구가 이제 실재 기능과 일치하는지 점검·정정(과장 없이).
+  - **카운트 프레이밍(중요)**: 헤드라인 수치를 "고유 18개"가 아니라 **tossctl 전체 역량 = 공식 지원분(tossctl이 100% 커버) + 고유 18 = 합계**로 바꾼다. support-scope 표에서 정확히 카운트(✅공식+❌고유)해 총 N(현재 추정 ~27 기능 영역)을 확정하고, "공식 지원 전부 + 고유 18 = 총 N개" 식으로 표기. "4%"는 전체 WTS(~430) 대비 *공식* 커버리지로만 사용(tossctl이 96%라는 식의 오기 금지). 과장 없이.
 - [ ] **Step 5 — CHANGELOG** — `[Unreleased]`에 사용자 관점 항목(공식 키 연결 시 더 안정적, `openapi` 커맨드, status 진단, doctor 통합).
 - [ ] **Step 6** — `python3 tools/update_new_markers.py` 실행(있으면).
 - [ ] **Step 7 — 검증** — `make build && make test && make lint`(또는 `go build ./... && go test ./... && go vet ./...`). docs 사이트는 `website-fumadocs`에서 빌드 점검(가능 시).
