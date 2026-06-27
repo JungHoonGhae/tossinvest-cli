@@ -1,55 +1,55 @@
 package client
 
-// openapi_meta.go — WTS internal endpoints for Open API key metadata.
+// openapi_meta.go — WTS internal endpoint for Open API key metadata.
 //
-// These paths are served by wts-api.tossinvest.com and require a live web
-// session (same session as all other WTS reads). They are NOT part of the
-// official 21-endpoint OAuth surface; they power the Toss settings UI.
+// Served by wts-api.tossinvest.com; requires a live web session (same as all
+// other WTS reads). NOT part of the official 21-endpoint OAuth surface; powers
+// the Toss settings UI and `tossctl openapi status` / `doctor` diagnostics.
 //
-// Assumed response shapes (no live capture available — reconcile on first run):
+// Real response shape (verified live 2026-06-27 against /api/v1/openapi/client):
 //
-//   GET /api/v1/openapi/client
 //   {"result": {
-//     "status":    "ACTIVE",          // string; "ACTIVE"|"INACTIVE" or Korean equiv
-//     "issuedAt":  "2025-01-15T09:00:00Z",   // RFC3339; fallback: "createdAt"
-//     "expiresAt": "2026-01-15T09:00:00Z",   // RFC3339; fallback: "expiredAt"
-//     "active":    true               // bool; optional — derived from status if absent
+//     "id": 0, "userId": 0, "gaId": 0,
+//     "clientId":               "tsck_live_…",      // the API key
+//     "clientSecret":           "tssk_live_…",      // ⚠ plaintext secret — NEVER mapped/logged
+//     "clientIdIssuedAt":       "2026-06-27T14:29:00Z",   // RFC3339 — issued
+//     "clientSecretExpiresAt":  "2027-06-27T14:29:00Z",   // RFC3339 — expiry
+//     "clientName": "…", "tier": "BASIC", "scopes": ["…"],
+//     "allowedIps": [{"ip":"203.0.113.7","osName":null,"agentName":null,"createdAt":"…"}]
 //   }}
 //
-//   GET /api/v1/openapi/client/allowed-ips
-//   {"result": ["1.2.3.4", "5.6.7.8"]}           // primary: []string
-//   {"result": [{"ip":"1.2.3.4"},{"ip":"5.6.7.8"}]} // alternate: []{ip string}
+// There is NO `status`/`active` field — activity is derived from the expiry.
+// The standalone GET /api/v1/openapi/client/allowed-ips returns 400 (does not
+// exist as a GET); the allowlist is embedded here as `allowedIps`.
 
 import (
 	"context"
 	"encoding/json"
-	"strings"
 	"time"
 )
 
 // OpenAPIClientInfo holds key metadata for the user's WTS-side Open API key.
 type OpenAPIClientInfo struct {
-	Status    string
-	IssuedAt  time.Time
-	ExpiresAt time.Time
-	Active    bool
+	Status     string // derived: "활성" / "만료"
+	IssuedAt   time.Time
+	ExpiresAt  time.Time
+	Active     bool
+	Tier       string
+	AllowedIPs []string
 }
 
-// raw envelope for GET /api/v1/openapi/client
+// raw envelope for GET /api/v1/openapi/client.
+// Intentionally does NOT include clientSecret — the endpoint returns it in
+// plaintext and we must never capture, store, or log it.
 type openapiClientEnvelope struct {
 	Result struct {
-		Status    string          `json:"status"`
-		IssuedAt  json.RawMessage `json:"issuedAt"`
-		CreatedAt json.RawMessage `json:"createdAt"` // fallback field name
-		ExpiresAt json.RawMessage `json:"expiresAt"`
-		ExpiredAt json.RawMessage `json:"expiredAt"` // fallback field name
-		Active    *bool           `json:"active"`    // pointer so we can detect absence
+		ClientIDIssuedAt      json.RawMessage `json:"clientIdIssuedAt"`
+		ClientSecretExpiresAt json.RawMessage `json:"clientSecretExpiresAt"`
+		Tier                  string          `json:"tier"`
+		AllowedIPs            []struct {
+			IP string `json:"ip"`
+		} `json:"allowedIps"`
 	} `json:"result"`
-}
-
-// raw envelope for GET /api/v1/openapi/client/allowed-ips
-type openapiAllowedIPsEnvelope struct {
-	Result json.RawMessage `json:"result"`
 }
 
 // OpenAPIClientInfo fetches the user's WTS Open API key metadata.
@@ -63,81 +63,45 @@ func (c *Client) OpenAPIClientInfo(ctx context.Context) (OpenAPIClientInfo, erro
 	if err := c.getJSON(ctx, c.apiBaseURL+"/api/v1/openapi/client", &envelope); err != nil {
 		return OpenAPIClientInfo{}, err
 	}
-
 	r := envelope.Result
 
-	// Parse IssuedAt: try issuedAt first, then createdAt
-	issuedAt := parseRawDate(r.IssuedAt)
-	if issuedAt.IsZero() {
-		issuedAt = parseRawDate(r.CreatedAt)
+	issuedAt := parseRawDate(r.ClientIDIssuedAt)
+	expiresAt := parseRawDate(r.ClientSecretExpiresAt)
+
+	// No status/active field in the response — derive activity from the expiry.
+	active := !expiresAt.IsZero() && expiresAt.After(time.Now())
+	status := "만료"
+	if active {
+		status = "활성"
 	}
 
-	// Parse ExpiresAt: try expiresAt first, then expiredAt
-	expiresAt := parseRawDate(r.ExpiresAt)
-	if expiresAt.IsZero() {
-		expiresAt = parseRawDate(r.ExpiredAt)
-	}
-
-	// Determine active: use explicit boolean if present, else derive from status
-	active := false
-	if r.Active != nil {
-		active = *r.Active
-	} else {
-		upper := strings.ToUpper(strings.TrimSpace(r.Status))
-		active = upper == "ACTIVE" || upper == "활성"
+	ips := make([]string, 0, len(r.AllowedIPs))
+	for _, a := range r.AllowedIPs {
+		if a.IP != "" {
+			ips = append(ips, a.IP)
+		}
 	}
 
 	return OpenAPIClientInfo{
-		Status:    r.Status,
-		IssuedAt:  issuedAt,
-		ExpiresAt: expiresAt,
-		Active:    active,
+		Status:     status,
+		IssuedAt:   issuedAt,
+		ExpiresAt:  expiresAt,
+		Active:     active,
+		Tier:       r.Tier,
+		AllowedIPs: ips,
 	}, nil
 }
 
-// OpenAPIAllowedIPs fetches the IP allowlist for the user's WTS Open API key.
-// Maps to GET /api/v1/openapi/client/allowed-ips.
-// Handles both []string and [{"ip":"..."}] response shapes.
+// OpenAPIAllowedIPs returns the IP allowlist for the user's WTS Open API key.
+// The allowlist is embedded in the /api/v1/openapi/client response (the
+// standalone /allowed-ips GET returns 400), so this delegates to
+// OpenAPIClientInfo rather than calling a separate endpoint.
 func (c *Client) OpenAPIAllowedIPs(ctx context.Context) ([]string, error) {
-	if err := c.requireSession(); err != nil {
+	info, err := c.OpenAPIClientInfo(ctx)
+	if err != nil {
 		return nil, err
 	}
-
-	var envelope openapiAllowedIPsEnvelope
-	if err := c.getJSON(ctx, c.apiBaseURL+"/api/v1/openapi/client/allowed-ips", &envelope); err != nil {
-		return nil, err
-	}
-
-	return parseAllowedIPs(envelope.Result), nil
-}
-
-// parseAllowedIPs handles both primary ([]string) and alternate ([{"ip":""}]) shapes.
-func parseAllowedIPs(raw json.RawMessage) []string {
-	if len(raw) == 0 {
-		return nil
-	}
-
-	// Try primary shape: []string
-	var strSlice []string
-	if err := json.Unmarshal(raw, &strSlice); err == nil {
-		return strSlice
-	}
-
-	// Try alternate shape: [{"ip": "..."}]
-	var objSlice []struct {
-		IP string `json:"ip"`
-	}
-	if err := json.Unmarshal(raw, &objSlice); err == nil {
-		ips := make([]string, 0, len(objSlice))
-		for _, obj := range objSlice {
-			if obj.IP != "" {
-				ips = append(ips, obj.IP)
-			}
-		}
-		return ips
-	}
-
-	return nil
+	return info.AllowedIPs, nil
 }
 
 // parseRawDate unquotes a JSON string and tries RFC3339 then common fallbacks.
@@ -152,19 +116,15 @@ func parseRawDate(raw json.RawMessage) time.Time {
 		return time.Time{}
 	}
 
-	// RFC3339 with nanoseconds
 	if t, err := time.Parse(time.RFC3339Nano, s); err == nil {
 		return t
 	}
-	// Plain RFC3339
 	if t, err := time.Parse(time.RFC3339, s); err == nil {
 		return t
 	}
-	// Common local format without TZ (treat as UTC)
 	if t, err := time.Parse("2006-01-02T15:04:05", s); err == nil {
 		return t.UTC()
 	}
-	// Date-only
 	if t, err := time.Parse("2006-01-02", s); err == nil {
 		return t.UTC()
 	}

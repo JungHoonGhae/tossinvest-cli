@@ -2,8 +2,11 @@ package client
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,164 +26,146 @@ func newOpenAPITestClient(t *testing.T, mux *http.ServeMux) *Client {
 	})
 }
 
-func TestOpenAPIClientInfo_ParsesAllFields(t *testing.T) {
+// clientBody renders a dummy /api/v1/openapi/client response in the REAL shape.
+// Dummy values only (RFC 5737 TEST-NET IPs; placeholder key/secret).
+func clientBody(issued, expires string, ips ...string) string {
+	allowed := ""
+	for i, ip := range ips {
+		if i > 0 {
+			allowed += ","
+		}
+		allowed += fmt.Sprintf(`{"ip":%q,"osName":null,"agentName":null,"createdAt":"2026-06-27T14:29:00.123456789Z"}`, ip)
+	}
+	return fmt.Sprintf(`{"result":{
+		"id":1,"userId":2,"gaId":3,
+		"clientId":"tsck_live_dummy","clientSecret":"tssk_live_SHOULD_NEVER_SURFACE",
+		"clientIdIssuedAt":%q,"clientSecretExpiresAt":%q,
+		"clientName":"dummy","tier":"BASIC","scopes":["read","trade"],
+		"allowedIps":[%s]
+	}}`, issued, expires, allowed)
+}
+
+func TestOpenAPIClientInfo_ParsesRealShape(t *testing.T) {
 	t.Parallel()
 
+	issued := "2026-06-27T14:29:00Z"
+	expires := time.Now().Add(365 * 24 * time.Hour).UTC().Format(time.RFC3339) // future → active
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/openapi/client", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/v1/openapi/client", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{
-			"result": {
-				"status": "ACTIVE",
-				"issuedAt": "2025-01-15T09:00:00Z",
-				"expiresAt": "2026-01-15T09:00:00Z",
-				"active": true
-			}
-		}`))
+		_, _ = w.Write([]byte(clientBody(issued, expires, "203.0.113.7", "203.0.113.8")))
 	})
 
-	c := newOpenAPITestClient(t, mux)
-	info, err := c.OpenAPIClientInfo(context.Background())
+	info, err := newOpenAPITestClient(t, mux).OpenAPIClientInfo(context.Background())
 	if err != nil {
 		t.Fatalf("OpenAPIClientInfo error: %v", err)
 	}
-	if info.Status != "ACTIVE" {
-		t.Errorf("Status: got %q, want %q", info.Status, "ACTIVE")
+	if !info.Active || info.Status != "활성" {
+		t.Errorf("expected active/활성, got Active=%v Status=%q", info.Active, info.Status)
 	}
-	if !info.Active {
-		t.Error("expected Active=true")
+	if info.Tier != "BASIC" {
+		t.Errorf("Tier: got %q, want BASIC", info.Tier)
 	}
-	wantIssued := time.Date(2025, 1, 15, 9, 0, 0, 0, time.UTC)
+	wantIssued := time.Date(2026, 6, 27, 14, 29, 0, 0, time.UTC)
 	if !info.IssuedAt.Equal(wantIssued) {
 		t.Errorf("IssuedAt: got %v, want %v", info.IssuedAt, wantIssued)
 	}
-	wantExpires := time.Date(2026, 1, 15, 9, 0, 0, 0, time.UTC)
-	if !info.ExpiresAt.Equal(wantExpires) {
-		t.Errorf("ExpiresAt: got %v, want %v", info.ExpiresAt, wantExpires)
+	if len(info.AllowedIPs) != 2 || info.AllowedIPs[0] != "203.0.113.7" || info.AllowedIPs[1] != "203.0.113.8" {
+		t.Errorf("AllowedIPs: got %v", info.AllowedIPs)
 	}
 }
 
-func TestOpenAPIClientInfo_DerivesActiveFromStatus(t *testing.T) {
+func TestOpenAPIClientInfo_ExpiredDerivesInactive(t *testing.T) {
 	t.Parallel()
 
-	// No "active" boolean field — derive from status == "ACTIVE"
+	expires := time.Now().Add(-24 * time.Hour).UTC().Format(time.RFC3339) // past → expired
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/openapi/client", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{
-			"result": {
-				"status": "ACTIVE",
-				"createdAt": "2025-03-01T00:00:00Z",
-				"expiredAt": "2026-03-01T00:00:00Z"
-			}
-		}`))
+	mux.HandleFunc("/api/v1/openapi/client", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(clientBody("2025-01-01T00:00:00Z", expires)))
 	})
 
-	c := newOpenAPITestClient(t, mux)
-	info, err := c.OpenAPIClientInfo(context.Background())
+	info, err := newOpenAPITestClient(t, mux).OpenAPIClientInfo(context.Background())
 	if err != nil {
-		t.Fatalf("OpenAPIClientInfo error: %v", err)
+		t.Fatalf("error: %v", err)
 	}
-	if !info.Active {
-		t.Error("expected Active=true derived from status ACTIVE")
-	}
-	wantIssued := time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC)
-	if !info.IssuedAt.Equal(wantIssued) {
-		t.Errorf("IssuedAt via createdAt fallback: got %v, want %v", info.IssuedAt, wantIssued)
-	}
-	wantExpires := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
-	if !info.ExpiresAt.Equal(wantExpires) {
-		t.Errorf("ExpiresAt via expiredAt fallback: got %v, want %v", info.ExpiresAt, wantExpires)
+	if info.Active || info.Status != "만료" {
+		t.Errorf("expected inactive/만료, got Active=%v Status=%q", info.Active, info.Status)
 	}
 }
 
-func TestOpenAPIClientInfo_BadDateDoesNotError(t *testing.T) {
+func TestOpenAPIClientInfo_BadExpiryDoesNotError(t *testing.T) {
 	t.Parallel()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/openapi/client", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"result": {"status": "INACTIVE", "issuedAt": "not-a-date"}}`))
+	mux.HandleFunc("/api/v1/openapi/client", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"result":{"clientIdIssuedAt":"nope","clientSecretExpiresAt":"also-bad","tier":"BASIC","allowedIps":[]}}`))
 	})
 
-	c := newOpenAPITestClient(t, mux)
-	info, err := c.OpenAPIClientInfo(context.Background())
+	info, err := newOpenAPITestClient(t, mux).OpenAPIClientInfo(context.Background())
 	if err != nil {
-		t.Fatalf("OpenAPIClientInfo should not error on unparseable date: %v", err)
+		t.Fatalf("bad dates must not error, got %v", err)
 	}
-	if !info.IssuedAt.IsZero() {
-		t.Errorf("expected zero IssuedAt for bad date, got %v", info.IssuedAt)
+	if !info.ExpiresAt.IsZero() || !info.IssuedAt.IsZero() {
+		t.Errorf("bad dates should be zero time, got issued=%v expires=%v", info.IssuedAt, info.ExpiresAt)
 	}
-	if info.Active {
-		t.Error("expected Active=false for status INACTIVE")
+	if info.Active { // zero expiry is not after now
+		t.Error("zero expiry must derive inactive")
 	}
 }
 
-func TestOpenAPIAllowedIPs_StringSlice(t *testing.T) {
+func TestOpenAPIClientInfo_NeverSurfacesSecret(t *testing.T) {
 	t.Parallel()
 
-	// Primary shape: result is []string
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/openapi/client/allowed-ips", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"result": ["203.0.113.7", "203.0.113.8"]}`))
+	mux.HandleFunc("/api/v1/openapi/client", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(clientBody("2026-06-27T14:29:00Z", "2027-06-27T14:29:00Z", "203.0.113.7")))
 	})
 
-	c := newOpenAPITestClient(t, mux)
-	ips, err := c.OpenAPIAllowedIPs(context.Background())
+	info, err := newOpenAPITestClient(t, mux).OpenAPIClientInfo(context.Background())
 	if err != nil {
-		t.Fatalf("OpenAPIAllowedIPs error: %v", err)
+		t.Fatalf("error: %v", err)
 	}
-	if len(ips) != 2 {
-		t.Fatalf("expected 2 IPs, got %d", len(ips))
-	}
-	if ips[0] != "203.0.113.7" {
-		t.Errorf("ips[0]: got %q, want %q", ips[0], "203.0.113.7")
-	}
-	if ips[1] != "203.0.113.8" {
-		t.Errorf("ips[1]: got %q, want %q", ips[1], "203.0.113.8")
+	blob, _ := json.Marshal(info)
+	if strings.Contains(string(blob), "SHOULD_NEVER_SURFACE") {
+		t.Fatal("client secret leaked into OpenAPIClientInfo")
 	}
 }
 
-func TestOpenAPIAllowedIPs_ObjectSlice(t *testing.T) {
+func TestOpenAPIAllowedIPs_ReadsFromClientEndpoint(t *testing.T) {
 	t.Parallel()
 
-	// Alternate shape: result is [{"ip": "..."}]
+	called := false
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/openapi/client/allowed-ips", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"result": [{"ip": "203.0.113.9"}, {"ip": "203.0.113.10"}]}`))
+	mux.HandleFunc("/api/v1/openapi/client", func(w http.ResponseWriter, _ *http.Request) {
+		called = true
+		_, _ = w.Write([]byte(clientBody("2026-06-27T14:29:00Z", "2027-06-27T14:29:00Z", "203.0.113.7")))
 	})
+	// No /allowed-ips handler: if the code called that dead endpoint it would 404 → error.
 
-	c := newOpenAPITestClient(t, mux)
-	ips, err := c.OpenAPIAllowedIPs(context.Background())
+	ips, err := newOpenAPITestClient(t, mux).OpenAPIAllowedIPs(context.Background())
 	if err != nil {
 		t.Fatalf("OpenAPIAllowedIPs error: %v", err)
 	}
-	if len(ips) != 2 {
-		t.Fatalf("expected 2 IPs, got %d", len(ips))
+	if !called {
+		t.Fatal("expected allowlist to come from /openapi/client")
 	}
-	if ips[0] != "203.0.113.9" {
-		t.Errorf("ips[0]: got %q, want %q", ips[0], "203.0.113.9")
-	}
-}
-
-func TestOpenAPIClientInfo_RequiresSession(t *testing.T) {
-	t.Parallel()
-
-	c := New(Config{})
-	_, err := c.OpenAPIClientInfo(context.Background())
-	if !IsAuthError(err) {
-		t.Fatalf("expected auth error for no-session, got %v", err)
+	if len(ips) != 1 || ips[0] != "203.0.113.7" {
+		t.Errorf("AllowedIPs: got %v", ips)
 	}
 }
 
-func TestOpenAPIAllowedIPs_RequiresSession(t *testing.T) {
+func TestOpenAPIClientInfo_AuthError(t *testing.T) {
 	t.Parallel()
 
-	c := New(Config{})
-	_, err := c.OpenAPIAllowedIPs(context.Background())
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/openapi/client", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	})
+
+	_, err := newOpenAPITestClient(t, mux).OpenAPIClientInfo(context.Background())
 	if !IsAuthError(err) {
-		t.Fatalf("expected auth error for no-session, got %v", err)
+		t.Fatalf("expected auth error, got %v", err)
 	}
 }
