@@ -43,6 +43,24 @@ func TestOrderItemsEmptyName(t *testing.T) {
 	}
 }
 
+func TestOrderItemsLargePriceNotScientific(t *testing.T) {
+	t.Parallel()
+
+	// Large prices must render in plain decimal, never scientific notation.
+	items := orderItems([]domain.Order{
+		{ID: "O3", Symbol: "005930", Name: "삼성전자", Side: "buy", Quantity: 10, Price: 2700000, OrderDate: "2026-06-27"},
+	})
+	if len(items) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(items))
+	}
+	if strings.Contains(items[0].Label, "e+") {
+		t.Fatalf("label should not use scientific notation: %q", items[0].Label)
+	}
+	if !strings.Contains(items[0].Label, "2700000") {
+		t.Fatalf("label should contain plain price 2700000: %q", items[0].Label)
+	}
+}
+
 func TestOrderItemsEmpty(t *testing.T) {
 	t.Parallel()
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
@@ -24,9 +25,11 @@ func orderItems(orders []domain.Order) []tui.Item {
 		if name == "" {
 			name = o.Symbol
 		}
+		qty := strconv.FormatFloat(o.Quantity, 'f', -1, 64)
+		price := strconv.FormatFloat(o.Price, 'f', -1, 64)
 		items[i] = tui.Item{
 			ID:    o.ID,
-			Label: fmt.Sprintf("%s (%s) · %s · %g @ %g · %s", name, o.Symbol, o.Side, o.Quantity, o.Price, o.OrderDate),
+			Label: fmt.Sprintf("%s (%s) · %s · %s @ %s · %s", name, o.Symbol, o.Side, qty, price, o.OrderDate),
 		}
 	}
 	return items
