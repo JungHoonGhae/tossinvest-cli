@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -12,10 +13,13 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/auth"
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/onboarding"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderlineage"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/tui"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/updatecheck"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/version"
 	"github.com/spf13/cobra"
@@ -71,6 +75,25 @@ func newRootCmd() *cobra.Command {
 			if status, err := loadConfigStatus(opts); err == nil {
 				writeConfigLegacyWarningIfNeeded(cmd.ErrOrStderr(), status, cmd.Name(), format, configGate, configMark)
 			}
+
+			// First-run hint: nudge users with no auth at all toward `tossctl init`.
+			// Never blocks; suppressed in non-interactive and JSON/CSV modes.
+			if format == output.FormatTable {
+				hasOfficialCreds := false
+				if credFile, _, err := resolveOpenAPIPaths(opts); err == nil {
+					if creds, err := official.LoadCredentials(os.Getenv, credFile); err == nil && creds != nil {
+						hasOfficialCreds = true
+					}
+				}
+				state := onboarding.State{
+					HasSession:       sess != nil,
+					HasOfficialCreds: hasOfficialCreds,
+				}
+				if shouldHintOnboarding(state, tui.IsInteractive(os.Stdin, os.Stdout), cmd.Name()) {
+					fmt.Fprintln(cmd.ErrOrStderr(), "처음이신가요? `tossctl init` 으로 인증을 설정하세요.")
+				}
+			}
+
 			return nil
 		},
 		PersistentPostRun: func(cmd *cobra.Command, _ []string) {
@@ -98,6 +121,7 @@ func newRootCmd() *cobra.Command {
 	)
 
 	cmd.AddCommand(
+		newInitCmd(opts),
 		newVersionCmd(opts),
 		newDoctorCmd(opts),
 		newConfigCmd(opts),
@@ -145,6 +169,29 @@ var expiryWarningSkipCommands = map[string]struct{}{
 	"import-playwright-state": {},
 	"version":                 {},
 	"help":                    {},
+}
+
+// hintOnboardingSkipCommands lists commands where the first-run onboarding
+// hint is noise or would be recursive (init itself, meta commands).
+var hintOnboardingSkipCommands = map[string]struct{}{
+	"init":       {},
+	"help":       {},
+	"completion": {},
+	"version":    {},
+}
+
+// shouldHintOnboarding is a pure helper that returns true when all three
+// conditions hold: the user needs onboarding, the terminal is interactive,
+// and the command is not in the exclusion set. It never performs I/O.
+func shouldHintOnboarding(state onboarding.State, interactive bool, cmdName string) bool {
+	if !onboarding.NeedsOnboarding(state) {
+		return false
+	}
+	if !interactive {
+		return false
+	}
+	_, skip := hintOnboardingSkipCommands[cmdName]
+	return !skip
 }
 
 // writeExpiryWarningIfNeeded prints a session-expiry hint to stderr when the
