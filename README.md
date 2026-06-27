@@ -26,15 +26,12 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/badges/sponsor.svg" height="44" alt="Become a sponsor" /></a>
-</p>
-
-<p align="center">
   <a href="#quick-start"><strong>Quick Start</strong></a> ·
   <a href="#지원-범위"><strong>지원 범위</strong></a> ·
   <a href="#명령-목록"><strong>명령 목록</strong></a> ·
   <a href="#faq"><strong>FAQ</strong></a> ·
-  <a href="#문서"><strong>문서</strong></a>
+  <a href="#문서"><strong>문서</strong></a> ·
+  <a href="#후원"><strong>후원</strong></a>
 </p>
 
 <p align="center">
@@ -578,7 +575,23 @@ US/KR 지정가 매수/매도, US 소수점 매수, 당일 미체결 취소가 l
 
 ## Contributing
 
-버그 제보와 PR은 환영합니다.
+피드백을 환영합니다. 제안·버그 제보:
+
+- GitHub에서 [이슈](https://github.com/JungHoonGhae/tossinvest-cli/issues)나 PR 열기
+- LinkedIn [@junghoonghae](https://www.linkedin.com/in/junghoonghae)
+- 이메일 [lucas.ghae@remodule.dev](mailto:lucas.ghae@remodule.dev)
+
+## 후원
+
+tossinvest-cli 가 도움이 되었다면 후원으로 지속적인 개발을 응원해 주세요.
+
+<p align="center">
+  <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/badges/sponsor.svg" height="46" alt="Become a sponsor" /></a>
+</p>
+
+<p align="center"><sub>첫 후원자가 되어주시면 이 자리에 로고를 모셔두겠습니다.</sub></p>
+
+<!-- sponsors --><!-- sponsors -->
 
 ## License
 

@@ -25,14 +25,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/badges/sponsor.svg" height="44" alt="Become a sponsor" /></a>
-</p>
-
-<p align="center">
   <a href="#quick-start"><strong>Quick Start</strong></a> ·
   <a href="#support-scope"><strong>Support Scope</strong></a> ·
   <a href="#command-reference"><strong>Command Reference</strong></a> ·
-  <a href="#faq"><strong>FAQ</strong></a>
+  <a href="#faq"><strong>FAQ</strong></a> ·
+  <a href="#sponsors"><strong>Sponsors</strong></a>
 </p>
 
 <p align="center">
@@ -490,7 +487,23 @@ Override paths with `--config-dir` and `--session-file`.
 
 ## Contributing
 
-Bug reports and PRs welcome.
+We would love your feedback. Suggestions and bug reports:
+
+- Open an [Issue](https://github.com/JungHoonGhae/tossinvest-cli/issues) or PR on GitHub
+- Connect on LinkedIn [@junghoonghae](https://www.linkedin.com/in/junghoonghae)
+- Email [lucas.ghae@remodule.dev](mailto:lucas.ghae@remodule.dev)
+
+## Sponsors
+
+If tossinvest-cli helps you, consider sponsoring its continued development.
+
+<p align="center">
+  <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/badges/sponsor.svg" height="46" alt="Become a sponsor" /></a>
+</p>
+
+<p align="center"><sub>Be the first sponsor and your logo lands right here.</sub></p>
+
+<!-- sponsors --><!-- sponsors -->
 
 ## License
 
