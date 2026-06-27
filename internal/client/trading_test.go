@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -1357,5 +1359,26 @@ func TestAmendPendingOrderReturnsCompletedOrderFromHistory(t *testing.T) {
 	}
 	if result.CurrentOrderID != today+"/14" {
 		t.Fatalf("expected current order id %s/14, got %q", today, result.CurrentOrderID)
+	}
+}
+
+func TestClassifyPlaceCreateFailureSurfacesBrokerMessage(t *testing.T) {
+	err := classifyPlaceCreateFailure(&StatusError{
+		StatusCode: 400,
+		Endpoint:   "https://wts-cert-api.tossinvest.com/api/v2/wts/trading/order/create",
+		Body:       `{"message":"장 운영시간이 아닙니다"}`,
+	})
+	if err == nil || !strings.Contains(err.Error(), "장 운영시간이 아닙니다") {
+		t.Fatalf("expected broker message surfaced, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "400") {
+		t.Fatalf("expected status code in message, got %v", err)
+	}
+}
+
+func TestClassifyPlaceCreateFailurePassesThroughNonStatusError(t *testing.T) {
+	orig := fmt.Errorf("network down")
+	if got := classifyPlaceCreateFailure(orig); got != orig {
+		t.Fatalf("expected passthrough, got %v", got)
 	}
 }

@@ -170,7 +170,7 @@ func (c *Client) PlacePendingOrder(ctx context.Context, intent orderintent.Place
 	if err := c.postTradingJSONWithHeaders(ctx, fmt.Sprintf("%s/api/v2/wts/trading/order/create", c.certBaseURL), bodyCreate, map[string]string{
 		"X-Order-Key": prepare.Result.OrderKey,
 	}, &create); err != nil {
-		return tradingflow.MutationResult{}, err
+		return tradingflow.MutationResult{}, classifyPlaceCreateFailure(err)
 	}
 	if autoAcceptFXConsent {
 		c.acceptPostPrepareFXConsent(ctx)
@@ -250,6 +250,21 @@ func classifyPlacePrepareFailure(err error) error {
 			BrokerMessage: message,
 		}
 	}
+}
+
+// classifyPlaceCreateFailure surfaces the broker's rejection reason from an
+// order/create error. The prepare step classifies funding/FX branches; a
+// create-stage rejection is terminal, so we just want the user to SEE why
+// (market closed, price band, etc.) instead of a bare "unexpected status 400".
+func classifyPlaceCreateFailure(err error) error {
+	var statusErr *StatusError
+	if !errors.As(err, &statusErr) {
+		return err
+	}
+	if message := extractBrokerMessage(statusErr.Body); message != "" {
+		return fmt.Errorf("주문 생성이 거부되었습니다 (HTTP %d): %s", statusErr.StatusCode, message)
+	}
+	return err
 }
 
 func classifyPrepareBranch(body string, message string) tradingflow.Branch {
