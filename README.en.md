@@ -20,6 +20,11 @@
 </p>
 
 <p align="center">
+  <a href="docs/migration/.openapi-snapshot.json"><img src="docs/assets/badges/verified-api.svg" height="44" alt="Verified vs official Open API" /></a>&nbsp;
+  <a href="docs/migration/.openapi-snapshot.json"><img src="docs/assets/badges/spec-checked.svg" height="44" alt="Spec last checked" /></a>
+</p>
+
+<p align="center">
   <a href="#quick-start"><strong>Quick Start</strong></a> ·
   <a href="#support-scope"><strong>Support Scope</strong></a> ·
   <a href="#command-reference"><strong>Command Reference</strong></a> ·
