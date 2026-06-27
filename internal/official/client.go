@@ -116,6 +116,26 @@ func unwrapAndDecode(body []byte, out any) error {
 // is retried once. On non-2xx classifyStatus is returned. On 2xx the `result`
 // envelope is unwrapped into out (out may be nil).
 func (c *Client) get(ctx context.Context, path string, q url.Values, out any) error {
+	return c.getWithHeaders(ctx, path, q, nil, out)
+}
+
+// getAcct is like get but also sets the X-Tossinvest-Account header when the
+// client's accountSeq is non-zero. Used by account-scoped endpoints such as
+// BuyingPower and Holdings that require the header per the official API spec.
+func (c *Client) getAcct(ctx context.Context, path string, q url.Values, out any) error {
+	var extra map[string]string
+	if c.accountSeq != 0 {
+		extra = map[string]string{"X-Tossinvest-Account": strconv.Itoa(c.accountSeq)}
+	}
+	return c.getWithHeaders(ctx, path, q, extra, out)
+}
+
+// getWithHeaders performs an authenticated GET request to path (relative to
+// BaseURL), injecting any extraHeaders on top of the Authorization header.
+// Query parameters q may be nil. On 401 the token is refreshed and the request
+// is retried once. On non-2xx classifyStatus is returned. On 2xx the `result`
+// envelope is unwrapped into out (out may be nil).
+func (c *Client) getWithHeaders(ctx context.Context, path string, q url.Values, extraHeaders map[string]string, out any) error {
 	rawURL := c.base + path
 	if len(q) > 0 {
 		rawURL += "?" + q.Encode()
@@ -127,6 +147,9 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 			return nil, fmt.Errorf("%w: %s", ErrTransport, err)
 		}
 		req.Header.Set("Authorization", "Bearer "+tok)
+		for k, v := range extraHeaders {
+			req.Header.Set(k, v)
+		}
 		return req, nil
 	}
 
@@ -147,64 +170,6 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 
 	if code == http.StatusUnauthorized {
 		// Force-refresh the token and retry once.
-		tok, err = c.tm.refresh(ctx)
-		if err != nil {
-			return err
-		}
-		req, err = makeReq(tok)
-		if err != nil {
-			return err
-		}
-		code, body, err = c.doRequest(req)
-		if err != nil {
-			return err
-		}
-	}
-
-	if code < 200 || code >= 300 {
-		return classifyStatus(code, body)
-	}
-
-	return unwrapAndDecode(body, out)
-}
-
-// getAcct is like get but also sets the X-Tossinvest-Account header when the
-// client's accountSeq is non-zero. Used by account-scoped endpoints such as
-// BuyingPower and Holdings that require the header per the official API spec.
-func (c *Client) getAcct(ctx context.Context, path string, q url.Values, out any) error {
-	rawURL := c.base + path
-	if len(q) > 0 {
-		rawURL += "?" + q.Encode()
-	}
-
-	makeReq := func(tok string) (*http.Request, error) {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %s", ErrTransport, err)
-		}
-		req.Header.Set("Authorization", "Bearer "+tok)
-		if c.accountSeq != 0 {
-			req.Header.Set("X-Tossinvest-Account", strconv.Itoa(c.accountSeq))
-		}
-		return req, nil
-	}
-
-	tok, err := c.tm.token(ctx)
-	if err != nil {
-		return err
-	}
-
-	req, err := makeReq(tok)
-	if err != nil {
-		return err
-	}
-
-	code, body, err := c.doRequest(req)
-	if err != nil {
-		return err
-	}
-
-	if code == http.StatusUnauthorized {
 		tok, err = c.tm.refresh(ctx)
 		if err != nil {
 			return err

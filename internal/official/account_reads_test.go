@@ -76,3 +76,68 @@ func TestBuyingPowerIntegration(t *testing.T) {
 		t.Fatalf("CashBuyingPower: want 5000000, got %v", got.CashBuyingPower)
 	}
 }
+
+// TestBuyingPowerSendsAccountHeader verifies that WithAccountSeq injects the
+// X-Tossinvest-Account header on account-scoped requests.
+func TestBuyingPowerSendsAccountHeader(t *testing.T) {
+	var gotHeader string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/buying-power":
+			gotHeader = r.Header.Get("X-Tossinvest-Account")
+			_, _ = w.Write([]byte(`{"result":{"cashBuyingPower":"100","currency":"KRW"}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+		WithAccountSeq(42),
+	)
+
+	if _, err := c.BuyingPower(context.Background(), "KRW"); err != nil {
+		t.Fatal(err)
+	}
+	if gotHeader != "42" {
+		t.Fatalf("X-Tossinvest-Account: want 42, got %q", gotHeader)
+	}
+}
+
+// TestBuyingPowerOmitsAccountHeaderWhenUnset verifies the header is absent when
+// no account seq is configured (accountSeq == 0).
+func TestBuyingPowerOmitsAccountHeaderWhenUnset(t *testing.T) {
+	var present bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/buying-power":
+			_, present = r.Header["X-Tossinvest-Account"]
+			_, _ = w.Write([]byte(`{"result":{"cashBuyingPower":"100","currency":"KRW"}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+	)
+
+	if _, err := c.BuyingPower(context.Background(), "KRW"); err != nil {
+		t.Fatal(err)
+	}
+	if present {
+		t.Fatal("X-Tossinvest-Account header should be absent when accountSeq unset")
+	}
+}

@@ -3,7 +3,6 @@ package official
 import (
 	"context"
 	"net/url"
-	"strconv"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 )
@@ -39,13 +38,13 @@ func (c *Client) BuyingPower(ctx context.Context, currency string) (domain.Buyin
 // Mapping rationale:
 //   - cashBuyingPower (string decimal) → CashBuyingPower (float64):
 //     The WTS adapter stores orderable amounts as float64 (pointerFloat(KRW/USD)).
-//     We parse the decimal string to float64 for consistency.
+//     We parse the decimal string to float64 (via the package-shared parseDecimal)
+//     for consistency with the other read adapters.
 //   - currency (string enum) → Currency:
 //     Direct pass-through ("KRW" or "USD").
 func adaptBuyingPower(raw apiBuyingPower) domain.BuyingPower {
-	f, _ := strconv.ParseFloat(raw.CashBuyingPower, 64)
 	return domain.BuyingPower{
 		Currency:        raw.Currency,
-		CashBuyingPower: f,
+		CashBuyingPower: parseDecimal(raw.CashBuyingPower),
 	}
 }

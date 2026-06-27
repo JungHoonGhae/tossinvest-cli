@@ -58,8 +58,13 @@ func TestAdaptStocksUnit(t *testing.T) {
 	}
 
 	us := got[1]
-	if us.Symbol != "AAPL" || us.Market != "" {
-		// market maps to MarketCode — Market field is separate
+	if us.Symbol != "AAPL" {
+		t.Fatalf("Symbol: want AAPL, got %q", us.Symbol)
+	}
+	// market maps to MarketCode; the display-name Market field stays empty (/stocks
+	// does not provide it).
+	if us.Market != "" {
+		t.Fatalf("Market: want empty, got %q", us.Market)
 	}
 	if us.MarketCode != "NASDAQ" {
 		t.Fatalf("MarketCode: want NASDAQ, got %q", us.MarketCode)
