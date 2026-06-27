@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Go 1.25+, cobra CLI. 외부 의존성 추가 금지(표준 라이브러리만).
+- Go 1.25+, cobra CLI. 핵심/AI 경로는 표준 라이브러리 위주(외부 의존성 최소). **예외**: 온보딩 TUI 위저드용 `github.com/charmbracelet/huh`(+ 전이 의존 bubbletea/lipgloss 등) 허용. 단 TUI는 **사람용 옵트인**이며 비TTY/AI 경로는 huh 없이도 완전 동작해야 한다(플래그/JSON). official/hybrid/client 등 비-TUI 패키지는 huh를 import하지 않는다(TUI 의존은 `internal/tui`·`cmd`에 격리).
 - 거래는 기본 비활성·config 게이트 유지. 공식 경로 주문도 기존 `trading.Service` 게이트·`order preview`·`--execute/--confirm`를 그대로 통과.
 - **공개 출력·테스트·문서에 실제 계좌/키 데이터 금지** — 더미/합성 데이터만. 계약 테스트는 `httptest` + 더미.
 - 시크릿(API Key/Secret/토큰)은 디스크 저장 시 **0600**. 출력·로그·에러에 평문 노출 금지(마스킹).
@@ -543,7 +543,7 @@ func TestOpenAPILoginNonInteractiveErrorsWhenMissingFlags(t *testing.T) {
 - Modify: `website-fumadocs/content/docs/reference/support-scope.mdx`(+`.en.mdx`), `README.md`, `CHANGELOG.md`, `docs/reverse-engineering/wts-endpoints.json`(Task 7에서 처리됐으면 확인만), 랜딩 `website-fumadocs/app/[lang]/(home)/page.tsx`(해당 시 "선택적 하이브리드" 카피).
 - 사이드바/메타(`meta.json` 등) 등록은 기존 docs 구조 관례 따름.
 
-- [ ] **Step 1 — 전용 가이드 페이지** — `guide/hybrid-openapi.mdx`(+en): (1) 하이브리드가 무엇인지(공식이 지원하는 op는 공식 OAuth 경로, 나머지는 WTS, 실패 시 폴백), (2) 공식 Open API 키 발급 방법(토스 설정 > Open API, 허용 IP 등록 필수) + 보안 주의(시크릿 0600·env), (3) `tossctl openapi login/status/test/logout` 사용법, (4) `--backend`·config `openapi.{enabled,prefer,fallback}`, (5) 폴백·소스 표시(stderr), 주문 보수적 폴백, (6) `status`로 "왜 안 되는지" 진단(IP 미허용·만료 등). 더미 값만 사용(실제 키 금지).
+- [ ] **Step 1 — 전용 가이드 페이지** — `guide/hybrid-openapi.mdx`(+en): (1) 하이브리드가 무엇인지(공식이 지원하는 op는 공식 OAuth 경로, 나머지는 WTS, 실패 시 폴백), (2) 공식 Open API 키 발급 방법(토스 설정 > Open API, 허용 IP 등록 필수), (3) **시크릿 안전 취급 — 별도 섹션으로 강조**: 권장 순서 = ① `TOSSCTL_OPENAPI_KEY`/`TOSSCTL_OPENAPI_SECRET` 환경변수(CI·에이전트), ② `tossctl openapi login`이 만드는 `openapi-credentials.json`(0600). **절대 하지 말 것**: 채팅/이슈/PR/커밋/스크린샷/로그에 평문 키·시크릿 붙여넣기, config.json·코드·문서에 하드코딩. 셸 히스토리 회피(`--key/--secret` 직접 입력 대신 env/stdin), 허용 IP를 방어선으로, **유출 의심 시 토스에서 즉시 재발급**. (4) `tossctl openapi login/status/test/logout` 사용법, (5) `--backend`·config `openapi.{enabled,prefer,fallback}`, (6) 폴백·소스 표시(stderr), 주문 보수적 폴백, (7) `status`로 "왜 안 되는지" 진단(IP 미허용·만료 등). 예시는 모두 더미 값(`tsck_live_…`/`tssk_live_…` 형태의 가짜만), 실제 키 절대 금지.
 - [ ] **Step 2 — support-scope** — 공식 칼럼이 *실제 라우팅*됨을 반영(주문/조회 행에 하이브리드 주석), 전용 가이드로 링크. `openapi` 커맨드 + `--backend` 문서화.
 - [ ] **Step 3 — README** — 비교표/소개에 하이브리드 한 단락 + `tossctl openapi` 빠른 시작, `<!--since:2026-06-27-->` 마커.
 - [ ] **Step 4 — 랜딩 카피** — `page.tsx`의 "선택적 하이브리드"/`thesis.points` 문구가 이제 실재 기능과 일치하는지 점검·정정(과장 없이).
@@ -551,6 +551,81 @@ func TestOpenAPILoginNonInteractiveErrorsWhenMissingFlags(t *testing.T) {
 - [ ] **Step 6** — `python3 tools/update_new_markers.py` 실행(있으면).
 - [ ] **Step 7 — 검증** — `make build && make test && make lint`(또는 `go build ./... && go test ./... && go vet ./...`). docs 사이트는 `website-fumadocs`에서 빌드 점검(가능 시).
 - [ ] **Step 8: 커밋** — `git commit -am "docs: 하이브리드 공식 Open API 가이드 페이지·support-scope·README·랜딩·CHANGELOG"`
+
+---
+
+## 실행 순서 (개정 — 온보딩 프론트로딩)
+
+사용자 우선순위("온보딩 먼저")로 재정렬한다. 의존성상 위저드는 최소 인증 기반 위에 선다:
+
+`Task 1 ✅ → 2 ✅ → 3 → 4 → 5 → 12 → 16 → 17 → 18 → 6 → 7 → 8 → 9 → 10 → 11 → 13 → 14 → 15`
+
+즉 토큰/코어/Accounts/openapi 커맨드(검증·저장 함수) 후 **온보딩 위저드(16–18)**를 먼저 만들고, 그다음 조회 어댑터·주문 라우팅·status/doctor·문서로 간다. Task 12의 저장/검증 로직을 위저드가 재사용한다.
+
+---
+
+## Task 16: TUI 스캐폴딩 (`internal/tui`, huh 도입, TTY 격리)
+
+**Files:** Create `internal/tui/tui.go`, `internal/tui/tui_test.go`; Modify `go.mod`/`go.sum`.
+
+**Interfaces (Produces):**
+- `func IsInteractive(in, out *os.File) bool` — 둘 다 char device(`ModeCharDevice`)일 때만 true.
+- `var ErrNotInteractive = errors.New("not an interactive terminal")`
+- 얇은 래퍼(huh 격리): `func Select(title string, opts []string) (string, error)`, `func Password(title string) (string, error)`, `func Confirm(title string) (bool, error)` — 비TTY면 `ErrNotInteractive`.
+
+- [ ] Step1 실패 테스트: 파이프(비TTY)에서 `IsInteractive`=false, 래퍼는 `ErrNotInteractive`.
+
+```go
+func TestIsInteractiveFalseForPipe(t *testing.T) {
+	r, _, _ := os.Pipe()
+	if IsInteractive(r, os.Stdout) { t.Fatal("pipe stdin must be non-interactive") }
+}
+func TestPasswordNonInteractiveErrors(t *testing.T) {
+	r, _, _ := os.Pipe()
+	if _, err := passwordWith(r, os.Stdout, "secret"); !errors.Is(err, ErrNotInteractive) { t.Fatalf("got %v", err) }
+}
+```
+*(테스트 가능하게 내부 `func passwordWith(in,out,title)` 형태로 in/out 주입; 공개 래퍼는 os.Stdin/Stdout 사용. huh 폼 자체는 비TTY에서 안 띄우고 가드만 검증.)*
+
+- [ ] Step2 실패 확인: `go test ./internal/tui/ -v` FAIL.
+- [ ] Step3 구현: `go get github.com/charmbracelet/huh`. `IsInteractive`(`fi.Mode()&os.ModeCharDevice != 0` 양쪽). 래퍼는 interactive면 huh 폼 실행, 아니면 `ErrNotInteractive`.
+- [ ] Step4 통과: `go test ./internal/tui/ -v` PASS, `go build ./...`.
+- [ ] Step5 커밋: `feat(tui): huh 기반 위저드 래퍼 + TTY 격리`
+
+---
+
+## Task 17: 온보딩 결정 로직 (`internal/onboarding`, 순수·테스트 가능)
+
+렌더링과 분리된 순수 로직(위저드 흐름의 두뇌). AI/테스트가 네트워크 없이 검증 가능.
+
+**Files:** Create `internal/onboarding/onboarding.go`, `_test.go`.
+
+**Interfaces (Produces):**
+- `type State struct { HasSession, HasOfficialCreds bool }`
+- `type Method string` (`MethodWeb="web"`, `MethodOfficial="official"`)
+- `func NeedsOnboarding(s State) bool` — 세션·키 둘 다 없으면 true.
+- `func AvailableMethods() []Method` — {web, official} (라벨/설명은 cmd에서).
+- `func StepsFor(m Method) []string` — official: ["키 입력","시크릿 입력","검증","저장"]; web: ["브라우저 로그인"].
+
+- [ ] Step1 실패 테스트: 상태별 `NeedsOnboarding`, 메서드별 `StepsFor` 테이블.
+- [ ] Step2 실패 확인 → Step3 구현(순수 함수) → Step4 통과(`go test ./internal/onboarding/ -v`) → Step5 커밋 `feat(onboarding): 인증 온보딩 결정 로직`.
+
+---
+
+## Task 18: `tossctl init` 온보딩 위저드 + 첫 실행 힌트
+
+**Files:** Create `cmd/tossctl/init.go`, `cmd/tossctl/init_test.go`; Modify `cmd/tossctl/root.go`(첫 실행 힌트).
+
+**Interfaces (Consumes):** Task16 tui, Task17 onboarding, Task12 `official.SaveCredentials`+검증(`openapi test` 로직 재사용), 기존 `auth login`.
+
+흐름(TTY): 인증 방식 선택(`Select`: "웹 세션 로그인 — 넓은 범위·비공식" / "공식 Open API 키 — OAuth2·안정적·정식" / "둘 다") →
+- 공식: 키 입력 + `Password`로 시크릿 → 즉시 검증(토큰+/accounts, 결과 분류 — IP 미허용 등 안내) → 0600 저장.
+- 웹: 기존 `auth login` 흐름 트리거.
+**비TTY/AI**: 위저드 안 띄우고, 플래그 사용법 안내 후 정상 종료(`tossctl auth login`, `tossctl openapi login --key … --secret …`).
+**첫 실행 힌트**: `root` PersistentPreRun에서 `NeedsOnboarding && IsInteractive && cmd∉{help,version,init,completion}`이면 1줄 안내("`tossctl init`으로 설정"). 차단하지 않음.
+
+- [ ] Step1 실패 테스트: 비TTY `init`이 위저드 없이 안내 출력+정상 종료; 첫 실행 힌트 조건(순수 부분은 Task17으로 검증, 여기선 cmd 분기).
+- [ ] Step2 실패 확인 → Step3 구현(인터랙티브 경로는 수동 검증; 비TTY/힌트 분기는 테스트) → Step4 통과(`go test ./cmd/tossctl/ -v`, `go build`) → Step5 커밋 `feat(cmd): tossctl init 온보딩 위저드 + 첫 실행 힌트`.
 
 ---
 
