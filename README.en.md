@@ -15,13 +15,17 @@
   <a href="LICENSE"><img src="docs/assets/badges/license.svg" height="44" alt="License: MIT" /></a>&nbsp;
   <a href="https://go.dev/"><img src="docs/assets/badges/go.svg" height="44" alt="Built with Go 1.25+" /></a>&nbsp;
   <img src="docs/assets/badges/agents.svg" height="44" alt="Works with Claude · Codex · Cursor" />&nbsp;
-  <img src="docs/assets/badges/output.svg" height="44" alt="Output: JSON · CSV · SSE" />&nbsp;
-  <a href="https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi"><img src="docs/assets/badges/hybrid.svg" height="44" alt="Official API: Optional hybrid" /></a>
+  <img src="docs/assets/badges/output.svg" height="44" alt="Output: JSON · CSV · SSE" />
 </p>
 
 <p align="center">
+  <a href="https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi"><img src="docs/assets/badges/hybrid.svg" height="44" alt="Official API: Optional hybrid" /></a>&nbsp;
   <a href="docs/migration/.openapi-snapshot.json"><img src="docs/assets/badges/verified-api.svg" height="44" alt="Verified vs official Open API" /></a>&nbsp;
   <a href="docs/migration/.openapi-snapshot.json"><img src="docs/assets/badges/spec-checked.svg" height="44" alt="Spec last checked" /></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/badges/sponsor.svg" height="44" alt="Become a sponsor" /></a>
 </p>
 
 <p align="center">
