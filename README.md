@@ -45,10 +45,6 @@
 > [!IMPORTANT]
 > 거래 기능은 설치 직후 모두 꺼져 있습니다. `config.json`에서 기능별로 직접 허용해야만 실행됩니다.
 
-<p align="center">
-  <img src="docs/assets/hero.png" alt="tossctl overview" width="720" />
-</p>
-
 <div align="center">
 <sub><strong>WORKS WITH</strong></sub>
 <br /><br />
