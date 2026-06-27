@@ -52,9 +52,9 @@ const content = {
       ],
     },
     why: {
-      headline: '새 기능은 늘 앱(WTS)에 먼저 도착합니다',
+      headline: '새 기능은 늘 앱(WTS)에 먼저 출시됩니다',
       p1: '어느 플랫폼이든 자사 앱은 사용자 경험이 모이는 핵심 공간입니다. 새 기능을 가장 빠르게 실험하고 통합하기 좋은 곳도 앱이라, 신기능은 자연스럽게 앱(WTS)에 먼저 들어갑니다. 반면 외부 공개용 API는 버전·호환성·지원 부담이 크기 때문에, 안정적으로 열 수 있는 범위를 신중히 골라 뒤따라 공개합니다. 공식 API가 보수적인 건 인색해서가 아니라 합리적인 선택입니다.',
-      p2: '그 결과 수급·시장지수·AI 시그널·스크리너·실시간 푸시처럼 토스의 색이 강한 기능일수록 앱에 먼저, 더 빨리 도착합니다. 누구의 잘못이 아니라 플랫폼의 구조입니다. tossctl은 이 구조를 거스르지 않고 그대로 활용합니다. 앱이 쓰는 길(WTS)을 1차 경로로 삼아 지금 바로 쓰되, 공식이 지원하는 기능은 공식 경로로 자동 라우팅해 안정성도 함께 가져갑니다.',
+      p2: '그 결과 수급·시장지수·AI 시그널·스크리너·실시간 푸시처럼 토스의 색이 강한 기능일수록 앱에 먼저, 더 빨리 출시됩니다. 누구의 잘못이 아니라 플랫폼의 구조입니다. tossctl은 이 구조를 거스르지 않고 그대로 활용합니다. 앱이 쓰는 길(WTS)을 1차 경로로 삼아 지금 바로 쓰되, 공식이 지원하는 기능은 공식 경로로 자동 라우팅해 안정성도 함께 가져갑니다.',
       kicker: '더 빠른 범위와 더 안정적인 경로, 둘 다 취합니다.',
     },
     sectionLabel: '왜 tossctl 인가',
@@ -166,7 +166,7 @@ const content = {
       ],
     },
     why: {
-      headline: 'New features always reach the app first',
+      headline: 'New features always ship in the app first',
       p1: "On any platform, the first-party app is where the core experience lives. It's also the best place to ship and integrate new features fast, so new capabilities naturally land in the app (WTS) first. A public API carries real versioning, compatibility, and support costs, so it opens a carefully chosen, stable subset afterwards. The official API being conservative is reasonable, not stingy.",
       p2: "As a result, the most Toss-flavored capabilities (flows, indices, AI signals, screener, real-time push) arrive in the app first and fastest. That is not anyone's fault, it is the shape of the platform. tossctl works with that shape rather than against it: it uses the path the app itself uses (WTS) as the primary route so you can use those features now, while auto-routing officially-supported features through the official path to keep stability.",
       kicker: 'The faster surface and the steadier route, both at once.',
