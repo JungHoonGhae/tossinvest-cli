@@ -43,10 +43,10 @@ const content = {
     thesis: {
       label: '왜 지금',
       headline: '공식 API, 기다릴 필요 없습니다',
-      body: '토스증권 공식 Open API가 지원하는 범위는 토스 WTS 전체 기능의 약 4%(~20개)뿐입니다. tossctl은 이 4%를 100% 포함합니다. 공식 키를 등록하면 해당 기능은 공식 OAuth 경로로 자동 라우팅되어 더 안정적이고, 여기에 토스 WTS엔 있지만 공식 API엔 없는 기능 18개까지 더해 총 27개를 제공합니다. 신청이나 승인 없이 바로 시작할 수 있습니다.',
+      body: '토스증권 공식 Open API가 여는 범위는 토스 WTS 전체 기능의 약 4%뿐입니다. tossctl은 그 범위를 100% 포함하고, 공식엔 없는 토스 WTS 고유 기능 18개를 더해 총 27개를 제공합니다. 공식 키를 등록하면 해당 기능은 공식 OAuth 경로로 자동 라우팅되어 더 안정적입니다. 신청이나 승인 없이 바로 시작할 수 있습니다.',
       points: [
-        { k: '공식은 약 4%', v: '공식 Open API는 토스 WTS 기능 ~430개 중 약 20개(4%)만 지원합니다.' },
-        { k: '공식 전부 100% 커버', v: '공식 지원 기능 9개를 100% 커버합니다. 공식 키를 연결하면 OAuth 경로로 더 안정적으로 동작합니다.' },
+        { k: '공식은 약 4%', v: '공식 Open API는 토스 WTS 기능 ~430개 중 약 4%만 엽니다.' },
+        { k: '공식 전부 100% 커버', v: '공식이 여는 범위를 빠짐없이 100% 포함합니다. 공식 키를 연결하면 OAuth 경로로 더 안정적으로 동작합니다.' },
         { k: 'WTS 기능 18개 추가', v: '토스 WTS엔 있지만 공식 API엔 없는 수급·지수·AI 시그널·스크리너·배당 등 18개까지. 합계 27개.' },
         { k: '에이전트 연동', v: '모든 명령이 JSON으로 출력되어 AI 에이전트와 바로 연동됩니다.' },
       ],
@@ -66,12 +66,12 @@ const content = {
       </>
     ),
     stats: [
-      { n: '약 4%', l: '공식 Open API가 지원하는 WTS 기능 비중 (~20/430)' },
+      { n: '약 4%', l: '공식 Open API가 여는 토스 WTS 기능 비중' },
       { n: '18', l: '공식 API엔 없는 토스 WTS 기능' },
       { n: '27', l: '공식 지원 전부 + 고유 18 = tossctl 총 기능 수' },
     ],
     coverage: {
-      bright: '공식 Open API · WTS 기능의 약 4% (~20개)',
+      bright: '공식 Open API · 토스 WTS의 약 4%',
       dim: '토스 WTS 전체 기능 ~430개',
       note: 'tossctl은 공식이 다루는 약 4%를 100% 포함하고, 공식에 없는 나머지 WTS 기능까지 넓혀갑니다.',
     },
@@ -157,10 +157,10 @@ const content = {
     thesis: {
       label: 'WHY NOW',
       headline: "You don't have to wait for the official API",
-      body: "Toss Securities' official Open API covers only about 4% (~20) of the full Toss WTS feature set. tossctl covers 100% of that. Plug in an official key and those features auto-route through OAuth for extra stability, and it adds 18 more Toss WTS features the official API doesn't expose, for a total of 27. No application, no approval to start.",
+      body: "Toss Securities' official Open API opens only about 4% of the full Toss WTS feature set. tossctl covers that 100% and adds 18 more Toss WTS features the official API doesn't expose, for a total of 27. Plug in an official key and those features auto-route through OAuth for extra stability. No application, no approval to start.",
       points: [
-        { k: 'Official ≈ 4%', v: 'The official Open API supports ~20 of ~430 Toss WTS features, about 4%.' },
-        { k: '100% of official covered', v: "tossctl covers all 9 officially-supported features. Add an official key and they route through OAuth (more stable, auto-renewing)." },
+        { k: 'Official ≈ 4%', v: 'Of ~430 Toss WTS features, the official Open API opens only about 4%.' },
+        { k: '100% of official covered', v: "tossctl covers the official's whole area 100%. Add an official key and it routes through OAuth (more stable, auto-renewing)." },
         { k: '+18 WTS features', v: "Flows, indices, AI signals, screener, dividends: 18 Toss WTS features the official API doesn't expose. Total: 27." },
         { k: 'Agents included', v: 'Every command answers in JSON, so people and agents use it the same way.' },
       ],
@@ -180,12 +180,12 @@ const content = {
       </>
     ),
     stats: [
-      { n: '~4%', l: 'of Toss WTS features the official API supports (~20/430)' },
+      { n: '~4%', l: 'of Toss WTS features the official API opens' },
       { n: '18', l: "Toss WTS features the official API doesn't expose" },
       { n: '27', l: 'total: all official-supported + 18 unique' },
     ],
     coverage: {
-      bright: 'Official Open API · ~4% of WTS (~20)',
+      bright: 'Official Open API · ~4% of WTS',
       dim: '~430 total Toss WTS features',
       note: 'tossctl covers 100% of the official ~4% and keeps expanding into the rest of WTS.',
     },
