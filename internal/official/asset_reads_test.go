@@ -116,6 +116,7 @@ func TestHoldingsIntegration(t *testing.T) {
 		filepath.Join(t.TempDir(), "t.json"),
 		WithBaseURL(srv.URL),
 		WithHTTPClient(srv.Client()),
+		WithAccountSeq(1), // skip lazy fetch; test focuses on response parsing
 	)
 
 	got, err := c.Holdings(context.Background(), "005930")
@@ -155,6 +156,7 @@ func TestHoldingsIntegrationAllSymbols(t *testing.T) {
 		filepath.Join(t.TempDir(), "t.json"),
 		WithBaseURL(srv.URL),
 		WithHTTPClient(srv.Client()),
+		WithAccountSeq(1), // skip lazy fetch; test focuses on response parsing
 	)
 
 	got, err := c.Holdings(context.Background(), "")

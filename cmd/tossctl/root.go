@@ -13,6 +13,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/auth"
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/onboarding"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderlineage"
@@ -29,6 +30,7 @@ type rootOptions struct {
 	outputFormat string
 	configDir    string
 	sessionFile  string
+	backend      string // --backend flag: overrides cfg.OpenAPI.Prefer for this run
 }
 
 type appContext struct {
@@ -38,7 +40,7 @@ type appContext struct {
 	configService     *config.Service
 	loginConfig       auth.LoginConfig
 	authService       *auth.Service
-	client            *tossclient.Client
+	client            *hybrid.Client
 	session           *session.Session
 	lineageService    *orderlineage.Service
 	tradingService    *trading.Service
@@ -118,6 +120,12 @@ func newRootCmd() *cobra.Command {
 		"session-file",
 		"",
 		"Override the session file path",
+	)
+	cmd.PersistentFlags().StringVar(
+		&opts.backend,
+		"backend",
+		"",
+		"Override routing backend for this run: auto|wts|official",
 	)
 
 	cmd.AddCommand(
@@ -366,6 +374,21 @@ func configFilePath(opts *rootOptions) (string, error) {
 	return paths.ConfigFile, nil
 }
 
+// resolveBackend returns the effective routing backend preference.
+// The --backend flag takes precedence over cfg.Prefer.
+// An empty flag means "use config". Invalid flag values are rejected.
+func resolveBackend(cfg config.OpenAPI, flag string) (string, error) {
+	if flag == "" {
+		return cfg.Prefer, nil
+	}
+	switch flag {
+	case "auto", "wts", "official":
+		return flag, nil
+	default:
+		return "", fmt.Errorf("invalid --backend value %q: must be one of auto, wts, official", flag)
+	}
+}
+
 func humanizeDuration(d time.Duration) string {
 	if d <= 0 {
 		return "0s"
@@ -419,10 +442,32 @@ func newAppContext(opts *rootOptions) (*appContext, error) {
 	if err != nil {
 		return nil, err
 	}
-	client := tossclient.New(tossclient.Config{
+
+	wtsClient := tossclient.New(tossclient.Config{
 		Session:       sess,
 		TradingPolicy: cfg.Trading,
 	})
+
+	prefer, err := resolveBackend(cfg.OpenAPI, opts.backend)
+	if err != nil {
+		return nil, err
+	}
+
+	credFile, tokenFile, err := resolveOpenAPIPaths(opts)
+	if err != nil {
+		return nil, err
+	}
+	creds, err := official.LoadCredentials(os.Getenv, credFile)
+	if err != nil {
+		return nil, fmt.Errorf("loading official credentials: %w", err)
+	}
+
+	var off *official.Client
+	if creds != nil && cfg.OpenAPI.Enabled && prefer != "wts" {
+		off = official.New(*creds, tokenFile)
+	}
+
+	h := hybrid.New(wtsClient, off, hybrid.Policy{Prefer: prefer, Fallback: cfg.OpenAPI.Fallback}, os.Stderr)
 
 	return &appContext{
 		format:        format,
@@ -432,12 +477,12 @@ func newAppContext(opts *rootOptions) (*appContext, error) {
 		loginConfig:   loginConfig,
 		authService: auth.NewService(store, paths.SessionFile, auth.Options{
 			LoginConfig:     loginConfig,
-			Validator:       client,
-			ExtensionRunner: client,
+			Validator:       wtsClient,
+			ExtensionRunner: wtsClient,
 		}),
-		client:            client,
+		client:            h,
 		session:           sess,
 		lineageService:    orderlineage.NewService(paths.LineageFile),
-		tradingService:    trading.NewService(cfg.Trading, client),
+		tradingService:    trading.NewService(cfg.Trading, h.Broker()),
 	}, nil
 }

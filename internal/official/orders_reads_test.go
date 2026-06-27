@@ -208,6 +208,7 @@ func TestOrdersFilterEmpty(t *testing.T) {
 		filepath.Join(t.TempDir(), "t.json"),
 		WithBaseURL(srv.URL),
 		WithHTTPClient(srv.Client()),
+		WithAccountSeq(1), // skip lazy fetch; test focuses on query param absence
 	)
 
 	got, err := c.Orders(context.Background(), OrdersFilter{})

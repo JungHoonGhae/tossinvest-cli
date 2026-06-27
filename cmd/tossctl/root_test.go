@@ -11,6 +11,63 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 )
 
+// ---------------------------------------------------------------------------
+// resolveBackend tests
+// ---------------------------------------------------------------------------
+
+func TestResolveBackendEmptyFlagUsesConfig(t *testing.T) {
+	t.Parallel()
+	for _, prefer := range []string{"auto", "wts", "official"} {
+		cfg := config.OpenAPI{Enabled: true, Prefer: prefer, Fallback: true}
+		got, err := resolveBackend(cfg, "")
+		if err != nil {
+			t.Fatalf("prefer=%q: unexpected error: %v", prefer, err)
+		}
+		if got != prefer {
+			t.Fatalf("prefer=%q: want %q, got %q", prefer, prefer, got)
+		}
+	}
+}
+
+func TestResolveBackendFlagOverridesConfig(t *testing.T) {
+	t.Parallel()
+	cfg := config.OpenAPI{Enabled: true, Prefer: "auto", Fallback: true}
+	for _, flag := range []string{"auto", "wts", "official"} {
+		got, err := resolveBackend(cfg, flag)
+		if err != nil {
+			t.Fatalf("flag=%q: unexpected error: %v", flag, err)
+		}
+		if got != flag {
+			t.Fatalf("flag=%q: want %q, got %q", flag, flag, got)
+		}
+	}
+}
+
+func TestResolveBackendInvalidFlagReturnsError(t *testing.T) {
+	t.Parallel()
+	cfg := config.OpenAPI{Enabled: true, Prefer: "auto", Fallback: true}
+	_, err := resolveBackend(cfg, "invalid")
+	if err == nil {
+		t.Fatal("expected error for invalid --backend value, got nil")
+	}
+	if !strings.Contains(err.Error(), "invalid --backend") {
+		t.Fatalf("error should mention 'invalid --backend', got: %v", err)
+	}
+}
+
+func TestResolveBackendWTSFlagOverridesOfficialConfig(t *testing.T) {
+	t.Parallel()
+	// Config prefers official, but --backend wts should override.
+	cfg := config.OpenAPI{Enabled: true, Prefer: "official", Fallback: false}
+	got, err := resolveBackend(cfg, "wts")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "wts" {
+		t.Fatalf("want %q, got %q", "wts", got)
+	}
+}
+
 func TestExpiryWarningWithin24Hours(t *testing.T) {
 	t.Parallel()
 

@@ -143,13 +143,16 @@ func formatDecimal(v float64) string {
 	return strconv.FormatFloat(v, 'f', -1, 64)
 }
 
-// acctHeaders returns the extra-headers map for account-scoped order endpoints.
-// Returns nil when accountSeq is 0 (header omitted).
-func (c *Client) acctHeaders() map[string]string {
-	if c.accountSeq == 0 {
-		return nil
+// acctHeaders resolves the account sequence (lazily if not set via
+// WithAccountSeq) and returns the extra-headers map for account-scoped order
+// endpoints. An error is returned when lazy resolution fails (e.g. no accounts
+// found or the accounts endpoint is unreachable).
+func (c *Client) acctHeaders(ctx context.Context) (map[string]string, error) {
+	seq, err := c.ensureAccountSeq(ctx)
+	if err != nil {
+		return nil, err
 	}
-	return map[string]string{"X-Tossinvest-Account": strconv.Itoa(c.accountSeq)}
+	return map[string]string{"X-Tossinvest-Account": strconv.Itoa(seq)}, nil
 }
 
 // ---------------------------------------------------------------------------
@@ -166,8 +169,12 @@ func (c *Client) PlaceOrder(ctx context.Context, intent orderintent.PlaceIntent)
 	if err != nil {
 		return trading.MutationResult{}, fmt.Errorf("building order body: %w", err)
 	}
+	hdrs, err := c.acctHeaders(ctx)
+	if err != nil {
+		return trading.MutationResult{}, err
+	}
 	var resp apiOrderCreateResponse
-	if err := c.postWithHeaders(ctx, "/api/v1/orders", body, c.acctHeaders(), &resp); err != nil {
+	if err := c.postWithHeaders(ctx, "/api/v1/orders", body, hdrs, &resp); err != nil {
 		return trading.MutationResult{}, err
 	}
 	return trading.MutationResult{
@@ -189,8 +196,12 @@ func (c *Client) PlaceOrder(ctx context.Context, intent orderintent.PlaceIntent)
 // The orderId path segment is percent-encoded via url.PathEscape.
 func (c *Client) CancelOrder(ctx context.Context, orderID string) (trading.MutationResult, error) {
 	path := "/api/v1/orders/" + url.PathEscape(orderID) + "/cancel"
+	hdrs, err := c.acctHeaders(ctx)
+	if err != nil {
+		return trading.MutationResult{}, err
+	}
 	var resp apiOrderOperationResponse
-	if err := c.postWithHeaders(ctx, path, struct{}{}, c.acctHeaders(), &resp); err != nil {
+	if err := c.postWithHeaders(ctx, path, struct{}{}, hdrs, &resp); err != nil {
 		return trading.MutationResult{}, err
 	}
 	return trading.MutationResult{
@@ -226,8 +237,12 @@ func (c *Client) ModifyOrder(ctx context.Context, intent orderintent.AmendIntent
 	}
 
 	path := "/api/v1/orders/" + url.PathEscape(intent.OrderID) + "/modify"
+	hdrs, err := c.acctHeaders(ctx)
+	if err != nil {
+		return trading.MutationResult{}, err
+	}
 	var resp apiOrderOperationResponse
-	if err := c.postWithHeaders(ctx, path, body, c.acctHeaders(), &resp); err != nil {
+	if err := c.postWithHeaders(ctx, path, body, hdrs, &resp); err != nil {
 		return trading.MutationResult{}, err
 	}
 	return trading.MutationResult{

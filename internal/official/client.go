@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -22,7 +23,8 @@ type Client struct {
 	base       string
 	hc         *http.Client
 	tm         *tokenManager
-	accountSeq int // used for X-Tossinvest-Account header (0 = unset)
+	mu         sync.Mutex // guards accountSeq lazy resolution
+	accountSeq int        // used for X-Tossinvest-Account header (0 = unset, resolved lazily)
 }
 
 // Option configures a Client.
@@ -119,14 +121,44 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 	return c.getWithHeaders(ctx, path, q, nil, out)
 }
 
-// getAcct is like get but also sets the X-Tossinvest-Account header when the
-// client's accountSeq is non-zero. Used by account-scoped endpoints such as
-// BuyingPower and Holdings that require the header per the official API spec.
-func (c *Client) getAcct(ctx context.Context, path string, q url.Values, out any) error {
-	var extra map[string]string
+// ensureAccountSeq returns the account sequence number, resolving it lazily
+// when no seq was provided via WithAccountSeq. The first call (accountSeq==0)
+// fetches /api/v1/accounts, parses the first entry's ID, and caches the result.
+// Subsequent calls return the cached value with no network round-trip. The mu
+// field serialises concurrent first-call resolution so /accounts is called at
+// most once. Callers that set WithAccountSeq at construction time skip the
+// fetch entirely.
+func (c *Client) ensureAccountSeq(ctx context.Context) (int, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.accountSeq != 0 {
-		extra = map[string]string{"X-Tossinvest-Account": strconv.Itoa(c.accountSeq)}
+		return c.accountSeq, nil
 	}
+	accts, err := c.Accounts(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("lazy account-seq resolution: %w", err)
+	}
+	if len(accts) == 0 {
+		return 0, fmt.Errorf("lazy account-seq resolution: no accounts found")
+	}
+	seq, err := strconv.Atoi(accts[0].ID)
+	if err != nil {
+		return 0, fmt.Errorf("lazy account-seq resolution: parsing account ID %q: %w", accts[0].ID, err)
+	}
+	c.accountSeq = seq
+	return seq, nil
+}
+
+// getAcct is like get but also resolves the account sequence (lazily if needed)
+// and sets the X-Tossinvest-Account header. Used by account-scoped endpoints
+// such as BuyingPower, Holdings, and Orders that require the header per the
+// official API spec.
+func (c *Client) getAcct(ctx context.Context, path string, q url.Values, out any) error {
+	seq, err := c.ensureAccountSeq(ctx)
+	if err != nil {
+		return err
+	}
+	extra := map[string]string{"X-Tossinvest-Account": strconv.Itoa(seq)}
 	return c.getWithHeaders(ctx, path, q, extra, out)
 }
 

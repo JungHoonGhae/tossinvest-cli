@@ -42,6 +42,8 @@ func TestAdaptBuyingPowerZero(t *testing.T) {
 }
 
 // TestBuyingPowerIntegration tests BuyingPower() against an httptest server.
+// WithAccountSeq is set explicitly so that ensureAccountSeq returns immediately
+// without fetching /api/v1/accounts (the test focuses on response parsing).
 func TestBuyingPowerIntegration(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -63,6 +65,7 @@ func TestBuyingPowerIntegration(t *testing.T) {
 		filepath.Join(t.TempDir(), "t.json"),
 		WithBaseURL(srv.URL),
 		WithHTTPClient(srv.Client()),
+		WithAccountSeq(1), // skip lazy fetch; test focuses on response parsing
 	)
 
 	got, err := c.BuyingPower(context.Background(), "KRW")
@@ -110,16 +113,20 @@ func TestBuyingPowerSendsAccountHeader(t *testing.T) {
 	}
 }
 
-// TestBuyingPowerOmitsAccountHeaderWhenUnset verifies the header is absent when
-// no account seq is configured (accountSeq == 0).
-func TestBuyingPowerOmitsAccountHeaderWhenUnset(t *testing.T) {
-	var present bool
+// TestBuyingPowerResolvesAccountSeqLazy verifies that when no WithAccountSeq is
+// set the client fetches /api/v1/accounts lazily and sends the resolved seq in
+// the X-Tossinvest-Account header on the account-scoped endpoint.
+func TestBuyingPowerResolvesAccountSeqLazy(t *testing.T) {
+	var gotHeader string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/oauth2/token":
 			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/accounts":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"result":[{"accountNo":"999-99","accountSeq":55,"accountType":"BROKERAGE"}]}`))
 		case "/api/v1/buying-power":
-			_, present = r.Header["X-Tossinvest-Account"]
+			gotHeader = r.Header.Get("X-Tossinvest-Account")
 			_, _ = w.Write([]byte(`{"result":{"cashBuyingPower":"100","currency":"KRW"}}`))
 		default:
 			http.NotFound(w, r)
@@ -137,7 +144,7 @@ func TestBuyingPowerOmitsAccountHeaderWhenUnset(t *testing.T) {
 	if _, err := c.BuyingPower(context.Background(), "KRW"); err != nil {
 		t.Fatal(err)
 	}
-	if present {
-		t.Fatal("X-Tossinvest-Account header should be absent when accountSeq unset")
+	if gotHeader != "55" {
+		t.Fatalf("X-Tossinvest-Account: want %q (resolved via lazy fetch), got %q", "55", gotHeader)
 	}
 }
