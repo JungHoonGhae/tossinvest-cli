@@ -69,7 +69,7 @@ const content = {
       note: 'tossctl은 공식이 다루는 약 4%를 100% 포함하고, 공식에 없는 나머지 WTS 기능까지 넓혀갑니다.',
     },
     official: {
-      name: '공식 Open API (예정)',
+      name: '공식 Open API',
       note: 'REST 조회·주문 기본 · 사전 신청 단계 롤아웃',
       items: ['계좌·잔고', '시세·호가·체결', '주문·취소·정정'],
     },
@@ -144,7 +144,7 @@ const content = {
       note: 'tossctl covers 100% of the official ~4% and keeps expanding into the rest of WTS.',
     },
     official: {
-      name: 'Official Open API (planned)',
+      name: 'Official Open API',
       note: 'REST read/order basics · staged rollout',
       items: ['Accounts · balances', 'Quotes · orderbook · ticks', 'Place · cancel · amend'],
     },
