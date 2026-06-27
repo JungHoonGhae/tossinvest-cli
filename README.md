@@ -6,10 +6,10 @@
 
 <div align="center">
   <h1>tossinvest-cli</h1>
-  <p><strong>AI 에이전트를 토스증권에 연결하는 비공식 CLI — 공식 Open API(예정)보다 넓은 조회·거래 범위.</strong></p>
+  <p><strong>AI 에이전트를 토스증권에 연결하는 비공식 CLI — 공식 Open API 범위를 100% 포함하고 그 이상의 조회·거래까지(공식 키 연결 시 하이브리드).</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot 등 어떤 AI 에이전트든 동일한 명령 체계(<code>tossctl</code>)로 토스증권 계좌·시세·거래를 다룰 수 있습니다. 사람이 직접 터미널에서 쓸 수도 있습니다.</p>
-  <p><sub>수급 · 시장지수 · 토스 AI 시그널 · 조건검색(스크리너) · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview — <strong>공식 Open API(예정) 로드맵에 없는 영역까지</strong> 커버합니다. <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
-  <p><sub><em>An unofficial Toss Securities CLI for AI agents — broader read &amp; trade coverage than the (upcoming) official Open API.</em></sub></p>
+  <p><sub>수급 · 시장지수 · 토스 AI 시그널 · 조건검색(스크리너) · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview — <strong>공식 Open API에 없는 영역까지</strong> 커버합니다. <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
+  <p><sub><em>An unofficial Toss Securities CLI for AI agents — a superset of the official Open API: 100% of its read &amp; trade coverage, plus more.</em></sub></p>
 </div>
 
 <p align="center">
@@ -39,7 +39,7 @@
 </p>
 
 > [!WARNING]
-> 이 프로젝트는 토스증권 공식 제품이 아닙니다. 웹 내부 API를 비공식적으로 사용하며, 토스증권 이용약관(TOS) 위반에 해당할 수 있습니다. API는 예고 없이 변경될 수 있고, 사용으로 인한 계좌 제한, 손실, 기타 불이익에 대해 개발자는 어떠한 책임도 지지 않습니다. 본인의 판단과 책임 하에 사용하세요.
+> 이 프로젝트는 토스증권 공식 제품이 아닙니다. 공식 Open API 키를 연결하면 해당 기능은 토스가 공식 지원하는 경로로 동작하지만, 그 외 기능은 토스 웹 내부 API를 비공식적으로 사용하며 이는 토스증권 이용약관(TOS) 위반에 해당할 수 있습니다. API는 예고 없이 변경될 수 있고, 사용으로 인한 계좌 제한·손실·기타 불이익에 대해 개발자는 어떠한 책임도 지지 않습니다. 본인의 판단과 책임 하에 사용하세요.
 
 > [!IMPORTANT]
 > 거래 기능은 설치 직후 모두 꺼져 있습니다. `config.json`에서 기능별로 직접 허용해야만 실행됩니다.
@@ -60,6 +60,8 @@
 <img src="docs/assets/logos/openclaw.svg" height="30" alt="OpenClaw" title="OpenClaw" />
 </div>
 
+---
+
 <p align="center">
   <a href="https://www.star-history.com/?repos=JungHoonGhae%2Ftossinvest-cli&type=date&legend=top-left">
     <picture>
@@ -76,11 +78,15 @@
   <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/badges/sponsor.svg" height="46" alt="Become a sponsor" /></a>
 </p>
 
+<!-- sponsors:start -->
+
 <p align="center">
-  <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/sponsors/anonymous.svg" width="52" height="52" alt="익명 후원자" title="익명 후원자" /></a>
+  <a href="https://github.com/sponsors/JungHoonGhae" title="비공개 후원자 / private sponsor"><img src="docs/assets/sponsors/anonymous.svg" width="56" height="56" alt="private sponsor" /></a>
 </p>
 
 <p align="center"><sub>현재 <strong>1</strong>분이 제 오픈소스 작업을 후원하고 있습니다 (일회성 포함). 후원은 tossinvest-cli 를 포함한 제 작업 전반에 쓰입니다.</sub></p>
+
+<!-- sponsors:end -->
 
 ## 하이브리드 공식 Open API <!--since:2026-06-27-->
 

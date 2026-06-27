@@ -6,9 +6,9 @@
 
 <div align="center">
   <h1>tossinvest-cli</h1>
-  <p><strong>An unofficial Toss Securities CLI that connects AI agents to your brokerage — with a broader read &amp; trade coverage than the (upcoming) official Open API.</strong></p>
+  <p><strong>An unofficial Toss Securities CLI that connects AI agents to your brokerage — covers 100% of the official Open API's read &amp; trade scope and goes beyond (hybrid when you connect an official key).</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot and any AI agent drive Toss Securities accounts, quotes, and trades through one command interface (<code>tossctl</code>). It works just as well by hand in a terminal.</p>
-  <p><sub>Investor flows · market indices · Toss AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — <strong>tossctl covers areas the official Open API (upcoming) roadmap does not.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
+  <p><sub>Investor flows · market indices · Toss AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — <strong>tossctl covers areas the official Open API does not.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
 </div>
 
 <p align="center">
@@ -37,7 +37,7 @@
 </p>
 
 > [!WARNING]
-> This is **not** an official Toss Securities product. It reuses Toss's internal web API unofficially, which may violate Toss Securities' Terms of Service. The API can change without notice, and the author takes no responsibility for account restrictions, losses, or other consequences. Use at your own risk and discretion.
+> This is **not** an official Toss Securities product. When you connect an official Open API key, those features run through Toss's officially supported path; everything else reuses Toss's internal web API unofficially, which may violate Toss Securities' Terms of Service. The API can change without notice, and the author takes no responsibility for account restrictions, losses, or other consequences. Use at your own risk and discretion.
 
 > [!IMPORTANT]
 > Trading is fully disabled out of the box. Each action must be explicitly enabled in `config.json` before it can run.
@@ -48,11 +48,15 @@
   <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/badges/sponsor.svg" height="46" alt="Become a sponsor" /></a>
 </p>
 
+<!-- sponsors:start -->
+
 <p align="center">
-  <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/sponsors/anonymous.svg" width="52" height="52" alt="Anonymous sponsor" title="Anonymous sponsor" /></a>
+  <a href="https://github.com/sponsors/JungHoonGhae" title="비공개 후원자 / private sponsor"><img src="docs/assets/sponsors/anonymous.svg" width="56" height="56" alt="private sponsor" /></a>
 </p>
 
 <p align="center"><sub><strong>1</strong> person backs my open-source work (one-time included). Sponsorship funds my projects, tossinvest-cli included.</sub></p>
+
+<!-- sponsors:end -->
 
 ## Quick Start
 

@@ -1,0 +1,54 @@
+name: Sponsors
+
+# README 후원 섹션(<!-- sponsors:start/end --> 사이)을 GitHub Sponsors 실데이터로
+# 자동 갱신합니다. 공개 후원자는 자동 노출, 비공개는 익명 실루엣 + 카운트로만 반영
+# (tools/sponsors_allowlist.json 의 show_private 에 등록된 비공개 후원자는 노출).
+#
+# 필요 시크릿: SPONSORS_TOKEN — JungHoonGhae 계정의 PAT(classic, read:user 스코프
+# 또는 fine-grained 'sponsorships' read). 없으면 워크플로는 조용히 종료됩니다.
+
+on:
+  schedule:
+    - cron: '17 0 * * *'   # 매일 1회 (UTC)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sponsors
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Guard — SPONSORS_TOKEN 존재 확인
+        id: guard
+        env:
+          SPONSORS_TOKEN: ${{ secrets.SPONSORS_TOKEN }}
+        run: |
+          if [ -z "$SPONSORS_TOKEN" ]; then
+            echo "SPONSORS_TOKEN 미설정 — skip"
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Refresh sponsor block
+        if: steps.guard.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SPONSORS_TOKEN }}
+        run: python3 tools/sponsors.py
+
+      - name: Commit if changed
+        if: steps.guard.outputs.ok == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add README.md README.en.md
+          git diff --cached --quiet && { echo "후원 섹션 최신"; exit 0; }
+          git commit -m "docs(readme): 후원자 목록 자동 갱신 [skip ci]"
+          git push origin HEAD:main
