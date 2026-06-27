@@ -116,7 +116,7 @@ def main() -> None:
     badge("go.svg", "Built with", "Go 1.25+")
     badge("agents.svg", "Works with", "Claude · Codex · Cursor")
     badge("output.svg", "Output", "JSON · CSV · SSE")
-    badge("hybrid.svg", "Official API", "Optional hybrid")
+    badge("hybrid.svg", "Routing", "Official + WTS")
 
     cta("sponsor.svg", "Become a sponsor")
 

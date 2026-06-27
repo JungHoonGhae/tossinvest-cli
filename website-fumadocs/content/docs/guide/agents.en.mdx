@@ -41,6 +41,21 @@ drive Toss Securities. This page lists the rules for using it safely and correct
 - Near expiry, a stderr warning appears. Extend via phone push with `tossctl auth extend`.
 - Use `tossctl auth status --output json` to check validity/expiry programmatically.
 
+## Official Open API (optional) — better for unattended runs
+
+Registering an official Toss Open API key routes officially-supported reads/trades through OAuth
+with tokens that auto-refresh. The web session (WTS) has a ~7-day activity expiry that needs
+periodic phone approval; the official path has no such limit, which suits CI, servers, and
+long-running agents. Everything still works without a key.
+
+- **Non-interactive setup**: set `TOSSCTL_OPENAPI_KEY` / `TOSSCTL_OPENAPI_SECRET` env vars, then
+  `tossctl openapi login` (flags also work). The credential file is saved `0600`.
+- `tossctl openapi status --output json` — diagnose key / token / allowed IPs / routing. The key
+  needs an **allowed-IP** entry; the IP list lookup itself requires a WTS session.
+- `tossctl <command> --backend auto|wts|official` — pick the routing backend per request.
+- First-time setup is also available via the `tossctl init` wizard.
+- Details: [Official Open API Auto-routing](/docs/guide/hybrid-openapi).
+
 ## Output contract
 
 - On success, JSON on stdout; on failure, a non-zero exit code + stderr message.

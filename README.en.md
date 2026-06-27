@@ -6,7 +6,7 @@
 
 <div align="center">
   <h1>tossinvest-cli</h1>
-  <p><strong>An unofficial Toss Securities CLI that connects AI agents to your brokerage — covers 100% of the official Open API's read &amp; trade scope and goes beyond (hybrid when you connect an official key).</strong></p>
+  <p><strong>An unofficial Toss Securities CLI that connects AI agents to your brokerage — covers 100% of the official Open API's read &amp; trade scope and goes beyond (auto-routing when you connect an official key).</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot and any AI agent drive Toss Securities accounts, quotes, and trades through one command interface (<code>tossctl</code>). It works just as well by hand in a terminal.</p>
   <p><sub>Investor flows · market indices · Toss AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — <strong>tossctl covers areas the official Open API does not.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
 </div>
@@ -19,7 +19,7 @@
 
 <p align="center">
   <img src="docs/assets/badges/output.svg" height="44" alt="Output: JSON · CSV · SSE" />&nbsp;
-  <a href="https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi"><img src="docs/assets/badges/hybrid.svg" height="44" alt="Official API: Optional hybrid" /></a>
+  <a href="https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi"><img src="docs/assets/badges/hybrid.svg" height="44" alt="Routing: Official API + WTS" /></a>
 </p>
 
 <p align="center">

@@ -89,11 +89,24 @@ Fractional (amount-based) order: `order place --fractional --amount <krw> --qty 
 | `tossctl watchlist group create\|rename\|delete` | Folder management |
 | `tossctl watchlist add\|remove --group <id>` | Add/remove symbols |
 
+## Official Open API · Auto-routing
+
+Connect an official key and the read/trade features the official API supports route through OAuth (tokens auto-refresh); everything else uses the WTS path. All features work without a key too. See the [auto-routing guide](/docs/guide/hybrid-openapi).
+
+| Command | Description |
+|------|------|
+| `tossctl init` | Onboarding wizard (web-session login, official key, trading config) |
+| `tossctl openapi login` | Register official API Key/Secret (env, flags, or interactive; file `0600`) |
+| `tossctl openapi status` | Diagnose key / token / allowed IPs / routing |
+| `tossctl openapi test` | Verify the connection with a real call |
+| `tossctl openapi logout` | Delete the credential file |
+| `tossctl <command> --backend auto\|wts\|official` | Pick the routing backend per request (global, default auto) |
+
 ## Ops (push · monitor · doctor)
 
 | Command | Description |
 |------|------|
 | `tossctl push listen` | Real-time push stream (orders/fills/holdings) via SSE |
 | `tossctl monitor api` | Core read API health (early server-change detection) |
-| `tossctl doctor [--report]` | Env/session diagnostics (JSON, home paths masked) |
+| `tossctl doctor [--report]` | Env/session diagnostics + official key/token/IP checks (JSON, home paths masked) |
 | `tossctl version` | Version / update availability |

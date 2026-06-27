@@ -6,7 +6,7 @@
 
 <div align="center">
   <h1>tossinvest-cli</h1>
-  <p><strong>AI 에이전트를 토스증권에 연결하는 비공식 CLI — 공식 Open API 범위를 100% 포함하고 그 이상의 조회·거래까지(공식 키 연결 시 하이브리드).</strong></p>
+  <p><strong>AI 에이전트를 토스증권에 연결하는 비공식 CLI — 공식 Open API 범위는 100% 포함하고, 공식엔 없는 기능까지 더했습니다(공식 키 연결 시 자동 라우팅).</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot 등 어떤 AI 에이전트든 동일한 명령 체계(<code>tossctl</code>)로 토스증권 계좌·시세·거래를 다룰 수 있습니다. 사람이 직접 터미널에서 쓸 수도 있습니다.</p>
   <p><sub>수급 · 시장지수 · 토스 AI 시그널 · 조건검색(스크리너) · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview — <strong>공식 Open API에 없는 영역까지</strong> 커버합니다. <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
   <p><sub><em>An unofficial Toss Securities CLI for AI agents — a superset of the official Open API: 100% of its read &amp; trade coverage, plus more.</em></sub></p>
@@ -20,7 +20,7 @@
 
 <p align="center">
   <img src="docs/assets/badges/output.svg" height="44" alt="Output: JSON · CSV · SSE" />&nbsp;
-  <a href="https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi"><img src="docs/assets/badges/hybrid.svg" height="44" alt="Official API: Optional hybrid" /></a>
+  <a href="https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi"><img src="docs/assets/badges/hybrid.svg" height="44" alt="Routing: Official API + WTS" /></a>
 </p>
 
 <p align="center">
@@ -88,11 +88,14 @@
 
 <!-- sponsors:end -->
 
-## 하이브리드 공식 Open API <!--since:2026-06-27-->
+## 공식 Open API 자동 라우팅 <!--since:2026-06-27-->
 
 tossctl은 웹 세션(WTS)만으로도 전부 동작합니다. 토스 공식 Open API 키를 선택적으로
-연결하면 공식이 지원하는 기능은 OAuth 경로로, 나머지는 WTS로 각각 처리하는 하이브리드
-모드가 켜집니다. 키 없이도 모든 기능을 쓸 수 있고, 원하는 시점에 추가할 수 있습니다.
+연결하면 공식이 지원하는 기능은 공식 OAuth 경로로, 나머지는 WTS로 각각 처리하는 **자동
+라우팅**이 켜집니다. 키 없이도 모든 기능을 쓸 수 있고, 원하는 시점에 추가할 수 있습니다.
+
+> 공식 Open API 와 WTS 웹 세션의 차이(인증·갱신·커버리지·안정성), IP 자동 등록, 라우팅
+> 동작(다이어그램)은 [자동 라우팅 가이드](https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi)에 정리되어 있습니다.
 
 ```bash
 # 공식 키 발급: https://corp.tossinvest.com/ko/open-api
@@ -104,7 +107,6 @@ tossctl account summary --backend official  # 공식 경로 강제 (선택)
 ```
 
 키를 연결하면 CI·서버·에이전트에서 사람 개입 없이 토큰이 자동 갱신됩니다.
-자세한 내용은 [하이브리드 가이드](https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi)를 참고하세요.
 
 ## Quick Start
 

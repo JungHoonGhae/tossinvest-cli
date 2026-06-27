@@ -89,11 +89,24 @@ description: tossctl 전체 명령
 | `tossctl watchlist group create\|rename\|delete` | 폴더 관리 |
 | `tossctl watchlist add\|remove --group <id>` | 종목 추가/제거 |
 
+## 공식 Open API · 자동 라우팅
+
+공식 키를 연결하면 공식이 지원하는 조회·거래는 공식 OAuth 경로로 처리되고(자동 토큰 갱신), 나머지는 WTS 경로를 씁니다. 키 없이도 모든 기능이 동작합니다. 자세한 내용은 [자동 라우팅 가이드](/docs/guide/hybrid-openapi).
+
+| 명령 | 설명 |
+|------|------|
+| `tossctl init` | 온보딩 위저드(웹 세션 로그인·공식 키 등록·거래 설정 단계별 안내) |
+| `tossctl openapi login` | 공식 API Key·Secret 등록(환경변수·플래그·대화형, 파일 `0600`) |
+| `tossctl openapi status` | 키·토큰·허용 IP·라우팅 진단 |
+| `tossctl openapi test` | 실제 호출로 연결 검증 |
+| `tossctl openapi logout` | 자격증명 파일 삭제 |
+| `tossctl <명령> --backend auto\|wts\|official` | 요청별 라우팅 백엔드 지정(전역, 기본 auto) |
+
 ## 운영 (push · monitor · doctor)
 
 | 명령 | 설명 |
 |------|------|
 | `tossctl push listen` | 실시간 푸시(주문/체결/보유 변경) 스트림(SSE) |
 | `tossctl monitor api` | 핵심 조회 API 헬스 점검(서버측 변경 조기 감지) |
-| `tossctl doctor [--report]` | 환경·세션 진단(JSON, 홈 경로 마스킹) |
+| `tossctl doctor [--report]` | 환경·세션 진단 + 공식 키·토큰·IP 허용 점검(JSON, 홈 경로 마스킹) |
 | `tossctl version` | 버전·업데이트 가능 여부 |

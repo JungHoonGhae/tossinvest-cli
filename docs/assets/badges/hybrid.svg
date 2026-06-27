@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="782" height="126" viewBox="0 0 782 126">
+<svg xmlns="http://www.w3.org/2000/svg" width="674" height="126" viewBox="0 0 674 126">
  <defs>
   <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
    <stop offset="0" stop-color="#1c1d1f"/><stop offset="0.5" stop-color="#101113"/><stop offset="1" stop-color="#0a0a0b"/>
@@ -10,10 +10,10 @@
    <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0.10"/><stop offset="1" stop-color="#ffffff" stop-opacity="0.05"/>
   </linearGradient>
  </defs>
- <rect x="3" y="3" width="776.0" height="120" rx="16" fill="url(#bg)"/>
- <rect x="3" y="3" width="776.0" height="120" rx="16" fill="url(#gloss)"/>
- <rect x="3.75" y="3.75" width="774.5" height="118.5" rx="15.2" fill="none" stroke="url(#rim)" stroke-width="1.5"/>
- <line x1="363.0" y1="41.4" x2="363.0" y2="84.6" stroke="#ffffff" stroke-opacity="0.15" stroke-width="2"/>
- <text x="183.0" y="63.0" text-anchor="middle" dominant-baseline="central" font-family="ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="25" font-weight="500" letter-spacing="4" fill="#8b8d94">OFFICIAL API</text>
- <text x="571.0" y="63.0" text-anchor="middle" dominant-baseline="central" font-family="ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="37" font-weight="600" fill="#fafafa">Optional hybrid</text>
+ <rect x="3" y="3" width="668.0" height="120" rx="16" fill="url(#bg)"/>
+ <rect x="3" y="3" width="668.0" height="120" rx="16" fill="url(#gloss)"/>
+ <rect x="3.75" y="3.75" width="666.5" height="118.5" rx="15.2" fill="none" stroke="url(#rim)" stroke-width="1.5"/>
+ <line x1="273.0" y1="41.4" x2="273.0" y2="84.6" stroke="#ffffff" stroke-opacity="0.15" stroke-width="2"/>
+ <text x="138.0" y="63.0" text-anchor="middle" dominant-baseline="central" font-family="ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="25" font-weight="500" letter-spacing="4" fill="#8b8d94">ROUTING</text>
+ <text x="472.0" y="63.0" text-anchor="middle" dominant-baseline="central" font-family="ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="37" font-weight="600" fill="#fafafa">Official + WTS</text>
 </svg>

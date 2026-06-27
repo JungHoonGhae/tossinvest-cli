@@ -1,31 +1,60 @@
 ---
-title: Hybrid Official Open API
-description: Connect your official API key to route supported features through OAuth for extra stability
+title: Official Open API Auto-routing
+description: Connect an official key and supported features route through the official OAuth path, the rest through the WTS web session — automatically
 ---
 
 tossctl works fully with just a **web session (WTS)**. Registering an official Toss Open API
-key enables **hybrid mode**: features the official API supports are routed through OAuth; the
-rest go through WTS as always.
+key turns on **auto-routing**: features the official API supports go through the official OAuth
+path, and everything else goes through WTS. Everything works without a key too, and you can add
+one whenever you like.
 
-## How hybrid works
+## Official Open API vs WTS web session
 
-```
-┌─ tossctl ─────────────────────────────────────────────────┐
-│                                                           │
-│  request → router                                         │
-│               ├─ officially supported + key present       │
-│               │        → OAuth (official)                 │
-│               ├─ not officially supported                 │
-│               │        → WTS (always)                     │
-│               └─ officially supported but no key          │
-│                        → WTS                              │
-│                                                           │
-│  (auto-fallback to WTS when the official route is down)   │
-└───────────────────────────────────────────────────────────┘
-```
+These are the two paths tossctl uses to reach Toss Securities. They behave differently, so
+understanding the difference tells you which combination you need.
+
+| | Official Open API | WTS web session |
+|---|---|---|
+| What | Toss's **official** OAuth REST API | **Unofficial reuse** of the internal API behind Toss web/app |
+| Auth | API Key·Secret → OAuth access token | QR + phone-approved login (session cookie) |
+| Renewal | Tokens **auto-reissued** (no interruption) | ~7-day activity expiry, needs **phone push approval** |
+| Coverage | Officially-supported features (accounts, quotes, orders, …) | **All of WTS** — flows, indices, AI signals, screener, real-time push, fractional orders, etc. |
+| Stability | High (official contract, versioned spec) | Unofficial, **can change without notice** |
+| Prerequisites | Pre-application + approval + **allowed-IP registration** | Login only |
+| Terms (TOS) | Officially allowed | **May violate TOS** |
+| Unattended (CI/server/agent) | Suitable | Periodic human (phone) interaction |
+
+In short — **the official API is stable but narrow; WTS covers everything but is unofficial and
+its session expires more often.** tossctl combines them: officially-covered requests go through
+the official path (stability), the rest through WTS (coverage), routed automatically.
+
+<Callout type="info" title="Some tasks still need a web session even with an official key">
+The official key's **metadata and allowed-IP lookup** (`openapi status` IP list, `doctor`) is
+served by a Toss WTS internal endpoint (`/api/v1/openapi/client`), so it requires a **web
+session login first**. Runtime calls (accounts, quotes, orders) work with just the OAuth token.
+The IP of the machine you use the key from is usually registered automatically; if you need
+other IPs (e.g., a server), you can add them via WTS (Toss web).
+</Callout>
+
+## How auto-routing works
+
+For each request, the router checks "is it officially supported → is a key present → preference".
+
+<Mermaid chart={`flowchart TD
+  A[Request] --> B{Officially supported?}
+  B -- No --> W[WTS web session]
+  B -- Yes --> C{Official key present?}
+  C -- No --> W
+  C -- Yes --> D[Official Open API · OAuth]
+  D -- Success --> R[Result]
+  W --> R
+  D -. temporary failure .-> E{Order?}
+  E -- Yes --> X[Error · prevent duplicate order]
+  E -- No --> W
+`} />
 
 - Reads and trades the official API supports are routed via OAuth token — more stable
-- The 18 features outside the official scope (flows, indices, AI signals, etc.) always go through WTS
+- Features outside the official scope (flows, indices, AI signals, etc.) always go through WTS
 - If the official route is temporarily unavailable, tossctl auto-falls back to WTS (one-line stderr notice)
 - **Orders never cross-fallback** — a failed official route errors out rather than risk a duplicate order
 
@@ -33,7 +62,7 @@ rest go through WTS as always.
 
 | Scenario | Web session | Official key | Notes |
 |---|:---:|:---:|---|
-| Official-supported features only (most stable) | optional | required | Auto token refresh, no browser needed |
+| Official-supported features only (most stable) | needed for setup | required | Runtime is token-only; key IP/metadata lookup needs a session |
 | All features incl. WTS-only | required | not needed | Shorter expiry, more frequent refresh |
 | **Both (recommended)** | **required** | **required** | **Max stability + full scope + fallback** |
 
@@ -46,7 +75,7 @@ With an official key, tossctl automatically re-issues OAuth tokens **without int
 1. **Pre-registration** — Apply at [corp.tossinvest.com/ko/open-api](https://corp.tossinvest.com/ko/open-api).
 2. **Official docs** — Full spec at [developers.tossinvest.com/docs](https://developers.tossinvest.com/docs).
 3. **Issue the key** — After approval, go to **Toss app → Settings → Open API** to generate your API Key and Secret.
-4. **Allowed IPs are mandatory** — Register your allowed IPs immediately after issuing the key. Requests from unlisted IPs are blocked (`tossctl openapi status` diagnoses this).
+4. **Allowed IPs** — The IP of the machine you use the key from is usually registered automatically. If you need other IPs (e.g., a server), add them via WTS (Toss web). Requests from unlisted IPs are blocked (diagnose with `tossctl openapi status`; the IP list lookup needs a web session).
 
 ## Secret handling
 
@@ -107,12 +136,13 @@ tossctl openapi status
 # Example output:
 #   Official key : ✓ (set via file)
 #   Token        : valid (expires in 23m 41s)
-#   Allowed IPs  : 203.0.113.42 ✓ (current IP matches)
-#   Routing      : hybrid (official + wts)
+#   Allowed IPs  : 203.0.113.42 ✓ (current IP matches)   # needs a web session
+#   Routing      : auto (official + wts)
 ```
 
 `status` explains common failure causes:
 - `IP not allowed` — your egress IP is not in the key's allowlist
+- `IP lookup failed (web session required)` — the allowed-IP lookup needs a WTS session first (`tossctl auth login`)
 - `token expired` — auto-renewed; force manual refresh: `tossctl openapi login`
 - `key not set` — set env vars or run `openapi login`
 
