@@ -54,7 +54,7 @@
   <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/sponsors/anonymous.svg" width="52" height="52" alt="Anonymous sponsor" title="Anonymous sponsor" /></a>
 </p>
 
-<p align="center"><sub><strong>1</strong> person sponsors tossinvest-cli (one-time included). Sponsor the project and you'll be featured right here.</sub></p>
+<p align="center"><sub><strong>1</strong> person backs my open-source work (one-time included). Sponsorship funds my projects, tossinvest-cli included.</sub></p>
 
 ## Quick Start
 

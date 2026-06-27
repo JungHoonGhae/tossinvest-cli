@@ -82,7 +82,7 @@
   <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/sponsors/anonymous.svg" width="52" height="52" alt="익명 후원자" title="익명 후원자" /></a>
 </p>
 
-<p align="center"><sub>현재 <strong>1</strong>분이 tossinvest-cli 를 후원하고 있습니다 (일회성 포함). 후원해 주시면 이 자리에 모셔두겠습니다.</sub></p>
+<p align="center"><sub>현재 <strong>1</strong>분이 제 오픈소스 작업을 후원하고 있습니다 (일회성 포함). 후원은 tossinvest-cli 를 포함한 제 작업 전반에 쓰입니다.</sub></p>
 
 ## 하이브리드 공식 Open API <!--since:2026-06-27-->
 
