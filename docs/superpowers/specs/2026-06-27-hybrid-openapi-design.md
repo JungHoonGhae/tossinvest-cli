@@ -50,6 +50,17 @@
   - 주문용 `trading.Broker` 구현체(공식↔WTS 라우팅 + 보수적 폴백).
   - 라우팅 정책(`prefer`, `fallback`) 보유, 소스 태깅 방출.
 
+### 4.3 WTS 측 키 메타데이터 (진단용)
+
+공식 21개 엔드포인트엔 **키 메타데이터(발급일/만료일/상태/허용 IP)가 없다.** 토스 설정
+화면은 WTS 내부 API로 가져온다. tossctl은 웹세션이 있으므로 같은 경로를 쓴다 —
+`internal/client`에 두 메서드를 추가(둘 다 카탈로그 `candidate` → 구현 시 `implemented`로):
+
+- `OpenAPIClientInfo` ← `GET /api/v1/openapi/client` — 발급일·만료일·상태(활성 등).
+- `OpenAPIAllowedIPs` ← `GET /api/v1/openapi/client/allowed-ips` — 허용 IP 목록.
+
+이 둘은 **WTS 경로**(웹세션)이며 공식 키 인증과 무관하다. `openapi status`/`doctor`가 소비.
+
 ### 4.2 와이어링 변경 (`cmd/tossctl/root.go` `newAppContext`)
 
 ```
@@ -159,11 +170,41 @@ tradingService = trading.NewService(cfg.Trading, h.Broker())    // Broker도 hyb
 신규 커맨드 그룹 `tossctl openapi <sub>` (웹세션 `auth`와 별개 자격증명이라 분리):
 
 - `openapi login` — `--key/--secret` 또는 stdin 프롬프트 → 0600 파일 저장. 실제 키 미출력.
-- `openapi status` — 자격증명 유무, 토큰 유효성, 현재 공인 IP↔허용목록 힌트, 공식 경로로 갈 op 목록(마스킹).
-- `openapi test` — 토큰 발급 + 저비용 호출(`/accounts`)로 키·IP·연결 실검증.
+- `openapi status` — **진단 대시보드**(§9.1).
+- `openapi test` — 토큰 발급 + 저비용 호출(`/accounts`)로 키·IP·연결 실검증(§9.1의 라이브 프로브만 단독 실행).
 - `openapi logout` — 자격증명/토큰 파일 삭제.
 
 전역 플래그 `--backend auto|wts|official` — 1회성 라우팅 오버라이드(config `prefer`보다 우선).
+
+### 9.1 `openapi status` — "왜 안 되는지" 한눈에
+
+사용자가 흔히 막히는 지점(IP 미등록, 키 만료, 비활성)을 **스스로 진단**할 수 있게,
+다음을 묶어 사람이 읽기 쉬운 형태 + (`--output json`) 구조화로 출력한다:
+
+| 항목 | 출처 | 표시 |
+|------|------|------|
+| 자격증명 | 파일/env | 설정됨(마스킹 `tsck_live_…aVLA`) + 소스(env/file), 또는 "미설정 → `openapi login`" |
+| 상태 | WTS `OpenAPIClientInfo` | **활성/비활성** |
+| 발급일 / 만료일 | WTS `OpenAPIClientInfo` | `2026-06-27` / `2027-06-27` + **만료 임박 경고**(D-30 이내 ⚠) |
+| 허용 IP | WTS `OpenAPIAllowedIPs` | 등록된 IP 목록 |
+| **현재 공인 IP** | 라이브 프로브 403 응답/경량 에코(best-effort) | 현재 IP **+ 허용목록 포함 여부** → 없으면 "이 IP를 토스 설정 > Open API > 허용 IP에 추가" |
+| 액세스 토큰 | 캐시 JWT `exp` | 유효/만료 시각 |
+| 연결 | 라이브 프로브(토큰+`/accounts`) | ✅ 정상 / ❌ 인증실패 / ❌ IP 미허용 / ❌ 서버오류 — 각기 다음 행동 안내 |
+| 라우팅 | config | `prefer`/`fallback`, 공식 경로로 갈 op 개수 |
+
+- **판정 우선순위**: 라이브 프로브가 ground truth. 키 메타(WTS)는 "왜"를 설명하는 컨텍스트.
+  WTS 메타 조회가 실패해도(웹세션 만료 등) 라이브 프로브 결과는 항상 보여준다(graceful degrade).
+- 현재 공인 IP 확정값은 공식 403 응답에서 우선 취득, 없으면 경량 에코(오프라인/실패 시 생략).
+
+### 9.2 `doctor` 통합 (사용자 요청)
+
+`tossctl doctor`는 현재 환경 점검 흐름을 가짐. 여기에 **현재 상태에 맞게** 하이브리드 항목을 더한다:
+
+- 자격증명 **있음**: `Open API: 활성 · 만료 D-NNN · 현재 IP 허용됨 · 연결 정상` 한 줄 요약
+  (문제 시 `IP 미허용 → 222.x 추가`처럼 해결책 한 줄). 상세는 `openapi status`로 안내.
+- 자격증명 **없음**: 강요 없이 한 줄 힌트 — "Open API 키를 연결하면 일부 기능이 더 안정적으로
+  동작합니다(`tossctl openapi login`)". 키가 없다고 doctor가 실패로 표시하지는 않는다(선택 기능).
+- 네트워크/외부 호출은 doctor의 기존 타임아웃·실패 허용 정책을 따른다(키 메타 조회 실패가 doctor 전체를 깨지 않음).
 
 ## 10. 설정 & 경로
 
@@ -187,6 +228,10 @@ tradingService = trading.NewService(cfg.Trading, h.Broker())    // Broker도 hyb
   적격성, 폴백 각 실패클래스, 도메인에러 시 비폴백, 주문 보수적 폴백(전송 후 모호 실패 시 비폴백).
 - `internal/trading`: PlaceIntent→공식 주문 바디 계약 테스트(기존 `trading_test.go` 방식), preview/dry-run 불변.
 - `cmd/tossctl`: `openapi` 커맨드(login이 0600 저장, status 마스킹, logout 삭제).
+- `internal/client`: `OpenAPIClientInfo`/`OpenAPIAllowedIPs` 계약 테스트(httptest, 더미 메타).
+- `openapi status` 진단: 더미 키메타 + 가짜 라이브 프로브로 각 상태(활성/만료임박/IP미허용/연결정상)
+  렌더링 + json 구조 테스트. 현재 IP↔허용목록 포함 판정 케이스.
+- `doctor`: 자격증명 있음/없음, 키메타 조회 실패 시 graceful degrade(doctor 비실패) 테스트.
 - 라이브 검증은 비자동 — `openapi test` + `order preview` 수동, 실주문은 사용자 몫.
 
 ## 12. 문서 / 카탈로그 갱신 (프로젝트 흐름)
@@ -194,8 +239,9 @@ tradingService = trading.NewService(cfg.Trading, h.Broker())    // Broker도 hyb
 - `content/docs/reference/support-scope.mdx`(+ `.en`) — 공식 칼럼이 이제 *실제 라우팅*됨 반영.
 - README 비교표(+ `since` 마커), `CHANGELOG.md` `[Unreleased]`.
 - 랜딩 "선택적 하이브리드" 카피 — 이제 실재 기능으로.
-- `docs/reverse-engineering/wts-endpoints.json` / openapi 스냅샷은 기존 자동 추적.
-- probe 추가는 후순위 노트.
+- `docs/reverse-engineering/wts-endpoints.json` — `/api/v1/openapi/client`,
+  `/api/v1/openapi/client/allowed-ips`를 `candidate` → `implemented`로 갱신(§4.3).
+- openapi 스냅샷은 기존 자동 추적. probe 추가는 후순위 노트.
 
 ## 13. 범위 밖 / 향후
 
