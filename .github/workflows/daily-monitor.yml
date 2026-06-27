@@ -207,9 +207,6 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add docs/migration/.openapi-snapshot.json docs/migration/openapi.latest.json
-          # README 검증 뱃지(verified-api·spec-checked)를 스냅샷 값으로 재생성
-          python3 tools/make_badges.py
-          git add docs/assets/badges
           git diff --cached --quiet && { echo "이미 최신"; exit 0; }
           git commit -m "$MSG"
           git push origin HEAD:main

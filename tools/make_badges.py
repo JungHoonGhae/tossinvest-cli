@@ -10,22 +10,17 @@ small uppercase gray label and a larger white value are split by a faint
 divider. All sizes are expressed as ratios of the pill height PH so the look
 is resolution-independent.
 
-Static badges carry fixed values; the "vs Official API" / "spec checked"
-badges read their values from docs/migration/.openapi-snapshot.json so they
-stay fresh — the daily monitor re-runs this and commits the result. Also
-emits a "Become a sponsor" CTA.
+All badges carry fixed values. Also emits a "Become a sponsor" CTA.
 
 Usage: python3 tools/make_badges.py   (no args)
 Output: docs/assets/badges/*.svg
 """
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "assets" / "badges"
-SNAP = ROOT / "docs" / "migration" / ".openapi-snapshot.json"
 
 # Pill geometry, in a 120-unit-tall coordinate space (ratios mirror taste:
 # margin ~0.025·PH, radius ~0.13·PH, value cap ~0.22·PH, label cap ~0.15·PH,
@@ -122,14 +117,6 @@ def main() -> None:
     badge("agents.svg", "Works with", "Claude · Codex · Cursor")
     badge("output.svg", "Output", "JSON · CSV · SSE")
     badge("hybrid.svg", "Official API", "Optional hybrid")
-
-    spec_version, last_checked = "?", "?"
-    if SNAP.exists():
-        snap = json.loads(SNAP.read_text())
-        spec_version = str(snap.get("spec_version", "?"))
-        last_checked = str(snap.get("last_checked_at", "?"))
-    badge("verified-api.svg", "vs Official API", f"v{spec_version} verified")
-    badge("spec-checked.svg", "Spec checked", last_checked)
 
     cta("sponsor.svg", "Become a sponsor")
 
