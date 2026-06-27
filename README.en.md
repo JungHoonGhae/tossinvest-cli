@@ -1,3 +1,7 @@
+<p align="center">
+  <a href="https://tossinvest-cli.vercel.app/"><img src="docs/assets/hero-banner.png" alt="tossinvest-cli — connect your AI agents to Toss Securities" width="100%" /></a>
+</p>
+
 <p align="right"><a href="README.md">한국어</a> · <strong>English</strong></p>
 
 <div align="center">
@@ -8,10 +12,11 @@
 </div>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/commands-47%20across%2015%20groups-blue" alt="47 commands" />
-  <img src="https://img.shields.io/badge/beyond%20official%20API-12%2B%20features-success" alt="12+ features beyond official API" />
-  <img src="https://img.shields.io/badge/output-table%20%7C%20JSON%20%7C%20CSV%20%7C%20SSE-informational" alt="output formats" />
-  <a href="https://tossinvest-cli.vercel.app/"><img src="https://img.shields.io/badge/docs-site-3182F6?logo=readthedocs&logoColor=white" alt="docs site" /></a>
+  <a href="LICENSE"><img src="docs/assets/badges/license.svg" height="44" alt="License: MIT" /></a>&nbsp;
+  <a href="https://go.dev/"><img src="docs/assets/badges/go.svg" height="44" alt="Built with Go 1.25+" /></a>&nbsp;
+  <img src="docs/assets/badges/agents.svg" height="44" alt="Works with Claude · Codex · Cursor" />&nbsp;
+  <img src="docs/assets/badges/output.svg" height="44" alt="Output: JSON · CSV · SSE" />&nbsp;
+  <a href="https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi"><img src="docs/assets/badges/hybrid.svg" height="44" alt="Official API: Optional hybrid" /></a>
 </p>
 
 <p align="center">
@@ -28,8 +33,6 @@
 
 <p align="center">
   <a href="https://github.com/JungHoonGhae/tossinvest-cli/stargazers"><img src="https://img.shields.io/github/stars/JungHoonGhae/tossinvest-cli" alt="GitHub stars" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License" /></a>
-  <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.25+-00ADD8.svg" alt="Go" /></a>
   <a href="https://github.com/JungHoonGhae/tossinvest-cli"><img src="https://img.shields.io/badge/status-beta-orange.svg" alt="Status Beta" /></a>
   <a href="https://github.com/JungHoonGhae/tossinvest-cli/actions/workflows/ci.yml"><img src="https://github.com/JungHoonGhae/tossinvest-cli/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>

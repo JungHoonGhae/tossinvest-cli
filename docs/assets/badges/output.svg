@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="202" height="46" viewBox="0 0 202 46" role="img" aria-label="Output: JSON · CSV · SSE">
+  <defs><clipPath id="r"><rect width="202" height="46" rx="9"/></clipPath></defs>
+  <g clip-path="url(#r)">
+    <rect width="202" height="46" fill="#15161a"/>
+    <rect x="0" y="0" width="3" height="46" fill="#34D399"/>
+    <line x1="68.0" y1="11" x2="68.0" y2="35" stroke="#2b2d34" stroke-width="1"/>
+  </g>
+  <rect x="0.5" y="0.5" width="201" height="45" rx="9" fill="none" stroke="#2b2d34" stroke-width="1"/>
+  <text x="17.0" y="23.0" dominant-baseline="central" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="10.5" letter-spacing="0.8" fill="#8b8d98">OUTPUT</text>
+  <text x="82.0" y="23.0" dominant-baseline="central" font-family="ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" font-weight="600" fill="#f2f3f5">JSON · CSV · SSE</text>
+</svg>
