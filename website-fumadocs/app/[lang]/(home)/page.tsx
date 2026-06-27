@@ -42,11 +42,11 @@ const content = {
     thesis: {
       label: '왜 지금',
       headline: '공식 API, 기다릴 필요 없습니다',
-      body: '토스증권 공식 Open API가 지금 지원하는 범위는 토스 WTS 전체 기능의 약 4%(~20개)뿐입니다. 그마저도 사전 신청자에게, 조회·주문 같은 기본 기능부터 천천히 열리고 있습니다. tossctl은 이 4%를 100% 포함하고, 공식에 아직 없는 나머지 WTS 기능까지 제공합니다. 신청이나 승인은 필요 없습니다.',
+      body: '토스증권 공식 Open API가 지원하는 범위는 토스 WTS 전체 기능의 약 4%(~20개)뿐입니다. tossctl은 이 4%를 100% 포함하고 — 공식 키를 등록하면 해당 기능은 OAuth 경로로 더 안정적으로 동작합니다 — 공식에 없는 나머지 WTS 기능 18개까지 더해 총 27개를 제공합니다. 신청이나 승인은 필요 없습니다.',
       points: [
         { k: '공식은 약 4%', v: '공식 Open API는 토스 WTS 기능 ~430개 중 약 20개(4%)만 지원합니다.' },
-        { k: '기다릴 필요 없이', v: '공식 출시를 기다릴 필요 없이, 공식 범위 100%와 그 너머 기능까지 지금 지원합니다.' },
-        { k: '선택적 하이브리드', v: '공식 API 없이도 전부 동작합니다. 원하면 공식 API를 연결해 지원 기능은 공식 경로로 — 안정성을 선택적으로 더합니다.' },
+        { k: '공식 전부 100% 커버', v: '공식 지원 기능 9개를 100% 커버합니다. 공식 키를 연결하면 OAuth 경로로 더 안정적으로 동작합니다.' },
+        { k: '고유 기능 18개 추가', v: '공식에 없는 수급·지수·AI 시그널·스크리너·배당 등 18개를 추가로 제공합니다 — 합계 27개.' },
         { k: '에이전트 연동', v: '모든 명령이 JSON으로 출력되어 AI 에이전트와 바로 연동됩니다.' },
       ],
     },
@@ -54,14 +54,14 @@ const content = {
     compareLabel: '공식 OPEN API 의 상위집합',
     compareLead: (
       <>
-        공식 Open API(예정)의 조회·거래를 <span className="text-brand-200">100% 커버</span>하고,
-        공식엔 없는 기능 <span className="text-brand-200">18개 이상</span>을 더합니다.
+        공식 지원 전부(<span className="text-brand-200">100% 커버</span>) +
+        고유 <span className="text-brand-200">18개</span> = 총 <span className="text-brand-200">27개</span>
       </>
     ),
     stats: [
       { n: '약 4%', l: '공식 Open API가 지원하는 WTS 기능 비중 (~20/430)' },
-      { n: '18+', l: '공식에 없는 tossctl 고유 기능' },
-      { n: '100%', l: '공식 지원 기능 커버리지' },
+      { n: '18', l: '공식에 없는 tossctl 고유 기능' },
+      { n: '27', l: '공식 지원 전부 + 고유 18 = tossctl 총 기능 수' },
     ],
     coverage: {
       bright: '공식 Open API — WTS 기능의 약 4% (~20개)',
@@ -75,12 +75,12 @@ const content = {
     },
     toss: {
       name: 'tossctl',
-      note: '공식 전부 100% 커버 + 그 너머',
+      note: '공식 전부 100% 커버 + 고유 18 = 총 27개',
       items: [
+        '공식 지원 기능 전부 — 공식 키 연결 시 OAuth 경로로 더 안정적',
         '수급·시장지수·지수 상세·업종 등락',
         'AI 시그널·뉴스 브리핑·조건검색',
-        '배당·커뮤니티 랭킹·관심종목 관리',
-        '실시간 푸시·원화 소수점 주문·dry-run preview',
+        '배당·커뮤니티 랭킹·관심종목·실시간 푸시·dry-run preview',
       ],
     },
     llmTitle: 'LLM이 바로 읽는 문서',
@@ -117,11 +117,11 @@ const content = {
     thesis: {
       label: 'WHY NOW',
       headline: "You don't have to wait for the official API",
-      body: "Toss Securities' official Open API covers only about 4% (~20) of the full Toss WTS feature set today — and even that opens slowly, to pre-approved applicants, starting with basics like reads and orders. tossctl covers 100% of that 4% and adds the rest of the WTS features the official API still lacks. No application, no approval.",
+      body: "Toss Securities' official Open API covers only about 4% (~20) of the full Toss WTS feature set. tossctl covers 100% of that — plug in an official key and those features route through OAuth for extra stability — and adds 18 more features the official API lacks, for a total of 27. No application, no approval.",
       points: [
         { k: 'Official ≈ 4%', v: 'The official Open API supports ~20 of ~430 Toss WTS features — about 4%.' },
-        { k: 'No waiting', v: 'No waiting for the rollout — 100% of the official scope and beyond, today.' },
-        { k: 'Hybrid, optional', v: 'Works fully without the official API. Plug it in if you want — supported features route through it for extra stability.' },
+        { k: '100% of official covered', v: "tossctl covers all 9 officially-supported features. Add an official key and they route through OAuth — more stable, auto-renewing." },
+        { k: '+18 unique features', v: 'Flows, indices, AI signals, screener, dividends, and more — 18 features the official API lacks. Total: 27.' },
         { k: 'Agents included', v: 'Every command answers in JSON, so people and agents use it the same way.' },
       ],
     },
@@ -129,14 +129,14 @@ const content = {
     compareLabel: 'A SUPERSET OF THE OFFICIAL OPEN API',
     compareLead: (
       <>
-        Covers <span className="text-brand-200">100%</span> of the official Open API's (upcoming)
-        read &amp; trade scope, and adds <span className="text-brand-200">18+</span> features it lacks.
+        All official-supported features (<span className="text-brand-200">100% covered</span>) +{' '}
+        <span className="text-brand-200">18</span> unique = <span className="text-brand-200">27 total</span>
       </>
     ),
     stats: [
       { n: '~4%', l: 'of Toss WTS features the official API supports (~20/430)' },
-      { n: '18+', l: 'unique features the official API lacks' },
-      { n: '100%', l: 'of officially-supported features covered' },
+      { n: '18', l: 'unique features the official API lacks' },
+      { n: '27', l: 'total: all official-supported + 18 unique' },
     ],
     coverage: {
       bright: 'Official Open API — ~4% of WTS (~20)',
@@ -150,12 +150,12 @@ const content = {
     },
     toss: {
       name: 'tossctl',
-      note: 'Covers 100% of the official — and beyond',
+      note: '100% of official + 18 unique = 27 total',
       items: [
+        'All official-supported features — official key unlocks OAuth routing',
         'Flows · indices · index detail · sectors',
         'AI signals · news briefing · screener',
-        'Dividends · community rankings · watchlist',
-        'Real-time push · KRW fractional orders · dry-run',
+        'Dividends · community rankings · watchlist · real-time push · dry-run',
       ],
     },
     llmTitle: 'Docs LLMs can read directly',

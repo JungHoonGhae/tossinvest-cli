@@ -3,13 +3,26 @@ title: 지원 범위
 description: 공식 Open API 대비 커버리지
 ---
 
-**tossctl 은 토스 공식 Open API(예정)의 조회·거래 범위를 100% 커버하고, 그 너머까지
-다룹니다.** 공식 Open API 는 현재 사전 신청자 대상 단계적 롤아웃 중인 REST-only의 좁은
-범위이고, tossctl 은 토스 웹앱(WTS)이 실제로 쓰는 넓은 범위 위에서 동작합니다.
+**tossctl 은 토스 공식 Open API의 조회·거래 범위를 100% 커버하고, 그 너머까지
+다룹니다.** 공식 키를 등록하면 공식이 지원하는 기능은 **실제로 OAuth 경로로 라우팅**되며,
+나머지는 WTS 경로로 처리됩니다. 자세한 설정 방법은
+[하이브리드 가이드](/docs/guide/hybrid-openapi)를 참고하세요.
 
 - ✅ 지원 · ❌ 미지원 · 🔸 부분 지원
-- `공식 API (예정)` 칼럼 = 공개 문서 기준 예상 커버리지(롤아웃에 따라 변동 가능)
-- 공식이 ❌ 인 행 = tossctl 고유 기능
+- `공식 API` 칼럼 = 공개 문서 기준 커버리지; 공식 키 등록 시 해당 기능은 OAuth로 라우팅
+- 공식이 ❌ 인 행 = tossctl 고유 기능 (항상 WTS)
+
+## `openapi` 커맨드
+
+| 커맨드 | 설명 |
+|--------|------|
+| `tossctl init` | 온보딩 위저드 — 세션·공식 키·거래 설정을 단계별 안내 |
+| `tossctl openapi login` | 공식 키 등록 (환경변수 `TOSSCTL_OPENAPI_KEY`/`TOSSCTL_OPENAPI_SECRET` 또는 플래그) |
+| `tossctl openapi status` | 키·토큰·허용 IP·라우팅 상태 진단 |
+| `tossctl openapi test` | 실제 API 호출로 연결 검증 |
+| `tossctl openapi logout` | 자격증명 파일 삭제 |
+
+전역 플래그 `--backend auto|wts|official` 로 요청별 라우팅을 직접 지정할 수 있습니다.
 
 ## 조회 (읽기 전용)
 

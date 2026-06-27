@@ -1,0 +1,172 @@
+---
+title: Hybrid Official Open API
+description: Connect your official API key to route supported features through OAuth for extra stability
+---
+
+tossctl works fully with just a **web session (WTS)**. Registering an official Toss Open API
+key enables **hybrid mode**: features the official API supports are routed through OAuth; the
+rest go through WTS as always.
+
+## How hybrid works
+
+```
+┌─ tossctl ─────────────────────────────────────────────────┐
+│                                                           │
+│  request → router                                         │
+│               ├─ officially supported + key present       │
+│               │        → OAuth (official)                 │
+│               ├─ not officially supported                 │
+│               │        → WTS (always)                     │
+│               └─ officially supported but no key          │
+│                        → WTS                              │
+│                                                           │
+│  (auto-fallback to WTS when the official route is down)   │
+└───────────────────────────────────────────────────────────┘
+```
+
+- Reads and trades the official API supports are routed via OAuth token — more stable
+- The 18 features outside the official scope (flows, indices, AI signals, etc.) always go through WTS
+- If the official route is temporarily unavailable, tossctl auto-falls back to WTS (one-line stderr notice)
+- **Orders never cross-fallback** — a failed official route errors out rather than risk a duplicate order
+
+## Which auth do you need?
+
+| Scenario | Web session | Official key | Notes |
+|---|:---:|:---:|---|
+| Official-supported features only (most stable) | optional | required | Auto token refresh, no browser needed |
+| All features incl. WTS-only | required | not needed | Shorter expiry, more frequent refresh |
+| **Both (recommended)** | **required** | **required** | **Max stability + full scope + fallback** |
+
+<Callout type="info" title="Benefits of registering an official key">
+With an official key, tossctl automatically re-issues OAuth tokens **without interruption**. CI pipelines, servers, and agents can run unattended with no human interaction — tokens live much longer than web sessions, and the impact of Toss internal API changes is reduced.
+</Callout>
+
+## Getting your official Open API key
+
+1. **Pre-registration** — Apply at [corp.tossinvest.com/ko/open-api](https://corp.tossinvest.com/ko/open-api).
+2. **Official docs** — Full spec at [developers.tossinvest.com/docs](https://developers.tossinvest.com/docs).
+3. **Issue the key** — After approval, go to **Toss app → Settings → Open API** to generate your API Key and Secret.
+4. **Allowed IPs are mandatory** — Register your allowed IPs immediately after issuing the key. Requests from unlisted IPs are blocked (`tossctl openapi status` diagnoses this).
+
+## Secret handling
+
+<Callout type="warn" title="Treat keys like passwords">
+If you suspect a leak, re-issue immediately from the Toss app.
+</Callout>
+
+### Recommended (in order of preference)
+
+**① Environment variables (CI, agents, automation)**
+
+```bash
+export TOSSCTL_OPENAPI_KEY=tsck_live_xxxxxxxxxxxxxxxxxxxx
+export TOSSCTL_OPENAPI_SECRET=tssk_live_xxxxxxxxxxxxxxxxxxxx
+tossctl openapi status   # auto-reads env vars
+```
+
+**② Credentials file written by `tossctl openapi login` (personal dev machine)**
+
+```bash
+tossctl openapi login \
+  --key tsck_live_xxxxxxxxxxxxxxxxxxxx \
+  --secret tssk_live_xxxxxxxxxxxxxxxxxxxx
+# → <config dir>/openapi-credentials.json (mode 0600)
+```
+
+### Never do this
+
+- Paste plaintext keys or secrets into chat, issues, PRs, commits, screenshots, or logs
+- Hardcode them in `config.json`, source code, or documentation
+- Pass `--key`/`--secret` flags directly on the command line (shell history exposure) — use env vars instead
+- Set allowed IPs to `0.0.0.0/0` or an unrestricted range
+- If you suspect a compromise, **re-issue immediately from the Toss app**
+
+## Onboarding wizard
+
+First time? Run `tossctl init` for a guided setup.
+
+```bash
+tossctl init
+# Checks web session → prompts for official key (optional) → configures trading settings
+```
+
+## Official key management commands
+
+### Register / update
+
+```bash
+# Pass via env or enter interactively
+tossctl openapi login
+tossctl openapi login --key tsck_live_xxxx --secret tssk_live_xxxx
+```
+
+### Status and diagnostics
+
+```bash
+tossctl openapi status
+# Example output:
+#   Official key : ✓ (set via file)
+#   Token        : valid (expires in 23m 41s)
+#   Allowed IPs  : 203.0.113.42 ✓ (current IP matches)
+#   Routing      : hybrid (official + wts)
+```
+
+`status` explains common failure causes:
+- `IP not allowed` — your egress IP is not in the key's allowlist
+- `token expired` — auto-renewed; force manual refresh: `tossctl openapi login`
+- `key not set` — set env vars or run `openapi login`
+
+### Connection test
+
+```bash
+tossctl openapi test
+# Makes a real API call to validate key + IP + token
+```
+
+### Log out (delete credentials file)
+
+```bash
+tossctl openapi logout
+```
+
+## Backend routing control
+
+### Global flag `--backend`
+
+```bash
+tossctl account summary --backend official   # force official route
+tossctl account summary --backend wts        # force WTS route
+tossctl account summary --backend auto       # default: hybrid auto-select
+```
+
+### Config keys `openapi.*`
+
+```json
+{
+  "openapi": {
+    "enabled": true,
+    "prefer": "official",
+    "fallback": true
+  }
+}
+```
+
+| Key | Description |
+|---|---|
+| `openapi.enabled` | Use the official route (default `true`; only active when a key is present) |
+| `openapi.prefer` | `"official"` \| `"wts"` — default routing for officially-supported features |
+| `openapi.fallback` | Allow WTS fallback when the official route fails (default `true`; always `false` for orders) |
+
+## Fallback and source display
+
+When the official route is temporarily unavailable, tossctl switches to WTS and prints one line to stderr:
+
+```
+[tossctl] official route unavailable, falling back to wts (account summary)
+```
+
+If fallbacks are frequent, run `tossctl openapi status` and `tossctl doctor` to diagnose.
+
+---
+
+For the full list of officially-supported features, see [Support Scope](/docs/reference/support-scope).

@@ -4,6 +4,16 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 
 ## [Unreleased]
 
+### 새 기능
+- **하이브리드 공식 Open API 연동** — 토스 공식 Open API 키를 선택적으로 연결할 수 있습니다. 연결하면 공식이 지원하는 조회·거래 기능은 OAuth 경로로 처리되어 더 안정적이며, 토큰을 자동 갱신합니다. 공식에 없는 기능은 기존대로 WTS 경로를 씁니다. 키 없이도 모든 기능이 동작하며, 원하는 시점에 선택적으로 추가할 수 있습니다.
+- **`tossctl init`** — 온보딩 위저드. 처음 설치한 사용자를 위해 웹 세션 로그인·공식 키 등록·거래 설정을 단계별로 안내합니다.
+- **`tossctl openapi login`** — 공식 API Key·Secret을 등록합니다. 환경변수(`TOSSCTL_OPENAPI_KEY`/`TOSSCTL_OPENAPI_SECRET`) 또는 플래그로 전달하거나 대화형으로 입력할 수 있습니다. 자격증명 파일은 `0600` 권한으로 저장됩니다.
+- **`tossctl openapi status`** — 현재 키·토큰·허용 IP·라우팅 상태를 진단합니다. IP 미허용·토큰 만료·키 미설정 등 오류 원인을 설명합니다.
+- **`tossctl openapi test`** — 실제 API 호출로 공식 키 연결을 검증합니다.
+- **`tossctl openapi logout`** — 자격증명 파일을 삭제합니다.
+- **`--backend auto|wts|official`** 전역 플래그 — 요청별로 라우팅 백엔드를 직접 지정합니다.
+- **`doctor` 하이브리드 진단** — `tossctl doctor` 가 공식 키·토큰·IP 허용 상태를 함께 점검합니다.
+
 ### 버그 수정
 - 설치 스크립트(`curl ... install.sh | sh`)가 `/usr/local/bin` 이 없는 환경(주로 새로 설정한 Apple Silicon Mac — Homebrew 가 `/opt/homebrew` 에 있어 `/usr/local/bin` 이 아직 없는 경우)에서 `mv: ... No such file or directory` 로 설치에 실패하던 문제 수정. 설치 디렉터리를 먼저 만들고, 쓰기 권한이 있으면 sudo 없이 설치합니다. `INSTALL_DIR`·`SHARE_DIR` 환경변수로 설치 위치를 바꿀 수도 있습니다.
 

@@ -70,6 +70,24 @@
   </a>
 </p>
 
+## 하이브리드 공식 Open API
+
+tossctl은 웹 세션(WTS)만으로도 전부 동작합니다. 토스 공식 Open API 키를 선택적으로
+연결하면 공식이 지원하는 기능은 OAuth 경로로, 나머지는 WTS로 각각 처리하는 하이브리드
+모드가 켜집니다. 키 없이도 모든 기능을 쓸 수 있고, 원하는 시점에 추가할 수 있습니다.
+
+```bash
+# 공식 키 발급: https://corp.tossinvest.com/ko/open-api
+tossctl init                          # 온보딩 위저드 (처음 설정 시)
+tossctl openapi login                 # 공식 키 등록 (환경변수도 지원)
+tossctl openapi status                # 키·토큰·허용 IP·라우팅 진단
+tossctl openapi test                  # 연결 검증
+tossctl account summary --backend official  # 공식 경로 강제 (선택)
+```
+
+키를 연결하면 CI·서버·에이전트에서 사람 개입 없이 토큰이 자동 갱신됩니다.
+자세한 내용은 [하이브리드 가이드](https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi)를 참고하세요.
+
 ## Quick Start
 
 ### For Agent
@@ -480,6 +498,16 @@ tossctl auth status         # 세션 + Server Expiry (KST) 표시
 tossctl auth extend         # 폰 푸시 승인으로 서버 측 ~7일 만료 연장
 tossctl auth doctor
 tossctl auth logout
+```
+
+### 공식 Open API
+
+```bash
+tossctl init                # 온보딩 위저드 (처음 설정 시)
+tossctl openapi login       # 공식 키 등록 (env: TOSSCTL_OPENAPI_KEY / TOSSCTL_OPENAPI_SECRET)
+tossctl openapi status      # 키·토큰·허용 IP 진단
+tossctl openapi test        # 연결 검증
+tossctl openapi logout      # 자격증명 파일 삭제
 ```
 
 ### API 회귀 감시

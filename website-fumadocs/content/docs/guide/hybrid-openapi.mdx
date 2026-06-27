@@ -1,0 +1,169 @@
+---
+title: 하이브리드 공식 Open API
+description: 공식 키를 연결해 지원 기능을 OAuth 경로로 안정적으로 사용하는 방법
+---
+
+tossctl은 **웹 세션(WTS)만으로도** 모든 기능을 사용할 수 있습니다. 여기에 토스 공식
+Open API 키를 등록하면 *공식이 지원하는 기능은 OAuth 경로*로, 공식에 없는 기능은
+WTS로 각각 처리하는 **하이브리드 모드**가 켜집니다.
+
+## 하이브리드란
+
+```
+┌─ tossctl ────────────────────────────────────────┐
+│                                                  │
+│  요청 → 라우터                                   │
+│          ├─ 공식 지원 + 키 있음 → OAuth (공식)  │
+│          ├─ 공식 미지원          → WTS (항상)   │
+│          └─ 공식 지원이지만 키 없음 → WTS       │
+│                                                  │
+│  (공식 경로가 일시 불가면 WTS로 자동 폴백)       │
+└──────────────────────────────────────────────────┘
+```
+
+- 공식이 지원하는 조회·거래는 OAuth 토큰으로 라우팅 → 더 안정적
+- 공식 범위 밖(수급·시장지수·AI 시그널 등 18개)은 항상 WTS
+- 공식 경로가 일시적으로 쓸 수 없을 때는 WTS로 자동 폴백 (stderr 한 줄 알림)
+- **주문은 교차 폴백하지 않음** — 중복 주문 방지를 위해 공식 경로 실패 시 그냥 오류
+
+## 어떤 인증이 필요한가
+
+| 시나리오 | 웹 세션 | 공식 키 | 비고 |
+|---|:---:|:---:|---|
+| 공식 지원 기능만 (가장 안정적) | 선택 | 필요 | 토큰 자동 갱신, 브라우저 불필요 |
+| 고유·비공식 기능까지 전부 | 필요 | 불필요 | 더 빨리 끊김, 갱신 주기 짧음 |
+| **둘 다 (권장)** | **필요** | **필요** | **최대 안정성 + 최대 범위 + 폴백** |
+
+<Callout type="info" title="공식 키 등록 이점">
+공식 키를 연결하면 tossctl이 OAuth 토큰을 **무중단으로 자동 재발급**합니다. CI·서버·에이전트에서 사람 개입 없이 무인 운영할 수 있고, 웹 세션 대비 만료 주기가 훨씬 길며, 토스 내부 API 변경의 영향도 적습니다.
+</Callout>
+
+## 공식 Open API 키 발급
+
+1. **사전 신청** — [corp.tossinvest.com/ko/open-api](https://corp.tossinvest.com/ko/open-api) 에서 신청합니다.
+2. **공식 문서** — [developers.tossinvest.com/docs](https://developers.tossinvest.com/docs) 에서 전체 스펙을 확인합니다.
+3. **키 발급** — 승인 후 **토스 앱 설정 > Open API** 에서 API Key · Secret을 발급합니다.
+4. **허용 IP 등록 필수** — 키를 발급하는 즉시 허용 IP를 등록해야 합니다. 미등록 상태에서 요청하면 IP 차단 오류가 납니다 (`tossctl openapi status` 로 진단 가능).
+
+## 시크릿 안전 취급
+
+<Callout type="warn" title="키·시크릿은 비밀번호와 같습니다">
+유출되면 즉시 토스 앱에서 재발급하세요.
+</Callout>
+
+### 권장 방법 (우선순위 순)
+
+**① 환경변수 (CI·에이전트·자동화 환경 권장)**
+
+```bash
+export TOSSCTL_OPENAPI_KEY=tsck_live_xxxxxxxxxxxxxxxxxxxx
+export TOSSCTL_OPENAPI_SECRET=tssk_live_xxxxxxxxxxxxxxxxxxxx
+tossctl openapi status   # 환경변수 자동 인식
+```
+
+**② `tossctl openapi login` 이 만드는 자격증명 파일 (개인 개발 환경)**
+
+```bash
+tossctl openapi login \
+  --key tsck_live_xxxxxxxxxxxxxxxxxxxx \
+  --secret tssk_live_xxxxxxxxxxxxxxxxxxxx
+# → <config dir>/openapi-credentials.json (권한 0600) 에 저장
+```
+
+### 절대 하지 말 것
+
+- 채팅·이슈·PR·커밋·스크린샷·로그에 평문 키·시크릿 붙여넣기
+- `config.json`·코드·문서에 하드코딩
+- `--key`/`--secret` 플래그 직접 입력 (셸 히스토리에 남음) — 환경변수를 씁니다
+- 허용 IP를 `0.0.0.0/0` 등 무제한으로 설정하지 말 것
+- 유출이 의심되면 **토스 앱에서 즉시 재발급**하세요
+
+## 온보딩 위저드
+
+처음 설정한다면 `tossctl init` 으로 안내를 따르세요.
+
+```bash
+tossctl init
+# 웹 세션 로그인 여부 확인 → 공식 키 입력 여부 → 거래 설정까지 단계별 안내
+```
+
+## 공식 키 관리 커맨드
+
+### 등록 / 갱신
+
+```bash
+# 환경변수로 넘기거나 대화형으로 입력
+tossctl openapi login
+tossctl openapi login --key tsck_live_xxxx --secret tssk_live_xxxx
+```
+
+### 상태 확인 · 진단
+
+```bash
+tossctl openapi status
+# 출력 예:
+#   Official key : ✓ (set via file)
+#   Token        : valid (expires in 23m 41s)
+#   Allowed IPs  : 203.0.113.42 ✓ (current IP matches)
+#   Routing      : hybrid (official + wts)
+```
+
+`status` 는 일반적인 오류 원인을 설명해 줍니다:
+- `허용 IP 미등록` — 현재 출구 IP 가 키 허용 목록에 없음
+- `토큰 만료` — 재발급은 자동, 수동 강제 갱신: `tossctl openapi login`
+- `키 미설정` — 환경변수 또는 `openapi login` 필요
+
+### 연결 테스트
+
+```bash
+tossctl openapi test
+# → 실제 API 호출로 키 + IP + 토큰을 검증합니다
+```
+
+### 로그아웃 (자격증명 파일 삭제)
+
+```bash
+tossctl openapi logout
+```
+
+## 백엔드 라우팅 제어
+
+### 전역 플래그 `--backend`
+
+```bash
+tossctl account summary --backend official   # 공식 경로 강제
+tossctl account summary --backend wts        # WTS 경로 강제
+tossctl account summary --backend auto       # 기본값: 하이브리드 자동 선택
+```
+
+### Config 항목 `openapi.*`
+
+```json
+{
+  "openapi": {
+    "enabled": true,
+    "prefer": "official",
+    "fallback": true
+  }
+}
+```
+
+| 키 | 설명 |
+|---|---|
+| `openapi.enabled` | 공식 경로 사용 여부 (기본 `true`, 키 있을 때만 실제 활성화) |
+| `openapi.prefer` | `"official"` \| `"wts"` — 공식이 지원하는 기능의 기본 라우팅 |
+| `openapi.fallback` | 공식 경로 실패 시 WTS 폴백 허용 (기본 `true`; 주문은 항상 `false`) |
+
+## 폴백 · 소스 표시
+
+공식 경로가 일시적으로 쓸 수 없을 때 tossctl은 WTS로 자동 전환하고 stderr에 한 줄을 출력합니다:
+
+```
+[tossctl] official route unavailable, falling back to wts (account summary)
+```
+
+폴백이 잦으면 `tossctl openapi status` 와 `tossctl doctor` 로 원인을 확인하세요.
+
+---
+
+공식 지원 범위 전체 목록은 [지원 범위](/docs/reference/support-scope) 페이지를 참고하세요.

@@ -3,14 +3,25 @@ title: Support Scope
 description: Coverage vs the official Open API
 ---
 
-**tossctl covers 100% of the official Toss Open API's (upcoming) read & trade scope — and
-goes beyond.** The official Open API is currently rolling out in stages to pre-applicants
-and is a narrow, REST-only surface; tossctl operates on the much wider surface the Toss web
-app (WTS) actually uses.
+**tossctl covers 100% of the official Toss Open API's read & trade scope — and goes beyond.**
+Register an official key and the features it supports are **actually routed through OAuth**;
+the rest go through WTS. See the [Hybrid guide](/docs/guide/hybrid-openapi) for setup.
 
 - ✅ supported · ❌ not supported · 🔸 partial
-- `Official API (planned)` column = expected coverage per public docs (subject to rollout)
-- Rows where official is ❌ = tossctl-only
+- `Official API` column = coverage per public docs; with an official key, ✅ rows are routed via OAuth
+- Rows where official is ❌ = tossctl-only (always via WTS)
+
+## `openapi` commands
+
+| Command | Description |
+|--------|------|
+| `tossctl init` | Onboarding wizard — step-by-step session, official key, and trading setup |
+| `tossctl openapi login` | Register your key (env vars `TOSSCTL_OPENAPI_KEY`/`TOSSCTL_OPENAPI_SECRET` or flags) |
+| `tossctl openapi status` | Diagnose key · token · allowed IPs · routing state |
+| `tossctl openapi test` | Validate connectivity with a real API call |
+| `tossctl openapi logout` | Delete the credentials file |
+
+Use the global `--backend auto|wts|official` flag to override routing per request.
 
 ## Read-only
 
