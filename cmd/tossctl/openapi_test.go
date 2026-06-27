@@ -304,6 +304,32 @@ func TestValidateOpenAPICredentialsServerError(t *testing.T) {
 	}
 }
 
+func TestValidateOpenAPICredentialsTransportError(t *testing.T) {
+	t.Parallel()
+	// Spin up a server only to capture a reachable URL + client, then close it
+	// before the request so the token-exchange dial is refused → ErrTransport.
+	srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	url := srv.URL
+	client := srv.Client()
+	srv.Close()
+
+	tokenFile := filepath.Join(t.TempDir(), "token.json")
+	creds := official.Credentials{APIKey: "k", SecretKey: "s"}
+	result, err := validateOpenAPICredentials(context.Background(), creds, tokenFile,
+		official.WithBaseURL(url),
+		official.WithHTTPClient(client),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.OK {
+		t.Fatal("expected OK=false")
+	}
+	if result.ErrorKind != "transport_error" {
+		t.Fatalf("expected transport_error, got %q", result.ErrorKind)
+	}
+}
+
 // ── writeProbeResult ─────────────────────────────────────────────────────────
 
 func TestWriteProbeResultJSONSuccess(t *testing.T) {

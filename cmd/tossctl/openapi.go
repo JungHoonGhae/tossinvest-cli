@@ -88,14 +88,16 @@ func validateOpenAPICredentials(ctx context.Context, creds official.Credentials,
 // honouring --config-dir override. When configDir is set, both files are placed
 // inside it so tests can control them via a single temp directory.
 func resolveOpenAPIPaths(opts *rootOptions) (credFile, tokenFile string, err error) {
-	paths, err := config.DefaultPaths()
-	if err != nil {
-		return "", "", err
-	}
+	// Honour the override first so a DefaultPaths() failure never blocks tests
+	// (or any caller) that already pin a config directory.
 	if opts.configDir != "" {
 		return filepath.Join(opts.configDir, "openapi-credentials.json"),
 			filepath.Join(opts.configDir, "openapi-token.json"),
 			nil
+	}
+	paths, err := config.DefaultPaths()
+	if err != nil {
+		return "", "", err
 	}
 	return paths.CredentialsFile, paths.TokenFile, nil
 }
@@ -151,15 +153,11 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 				return err
 			}
 			if creds == nil {
-				msg := "저장된 자격증명이 없습니다. `tossctl openapi login --key K --secret S`를 먼저 실행하세요."
-				if format == output.FormatJSON {
-					return writeProbeResult(cmd.OutOrStdout(), format, probeResult{
-						OK:        false,
-						ErrorKind: "no_credentials",
-						Message:   msg,
-					})
-				}
-				return fmt.Errorf("%s", msg)
+				return writeProbeResult(cmd.OutOrStdout(), format, probeResult{
+					OK:        false,
+					ErrorKind: "no_credentials",
+					Message:   "저장된 자격증명이 없습니다. `tossctl openapi login --key K --secret S`를 먼저 실행하세요.",
+				})
 			}
 			result, err := validateOpenAPICredentials(cmd.Context(), *creds, tokenFile)
 			if err != nil {
