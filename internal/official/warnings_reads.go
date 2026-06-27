@@ -3,6 +3,7 @@ package official
 import (
 	"context"
 	"encoding/json"
+	"net/url"
 	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
@@ -27,7 +28,7 @@ type apiStockWarning struct {
 // The path uses the symbol as a path segment: /api/v1/stocks/{symbol}/warnings.
 func (c *Client) Warnings(ctx context.Context, symbol string) (domain.StockWarnings, error) {
 	var raw []apiStockWarning
-	if err := c.get(ctx, "/api/v1/stocks/"+symbol+"/warnings", nil, &raw); err != nil {
+	if err := c.get(ctx, "/api/v1/stocks/"+url.PathEscape(symbol)+"/warnings", nil, &raw); err != nil {
 		return domain.StockWarnings{}, err
 	}
 	return adaptWarnings(symbol, raw), nil

@@ -114,7 +114,7 @@ func (c *Client) Orders(ctx context.Context, filter OrdersFilter) ([]domain.Orde
 // Requires the X-Tossinvest-Account header; configure via WithAccountSeq.
 func (c *Client) OrderByID(ctx context.Context, orderID string) (domain.Order, error) {
 	var raw apiOrder
-	if err := c.getAcct(ctx, "/api/v1/orders/"+orderID, nil, &raw); err != nil {
+	if err := c.getAcct(ctx, "/api/v1/orders/"+url.PathEscape(orderID), nil, &raw); err != nil {
 		return domain.Order{}, err
 	}
 	return adaptOrder(raw), nil

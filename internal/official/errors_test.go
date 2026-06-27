@@ -15,6 +15,13 @@ func TestClassifyStatus(t *testing.T) {
 	if !errors.Is(classifyStatus(401, []byte(`{"message":"ip not allowed"}`)), ErrIPNotAllowed) {
 		t.Fatal("401 ip")
 	}
+	// Negative: "ip" appearing only inside another word must NOT trigger ErrIPNotAllowed.
+	if !errors.Is(classifyStatus(403, []byte(`{"message":"invalid client description"}`)), ErrAuth) {
+		t.Fatal("403 with 'ip' inside 'description' must be ErrAuth, not ErrIPNotAllowed")
+	}
+	if !errors.Is(classifyStatus(401, []byte(`{"error":"forbidden"}`)), ErrAuth) {
+		t.Fatal("401 plain forbidden must be ErrAuth")
+	}
 	if !errors.Is(classifyStatus(429, nil), ErrRateLimited) {
 		t.Fatal("429")
 	}

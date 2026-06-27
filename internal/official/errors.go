@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"regexp"
 )
 
 // Sentinel errors returned by the official API client.
@@ -26,14 +27,18 @@ func (e *APIError) Error() string {
 	return fmt.Sprintf("official: API error %d: %s", e.Code, e.Body)
 }
 
+// reIPWord matches the standalone word "ip" (case-insensitive after lowercasing).
+// Compiled once to avoid repeated allocation on every error path.
+var reIPWord = regexp.MustCompile(`\bip\b`)
+
 // classifyStatus maps an HTTP status code (and optional response body) to a
-// typed error. 401/403 become ErrIPNotAllowed when the body mentions "ip"
-// (case-insensitive), otherwise ErrAuth. 429 → ErrRateLimited. ≥500 →
+// typed error. 401/403 become ErrIPNotAllowed when the body mentions "ip" as a
+// whole word (case-insensitive), otherwise ErrAuth. 429 → ErrRateLimited. ≥500 →
 // ErrServer. All other 4xx → *APIError (passthrough, no fallback).
 func classifyStatus(code int, body []byte) error {
 	switch {
 	case code == 401 || code == 403:
-		if bytes.Contains(bytes.ToLower(body), []byte("ip")) {
+		if reIPWord.Match(bytes.ToLower(body)) {
 			return ErrIPNotAllowed
 		}
 		return ErrAuth
