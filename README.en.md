@@ -205,7 +205,7 @@ after excluding noise like onboarding, KYC, terms, promotions, and telemetry.
 Why tossctl wins long-term:
 
 - **Breadth** — the official API opens a narrow API slowly; tossctl tracks the whole web API (catalog below) and is always wider.
-- **Speed** — when Toss ships a new web feature, the weekly monitor flags the new endpoint and we implement it without waiting for an official release.
+- **Speed** — a brokerage wants users to stay in the app and consume content, recommendations, and ads, so new features always land in the web app (WTS) first and the official API opens only a slice of them later (structurally conservative). The weekly monitor flags each new endpoint, so tossctl implements it **without waiting for an official release**. [Why the official API lags ↗](https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi)
 - **Superset** — whatever the official API covers, tossctl [already covers 100%](#support-scope).
 
 #### WTS web API catalog (continuously tracked)
