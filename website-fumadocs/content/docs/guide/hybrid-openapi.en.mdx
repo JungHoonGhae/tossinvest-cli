@@ -54,23 +54,17 @@ other IPs (e.g., a server), you can add them via WTS (Toss web).
 
 For each request, the router checks "is it officially supported → is a key present → preference".
 
-<Mermaid chart={`flowchart TD
-  A[Request] --> B{Officially supported?}
-  B -- No --> W[WTS web session]
-  B -- Yes --> C{Official key present?}
-  C -- No --> W
-  C -- Yes --> D[Official Open API · OAuth]
-  D -- Success --> R[Result]
-  W --> R
-  D -. temporary failure .-> E{Order?}
-  E -- Yes --> X[Error · prevent duplicate order]
-  E -- No --> W
-`} />
+| Request | Path |
+|---|---|
+| Not officially supported | → **WTS web session** |
+| Official-supported · no key | → **WTS web session** |
+| Official-supported · key present | → **Official Open API (OAuth)** |
+| Official path temporarily fails | → orders **error out** (no duplicate), everything else **falls back to WTS** |
 
-- Reads and trades the official API supports are routed via OAuth token — more stable
+- Reads and trades the official API supports are routed via OAuth token, which is more stable
 - Features outside the official scope (flows, indices, AI signals, etc.) always go through WTS
 - If the official route is temporarily unavailable, tossctl auto-falls back to WTS (one-line stderr notice)
-- **Orders never cross-fallback** — a failed official route errors out rather than risk a duplicate order
+- **Orders never cross-fallback** (a failed official route errors out rather than risk a duplicate order)
 
 ## Which auth do you need?
 

@@ -4,6 +4,7 @@ import {
   Bot,
   ChartCandlestick,
   Check,
+  ChevronDown,
   Github,
   Radio,
   ShieldCheck,
@@ -42,11 +43,11 @@ const content = {
     thesis: {
       label: '왜 지금',
       headline: '공식 API, 기다릴 필요 없습니다',
-      body: '토스증권 공식 Open API가 지원하는 범위는 토스 WTS 전체 기능의 약 4%(~20개)뿐입니다. tossctl은 이 4%를 100% 포함하고 — 공식 키를 등록하면 해당 기능은 공식 OAuth 경로로 자동 라우팅되어 더 안정적입니다 — 토스 WTS엔 있지만 공식 API엔 없는 기능 18개까지 더해 총 27개를 제공합니다. 신청이나 승인 없이 바로 시작할 수 있습니다.',
+      body: '토스증권 공식 Open API가 지원하는 범위는 토스 WTS 전체 기능의 약 4%(~20개)뿐입니다. tossctl은 이 4%를 100% 포함합니다. 공식 키를 등록하면 해당 기능은 공식 OAuth 경로로 자동 라우팅되어 더 안정적이고, 여기에 토스 WTS엔 있지만 공식 API엔 없는 기능 18개까지 더해 총 27개를 제공합니다. 신청이나 승인 없이 바로 시작할 수 있습니다.',
       points: [
         { k: '공식은 약 4%', v: '공식 Open API는 토스 WTS 기능 ~430개 중 약 20개(4%)만 지원합니다.' },
         { k: '공식 전부 100% 커버', v: '공식 지원 기능 9개를 100% 커버합니다. 공식 키를 연결하면 OAuth 경로로 더 안정적으로 동작합니다.' },
-        { k: 'WTS 기능 18개 추가', v: '토스 WTS엔 있지만 공식 API엔 없는 수급·지수·AI 시그널·스크리너·배당 등 18개까지 — 합계 27개.' },
+        { k: 'WTS 기능 18개 추가', v: '토스 WTS엔 있지만 공식 API엔 없는 수급·지수·AI 시그널·스크리너·배당 등 18개까지. 합계 27개.' },
         { k: '에이전트 연동', v: '모든 명령이 JSON으로 출력되어 AI 에이전트와 바로 연동됩니다.' },
       ],
     },
@@ -64,7 +65,7 @@ const content = {
       { n: '27', l: '공식 지원 전부 + 고유 18 = tossctl 총 기능 수' },
     ],
     coverage: {
-      bright: '공식 Open API — WTS 기능의 약 4% (~20개)',
+      bright: '공식 Open API · WTS 기능의 약 4% (~20개)',
       dim: '토스 WTS 전체 기능 ~430개',
       note: 'tossctl은 공식이 다루는 약 4%를 100% 포함하고, 공식에 없는 나머지 WTS 기능까지 넓혀갑니다.',
     },
@@ -77,7 +78,7 @@ const content = {
       name: 'tossctl',
       note: '공식 전부 100% 커버 + 고유 18 = 총 27개',
       items: [
-        '공식 지원 기능 전부 — 공식 키 연결 시 OAuth 경로로 더 안정적',
+        '공식 지원 기능 전부 (공식 키 연결 시 OAuth 경로로 더 안정적)',
         '수급·시장지수·지수 상세·업종 등락',
         'AI 시그널·뉴스 브리핑·조건검색',
         '배당·커뮤니티 랭킹·관심종목·실시간 푸시·dry-run preview',
@@ -92,6 +93,38 @@ const content = {
     ),
     llmCta: 'AI 에이전트 가이드 →',
     disclaimer: '비공식 CLI · 토스증권과 무관 · 투자 손익의 책임은 본인에게 있습니다',
+    faqTitle: '자주 묻는 질문',
+    faqSub: '여기에 없는 내용은 GitHub Issues 로 남겨 주세요.',
+    faq: [
+      {
+        q: '어떻게 공식 Open API보다 많은 기능을 제공하나요?',
+        a: '새 기능을 직접 만든 게 아닙니다. tossctl 은 토스 웹·앱(WTS)이 실제로 쓰는 내부 API를 그대로 재사용합니다. 공식 Open API 는 그 전체 중 약 4%만 외부에 열어둔 상태라, 같은 출처를 쓰는 tossctl 이 자연히 더 넓은 범위를 다룹니다.',
+      },
+      {
+        q: '공식 API는 왜 항상 한 발 늦나요?',
+        a: '증권사는 사용자가 앱에 머물며 콘텐츠·추천·광고까지 소비하길 원합니다. 그래서 새 기능은 늘 앱(WTS)에 먼저 실리고, 공식 API 는 외부에 열어도 되는 일부만 뒤따라 공개합니다. 비즈니스 구조상 보수적일 수밖에 없습니다.',
+      },
+      {
+        q: '공식 API가 넓어지면 tossctl 은 무의미해지나요?',
+        a: '오히려 더 좋아집니다. 공식이 지원하는 기능은 자동으로 공식 경로(OAuth)로 라우팅해 안정성을 높이고, 공식에 아직 없는 범위는 계속 WTS 로 채웁니다. 공식 범위는 언제나 100% 포함합니다.',
+      },
+      {
+        q: '합법인가요? 토스 공식인가요?',
+        a: 'tossctl 자체는 토스 공식 제품이 아닙니다. 공식 Open API 키로 쓰는 기능은 토스가 공식 지원하는 합법 경로지만, 그 외 WTS(웹 내부 API) 경로는 비공식이라 이용약관(TOS) 위반에 해당할 수 있습니다. 계좌 제한·손실 등 사용에 따른 책임은 본인에게 있습니다.',
+      },
+      {
+        q: '실수로 주문이 나갈 수 있나요?',
+        a: '없습니다. 거래는 기본으로 꺼져 있고 config.json 에서 직접 켜야 합니다. 실거래는 미리보기 후 2단계 확인(--execute + --confirm)을 거칩니다.',
+      },
+      {
+        q: '내 계정 정보와 키는 안전한가요?',
+        a: 'tossctl 은 로컬에서 동작합니다. 세션과 자격증명은 본인 컴퓨터에 0600 권한으로 저장되고, 제3자 서버로 전송되지 않습니다.',
+      },
+      {
+        q: 'AI 에이전트와 어떻게 연동하나요?',
+        a: '모든 명령이 JSON 으로 출력되고 /llms.txt 와 에이전트 가이드를 제공합니다. Claude Code·Codex·Cursor 같은 도구가 바로 호출할 수 있습니다.',
+      },
+    ],
     features: [
       { label: 'DATA', title: '넓은 조회', desc: '계좌·시세·호가·체결·수급·지수·업종·배당·거래내역을 명령 한 줄로 조회합니다.' },
       { label: 'SAFETY', title: '안전한 거래', desc: '거래는 기본으로 꺼져 있고, 주문 전 미리보기와 두 번의 확인을 거칩니다. 실수로 주문이 나가지 않습니다.' },
@@ -106,7 +139,7 @@ const content = {
     desc: (
       <>
         Read accounts, quotes, and transactions, and place orders. Covers the official Open API in
-        full, plus Toss WTS features it doesn't expose — with{' '}
+        full, plus the Toss WTS features it doesn't expose. All from{' '}
         <code className="font-mono text-white/90">tossctl</code>, right now.
       </>
     ),
@@ -118,11 +151,11 @@ const content = {
     thesis: {
       label: 'WHY NOW',
       headline: "You don't have to wait for the official API",
-      body: "Toss Securities' official Open API covers only about 4% (~20) of the full Toss WTS feature set. tossctl covers 100% of that — plug in an official key and those features auto-route through OAuth for extra stability — and adds 18 more Toss WTS features the official API doesn't expose, for a total of 27. No application, no approval to start.",
+      body: "Toss Securities' official Open API covers only about 4% (~20) of the full Toss WTS feature set. tossctl covers 100% of that. Plug in an official key and those features auto-route through OAuth for extra stability, and it adds 18 more Toss WTS features the official API doesn't expose, for a total of 27. No application, no approval to start.",
       points: [
-        { k: 'Official ≈ 4%', v: 'The official Open API supports ~20 of ~430 Toss WTS features — about 4%.' },
-        { k: '100% of official covered', v: "tossctl covers all 9 officially-supported features. Add an official key and they route through OAuth — more stable, auto-renewing." },
-        { k: '+18 WTS features', v: "Flows, indices, AI signals, screener, dividends, and more — 18 Toss WTS features the official API doesn't expose. Total: 27." },
+        { k: 'Official ≈ 4%', v: 'The official Open API supports ~20 of ~430 Toss WTS features, about 4%.' },
+        { k: '100% of official covered', v: "tossctl covers all 9 officially-supported features. Add an official key and they route through OAuth (more stable, auto-renewing)." },
+        { k: '+18 WTS features', v: "Flows, indices, AI signals, screener, dividends: 18 Toss WTS features the official API doesn't expose. Total: 27." },
         { k: 'Agents included', v: 'Every command answers in JSON, so people and agents use it the same way.' },
       ],
     },
@@ -140,7 +173,7 @@ const content = {
       { n: '27', l: 'total: all official-supported + 18 unique' },
     ],
     coverage: {
-      bright: 'Official Open API — ~4% of WTS (~20)',
+      bright: 'Official Open API · ~4% of WTS (~20)',
       dim: '~430 total Toss WTS features',
       note: 'tossctl covers 100% of the official ~4% and keeps expanding into the rest of WTS.',
     },
@@ -153,7 +186,7 @@ const content = {
       name: 'tossctl',
       note: '100% of official + 18 unique = 27 total',
       items: [
-        'All official-supported features — official key unlocks OAuth routing',
+        'All official-supported features (official key unlocks OAuth routing)',
         'Flows · indices · index detail · sectors',
         'AI signals · news briefing · screener',
         'Dividends · community rankings · watchlist · real-time push · dry-run',
@@ -168,13 +201,45 @@ const content = {
     ),
     llmCta: 'AI Agent Guide →',
     disclaimer: 'Unofficial CLI · not affiliated with Toss Securities · use at your own risk',
+    faqTitle: 'Frequently asked',
+    faqSub: 'Anything missing? Open a GitHub issue.',
+    faq: [
+      {
+        q: 'How do you offer more features than the official Open API?',
+        a: "tossctl didn't build these features. It reuses the same internal API the Toss web and app (WTS) already use. The official Open API exposes only about 4% of that surface, so a tool drawing from the same source naturally covers more.",
+      },
+      {
+        q: 'Why does the official API always lag?',
+        a: 'A brokerage wants users to stay in the app and consume content, recommendations, and ads. So new features land in the app (WTS) first, and the official API opens only the slice that is safe to expose externally, afterwards. It is structurally conservative by design.',
+      },
+      {
+        q: 'Does tossctl become pointless once the official API grows?',
+        a: 'It gets better. Officially-supported features auto-route through the official path (OAuth) for stability, while the rest keep coming from WTS. tossctl always covers 100% of the official scope.',
+      },
+      {
+        q: 'Is this legal? Is it official?',
+        a: "tossctl itself is not an official Toss product. Features used through an official Open API key run on Toss's sanctioned, legitimate path; the rest (the WTS internal web API) is unofficial and may violate the Terms of Service. You are responsible for any account restrictions or losses from using it.",
+      },
+      {
+        q: 'Can an order fire by accident?',
+        a: 'No. Trading is off by default and must be enabled in config.json. A live order requires a preview and a two-step confirm (--execute + --confirm).',
+      },
+      {
+        q: 'Are my account data and keys safe?',
+        a: 'tossctl runs locally. Your session and credentials are stored on your own machine with 0600 permissions and never sent to any third-party server.',
+      },
+      {
+        q: 'How does it work with AI agents?',
+        a: 'Every command answers in JSON, and there is an agent guide plus /llms.txt. Tools like Claude Code, Codex, and Cursor can call it directly.',
+      },
+    ],
     features: [
-      { label: 'DATA', title: 'Broad reads', desc: 'Accounts, quotes, orderbook, ticks, flows, indices, sectors, dividends, ledger — in one command.' },
+      { label: 'DATA', title: 'Broad reads', desc: 'Accounts, quotes, orderbook, ticks, flows, indices, sectors, dividends, ledger, in one command.' },
       { label: 'SAFETY', title: 'Safe trading', desc: 'Trading is off by default, with an order preview and two confirmations before anything runs. No accidental orders.' },
       { label: 'AGENTS', title: 'Agent-friendly', desc: 'Every result comes back in a format AI reads directly, so agents like Claude, Codex, and Cursor connect right away.' },
-      { label: 'INTELLIGENCE', title: 'Toss AI features', desc: 'AI signals, news briefing, screener, community rankings — none of which the official API has.' },
+      { label: 'INTELLIGENCE', title: 'Toss AI features', desc: 'AI signals, news briefing, screener, community rankings, none of which the official API has.' },
       { label: 'REALTIME', title: 'Real-time push', desc: 'See order, fill, and holdings changes the moment they happen.' },
-      { label: 'AUTOMATION', title: 'Automation-first', desc: 'Export as a table, file, or live feed — drop it straight into scripts and automation.' },
+      { label: 'AUTOMATION', title: 'Automation-first', desc: 'Export as a table, file, or live feed, drop it straight into scripts and automation.' },
     ],
   },
 } as const;
@@ -604,6 +669,28 @@ $ tossctl order preview --symbol TSLA --side buy --qty 1 --price 250`}</code>
           >
             {t.llmCta}
           </Link>
+        </div>
+      </section>
+
+      {/* ── FAQ ────────────────────────────────────────────── */}
+      <section className="border-t border-white/10">
+        <div className="mx-auto w-full max-w-3xl px-4 py-20 md:py-24">
+          <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">{t.faqTitle}</h2>
+          <p className="mt-2 mb-8 text-sm text-white/45">{t.faqSub}</p>
+          <div>
+            {t.faq.map((item) => (
+              <details
+                key={item.q}
+                className="group border-b border-white/10 py-5 [&_summary::-webkit-details-marker]:hidden"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+                  <span className="font-medium text-white/90">{item.q}</span>
+                  <ChevronDown className="size-4 shrink-0 text-white/35 transition-transform duration-200 group-open:rotate-180" />
+                </summary>
+                <p className="mt-3 max-w-[66ch] text-sm leading-relaxed text-white/55">{item.a}</p>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
 
