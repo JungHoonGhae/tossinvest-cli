@@ -20,11 +20,6 @@
 </p>
 
 <p align="center">
-  <a href="docs/migration/.openapi-snapshot.json"><img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FJungHoonGhae%2Ftossinvest-cli%2Fmain%2Fdocs%2Fmigration%2F.openapi-snapshot.json&query=%24.spec_version&label=verified%20vs%20official%20Open%20API&prefix=v&color=3182F6" alt="verified official API version" /></a>
-  <a href="docs/migration/.openapi-snapshot.json"><img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FJungHoonGhae%2Ftossinvest-cli%2Fmain%2Fdocs%2Fmigration%2F.openapi-snapshot.json&query=%24.last_checked_at&label=spec%20checked&color=informational" alt="spec last checked" /></a>
-</p>
-
-<p align="center">
   <a href="#quick-start"><strong>Quick Start</strong></a> ·
   <a href="#support-scope"><strong>Support Scope</strong></a> ·
   <a href="#command-reference"><strong>Command Reference</strong></a> ·
