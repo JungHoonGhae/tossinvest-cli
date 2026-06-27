@@ -12,6 +12,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/auth"
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
@@ -102,21 +103,21 @@ func userFacingTradingError(paths config.Paths, err error) error {
 	return userFacingCommandError(err)
 }
 
-func userFacingPlaceError(paths config.Paths, err error, flags *placeFlags) error {
+func userFacingPlaceError(paths config.Paths, err error, intent *orderintent.PlaceIntent) error {
 	if err == nil {
 		return nil
 	}
 
 	var branchRequired *trading.BranchRequiredError
 	if errors.As(err, &branchRequired) {
-		return formatBranchRequiredError(branchRequired, flags)
+		return formatBranchRequiredError(branchRequired, intent)
 	}
 
 	var prepareRejected *trading.PrepareRejectedError
 	if errors.As(err, &prepareRejected) {
 		previewCommand := "tossctl order preview ..."
-		if flags != nil {
-			previewCommand = buildPlaceCommand("preview", flags, "")
+		if intent != nil {
+			previewCommand = buildPlaceCommand("preview", intent, "")
 		}
 		if message := strings.TrimSpace(prepareRejected.BrokerMessage); message != "" {
 			return fmt.Errorf("broker rejected order preparation before submission: %s\n1. Toss app/web에서 잔액, 환전 동의, 또는 broker prompt를 확인합니다.\n2. 준비가 끝나면 `%s`를 다시 실행합니다.\n3. 새 confirm token으로 `tossctl order place ... --execute --confirm <new-confirm-token>`를 다시 실행합니다.", message, previewCommand)
@@ -127,16 +128,16 @@ func userFacingPlaceError(paths config.Paths, err error, flags *placeFlags) erro
 	return userFacingTradingError(paths, err)
 }
 
-func formatBranchRequiredError(branchRequired *trading.BranchRequiredError, flags *placeFlags) error {
+func formatBranchRequiredError(branchRequired *trading.BranchRequiredError, intent *orderintent.PlaceIntent) error {
 	if branchRequired == nil {
 		return fmt.Errorf("broker requires operator action")
 	}
 
 	previewCommand := "tossctl order preview ..."
 	placeCommand := "tossctl order place ... --execute --confirm <new-confirm-token>"
-	if flags != nil {
-		previewCommand = buildPlaceCommand("preview", flags, "")
-		placeCommand = buildPlaceCommand("place", flags, "<new-confirm-token>")
+	if intent != nil {
+		previewCommand = buildPlaceCommand("preview", intent, "")
+		placeCommand = buildPlaceCommand("place", intent, "<new-confirm-token>")
 	}
 
 	messageSuffix := ""
@@ -192,8 +193,13 @@ func formatPostPrepareFXBranchError(branchRequired *trading.BranchRequiredError)
 	return fmt.Errorf("%s", strings.Join(lines, "\n"))
 }
 
-func buildPlaceCommand(kind string, flags *placeFlags, confirm string) string {
-	if flags == nil {
+// buildPlaceCommand reconstructs a retry command from the NORMALIZED intent
+// (not the raw flags) so auto-detected fields are accurate — e.g. a KR symbol
+// shows `--market kr`, not the flag default `--market us`. It also emits the
+// flags that match the order shape: fractional buys are amount-based (--amount,
+// no --qty/--price), limits carry --price, market orders omit it.
+func buildPlaceCommand(kind string, intent *orderintent.PlaceIntent, confirm string) string {
+	if intent == nil {
 		if kind == "preview" {
 			return "tossctl order preview ..."
 		}
@@ -204,15 +210,23 @@ func buildPlaceCommand(kind string, flags *placeFlags, confirm string) string {
 		"tossctl",
 		"order",
 		kind,
-		"--symbol", flags.symbol,
-		"--market", flags.market,
-		"--side", flags.side,
-		"--type", flags.orderType,
-		"--qty", formatCommandFloat(flags.quantity),
-		"--price", formatCommandFloat(flags.price),
-		"--currency-mode", flags.currencyMode,
+		"--symbol", intent.Symbol,
+		"--market", intent.Market,
+		"--side", intent.Side,
+		"--type", intent.OrderType,
 	}
-	if flags.fractional {
+	if intent.Fractional && intent.Side == "buy" {
+		args = append(args, "--amount", formatCommandFloat(intent.Amount))
+	} else {
+		args = append(args, "--qty", formatCommandFloat(intent.Quantity))
+		if intent.OrderType == "limit" {
+			args = append(args, "--price", formatCommandFloat(intent.Price))
+		}
+	}
+	if intent.CurrencyMode != "" {
+		args = append(args, "--currency-mode", intent.CurrencyMode)
+	}
+	if intent.Fractional {
 		args = append(args, "--fractional")
 	}
 	if kind == "place" {

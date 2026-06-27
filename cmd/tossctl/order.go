@@ -178,7 +178,7 @@ func newOrderPlaceCmd(opts *rootOptions) *cobra.Command {
 				Confirm: exec.confirm,
 			})
 			if err != nil {
-				return userFacingPlaceError(app.paths, err, place)
+				return userFacingPlaceError(app.paths, err, &intent)
 			}
 			recordMutationLineage(app, &result)
 

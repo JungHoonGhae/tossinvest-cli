@@ -9,6 +9,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/auth"
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
@@ -20,14 +21,14 @@ func TestUserFacingPlaceErrorFormatsFundingGuidance(t *testing.T) {
 		Branch:        trading.BranchFundingRequired,
 		StatusCode:    422,
 		BrokerMessage: "계좌 잔액이 부족해요 / 구매를 위해 21,511원을 채울게요.",
-	}, &placeFlags{
-		symbol:       "TSLL",
-		market:       "us",
-		side:         "buy",
-		orderType:    "limit",
-		quantity:     1,
-		price:        500,
-		currencyMode: "KRW",
+	}, &orderintent.PlaceIntent{
+		Symbol:       "TSLL",
+		Market:       "us",
+		Side:         "buy",
+		OrderType:    "limit",
+		Quantity:     1,
+		Price:        500,
+		CurrencyMode: "KRW",
 	})
 	if err == nil {
 		t.Fatal("expected formatted error")
@@ -52,14 +53,14 @@ func TestUserFacingPlaceErrorFormatsFXGuidance(t *testing.T) {
 		Branch:        trading.BranchFXConsentRequired,
 		StatusCode:    500,
 		BrokerMessage: "환전 후 주문하려면 외화 사용 동의가 필요해요.",
-	}, &placeFlags{
-		symbol:       "TSLL",
-		market:       "us",
-		side:         "buy",
-		orderType:    "limit",
-		quantity:     1,
-		price:        500,
-		currencyMode: "KRW",
+	}, &orderintent.PlaceIntent{
+		Symbol:       "TSLL",
+		Market:       "us",
+		Side:         "buy",
+		OrderType:    "limit",
+		Quantity:     1,
+		Price:        500,
+		CurrencyMode: "KRW",
 	})
 	if err == nil {
 		t.Fatal("expected formatted error")
@@ -88,14 +89,14 @@ func TestUserFacingPlaceErrorFormatsPostPrepareFXGuidance(t *testing.T) {
 			GettingBackKRWKnown:  true,
 			GettingBackKRW:       false,
 		},
-	}, &placeFlags{
-		symbol:       "TSLL",
-		market:       "us",
-		side:         "buy",
-		orderType:    "limit",
-		quantity:     1,
-		price:        1000,
-		currencyMode: "KRW",
+	}, &orderintent.PlaceIntent{
+		Symbol:       "TSLL",
+		Market:       "us",
+		Side:         "buy",
+		OrderType:    "limit",
+		Quantity:     1,
+		Price:        1000,
+		CurrencyMode: "KRW",
 	})
 	if err == nil {
 		t.Fatal("expected formatted error")
@@ -184,5 +185,34 @@ func TestUserFacingCommandErrorSessionErrNoSessionMentionsLogin(t *testing.T) {
 		if !strings.Contains(got, "no active session") {
 			t.Fatalf("for %v: expected friendly message, got %q", err, got)
 		}
+	}
+}
+
+func TestBuildPlaceCommandReflectsNormalizedIntent(t *testing.T) {
+	t.Parallel()
+
+	// KR limit sell — auto-detected market must show --market kr, never the
+	// flag default --market us (the bug found during live testing).
+	krCmd := buildPlaceCommand("place", &orderintent.PlaceIntent{
+		Symbol: "114800", Market: "kr", Side: "sell", OrderType: "limit",
+		Quantity: 1, Price: 1100, CurrencyMode: "KRW",
+	}, "TOKEN")
+	if !strings.Contains(krCmd, "--market kr") {
+		t.Fatalf("expected --market kr, got %q", krCmd)
+	}
+	if strings.Contains(krCmd, "--market us") {
+		t.Fatalf("must not echo --market us for a KR order: %q", krCmd)
+	}
+
+	// Fractional buy is amount-based — must use --amount, never --qty/--price.
+	fracCmd := buildPlaceCommand("place", &orderintent.PlaceIntent{
+		Symbol: "TSLA", Market: "us", Side: "buy", OrderType: "market",
+		Amount: 10, Fractional: true, CurrencyMode: "KRW",
+	}, "T")
+	if !strings.Contains(fracCmd, "--amount 10") {
+		t.Fatalf("fractional buy must use --amount, got %q", fracCmd)
+	}
+	if strings.Contains(fracCmd, "--qty") || strings.Contains(fracCmd, "--price") {
+		t.Fatalf("fractional buy must not use --qty/--price, got %q", fracCmd)
 	}
 }
