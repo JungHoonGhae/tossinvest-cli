@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
@@ -10,8 +11,26 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderlineage"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/tui"
 	"github.com/spf13/cobra"
 )
+
+// orderItems converts a slice of domain.Order into tui.Item entries for
+// interactive pickers. It is a pure function with no side effects.
+func orderItems(orders []domain.Order) []tui.Item {
+	items := make([]tui.Item, len(orders))
+	for i, o := range orders {
+		name := o.Name
+		if name == "" {
+			name = o.Symbol
+		}
+		items[i] = tui.Item{
+			ID:    o.ID,
+			Label: fmt.Sprintf("%s (%s) · %s · %g @ %g · %s", name, o.Symbol, o.Side, o.Quantity, o.Price, o.OrderDate),
+		}
+	}
+	return items
+}
 
 type placeFlags struct {
 	symbol       string
@@ -65,20 +84,47 @@ func newOrderShowCmd(opts *rootOptions) *cobra.Command {
 	var market string
 
 	cmd := &cobra.Command{
-		Use:   "show <order-id>",
+		Use:   "show [order-id]",
 		Short: "Show a single order from pending or current-month completed history",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Early non-TTY guard — before expensive app context creation.
+			if len(args) == 0 && !tui.IsInteractive(os.Stdin, os.Stdout) {
+				return fmt.Errorf("order-id 인수를 지정하거나 터미널에서 실행하세요")
+			}
+
 			app, err := newAppContext(opts)
 			if err != nil {
 				return err
 			}
 
+			var orderArg string
+			if len(args) == 1 {
+				orderArg = args[0]
+			} else {
+				// Interactive: pick from pending orders; fall back to completed if empty.
+				orders, err := app.client.ListPendingOrders(cmd.Context())
+				if err != nil {
+					return err
+				}
+				if len(orders) == 0 {
+					orders, err = app.client.ListCompletedOrders(cmd.Context(), "all")
+					if err != nil {
+						return err
+					}
+				}
+				id, err := tui.PickFromList("조회할 주문 선택", orderItems(orders))
+				if err != nil {
+					return err
+				}
+				orderArg = id
+			}
+
 			aliases := []string{}
-			lineageHintKey := args[0]
+			lineageHintKey := orderArg
 			lineageErr := error(nil)
 			if app.lineageService != nil {
-				if currentOrderID, ok, err := app.lineageService.Resolve(args[0]); err != nil {
+				if currentOrderID, ok, err := app.lineageService.Resolve(orderArg); err != nil {
 					lineageErr = err
 				} else if ok {
 					aliases = append(aliases, currentOrderID)
@@ -86,9 +132,9 @@ func newOrderShowCmd(opts *rootOptions) *cobra.Command {
 				}
 			}
 
-			order, err := app.client.FindOrderWithAliases(cmd.Context(), args[0], market, aliases...)
+			order, err := app.client.FindOrderWithAliases(cmd.Context(), orderArg, market, aliases...)
 			if err != nil {
-				if recoveredOrder, recovered, recoveryErr := recoverOrderWithLineageHint(cmd.Context(), app, args[0], lineageHintKey, market); recoveryErr != nil {
+				if recoveredOrder, recovered, recoveryErr := recoverOrderWithLineageHint(cmd.Context(), app, orderArg, lineageHintKey, market); recoveryErr != nil {
 					if lineageErr != nil {
 						return fmt.Errorf("%v; local lineage cache %s could not be read: %v", recoveryErr, app.paths.LineageFile, lineageErr)
 					}
@@ -200,9 +246,33 @@ func newOrderCancelCmd(opts *rootOptions) *cobra.Command {
 		Use:   "cancel",
 		Short: "Cancel a live pending order",
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			// Early non-TTY guard — before expensive app context creation.
+			if orderID == "" && !tui.IsInteractive(os.Stdin, os.Stdout) {
+				return fmt.Errorf("--order-id 를 지정하거나 터미널에서 실행하세요")
+			}
+
 			app, err := newAppContext(opts)
 			if err != nil {
 				return err
+			}
+
+			if orderID == "" {
+				// Interactive: fetch pending orders and let the user pick.
+				orders, err := app.client.ListPendingOrders(cmd.Context())
+				if err != nil {
+					return err
+				}
+				id, err := tui.PickFromList("취소할 주문 선택", orderItems(orders))
+				if err != nil {
+					return err
+				}
+				orderID = id
+				for _, o := range orders {
+					if o.ID == id {
+						symbol = o.Symbol
+						break
+					}
+				}
 			}
 
 			intent, err := orderintent.NormalizeCancel(orderID, symbol)
@@ -230,12 +300,6 @@ func newOrderCancelCmd(opts *rootOptions) *cobra.Command {
 
 	cmd.Flags().StringVar(&orderID, "order-id", "", "Pending order identifier")
 	cmd.Flags().StringVar(&symbol, "symbol", "", "Trading symbol for the pending order")
-	if err := cmd.MarkFlagRequired("order-id"); err != nil {
-		panic(err)
-	}
-	if err := cmd.MarkFlagRequired("symbol"); err != nil {
-		panic(err)
-	}
 	bindExecuteFlags(cmd, exec)
 	return cmd
 }
@@ -248,9 +312,27 @@ func newOrderAmendCmd(opts *rootOptions) *cobra.Command {
 		Use:   "amend",
 		Short: "Amend a live pending order",
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			// Early non-TTY guard — before expensive app context creation.
+			if flags.orderID == "" && !tui.IsInteractive(os.Stdin, os.Stdout) {
+				return fmt.Errorf("--order-id 를 지정하거나 터미널에서 실행하세요")
+			}
+
 			app, err := newAppContext(opts)
 			if err != nil {
 				return err
+			}
+
+			if flags.orderID == "" {
+				// Interactive: fetch pending orders and let the user pick.
+				orders, err := app.client.ListPendingOrders(cmd.Context())
+				if err != nil {
+					return err
+				}
+				id, err := tui.PickFromList("정정할 주문 선택", orderItems(orders))
+				if err != nil {
+					return err
+				}
+				flags.orderID = id
 			}
 
 			intent, err := orderintent.NormalizeAmend(flags.orderID, optionalFloat64(cmd, "quantity", flags.quantity), optionalFloat64(cmd, "price", flags.price))
@@ -278,9 +360,6 @@ func newOrderAmendCmd(opts *rootOptions) *cobra.Command {
 	cmd.Flags().StringVar(&flags.orderID, "order-id", "", "Pending order identifier")
 	cmd.Flags().Float64Var(&flags.quantity, "quantity", 0, "Updated quantity")
 	cmd.Flags().Float64Var(&flags.price, "price", 0, "Updated limit price")
-	if err := cmd.MarkFlagRequired("order-id"); err != nil {
-		panic(err)
-	}
 	bindExecuteFlags(cmd, exec)
 	return cmd
 }
