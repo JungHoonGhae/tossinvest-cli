@@ -102,6 +102,7 @@ func newRootCmd() *cobra.Command {
 		newDoctorCmd(opts),
 		newConfigCmd(opts),
 		newAuthCmd(opts),
+		newOpenAPICmd(opts),
 		newAccountCmd(opts),
 		newPortfolioCmd(opts),
 		newOrdersCmd(opts),
