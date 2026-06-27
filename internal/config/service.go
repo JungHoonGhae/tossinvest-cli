@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	SchemaVersion = 3
+	SchemaVersion = 4
 	// DefaultSchemaURL is derived from version.Repo (single source of truth).
 	DefaultSchemaURL = "https://raw.githubusercontent.com/" + version.Repo + "/main/schemas/config.schema.json"
 )
@@ -69,11 +69,20 @@ type UpdateCheck struct {
 	Enabled bool `json:"enabled"`
 }
 
+// OpenAPI holds routing preferences for the official Toss Open API.
+// Credential secrets are stored in a separate file (see paths.CredentialsFile).
+type OpenAPI struct {
+	Enabled  bool   `json:"enabled"`
+	Prefer   string `json:"prefer"`   // auto | wts | official
+	Fallback bool   `json:"fallback"`
+}
+
 type File struct {
 	Schema        string      `json:"$schema,omitempty"`
 	SchemaVersion int         `json:"schema_version"`
 	Trading       Trading     `json:"trading"`
 	UpdateCheck   UpdateCheck `json:"update_check"`
+	OpenAPI       OpenAPI     `json:"openapi"`
 }
 
 type Status struct {
@@ -85,6 +94,7 @@ type Status struct {
 	LegacyFields        []string    `json:"legacy_fields,omitempty"`
 	Trading             Trading     `json:"trading"`
 	UpdateCheck         UpdateCheck `json:"update_check"`
+	OpenAPI             OpenAPI     `json:"openapi"`
 }
 
 type InitResult struct {
@@ -124,11 +134,18 @@ type rawUpdateCheck struct {
 	Enabled *bool `json:"enabled"`
 }
 
+type rawOpenAPI struct {
+	Enabled  *bool  `json:"enabled"`
+	Prefer   string `json:"prefer"`
+	Fallback *bool  `json:"fallback"`
+}
+
 type rawFile struct {
 	Schema        string         `json:"$schema,omitempty"`
 	SchemaVersion int            `json:"schema_version"`
 	Trading       rawTrading     `json:"trading"`
 	UpdateCheck   rawUpdateCheck `json:"update_check"`
+	OpenAPI       *rawOpenAPI    `json:"openapi,omitempty"`
 }
 
 func NewService(path string) *Service {
@@ -141,6 +158,7 @@ func DefaultFile() File {
 		SchemaVersion: SchemaVersion,
 		Trading:       Trading{},
 		UpdateCheck:   UpdateCheck{Enabled: true},
+		OpenAPI:       OpenAPI{Enabled: true, Prefer: "auto", Fallback: true},
 	}
 }
 
@@ -163,6 +181,7 @@ func (s *Service) Status(context.Context) (Status, error) {
 		LegacyFields:        meta.LegacyFields,
 		Trading:             cfg.Trading,
 		UpdateCheck:         cfg.UpdateCheck,
+		OpenAPI:             cfg.OpenAPI,
 	}, nil
 }
 
@@ -262,6 +281,23 @@ func (s *Service) load() (File, bool, legacyMetadata, error) {
 
 	if raw.UpdateCheck.Enabled != nil {
 		cfg.UpdateCheck.Enabled = *raw.UpdateCheck.Enabled
+	}
+
+	// OpenAPI: absent block → defaults (Enabled=true, Prefer="auto", Fallback=true).
+	// Present block: merge per-field defaults, then normalize invalid Prefer to "auto".
+	if raw.OpenAPI != nil {
+		if raw.OpenAPI.Enabled != nil {
+			cfg.OpenAPI.Enabled = *raw.OpenAPI.Enabled
+		}
+		if raw.OpenAPI.Fallback != nil {
+			cfg.OpenAPI.Fallback = *raw.OpenAPI.Fallback
+		}
+		switch raw.OpenAPI.Prefer {
+		case "auto", "wts", "official":
+			cfg.OpenAPI.Prefer = raw.OpenAPI.Prefer
+		default:
+			cfg.OpenAPI.Prefer = "auto"
+		}
 	}
 
 	return cfg, true, meta, nil

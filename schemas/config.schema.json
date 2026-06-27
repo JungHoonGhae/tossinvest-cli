@@ -11,7 +11,7 @@
     },
     "schema_version": {
       "type": "integer",
-      "const": 3
+      "const": 4
     },
     "trading": {
       "type": "object",
@@ -68,6 +68,25 @@
       "additionalProperties": false,
       "properties": {
         "enabled": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "openapi": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "prefer": {
+          "type": "string",
+          "enum": ["auto", "wts", "official"],
+          "default": "auto"
+        },
+        "fallback": {
           "type": "boolean",
           "default": true
         }

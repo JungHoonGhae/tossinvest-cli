@@ -266,3 +266,96 @@ func TestInitCreatesDangerousAutomationDefaults(t *testing.T) {
 		t.Fatal("expected accept_fx_consent to be disabled by default")
 	}
 }
+
+func TestLoadDefaultsOpenAPI(t *testing.T) {
+	dir := t.TempDir()
+	svc := NewService(filepath.Join(dir, "config.json"))
+	cfg, err := svc.Load(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.OpenAPI.Enabled || cfg.OpenAPI.Prefer != "auto" || !cfg.OpenAPI.Fallback {
+		t.Fatalf("unexpected openapi defaults: %+v", cfg.OpenAPI)
+	}
+}
+
+func TestLoadOpenAPIFromExistingConfig(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	data := []byte(`{
+  "schema_version": 3,
+  "trading": {},
+  "openapi": {
+    "enabled": true,
+    "prefer": "official",
+    "fallback": false
+  }
+}`)
+	if err := os.WriteFile(configPath, data, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	cfg, err := NewService(configPath).Load(context.Background())
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !cfg.OpenAPI.Enabled {
+		t.Fatal("expected openapi.enabled to be true")
+	}
+	if cfg.OpenAPI.Prefer != "official" {
+		t.Fatalf("expected prefer=official, got %q", cfg.OpenAPI.Prefer)
+	}
+	if cfg.OpenAPI.Fallback {
+		t.Fatal("expected openapi.fallback to be false")
+	}
+}
+
+func TestLoadOpenAPINormalizesInvalidPrefer(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	data := []byte(`{
+  "schema_version": 3,
+  "trading": {},
+  "openapi": {
+    "enabled": true,
+    "prefer": "bogus",
+    "fallback": true
+  }
+}`)
+	if err := os.WriteFile(configPath, data, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	cfg, err := NewService(configPath).Load(context.Background())
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.OpenAPI.Prefer != "auto" {
+		t.Fatalf("expected invalid prefer to normalize to 'auto', got %q", cfg.OpenAPI.Prefer)
+	}
+}
+
+func TestLoadOpenAPIMissingBlockDefaultsApplied(t *testing.T) {
+	// Old config without openapi block should get defaults.
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	data := []byte(`{"schema_version":2,"trading":{}}`)
+	if err := os.WriteFile(configPath, data, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	cfg, err := NewService(configPath).Load(context.Background())
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !cfg.OpenAPI.Enabled || cfg.OpenAPI.Prefer != "auto" || !cfg.OpenAPI.Fallback {
+		t.Fatalf("expected defaults when openapi block missing, got: %+v", cfg.OpenAPI)
+	}
+}
+
+func TestDefaultPathsIncludesOpenAPIFiles(t *testing.T) {
+	paths, err := DefaultPaths()
+	if err != nil {
+		t.Fatalf("DefaultPaths: %v", err)
+	}
+	if paths.CredentialsFile == "" {
+		t.Fatal("expected CredentialsFile to be set")
+	}
+	if paths.TokenFile == "" {
+		t.Fatal("expected TokenFile to be set")
+	}
+}
