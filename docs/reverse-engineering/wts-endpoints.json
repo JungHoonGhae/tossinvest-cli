@@ -1766,11 +1766,11 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/openapi/client": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/openapi/client/allowed-ips": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/option-both-chain/get-all": {
