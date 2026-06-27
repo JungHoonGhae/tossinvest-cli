@@ -72,6 +72,18 @@
   </a>
 </p>
 
+## 후원
+
+<p align="center">
+  <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/badges/sponsor.svg" height="46" alt="Become a sponsor" /></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/sponsors/anonymous.svg" width="52" height="52" alt="익명 후원자" title="익명 후원자" /></a>
+</p>
+
+<p align="center"><sub>현재 <strong>1</strong>분이 tossinvest-cli 를 후원하고 있습니다 (일회성 포함). 후원해 주시면 이 자리에 모셔두겠습니다.</sub></p>
+
 ## 하이브리드 공식 Open API <!--since:2026-06-27-->
 
 tossctl은 웹 세션(WTS)만으로도 전부 동작합니다. 토스 공식 Open API 키를 선택적으로
@@ -580,18 +592,6 @@ US/KR 지정가 매수/매도, US 소수점 매수, 당일 미체결 취소가 l
 - GitHub에서 [이슈](https://github.com/JungHoonGhae/tossinvest-cli/issues)나 PR 열기
 - LinkedIn [@junghoonghae](https://www.linkedin.com/in/junghoonghae)
 - 이메일 [lucas.ghae@remodule.dev](mailto:lucas.ghae@remodule.dev)
-
-## 후원
-
-tossinvest-cli 가 도움이 되었다면 후원으로 지속적인 개발을 응원해 주세요.
-
-<p align="center">
-  <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/badges/sponsor.svg" height="46" alt="Become a sponsor" /></a>
-</p>
-
-<p align="center"><sub>첫 후원자가 되어주시면 이 자리에 로고를 모셔두겠습니다.</sub></p>
-
-<!-- sponsors --><!-- sponsors -->
 
 ## License
 

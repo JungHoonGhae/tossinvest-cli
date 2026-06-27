@@ -44,6 +44,18 @@
 > [!IMPORTANT]
 > Trading is fully disabled out of the box. Each action must be explicitly enabled in `config.json` before it can run.
 
+## Sponsors
+
+<p align="center">
+  <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/badges/sponsor.svg" height="46" alt="Become a sponsor" /></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/sponsors/anonymous.svg" width="52" height="52" alt="Anonymous sponsor" title="Anonymous sponsor" /></a>
+</p>
+
+<p align="center"><sub><strong>1</strong> person sponsors tossinvest-cli (one-time included). Sponsor the project and you'll be featured right here.</sub></p>
+
 ## Quick Start
 
 ### For Agents
@@ -492,18 +504,6 @@ We would love your feedback. Suggestions and bug reports:
 - Open an [Issue](https://github.com/JungHoonGhae/tossinvest-cli/issues) or PR on GitHub
 - Connect on LinkedIn [@junghoonghae](https://www.linkedin.com/in/junghoonghae)
 - Email [lucas.ghae@remodule.dev](mailto:lucas.ghae@remodule.dev)
-
-## Sponsors
-
-If tossinvest-cli helps you, consider sponsoring its continued development.
-
-<p align="center">
-  <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/badges/sponsor.svg" height="46" alt="Become a sponsor" /></a>
-</p>
-
-<p align="center"><sub>Be the first sponsor and your logo lands right here.</sub></p>
-
-<!-- sponsors --><!-- sponsors -->
 
 ## License
 

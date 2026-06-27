@@ -1,19 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="202" height="64" viewBox="0 0 202 64">
+<svg xmlns="http://www.w3.org/2000/svg" width="484" height="126" viewBox="0 0 484 126">
  <defs>
   <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-   <stop offset="0" stop-color="#1a1b1d"/><stop offset="0.55" stop-color="#101113"/><stop offset="1" stop-color="#0a0a0b"/>
+   <stop offset="0" stop-color="#1c1d1f"/><stop offset="0.5" stop-color="#101113"/><stop offset="1" stop-color="#0a0a0b"/>
   </linearGradient>
-  <radialGradient id="gloss" cx="0.5" cy="0" r="0.85">
-   <stop offset="0" stop-color="#ffffff" stop-opacity="0.10"/><stop offset="0.65" stop-color="#ffffff" stop-opacity="0"/>
-  </radialGradient>
-  <filter id="sh" x="-12%" y="-12%" width="124%" height="148%">
-   <feDropShadow dx="0" dy="2.5" stdDeviation="3.5" flood-color="#000000" flood-opacity="0.5"/>
-  </filter>
+  <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+   <stop offset="0" stop-color="#ffffff" stop-opacity="0.07"/><stop offset="0.45" stop-color="#ffffff" stop-opacity="0"/>
+  </linearGradient>
+  <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+   <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0.10"/><stop offset="1" stop-color="#ffffff" stop-opacity="0.05"/>
+  </linearGradient>
  </defs>
- <g filter="url(#sh)"><rect x="7" y="7" width="188.6" height="50" rx="8" fill="url(#bg)"/></g>
- <rect x="7" y="7" width="188.6" height="50" rx="8" fill="url(#gloss)"/>
- <rect x="7.5" y="7.5" width="187.6" height="49" rx="7.5" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="1"/>
- <line x1="107.0" y1="22" x2="107.0" y2="42" stroke="#ffffff" stroke-opacity="0.16" stroke-width="1.2"/>
- <text x="57.0" y="32.0" text-anchor="middle" dominant-baseline="central" font-family="ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif" font-size="12" font-weight="500" letter-spacing="2" fill="#8b8d94">LICENSE</text>
- <text x="151.3" y="32.0" text-anchor="middle" dominant-baseline="central" font-family="ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif" font-size="21" font-weight="600" fill="#fafafa">MIT</text>
+ <rect x="3" y="3" width="478.5" height="120" rx="16" fill="url(#bg)"/>
+ <rect x="3" y="3" width="478.5" height="120" rx="16" fill="url(#gloss)"/>
+ <rect x="3.75" y="3.75" width="477.0" height="118.5" rx="15.2" fill="none" stroke="url(#rim)" stroke-width="1.5"/>
+ <line x1="273.0" y1="41.4" x2="273.0" y2="84.6" stroke="#ffffff" stroke-opacity="0.15" stroke-width="2"/>
+ <text x="138.0" y="63.0" text-anchor="middle" dominant-baseline="central" font-family="ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="25" font-weight="500" letter-spacing="4" fill="#8b8d94">LICENSE</text>
+ <text x="377.2" y="63.0" text-anchor="middle" dominant-baseline="central" font-family="ui-sans-serif,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="37" font-weight="600" fill="#fafafa">MIT</text>
 </svg>
