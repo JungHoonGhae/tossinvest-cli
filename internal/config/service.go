@@ -73,8 +73,23 @@ type UpdateCheck struct {
 // Credential secrets are stored in a separate file (see paths.CredentialsFile).
 type OpenAPI struct {
 	Enabled  bool   `json:"enabled"`
-	Prefer   string `json:"prefer"`   // auto | wts | official
+	Prefer   string `json:"prefer"`   // auto | wts | openapi
 	Fallback bool   `json:"fallback"`
+}
+
+// NormalizeBackend canonicalizes a routing-backend value used by the
+// `--backend` flag and `openapi.prefer`. "official" is accepted as a
+// deprecated alias for "openapi" (the official Open API path). Returns
+// ("", false) for unknown values.
+func NormalizeBackend(v string) (string, bool) {
+	switch v {
+	case "auto", "wts", "openapi":
+		return v, true
+	case "official": // deprecated alias → openapi
+		return "openapi", true
+	default:
+		return "", false
+	}
 }
 
 type File struct {
@@ -292,10 +307,9 @@ func (s *Service) load() (File, bool, legacyMetadata, error) {
 		if raw.OpenAPI.Fallback != nil {
 			cfg.OpenAPI.Fallback = *raw.OpenAPI.Fallback
 		}
-		switch raw.OpenAPI.Prefer {
-		case "auto", "wts", "official":
-			cfg.OpenAPI.Prefer = raw.OpenAPI.Prefer
-		default:
+		if norm, ok := NormalizeBackend(raw.OpenAPI.Prefer); ok {
+			cfg.OpenAPI.Prefer = norm
+		} else {
 			cfg.OpenAPI.Prefer = "auto"
 		}
 	}

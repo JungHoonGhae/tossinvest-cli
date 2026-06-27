@@ -7,6 +7,9 @@ description: tossctl 버전별 변경 사항 (사용자 관점)
 
 ## [Unreleased]
 
+### 개선
+- 라우팅 백엔드 값 `official` → `openapi` 로 명칭 정리 (`--backend openapi`, `openapi.prefer: "openapi"`). `tossctl openapi`·`openapi.*` 와 일관됩니다. 기존 `official` 은 deprecated 별칭으로 계속 동작합니다.
+
 ## [0.12.0] - 2026-06-27
 
 ### 새 기능
@@ -17,7 +20,7 @@ description: tossctl 버전별 변경 사항 (사용자 관점)
 - **`tossctl openapi status`** — 현재 키·토큰·허용 IP·라우팅 상태를 진단합니다. IP 미허용·토큰 만료·키 미설정 등 오류 원인을 설명합니다.
 - **`tossctl openapi test`** — 실제 API 호출로 공식 키 연결을 검증합니다.
 - **`tossctl openapi logout`** — 자격증명 파일을 삭제합니다.
-- **`--backend auto|wts|official`** 전역 플래그 — 요청별로 라우팅 백엔드를 직접 지정합니다.
+- **`--backend auto|wts|openapi`** 전역 플래그 — 요청별로 라우팅 백엔드를 직접 지정합니다.
 - **`doctor` 공식 키 진단** — `tossctl doctor` 가 공식 키·토큰·IP 허용 상태를 함께 점검합니다.
 
 ### 개선

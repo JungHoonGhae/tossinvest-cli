@@ -1,9 +1,25 @@
 ---
 title: Quick Start
-description: From login to reads and trades
+description: From choosing a setup to login, reads, and trades
 ---
 
-## 1. Log in
+## Choose your setup
+
+tossctl reaches Toss Securities through two paths — the **WTS web session** (unofficial, full
+feature set) and the **official Open API** (official, stable but narrower). Pick what fits.
+
+| Setup | How | Best for |
+|---|---|---|
+| **① Fast start · WTS only** | one `tossctl auth login` | Fastest, full features. No application needed. Session needs phone approval ~every 7 days |
+| **② Official API only · openapi** | `tossctl openapi login` | Officially-supported features only (narrow). Tokens auto-refresh → great for unattended runs (CI/servers). Needs application + IP registration |
+| **③ Both · auto-routing (recommended)** | register both | Max stability + full scope. Officially-supported requests use the official path, the rest WTS |
+
+Most people just **start with ①** (step 1 below). The official key **issuance steps**, how
+auto-routing works, and the difference between the two paths are covered in the
+[Official Open API Auto-routing](/docs/guide/hybrid-openapi) guide. New here? The
+`tossctl init` wizard walks you through choosing a setup end to end.
+
+## 1. Log in (WTS web session)
 
 ```bash
 tossctl auth login

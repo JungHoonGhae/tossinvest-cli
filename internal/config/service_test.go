@@ -286,7 +286,7 @@ func TestLoadOpenAPIFromExistingConfig(t *testing.T) {
   "trading": {},
   "openapi": {
     "enabled": true,
-    "prefer": "official",
+    "prefer": "openapi",
     "fallback": false
   }
 }`)
@@ -300,8 +300,8 @@ func TestLoadOpenAPIFromExistingConfig(t *testing.T) {
 	if !cfg.OpenAPI.Enabled {
 		t.Fatal("expected openapi.enabled to be true")
 	}
-	if cfg.OpenAPI.Prefer != "official" {
-		t.Fatalf("expected prefer=official, got %q", cfg.OpenAPI.Prefer)
+	if cfg.OpenAPI.Prefer != "openapi" {
+		t.Fatalf("expected prefer=openapi, got %q", cfg.OpenAPI.Prefer)
 	}
 	if cfg.OpenAPI.Fallback {
 		t.Fatal("expected openapi.fallback to be false")

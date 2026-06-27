@@ -17,7 +17,7 @@ import (
 
 func TestResolveBackendEmptyFlagUsesConfig(t *testing.T) {
 	t.Parallel()
-	for _, prefer := range []string{"auto", "wts", "official"} {
+	for _, prefer := range []string{"auto", "wts", "openapi"} {
 		cfg := config.OpenAPI{Enabled: true, Prefer: prefer, Fallback: true}
 		got, err := resolveBackend(cfg, "")
 		if err != nil {
@@ -32,7 +32,7 @@ func TestResolveBackendEmptyFlagUsesConfig(t *testing.T) {
 func TestResolveBackendFlagOverridesConfig(t *testing.T) {
 	t.Parallel()
 	cfg := config.OpenAPI{Enabled: true, Prefer: "auto", Fallback: true}
-	for _, flag := range []string{"auto", "wts", "official"} {
+	for _, flag := range []string{"auto", "wts", "openapi"} {
 		got, err := resolveBackend(cfg, flag)
 		if err != nil {
 			t.Fatalf("flag=%q: unexpected error: %v", flag, err)
@@ -40,6 +40,18 @@ func TestResolveBackendFlagOverridesConfig(t *testing.T) {
 		if got != flag {
 			t.Fatalf("flag=%q: want %q, got %q", flag, flag, got)
 		}
+	}
+}
+
+func TestResolveBackendOfficialAliasMapsToOpenapi(t *testing.T) {
+	t.Parallel()
+	cfg := config.OpenAPI{Enabled: true, Prefer: "auto", Fallback: true}
+	got, err := resolveBackend(cfg, "official") // deprecated alias
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "openapi" {
+		t.Fatalf(`alias "official" should resolve to "openapi", got %q`, got)
 	}
 }
 

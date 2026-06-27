@@ -125,7 +125,7 @@ func newRootCmd() *cobra.Command {
 		&opts.backend,
 		"backend",
 		"",
-		"Override routing backend for this run: auto|wts|official",
+		"Override routing backend for this run: auto|wts|openapi",
 	)
 
 	cmd.AddCommand(
@@ -381,12 +381,10 @@ func resolveBackend(cfg config.OpenAPI, flag string) (string, error) {
 	if flag == "" {
 		return cfg.Prefer, nil
 	}
-	switch flag {
-	case "auto", "wts", "official":
-		return flag, nil
-	default:
-		return "", fmt.Errorf("invalid --backend value %q: must be one of auto, wts, official", flag)
+	if norm, ok := config.NormalizeBackend(flag); ok {
+		return norm, nil
 	}
+	return "", fmt.Errorf("invalid --backend value %q: must be one of auto, wts, openapi", flag)
 }
 
 func humanizeDuration(d time.Duration) string {

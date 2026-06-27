@@ -103,7 +103,7 @@ tossctl init                          # 온보딩 위저드 (처음 설정 시)
 tossctl openapi login                 # 공식 키 등록 (환경변수도 지원)
 tossctl openapi status                # 키·토큰·허용 IP·라우팅 진단
 tossctl openapi test                  # 연결 검증
-tossctl account summary --backend official  # 공식 경로 강제 (선택)
+tossctl account summary --backend openapi  # 공식 경로 강제 (선택)
 ```
 
 키를 연결하면 CI·서버·에이전트에서 사람 개입 없이 토큰이 자동 갱신됩니다.
