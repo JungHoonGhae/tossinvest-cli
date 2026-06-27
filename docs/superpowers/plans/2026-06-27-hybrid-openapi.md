@@ -543,7 +543,7 @@ func TestOpenAPILoginNonInteractiveErrorsWhenMissingFlags(t *testing.T) {
 - Modify: `website-fumadocs/content/docs/reference/support-scope.mdx`(+`.en.mdx`), `README.md`, `CHANGELOG.md`, `docs/reverse-engineering/wts-endpoints.json`(Task 7에서 처리됐으면 확인만), 랜딩 `website-fumadocs/app/[lang]/(home)/page.tsx`(해당 시 "선택적 하이브리드" 카피).
 - 사이드바/메타(`meta.json` 등) 등록은 기존 docs 구조 관례 따름.
 
-- [ ] **Step 1 — 전용 가이드 페이지** — `guide/hybrid-openapi.mdx`(+en): (1) 하이브리드가 무엇인지(공식이 지원하는 op는 공식 OAuth 경로, 나머지는 WTS, 실패 시 폴백), (1b) **"어떤 인증이 필요한가" 결정 가이드(표)**: 공식 키만(핵심·공식 지원 기능, 가장 안정적·토큰 자동 갱신) / 웹 세션만(고유·비공식 기능까지, 단 더 빨리 끊김·갱신 주기 짧음) / 둘 다(권장, 안정+최대 범위+폴백). **공식 등록 이점** 별도 강조(무중단 토큰 자동 재발급 → CI·서버·에이전트 무인 운영, 웹 세션 대비 오래감, 내부 API 변경 영향 적음). (2) 공식 Open API 키 발급 방법(토스 설정 > Open API, 허용 IP 등록 필수), (3) **시크릿 안전 취급 — 별도 섹션으로 강조**: 권장 순서 = ① `TOSSCTL_OPENAPI_KEY`/`TOSSCTL_OPENAPI_SECRET` 환경변수(CI·에이전트), ② `tossctl openapi login`이 만드는 `openapi-credentials.json`(0600). **절대 하지 말 것**: 채팅/이슈/PR/커밋/스크린샷/로그에 평문 키·시크릿 붙여넣기, config.json·코드·문서에 하드코딩. 셸 히스토리 회피(`--key/--secret` 직접 입력 대신 env/stdin), 허용 IP를 방어선으로, **유출 의심 시 토스에서 즉시 재발급**. (4) `tossctl openapi login/status/test/logout` 사용법, (5) `--backend`·config `openapi.{enabled,prefer,fallback}`, (6) 폴백·소스 표시(stderr), 주문 보수적 폴백, (7) `status`로 "왜 안 되는지" 진단(IP 미허용·만료 등). 예시는 모두 더미 값(`tsck_live_…`/`tssk_live_…` 형태의 가짜만), 실제 키 절대 금지.
+- [ ] **Step 1 — 전용 가이드 페이지** — `guide/hybrid-openapi.mdx`(+en): (1) 하이브리드가 무엇인지(공식이 지원하는 op는 공식 OAuth 경로, 나머지는 WTS, 실패 시 폴백), (1b) **"어떤 인증이 필요한가" 결정 가이드(표)**: 공식 키만(핵심·공식 지원 기능, 가장 안정적·토큰 자동 갱신) / 웹 세션만(고유·비공식 기능까지, 단 더 빨리 끊김·갱신 주기 짧음) / 둘 다(권장, 안정+최대 범위+폴백). **공식 등록 이점** 별도 강조(무중단 토큰 자동 재발급 → CI·서버·에이전트 무인 운영, 웹 세션 대비 오래감, 내부 API 변경 영향 적음). (2) 공식 Open API 키 발급 방법 — **사전 신청 페이지** https://corp.tossinvest.com/ko/open-api 와 **공식 문서** https://developers.tossinvest.com/docs 링크 명시, 토스 앱 설정 > Open API 에서 키 발급 + **허용 IP 등록 필수**, (3) **시크릿 안전 취급 — 별도 섹션으로 강조**: 권장 순서 = ① `TOSSCTL_OPENAPI_KEY`/`TOSSCTL_OPENAPI_SECRET` 환경변수(CI·에이전트), ② `tossctl openapi login`이 만드는 `openapi-credentials.json`(0600). **절대 하지 말 것**: 채팅/이슈/PR/커밋/스크린샷/로그에 평문 키·시크릿 붙여넣기, config.json·코드·문서에 하드코딩. 셸 히스토리 회피(`--key/--secret` 직접 입력 대신 env/stdin), 허용 IP를 방어선으로, **유출 의심 시 토스에서 즉시 재발급**. (4) `tossctl openapi login/status/test/logout` 사용법, (5) `--backend`·config `openapi.{enabled,prefer,fallback}`, (6) 폴백·소스 표시(stderr), 주문 보수적 폴백, (7) `status`로 "왜 안 되는지" 진단(IP 미허용·만료 등). 예시는 모두 더미 값(`tsck_live_…`/`tssk_live_…` 형태의 가짜만), 실제 키 절대 금지.
 - [ ] **Step 2 — support-scope** — 공식 칼럼이 *실제 라우팅*됨을 반영(주문/조회 행에 하이브리드 주석), 전용 가이드로 링크. `openapi` 커맨드 + `--backend` 문서화.
 - [ ] **Step 3 — README** — 비교표/소개에 하이브리드 한 단락 + `tossctl openapi` 빠른 시작, `<!--since:2026-06-27-->` 마커.
 - [ ] **Step 4 — 랜딩 카피** — `page.tsx`의 "선택적 하이브리드"/`thesis.points` 문구가 이제 실재 기능과 일치하는지 점검·정정(과장 없이).
@@ -626,6 +626,7 @@ func TestPasswordNonInteractiveErrors(t *testing.T) {
 →
 - 공식: 키 입력 + `Password`로 시크릿 → 즉시 검증(토큰+/accounts, 결과 분류 — IP 미허용 등 안내) → 0600 저장.
 - 웹: 기존 `auth login` 흐름 트리거.
+  - 공식 선택 시, 키가 없는 사용자를 위해 **사전 신청 페이지**(https://corp.tossinvest.com/ko/open-api) 안내 한 줄 표시.
 **비TTY/AI**: 위저드 안 띄우고, 플래그 사용법 안내 후 정상 종료(`tossctl auth login`, `tossctl openapi login --key … --secret …`).
 **첫 실행 힌트**: `root` PersistentPreRun에서 `NeedsOnboarding && IsInteractive && cmd∉{help,version,init,completion}`이면 1줄 안내("`tossctl init`으로 설정"). 차단하지 않음.
 
