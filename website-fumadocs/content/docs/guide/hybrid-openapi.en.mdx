@@ -28,19 +28,19 @@ In short — **the official API is stable but narrow; WTS covers everything but 
 its session expires more often.** tossctl combines them: officially-covered requests go through
 the official path (stability), the rest through WTS (coverage), routed automatically.
 
-### Why the official API always lags
+### The official API lags by structure, not neglect
 
-For a brokerage, the app isn't just an order window — it's the core asset. The longer users stay
-inside it, the more it can layer on content, community, recommendations, and ads, and cross-sell
-other products. So new features land **in the app (WTS) first**, and the official Open API
-exposes only the slice that's safe to open externally, **afterwards** — structurally conservative
-by design, not by accident.
+On any platform, the first-party app is where the core experience lives. It is also the best
+place to ship and integrate new features fast, so new capabilities naturally land **in the app
+(WTS) first**. A public API carries real versioning, compatibility, and support costs, so it
+opens a carefully chosen, stable subset **afterwards**. The official API being conservative is
+reasonable, not stingy.
 
-That's why the most "Toss-native" features — investor flows, indices, AI signals, screener,
-real-time push — reach WTS first and fastest. That's exactly why tossctl treats **WTS as the
-primary path**: to use them now instead of waiting on the official roadmap. At the same time, it
-auto-routes officially-supported features through the official path, so you **don't give up
-stability** either — you get the faster surface and the steadier route at once.
+As a result, the most Toss-flavored capabilities (investor flows, indices, AI signals, screener,
+real-time push) arrive in the app first and fastest. That is not anyone's fault, it is the shape
+of the platform. tossctl works **with** that shape rather than against it: it uses the path the
+app itself uses (**WTS as the primary path**) so you can use those features now, while
+auto-routing officially-supported features through the official path to keep stability.
 
 <Callout type="info" title="Some tasks still need a web session even with an official key">
 The official key's **metadata and allowed-IP lookup** (`openapi status` IP list, `doctor`) is
