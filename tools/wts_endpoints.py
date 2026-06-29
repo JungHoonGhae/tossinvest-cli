@@ -80,8 +80,12 @@ RECOMMENDED = [
     (r"^/api/v\d+/dashboard/wts/overview/ai-signals", "AI 시그널 확장"),
     (r"^/api/v\d+/dashboard/wts/overview/rankings/by-investors", "투자자별 랭킹(수급 discovery)"),
     (r"^/api/v1/companies/tics/rankings", "업종(TICS) 랭킹"),
+    (r"^/api/v1/tics/rankings", "TICS 랭킹"),
+    (r"^/api/v\d+/dashboard/wts/overview/tics", "업종(TICS) 개요·랭킹"),
     (r"^/api/v1/community/top-rankings", "커뮤니티 랭킹(인플루언서/수익률)"),
     (r"^/api/v1/r-chart", "실시간 차트"),
+    (r"^/api/v\d+/prime/users/(benefits|info)", "토스프라임 혜택·구독 상태"),
+    (r"^/api/v\d+/lending/revenue", "대주(주식대여) 수익"),
 ]
 
 # excluded: out of scope. (pattern, reason)
@@ -94,7 +98,7 @@ EXCLUDED = [
     (r"^/api/v\d+/promotion", "marketing/promotion"),
     (r"^/api/v\d+/minor", "minor-account flow"),
     (r"^/api/v\d+/pension", "pension account flow"),
-    (r"^/api/v\d+/lending", "stock lending product"),
+    (r"^/api/v\d+/lending/(?!revenue)", "stock lending product"),
     (r"^/api/v\d+/(auto-transfer|transfer-income|rename-documents)", "transfer/document admin"),
     (r"^/api/v\d+/terms", "legal terms"),
     (r"^/api/v\d+/login", "login flow (handled by auth-helper)"),

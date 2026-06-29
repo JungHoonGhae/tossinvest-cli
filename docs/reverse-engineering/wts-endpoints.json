@@ -5,10 +5,10 @@
   "total": 934,
   "counts": {
     "implemented": 69,
-    "candidate": 366,
-    "excluded": 499,
-    "candidate_next": 11,
-    "meaningful": 435
+    "candidate": 373,
+    "excluded": 492,
+    "candidate_next": 25,
+    "meaningful": 442
   },
   "overrides": {},
   "endpoints": {
@@ -923,6 +923,8 @@
     },
     "/api/v1/dashboard/wts/overview/tics": {
       "status": "candidate",
+      "priority": "next",
+      "note": "업종(TICS) 개요·랭킹",
       "first_seen": "2026-06-29"
     },
     "/api/v1/dashboard/wts/overview/trading-info": {
@@ -1155,28 +1157,33 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/lending/revenue/account": {
-      "status": "excluded",
-      "note": "stock lending product",
+      "status": "candidate",
+      "priority": "next",
+      "note": "대주(주식대여) 수익",
       "first_seen": "2026-06-19"
     },
     "/api/v1/lending/revenue/account/expected": {
-      "status": "excluded",
-      "note": "stock lending product",
+      "status": "candidate",
+      "priority": "next",
+      "note": "대주(주식대여) 수익",
       "first_seen": "2026-06-19"
     },
     "/api/v1/lending/revenue/account/payment": {
-      "status": "excluded",
-      "note": "stock lending product",
+      "status": "candidate",
+      "priority": "next",
+      "note": "대주(주식대여) 수익",
       "first_seen": "2026-06-19"
     },
     "/api/v1/lending/revenue/account/summary": {
-      "status": "excluded",
-      "note": "stock lending product",
+      "status": "candidate",
+      "priority": "next",
+      "note": "대주(주식대여) 수익",
       "first_seen": "2026-06-19"
     },
     "/api/v1/lending/revenue/account/top-revenue": {
-      "status": "excluded",
-      "note": "stock lending product",
+      "status": "candidate",
+      "priority": "next",
+      "note": "대주(주식대여) 수익",
       "first_seen": "2026-06-19"
     },
     "/api/v1/lending/setting/agreement": {
@@ -1853,14 +1860,20 @@
     },
     "/api/v1/prime/users/benefits": {
       "status": "candidate",
+      "priority": "next",
+      "note": "토스프라임 혜택·구독 상태",
       "first_seen": "2026-06-29"
     },
     "/api/v1/prime/users/benefits/cumulative": {
       "status": "candidate",
+      "priority": "next",
+      "note": "토스프라임 혜택·구독 상태",
       "first_seen": "2026-06-29"
     },
     "/api/v1/prime/users/info": {
       "status": "candidate",
+      "priority": "next",
+      "note": "토스프라임 혜택·구독 상태",
       "first_seen": "2026-06-29"
     },
     "/api/v1/product-eligibility/domestic-leverage-etp/trading": {
@@ -2696,6 +2709,8 @@
     },
     "/api/v1/tics/rankings": {
       "status": "candidate",
+      "priority": "next",
+      "note": "TICS 랭킹",
       "first_seen": "2026-06-29"
     },
     "/api/v1/time": {
@@ -3307,10 +3322,14 @@
     },
     "/api/v2/dashboard/wts/overview/tics": {
       "status": "candidate",
+      "priority": "next",
+      "note": "업종(TICS) 개요·랭킹",
       "first_seen": "2026-06-29"
     },
     "/api/v2/dashboard/wts/overview/tics/ranking": {
       "status": "candidate",
+      "priority": "next",
+      "note": "업종(TICS) 개요·랭킹",
       "first_seen": "2026-06-29"
     },
     "/api/v2/feed/subscription/followings": {
@@ -3357,13 +3376,15 @@
       "first_seen": "2026-06-19"
     },
     "/api/v2/lending/revenue/account/payment": {
-      "status": "excluded",
-      "note": "stock lending product",
+      "status": "candidate",
+      "priority": "next",
+      "note": "대주(주식대여) 수익",
       "first_seen": "2026-06-29"
     },
     "/api/v2/lending/revenue/account/summary": {
-      "status": "excluded",
-      "note": "stock lending product",
+      "status": "candidate",
+      "priority": "next",
+      "note": "대주(주식대여) 수익",
       "first_seen": "2026-06-29"
     },
     "/api/v2/lens/issues": {
