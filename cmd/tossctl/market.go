@@ -249,6 +249,24 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	screenerCmd.Flags().IntVar(&screenerSize, "size", 30, "max stocks to return")
 	screenerCmd.Flags().StringVar(&screenerFilter, "filter", "", "custom raw filter JSON array (preset 대신)")
 
-	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, sectorsCmd, screenerCmd)
+	var themesSize int
+	themesCmd := &cobra.Command{
+		Use:   "themes",
+		Short: "Theme/sector fluctuation ranking (테마 등락 랭킹, 오늘 가장 많이 오른 테마). 공식 API 에 없음",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			tr, err := app.client.GetThemeRankings(cmd.Context(), themesSize)
+			if err != nil {
+				return err
+			}
+			return output.WriteThemeRankings(cmd.OutOrStdout(), app.format, tr)
+		},
+	}
+	themesCmd.Flags().IntVar(&themesSize, "size", 20, "number of ranked themes (0 = all)")
+
+	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, sectorsCmd, themesCmd, screenerCmd)
 	return cmd
 }

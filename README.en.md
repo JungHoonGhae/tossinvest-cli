@@ -163,6 +163,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **🆕 Dividend report** | `portfolio dividends` (annual total · region · monthly, `--by-payment-date` tax) | ❌ | ✅ |
 | **🆕 Community rankings** | `community rankings --type influencer\|profit\|followers` | ❌ | ✅ |
 | **🆕 Sector movements** | `market sectors [id]` (industry tree, 1d·1m·1y returns) | ❌ | ✅ |
+| **🆕 Theme fluctuation ranking** | `market themes` (today's top-moving themes, rising-stock counts) | ❌ | ✅ |
 | **🆕 Personalized news briefing** | `market briefing` (headlines grouped by theme) | ❌ | ✅ |
 | **🆕 Toss AI signals** | `market signals` (per-symbol AI signal · keywords · move) | ❌ | ✅ |
 | **🆕 Stock screener** | `market screener [id]` (preset) · `--filter '<json>'` (custom) `--nation kr\|us` | ❌ | ✅ |
@@ -402,7 +403,7 @@ tossctl account summary
 tossctl portfolio positions
 tossctl portfolio allocation
 tossctl portfolio dividends [--year YYYY] [--by-payment-date]
-tossctl market investors|earnings|briefing|sectors|index|ranking|signals
+tossctl market investors|earnings|briefing|sectors|themes|index|ranking|signals
 tossctl community rankings --type influencer|profit|followers
 tossctl orders list
 tossctl orders completed --market us|kr|all

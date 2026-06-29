@@ -596,6 +596,26 @@ type Sectors struct {
 	FetchedAt time.Time `json:"fetched_at"`
 }
 
+// ThemeRanking is one TICS theme/sector ranked by today's fluctuation.
+type ThemeRanking struct {
+	Ranking          int     `json:"ranking"`
+	TicsID           string  `json:"tics_id"`
+	Title            string  `json:"title"`
+	ChangeRate       float64 `json:"change_rate"` // daily % change (e.g. 11.18 or -3.2)
+	RiseCompanyCount int     `json:"rise_company_count"`
+	TotalCount       int     `json:"total_count"`
+	Summary          string  `json:"summary"` // e.g. "21개 중 13개 종목 상승"
+}
+
+// ThemeRankings is the TICS theme fluctuation ranking (오늘의 테마 등락 순위),
+// sorted by ranking (1 = biggest gainer). Not in the official Open API.
+type ThemeRankings struct {
+	Name      string         `json:"name"`
+	DateTime  string         `json:"date_time"`
+	Items     []ThemeRanking `json:"items"`
+	FetchedAt time.Time      `json:"fetched_at"`
+}
+
 // BuyingPower is the cash-based buying power for a given currency.
 // Endpoint: GET /api/v1/buying-power (official API).
 // cashBuyingPower (string decimal) is parsed to float64.

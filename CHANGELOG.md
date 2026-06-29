@@ -4,6 +4,11 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-06-29
+
+### 새 기능
+- **`market themes`** — 테마 등락 랭킹. 오늘 가장 많이 오른 토스 테마(예: 배터리·연예기획사)를 등락률·상승종목수와 함께 보여줍니다. `--size N` 으로 개수 조정(0=전체). 공식 Open API 에는 없는 토스 WTS 고유 기능입니다. `--output json|csv` 지원.
+
 ### 개선
 - 라우팅 백엔드 값 명칭 정리 — `--backend` 플래그와 `openapi.prefer` 의 `official` 값을 `openapi` 로 바꿨습니다(`tossctl openapi` 서브커맨드·`openapi.*` 설정과 일관). 기존 `official` 은 deprecated 별칭으로 계속 동작하므로 기존 설정·스크립트는 그대로 작동합니다.
 

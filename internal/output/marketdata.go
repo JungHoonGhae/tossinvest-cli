@@ -810,6 +810,52 @@ func WriteCommunityRanking(w io.Writer, format Format, r domain.CommunityRanking
 }
 
 // WriteSectors renders an industry (TICS) list with fluctuation rates.
+// WriteThemeRankings renders the TICS theme fluctuation ranking. Table output
+// colours the change rate (KR convention: red up / blue down) only when the
+// colour gate is on; JSON/CSV are byte-identical regardless.
+func WriteThemeRankings(w io.Writer, format Format, r domain.ThemeRankings) error {
+	switch format {
+	case FormatJSON:
+		enc := json.NewEncoder(w)
+		enc.SetIndent("", "  ")
+		return enc.Encode(r)
+	case FormatCSV:
+		cw := csv.NewWriter(w)
+		if err := cw.Write([]string{"ranking", "tics_id", "title", "change_rate", "rise_company_count", "total_count"}); err != nil {
+			return err
+		}
+		for _, t := range r.Items {
+			if err := cw.Write([]string{
+				fmt.Sprintf("%d", t.Ranking), t.TicsID, t.Title,
+				formatFloat(t.ChangeRate), fmt.Sprintf("%d", t.RiseCompanyCount), fmt.Sprintf("%d", t.TotalCount),
+			}); err != nil {
+				return err
+			}
+		}
+		cw.Flush()
+		return cw.Error()
+	case FormatTable:
+		if len(r.Items) == 0 {
+			_, err := fmt.Fprintln(w, "테마 데이터가 없습니다")
+			return err
+		}
+		enabled := colorEnabled(w, format)
+		if _, err := fmt.Fprintf(w, "순위  테마            등락률      상승/전체\n"); err != nil {
+			return err
+		}
+		for _, t := range r.Items {
+			rateStr := fmt.Sprintf("%+8.2f%%", t.ChangeRate)
+			if _, err := fmt.Fprintf(w, "%3d   %-14s  %s  %d/%d\n",
+				t.Ranking, t.Title, profitText(rateStr, t.ChangeRate, enabled), t.RiseCompanyCount, t.TotalCount); err != nil {
+				return err
+			}
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported output format: %s", format)
+	}
+}
+
 func WriteSectors(w io.Writer, format Format, sectors domain.Sectors) error {
 	list := sectors.Items
 	switch format {

@@ -67,6 +67,7 @@ IMPLEMENTED = [
     r"^/api/v1/dashboard/wts/overview/ai-signals/personalized$", # market briefing
     r"^/api/v1/dividends/accounts/annual/history",               # portfolio dividends
     r"^/api/v1/tics/all$",                                        # market sectors
+    r"^/api/v1/tics/rankings$",                                   # market themes
     r"^/api/v1/index-prices$",                                    # market index <code> (지수 상세)
 ]
 
@@ -80,7 +81,6 @@ RECOMMENDED = [
     (r"^/api/v\d+/dashboard/wts/overview/ai-signals", "AI 시그널 확장"),
     (r"^/api/v\d+/dashboard/wts/overview/rankings/by-investors", "투자자별 랭킹(수급 discovery)"),
     (r"^/api/v1/companies/tics/rankings", "업종(TICS) 랭킹"),
-    (r"^/api/v1/tics/rankings", "TICS 랭킹"),
     (r"^/api/v\d+/dashboard/wts/overview/tics", "업종(TICS) 개요·랭킹"),
     (r"^/api/v1/community/top-rankings", "커뮤니티 랭킹(인플루언서/수익률)"),
     (r"^/api/v1/r-chart", "실시간 차트"),

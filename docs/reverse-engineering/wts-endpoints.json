@@ -4,10 +4,10 @@
   "chunk_count": 26,
   "total": 934,
   "counts": {
-    "implemented": 69,
-    "candidate": 373,
+    "implemented": 70,
+    "candidate": 372,
     "excluded": 492,
-    "candidate_next": 25,
+    "candidate_next": 24,
     "meaningful": 442
   },
   "overrides": {},
@@ -2708,9 +2708,7 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/tics/rankings": {
-      "status": "candidate",
-      "priority": "next",
-      "note": "TICS 랭킹",
+      "status": "implemented",
       "first_seen": "2026-06-29"
     },
     "/api/v1/time": {

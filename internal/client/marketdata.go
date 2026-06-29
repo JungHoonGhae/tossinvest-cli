@@ -749,6 +749,63 @@ type ticsItemRaw struct {
 	SubItems []ticsItemRaw `json:"subItems"`
 }
 
+type ticsRankItemRaw struct {
+	TicsID           string `json:"ticsId"`
+	Title            string `json:"title"`
+	PreciseValue     string `json:"preciseValue"`
+	Ranking          int    `json:"ranking"`
+	TotalCount       int    `json:"totalCount"`
+	RiseCompanyCount int    `json:"riseCompanyCount"`
+	PriceValue       string `json:"priceValue"`
+}
+
+type ticsRankingRaw struct {
+	Name     string            `json:"name"`
+	DateTime string            `json:"dateTime"`
+	Data     []ticsRankItemRaw `json:"data"`
+}
+
+// GetThemeRankings returns TICS themes ranked by today's fluctuation
+// (오늘의 테마 등락 순위). Maps to GET /api/v1/tics/rankings (wts-info-api).
+// size <= 0 returns the full list; otherwise the top `size` by ranking.
+func (c *Client) GetThemeRankings(ctx context.Context, size int) (domain.ThemeRankings, error) {
+	var env quoteEnvelope[ticsRankingRaw]
+	if err := c.getJSON(ctx, c.infoBaseURL+"/api/v1/tics/rankings", &env); err != nil {
+		return domain.ThemeRankings{}, err
+	}
+	out := domain.ThemeRankings{
+		Name:      env.Result.Name,
+		DateTime:  env.Result.DateTime,
+		FetchedAt: time.Now().UTC(),
+	}
+	for _, it := range env.Result.Data {
+		out.Items = append(out.Items, domain.ThemeRanking{
+			Ranking:          it.Ranking,
+			TicsID:           it.TicsID,
+			Title:            it.Title,
+			ChangeRate:       parsePercent(it.PreciseValue),
+			RiseCompanyCount: it.RiseCompanyCount,
+			TotalCount:       it.TotalCount,
+			Summary:          it.PriceValue,
+		})
+	}
+	if size > 0 && len(out.Items) > size {
+		out.Items = out.Items[:size]
+	}
+	return out, nil
+}
+
+// parsePercent parses a Toss percent string like "+11.18%", "-3.2%", "0.0%"
+// into a float (11.18, -3.2, 0). Returns 0 for unparseable input.
+func parsePercent(s string) float64 {
+	s = strings.TrimSpace(s)
+	s = strings.TrimSuffix(s, "%")
+	s = strings.ReplaceAll(s, ",", "")
+	s = strings.TrimPrefix(s, "+")
+	v, _ := strconv.ParseFloat(strings.TrimSpace(s), 64)
+	return v
+}
+
 func ticsToSector(t ticsItemRaw) domain.Sector {
 	s := domain.Sector{
 		ID:             t.ID,

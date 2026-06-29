@@ -143,3 +143,71 @@ func TestWriteTradesCSVHeader(t *testing.T) {
 		t.Errorf("expected price in CSV, got %q", out)
 	}
 }
+
+func TestWriteThemeRankingsTable(t *testing.T) {
+	var buf bytes.Buffer
+	r := domain.ThemeRankings{
+		Name: "tics_fluctuation_v2", DateTime: "2026-06-29T12:30:35",
+		Items: []domain.ThemeRanking{
+			{Ranking: 1, TicsID: "685", Title: "배터리제조", ChangeRate: 11.18, RiseCompanyCount: 13, TotalCount: 21, Summary: "21개 중 13개 종목 상승"},
+			{Ranking: 96, TicsID: "100", Title: "조선", ChangeRate: -3.2, RiseCompanyCount: 1, TotalCount: 10},
+		},
+	}
+	if err := WriteThemeRankings(&buf, FormatTable, r); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "배터리제조") || !strings.Contains(out, "+11.18%") {
+		t.Errorf("expected gainer row: %q", out)
+	}
+	if !strings.Contains(out, "-3.20%") {
+		t.Errorf("expected negative theme rate: %q", out)
+	}
+	if !strings.Contains(out, "13/21") {
+		t.Errorf("expected rise/total counts: %q", out)
+	}
+	if strings.Contains(out, "\x1b[") {
+		t.Errorf("table to non-TTY must be plain (no ANSI): %q", out)
+	}
+}
+
+func TestWriteThemeRankingsCSV(t *testing.T) {
+	var buf bytes.Buffer
+	r := domain.ThemeRankings{Items: []domain.ThemeRanking{
+		{Ranking: 1, TicsID: "685", Title: "배터리제조", ChangeRate: 11.18, RiseCompanyCount: 13, TotalCount: 21},
+	}}
+	if err := WriteThemeRankings(&buf, FormatCSV, r); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+	if !strings.HasPrefix(out, "ranking,tics_id,title,change_rate,rise_company_count,total_count") {
+		t.Errorf("unexpected CSV header: %q", out)
+	}
+	if !strings.Contains(out, "배터리제조") {
+		t.Errorf("expected theme in CSV: %q", out)
+	}
+}
+
+func TestWriteThemeRankingsJSON(t *testing.T) {
+	var buf bytes.Buffer
+	r := domain.ThemeRankings{Name: "tics_fluctuation_v2", Items: []domain.ThemeRanking{
+		{Ranking: 1, Title: "배터리제조", ChangeRate: 11.18},
+	}}
+	if err := WriteThemeRankings(&buf, FormatJSON, r); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, `"change_rate": 11.18`) || !strings.Contains(out, `"name": "tics_fluctuation_v2"`) {
+		t.Errorf("unexpected JSON: %q", out)
+	}
+}
+
+func TestWriteThemeRankingsEmpty(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteThemeRankings(&buf, FormatTable, domain.ThemeRankings{}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(buf.String(), "테마 데이터가 없습니다") {
+		t.Errorf("expected empty notice: %q", buf.String())
+	}
+}

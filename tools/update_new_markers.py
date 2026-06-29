@@ -28,6 +28,7 @@ FEATURE_DATES = {
     "portfolio dividends": "2026-06-19",
     "community rankings": "2026-06-19",
     "market sectors": "2026-06-19",
+    "market themes": "2026-06-29",
     "market briefing": "2026-06-19",
     "market investors": "2026-06-19",
     "market earnings": "2026-06-19",

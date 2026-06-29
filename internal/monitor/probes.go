@@ -297,6 +297,17 @@ func Probes() []Probe {
 			},
 		},
 		{
+			Name:   "theme-rankings",
+			Method: "GET",
+			URL:    info + "/api/v1/tics/rankings",
+			Check: func(status int, body []byte) error {
+				if err := expectStatus(status, 200); err != nil {
+					return err
+				}
+				return expectPath(body, "result.data", "array")
+			},
+		},
+		{
 			Name:   "community-rankings",
 			Method: "GET",
 			URL:    info + "/api/v1/community/top-rankings/INFLUENCER",
