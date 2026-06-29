@@ -166,6 +166,9 @@ func TestWriteThemeRankingsTable(t *testing.T) {
 	if !strings.Contains(out, "13/21") {
 		t.Errorf("expected rise/total counts: %q", out)
 	}
+	if !strings.Contains(out, "─") {
+		t.Errorf("expected aligned table with separator rule: %q", out)
+	}
 	if strings.Contains(out, "\x1b[") {
 		t.Errorf("table to non-TTY must be plain (no ANSI): %q", out)
 	}

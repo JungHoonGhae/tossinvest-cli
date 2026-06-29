@@ -840,17 +840,17 @@ func WriteThemeRankings(w io.Writer, format Format, r domain.ThemeRankings) erro
 			return err
 		}
 		enabled := colorEnabled(w, format)
-		if _, err := fmt.Fprintf(w, "순위  테마            등락률      상승/전체\n"); err != nil {
-			return err
-		}
+		headers := []string{"테마", "등락률", "상승/전체"}
+		plain := make([][]string, 0, len(r.Items))
+		disp := make([][]string, 0, len(r.Items))
 		for _, t := range r.Items {
-			rateStr := fmt.Sprintf("%+8.2f%%", t.ChangeRate)
-			if _, err := fmt.Fprintf(w, "%3d   %-14s  %s  %d/%d\n",
-				t.Ranking, t.Title, profitText(rateStr, t.ChangeRate, enabled), t.RiseCompanyCount, t.TotalCount); err != nil {
-				return err
-			}
+			name := fmt.Sprintf("%2d. %s", t.Ranking, t.Title)
+			rate := fmt.Sprintf("%+.2f%%", t.ChangeRate)
+			rise := fmt.Sprintf("%d/%d", t.RiseCompanyCount, t.TotalCount)
+			plain = append(plain, []string{name, rate, rise})
+			disp = append(disp, []string{name, profitText(rate, t.ChangeRate, enabled), rise})
 		}
-		return nil
+		return renderTableColored(w, headers, plain, disp)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
