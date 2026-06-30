@@ -35,7 +35,7 @@ document 입니다. issue [#31](https://github.com/JungHoonGhae/tossinvest-cli/i
   | `orders list` / `order show` | `GET /api/v1/orders` · `/orders/{orderId}` |
   | (신규) | `buying-power` · `sellable-quantity` · `commissions` · `exchange-rate` · `market-calendar/{KR,US}` · `stocks` · `price-limits` |
 
-- **미검증:** client_id/secret 발급 콘솔 절차, 거래 권한 scope 모델, rate limit 실측, candle 이 1분봉·일봉만이라 기존 tossctl 의 3/5/15/30/60분봉과 차이 있음
+- **미검증:** client_id/secret 발급 콘솔 절차, 거래 권한 scope 모델, candle 이 1분봉·일봉만이라 기존 tossctl 의 3/5/15/30/60분봉과 차이 있음 (rate limit 은 [실측 완료 ↓](#rate-limit-실측))
 
 ## 포지셔닝 — 공식이 나와도 tossctl 은 갈아타지 않는다
 
@@ -47,12 +47,35 @@ session 은 deprecate" 였다. 이는 *"공식 = 상위호환"* 이라는 잘못
 | | tossctl (비공식 web session) | 토스 공식 API |
 |---|---|---|
 | 데이터 표면 | **넓음** — transactions ledger·watchlist·push(SSE) 포함 | 좁음 — 시세·계좌·주문만 (ledger/watchlist/push **없음**) |
-| rate limit | 사실상 없음 | 있음 (ACCOUNT 초당 1회 등) |
+| rate limit | 사실상 없음 | 빡빡 — 계좌·보유는 연속 1회 후 대부분 429 ([실측 ↓](#rate-limit-실측)) |
 | 진입 | `auth login` 1회 | 사전신청→승인→토큰 24h 재발급 |
 | 합법성·안정성 | 약함 (TOS 리스크, 예고 없는 변경) | 강함 (계약된 versioned spec) |
 
 → tossctl 이 공식으로 *통째* 이주하면 **고유 강점(넓은 표면 + 무제한)을 스스로 버린다.**
 그래서 **이주·deprecation 하지 않는다.** web session 이 영구 주력.
+
+## rate limit 실측
+
+> 실측 2026-06-30 · 단일 자격증명 · 순차 버스트(지연 없음) · stdout 폐기(계좌 PII 미노출), stderr 의 폴백 통지로 official 429 판정.
+
+공식 spec 은 rate limit 수치를 공개하지 않는다. `--backend openapi` 로 엔드포인트별 15~20회
+연속 호출해 official 이 몇 번째에 429 로 떨어지는지 측정했다.
+
+| 엔드포인트 | official 성공 | 429 → WTS 폴백 | 패턴 |
+|---|---|---|---|
+| `quote get` (`/prices`) | 20/20 | 0% | ~10 req/s 버스트에도 멀쩡 (시세는 넉넉) |
+| `account list` (`/accounts`) | 3/15 | **80%** | 2번째 호출부터 429 |
+| `portfolio positions` (`/holdings`) | 2/15 | **87%** | 1번째 호출부터 429 |
+
+→ 계좌·보유 계열은 사실상 **연속 1회 후 수 초간 429**. 시세(`/prices`)는 throttle 이 거의 없다.
+즉 공식 단독으로는 반복 조회(대시보드·모니터·스크립트·에이전트 루프)가 대부분 실패한다.
+
+**tossctl 의 답:** 기본 자동 라우팅(`prefer: auto, fallback: true`)이 429(`ErrRateLimited`)를
+감지해 **즉시 웹 세션(WTS)으로 폴백**한다. 하이브리드 조회 10종이 전부 동일한 `route()` 를 거쳐
+일관 적용되므로, 위 측정의 모든 429 가 폴백으로 메워져 **사용자 체감 성공률 100%·중단 0**.
+공식 한도가 곧 tossctl 의 한도가 되지 않는다 — 이것이 하이브리드 라우팅의 실질 가치다.
+
+> 한도는 자격증명·시점·엔드포인트별로 다르고 토스가 예고 없이 바꿀 수 있다. 위 수치는 버스트 기준 관측치.
 
 ## 채택 전략 — 단일 레포 하이브리드 (2026-06-03 확정)
 
