@@ -19,6 +19,10 @@ const defaultAPIBaseURL = "https://wts-api.tossinvest.com"
 const defaultInfoBaseURL = "https://wts-info-api.tossinvest.com"
 const defaultCertBaseURL = "https://wts-cert-api.tossinvest.com"
 
+// defaultUserAgent is sent on every request to avoid being blocked by the
+// Toss Securities edge, which rejects Go's default "Go-http-client/1.1" UA.
+const defaultUserAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+
 type Config struct {
 	HTTPClient    *http.Client
 	APIBaseURL    string
@@ -123,6 +127,7 @@ func (c *Client) ensureTradingMetadata(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Set("User-Agent", defaultUserAgent)
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
@@ -145,6 +150,7 @@ func (c *Client) ensureTradingMetadata(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Set("User-Agent", defaultUserAgent)
 	resp, err = c.httpClient.Do(req)
 	if err != nil {
 		return err

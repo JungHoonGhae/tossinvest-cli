@@ -314,6 +314,7 @@ func (c *Client) requireSession() error {
 func (c *Client) applySession(req *http.Request) {
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Referer", "https://www.tossinvest.com/account")
+	req.Header.Set("User-Agent", defaultUserAgent)
 
 	if c.session == nil {
 		return
@@ -323,12 +324,14 @@ func (c *Client) applySession(req *http.Request) {
 		req.AddCookie(&http.Cookie{Name: name, Value: value})
 	}
 
+	// Session headers override defaults (e.g. a user-set User-Agent wins).
 	for name, value := range c.session.Headers {
 		req.Header.Set(name, value)
 	}
 }
 
 func (c *Client) applyTradingHeaders(req *http.Request) {
+	req.Header.Set("User-Agent", defaultUserAgent)
 	if strings.TrimSpace(c.browserTabID) != "" {
 		req.Header.Set("Browser-Tab-Id", c.browserTabID)
 	}
