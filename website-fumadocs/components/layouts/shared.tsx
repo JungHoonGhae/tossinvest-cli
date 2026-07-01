@@ -1,5 +1,5 @@
 import type { BaseLayoutProps, LinkItemType } from 'fumadocs-ui/layouts/shared';
-import { Bot, Github, Rocket, ShieldCheck, TerminalSquare } from 'lucide-react';
+import { Bot, Github, History, Rocket, ShieldCheck, TerminalSquare } from 'lucide-react';
 import {
   NavbarMenu,
   NavbarMenuContent,
@@ -106,6 +106,12 @@ export const linkItems: LinkItemType[] = [
     text: '명령',
     url: '/docs/reference/commands',
     icon: <TerminalSquare />,
+    active: 'nested-url',
+  },
+  {
+    text: '변경 이력',
+    url: '/docs/changelog',
+    icon: <History />,
     active: 'nested-url',
   },
   {
