@@ -12,28 +12,29 @@ import (
 const officialPreApplyURL = "https://corp.tossinvest.com/ko/open-api"
 
 const (
-	initChoiceOfficial = "공식 Open API 키만 — 핵심·공식 지원 기능만. 가장 안정적(토큰 자동 갱신, 브라우저 불필요)"
-	initChoiceWeb      = "웹 세션 로그인만 — 고유·비공식 기능까지. 단 더 빨리 끊기고 갱신 주기 짧음"
-	initChoiceBoth     = "둘 다 (권장) — 안정성 + 최대 범위, 공식 장애 시 폴백"
+	initChoiceOfficial = "Official Open API key only — core supported features only. Most stable (auto token refresh, no browser needed)"
+	initChoiceWeb      = "Web session login only — unlocks unofficial features too, but disconnects sooner and needs more frequent renewal"
+	initChoiceBoth     = "Both (recommended) — stability + maximum coverage, with fallback if the official API is down"
 )
 
 func newInitCmd(opts *rootOptions) *cobra.Command {
 	return &cobra.Command{
-		Use:   "init",
-		Short: "온보딩 위저드 — 인증 방식을 대화형으로 설정",
-		Long: "인터랙티브 위저드로 공식 Open API 키 또는 웹 세션 인증을 설정합니다.\n" +
-			"비대화형(CI/AI) 환경에서는 플래그 기반 명령어 안내를 출력하고 정상 종료합니다.",
+		Use:         "init",
+		Short:       "Interactive onboarding wizard for authentication setup",
+		Annotations: map[string]string{"source": "local"},
+		Long: "Interactively set up authentication via an official Open API key or a web session.\n" +
+			"In non-interactive (CI/AI) environments, prints flag-based command guidance and exits cleanly.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if !tui.IsInteractive(os.Stdin, os.Stdout) {
 				_, err := fmt.Fprint(cmd.OutOrStdout(),
-					"비대화형 환경에서는 아래 명령으로 인증을 설정하세요:\n"+
-						"  웹 세션:        tossctl auth login\n"+
-						"  공식 Open API:  tossctl openapi login --key <KEY> --secret <SECRET>\n",
+					"In a non-interactive environment, set up auth with one of these commands:\n"+
+						"  Web session:    tossctl auth login\n"+
+						"  Official Open API:  tossctl openapi login --key <KEY> --secret <SECRET>\n",
 				)
 				return err
 			}
 
-			choice, err := tui.Select("인증 방식을 선택하세요", []string{
+			choice, err := tui.Select("Select an authentication method", []string{
 				initChoiceOfficial,
 				initChoiceWeb,
 				initChoiceBoth,
@@ -53,7 +54,7 @@ func newInitCmd(opts *rootOptions) *cobra.Command {
 				}
 				return runInitOfficialFlow(cmd, opts)
 			default:
-				return fmt.Errorf("알 수 없는 선택: %q", choice)
+				return fmt.Errorf("unknown choice: %q", choice)
 			}
 		},
 	}
@@ -71,7 +72,7 @@ func runInitOfficialFlow(cmd *cobra.Command, opts *rootOptions) error {
 	// Show pre-application link when the user has no key yet.
 	existing, _ := official.LoadCredentials(os.Getenv, credFile)
 	if existing == nil {
-		fmt.Fprintf(cmd.OutOrStdout(), "공식 Open API 키가 없으시면 먼저 신청하세요: %s\n\n", officialPreApplyURL)
+		fmt.Fprintf(cmd.OutOrStdout(), "If you don't have an official Open API key yet, apply first: %s\n\n", officialPreApplyURL)
 	}
 
 	key, err := tui.Password("API Key")
@@ -93,7 +94,7 @@ func runInitOfficialFlow(cmd *cobra.Command, opts *rootOptions) error {
 		if err := saveOpenAPICredentials(credFile, key, secret); err != nil {
 			return err
 		}
-		fmt.Fprintln(cmd.OutOrStdout(), "✓ 공식 Open API 키 저장 완료")
+		fmt.Fprintln(cmd.OutOrStdout(), "✓ official Open API key saved")
 	} else {
 		fmt.Fprintf(cmd.OutOrStdout(), "✗ %s\n", result.Message)
 	}

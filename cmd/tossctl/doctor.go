@@ -12,8 +12,9 @@ func newDoctorCmd(opts *rootOptions) *cobra.Command {
 	var reportMode bool
 
 	cmd := &cobra.Command{
-		Use:   "doctor",
-		Short: "Check whether tossctl is ready on this machine",
+		Use:         "doctor",
+		Short:       "Check whether tossctl is ready on this machine",
+		Annotations: map[string]string{"source": "local"},
 		Long: `Check whether tossctl is ready on this machine.
 
 Use --report to emit a JSON diagnostic bundle (endpoint-family probes, file

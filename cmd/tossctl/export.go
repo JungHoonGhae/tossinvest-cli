@@ -16,8 +16,9 @@ func newExportCmd(opts *rootOptions) *cobra.Command {
 
 	var positionsMarket string
 	positionsCmd := &cobra.Command{
-		Use:   "positions",
-		Short: "Export current portfolio positions",
+		Use:         "positions",
+		Short:       "Export current portfolio positions",
+		Annotations: map[string]string{"source": "both"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -35,8 +36,9 @@ func newExportCmd(opts *rootOptions) *cobra.Command {
 
 	var ordersMarket string
 	ordersCmd := &cobra.Command{
-		Use:   "orders",
-		Short: "Export completed order history",
+		Use:         "orders",
+		Short:       "Export completed order history",
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {

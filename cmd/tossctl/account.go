@@ -13,8 +13,9 @@ func newAccountCmd(opts *rootOptions) *cobra.Command {
 
 	cmd.AddCommand(
 		&cobra.Command{
-			Use:   "list",
-			Short: "List available accounts",
+			Use:         "list",
+			Short:       "List available accounts",
+			Annotations: map[string]string{"source": "both"},
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				app, err := newAppContext(opts)
 				if err != nil {
@@ -30,8 +31,9 @@ func newAccountCmd(opts *rootOptions) *cobra.Command {
 			},
 		},
 		&cobra.Command{
-			Use:   "summary",
-			Short: "Show a summary for the selected account",
+			Use:         "summary",
+			Short:       "Show a summary for the selected account",
+			Annotations: map[string]string{"source": "wts"},
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				app, err := newAppContext(opts)
 				if err != nil {

@@ -17,8 +17,8 @@ type doctorOpenAPIInputs struct {
 	credsPresent bool
 	probeOK      bool
 	probeErrKind string
-	hasKeyInfo   bool   // true when WTS key-meta call succeeded
-	keyActive    bool   // meaningful only when hasKeyInfo=true
+	hasKeyInfo   bool       // true when WTS key-meta call succeeded
+	keyActive    bool       // meaningful only when hasKeyInfo=true
 	expiresAt    *time.Time // nil when unknown or no WTS data
 	probeCallErr string     // non-empty when the probe call itself failed
 }

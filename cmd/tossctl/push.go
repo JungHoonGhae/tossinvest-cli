@@ -20,8 +20,9 @@ func newPushCmd(opts *rootOptions) *cobra.Command {
 	var retry bool
 
 	listenCmd := &cobra.Command{
-		Use:   "listen",
-		Short: "Stream SSE events as JSON lines to stdout",
+		Use:         "listen",
+		Short:       "Stream SSE events as JSON lines to stdout",
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {

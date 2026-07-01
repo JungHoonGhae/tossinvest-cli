@@ -17,8 +17,9 @@ func newMonitorCmd(opts *rootOptions) *cobra.Command {
 	}
 
 	apiCmd := &cobra.Command{
-		Use:   "api",
-		Short: "Run schema-invariant probes; exit 1 on any failure",
+		Use:         "api",
+		Short:       "Run schema-invariant probes; exit 1 on any failure",
+		Annotations: map[string]string{"source": "wts"},
 		Long: `Run schema-invariant probes against the read-only Toss endpoints the
 CLI depends on. Designed for cron / launchd.
 

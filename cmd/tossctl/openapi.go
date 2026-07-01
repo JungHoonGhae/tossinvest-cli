@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -349,8 +349,9 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 		loginSecret string
 	)
 	loginCmd := &cobra.Command{
-		Use:   "login",
-		Short: "Save Open API credentials (non-interactive; --key and --secret required)",
+		Use:         "login",
+		Short:       "Save Open API credentials (non-interactive; --key and --secret required)",
+		Annotations: map[string]string{"source": "official"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if loginKey == "" || loginSecret == "" {
 				return fmt.Errorf("--key and --secret are both required; or run `tossctl init` wizard")
@@ -363,7 +364,7 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 				return err
 			}
 			masked := official.Credentials{APIKey: loginKey}.MaskedKey()
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "저장됨: %s\n파일: %s\n", masked, credFile)
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "saved: %s\nfile: %s\n", masked, credFile)
 			return err
 		},
 	}
@@ -372,8 +373,9 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 
 	// ── test ───────────────────────────────────────────────────────────────
 	testCmd := &cobra.Command{
-		Use:   "test",
-		Short: "Test saved Open API credentials against the live API",
+		Use:         "test",
+		Short:       "Test saved Open API credentials against the live API",
+		Annotations: map[string]string{"source": "official"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			format, err := output.ParseFormat(opts.outputFormat)
 			if err != nil {
@@ -391,7 +393,7 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 				return writeProbeResult(cmd.OutOrStdout(), format, probeResult{
 					OK:        false,
 					ErrorKind: "no_credentials",
-					Message:   "저장된 자격증명이 없습니다. `tossctl openapi login --key K --secret S`를 먼저 실행하세요.",
+					Message:   "No saved credentials. Run `tossctl openapi login --key K --secret S` first.",
 				})
 			}
 			result, err := validateOpenAPICredentials(cmd.Context(), *creds, tokenFile)
@@ -404,8 +406,9 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 
 	// ── logout ─────────────────────────────────────────────────────────────
 	logoutCmd := &cobra.Command{
-		Use:   "logout",
-		Short: "Remove saved Open API credentials and token cache",
+		Use:         "logout",
+		Short:       "Remove saved Open API credentials and token cache",
+		Annotations: map[string]string{"source": "local"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			credFile, tokenFile, err := resolveOpenAPIPaths(opts)
 			if err != nil {
@@ -416,15 +419,16 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 			}
 			// best-effort: remove token cache (may not exist)
 			_ = os.Remove(tokenFile)
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "자격증명이 삭제되었습니다\n파일: %s\n", credFile)
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "credentials deleted\nfile: %s\n", credFile)
 			return err
 		},
 	}
 
 	// ── status ─────────────────────────────────────────────────────────────
 	statusCmd := &cobra.Command{
-		Use:   "status",
-		Short: "Show Open API diagnostic dashboard (credentials, key status, IPs, connection)",
+		Use:         "status",
+		Short:       "Show Open API diagnostic dashboard (credentials, key status, IPs, connection)",
+		Annotations: map[string]string{"source": "official"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			format, err := output.ParseFormat(opts.outputFormat)
 			if err != nil {
@@ -444,7 +448,7 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 			// No credentials: print guidance and exit cleanly.
 			if creds == nil {
 				_, _ = fmt.Fprintln(cmd.OutOrStdout(),
-					"자격증명 미설정 → `tossctl openapi login` 또는 `tossctl init`")
+					"credentials not configured -> `tossctl openapi login` or `tossctl init`")
 				return nil
 			}
 

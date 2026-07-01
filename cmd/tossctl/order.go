@@ -87,13 +87,14 @@ func newOrderShowCmd(opts *rootOptions) *cobra.Command {
 	var market string
 
 	cmd := &cobra.Command{
-		Use:   "show [order-id]",
-		Short: "Show a single order from pending or current-month completed history",
-		Args:  cobra.MaximumNArgs(1),
+		Use:         "show [order-id]",
+		Short:       "Show a single order from pending or current-month completed history",
+		Args:        cobra.MaximumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Early non-TTY guard — before expensive app context creation.
 			if len(args) == 0 && !tui.IsInteractive(os.Stdin, os.Stdout) {
-				return fmt.Errorf("order-id 인수를 지정하거나 터미널에서 실행하세요")
+				return fmt.Errorf("specify an order-id argument, or run in an interactive terminal")
 			}
 
 			app, err := newAppContext(opts)
@@ -116,7 +117,7 @@ func newOrderShowCmd(opts *rootOptions) *cobra.Command {
 						return err
 					}
 				}
-				id, err := tui.PickFromList("조회할 주문 선택", orderItems(orders))
+				id, err := tui.PickFromList("Select an order to look up", orderItems(orders))
 				if err != nil {
 					return err
 				}
@@ -163,8 +164,9 @@ func newOrderPreviewCmd(opts *rootOptions) *cobra.Command {
 	flags := defaultPlaceFlags()
 
 	cmd := &cobra.Command{
-		Use:   "preview",
-		Short: "Preview a canonical order intent",
+		Use:         "preview",
+		Short:       "Preview a canonical order intent",
+		Annotations: map[string]string{"source": "local"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -199,8 +201,9 @@ func newOrderPlaceCmd(opts *rootOptions) *cobra.Command {
 	exec := &executeFlags{}
 
 	cmd := &cobra.Command{
-		Use:   "place",
-		Short: "Place a live order with explicit danger approval",
+		Use:         "place",
+		Short:       "Place a live order with explicit danger approval",
+		Annotations: map[string]string{"source": "both", "mutating": "true"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -246,12 +249,13 @@ func newOrderCancelCmd(opts *rootOptions) *cobra.Command {
 	var symbol string
 
 	cmd := &cobra.Command{
-		Use:   "cancel",
-		Short: "Cancel a live pending order",
+		Use:         "cancel",
+		Short:       "Cancel a live pending order",
+		Annotations: map[string]string{"source": "both", "mutating": "true"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			// Early non-TTY guard — before expensive app context creation.
 			if orderID == "" && !tui.IsInteractive(os.Stdin, os.Stdout) {
-				return fmt.Errorf("--order-id 를 지정하거나 터미널에서 실행하세요")
+				return fmt.Errorf("specify --order-id, or run in an interactive terminal")
 			}
 
 			app, err := newAppContext(opts)
@@ -265,7 +269,7 @@ func newOrderCancelCmd(opts *rootOptions) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				id, err := tui.PickFromList("취소할 주문 선택", orderItems(orders))
+				id, err := tui.PickFromList("Select an order to cancel", orderItems(orders))
 				if err != nil {
 					return err
 				}
@@ -312,12 +316,13 @@ func newOrderAmendCmd(opts *rootOptions) *cobra.Command {
 	exec := &executeFlags{}
 
 	cmd := &cobra.Command{
-		Use:   "amend",
-		Short: "Amend a live pending order",
+		Use:         "amend",
+		Short:       "Amend a live pending order",
+		Annotations: map[string]string{"source": "both", "mutating": "true"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			// Early non-TTY guard — before expensive app context creation.
 			if flags.orderID == "" && !tui.IsInteractive(os.Stdin, os.Stdout) {
-				return fmt.Errorf("--order-id 를 지정하거나 터미널에서 실행하세요")
+				return fmt.Errorf("specify --order-id, or run in an interactive terminal")
 			}
 
 			app, err := newAppContext(opts)
@@ -331,7 +336,7 @@ func newOrderAmendCmd(opts *rootOptions) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				id, err := tui.PickFromList("정정할 주문 선택", orderItems(orders))
+				id, err := tui.PickFromList("Select an order to amend", orderItems(orders))
 				if err != nil {
 					return err
 				}

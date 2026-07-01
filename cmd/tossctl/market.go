@@ -30,8 +30,9 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	}
 
 	hoursCmd := &cobra.Command{
-		Use:   "hours",
-		Short: "Today's KR and US trading session windows (장 운영 시간)",
+		Use:         "hours",
+		Short:       "Today's KR and US trading session windows",
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -46,8 +47,9 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	}
 
 	fxCmd := &cobra.Command{
-		Use:   "fx",
-		Short: "FX/index quotes (달러 환율·달러 인덱스 등)",
+		Use:         "fx",
+		Short:       "USD/KRW FX and dollar index quotes",
+		Annotations: map[string]string{"source": "both"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -62,9 +64,11 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	}
 
 	indexCmd := &cobra.Command{
-		Use:   "index [code|name]",
-		Short: "Major market indices (코스피·코스닥·나스닥·S&P500·VIX). 인자 주면 지수 상세(OHLC·52주)",
-		Args:  cobra.MaximumNArgs(1),
+		Use:         "index [code|name]",
+		Short:       "Major market indices (KOSPI, KOSDAQ, Nasdaq, S&P 500, VIX)",
+		Long:        "Major market indices. Pass a symbol to get index detail (OHLC, 52-week range).",
+		Args:        cobra.MaximumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -87,8 +91,9 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 
 	var rankingSize int
 	rankingCmd := &cobra.Command{
-		Use:   "ranking",
-		Short: "Realtime popularity ranking (실시간 인기 종목)",
+		Use:         "ranking",
+		Short:       "Realtime popularity ranking",
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -104,8 +109,9 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	rankingCmd.Flags().IntVar(&rankingSize, "size", 20, "number of ranked stocks")
 
 	signalsCmd := &cobra.Command{
-		Use:   "signals",
-		Short: "Toss AI market signals (토스증권 AI 시그널)",
+		Use:         "signals",
+		Short:       "Toss AI market signals",
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -121,8 +127,9 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 
 	var investorsSize int
 	investorsCmd := &cobra.Command{
-		Use:   "investors",
-		Short: "Net-buy ranking by investor type (외국인·기관·개인 순매수 상위)",
+		Use:         "investors",
+		Short:       "Net-buy ranking by investor type (foreign, institutional, retail)",
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -139,8 +146,10 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 
 	var earningsMajor bool
 	earningsCmd := &cobra.Command{
-		Use:   "earnings",
-		Short: "Upcoming earnings-call calendar (어닝콜 일정). --major 로 주요 기업만",
+		Use:         "earnings",
+		Short:       "Upcoming earnings-call calendar",
+		Long:        "Upcoming earnings-call calendar. Use --major to show only major companies.",
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -157,12 +166,16 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 			return output.WriteEarningCalls(cmd.OutOrStdout(), app.format, ec)
 		},
 	}
-	earningsCmd.Flags().BoolVar(&earningsMajor, "major", false, "주요 기업 어닝콜만 (큐레이션)")
+	earningsCmd.Flags().BoolVar(&earningsMajor, "major", false, "show only major companies' earnings calls (curated)")
 
 	sectorsCmd := &cobra.Command{
 		Use:   "sectors [id]",
-		Short: "Industry (TICS) fluctuations (업종별 등락). 인자 없으면 대분류, id 주면 하위 업종. 공식 API 에 없음",
-		Args:  cobra.MaximumNArgs(1),
+		Short: "Industry (TICS) sector fluctuations",
+		Long: "Industry (TICS) sector fluctuations. With no argument, shows top-level sectors; " +
+			"pass an id to drill into sub-industries.\n\n" +
+			"Note: uses a WTS internal endpoint; not available via the official Open API and may change without notice.",
+		Args:        cobra.MaximumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -189,7 +202,10 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 
 	briefingCmd := &cobra.Command{
 		Use:   "briefing",
-		Short: "Personalized AI news briefing (개인화 뉴스 브리핑). 공식 API 에 없음",
+		Short: "Personalized AI news briefing",
+		Long: "Personalized AI news briefing.\n\n" +
+			"Note: uses a WTS internal endpoint; not available via the official Open API and may change without notice.",
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -210,20 +226,21 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	)
 	screenerCmd := &cobra.Command{
 		Use:   "screener [preset-id]",
-		Short: "Stock screeners (조건검색: 가치주·배당주·성장주 등). 인자 없으면 프리셋 목록",
-		Long: `조건 검색. 인자 없으면 프리셋 목록, preset-id 주면 해당 조건 종목 반환.
+		Short: "Stock screeners (value, dividend, growth, and more)",
+		Long: `Stock screeners. With no argument, lists available presets; pass a preset id to run it.
 
-커스텀 조건은 --filter 로 raw JSON 배열을 직접 전달 (토스 web 의 필터 스키마):
-  tossctl market screener --filter '[{"id":"시가총액","conditions":[...]}]' --nation kr
+For custom conditions, pass a raw JSON array via --filter (Toss web's filter schema):
+  tossctl market screener --filter '[{"id":"marketCap","conditions":[...]}]' --nation kr
 
-필터 ID/조건 구조는 프리셋 출력(--output json)을 참고해 변형하면 됩니다.`,
-		Args: cobra.MaximumNArgs(1),
+To shape the filter ID/condition structure, reference the preset output (--output json).`,
+		Args:        cobra.MaximumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
 				return err
 			}
-			// --filter (custom raw) 우선
+			// --filter (custom raw) takes priority
 			if screenerFilter != "" {
 				res, err := app.client.RunScreenerRaw(cmd.Context(), screenerFilter, screenerNation, screenerSize)
 				if err != nil {
@@ -247,12 +264,15 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	}
 	screenerCmd.Flags().StringVar(&screenerNation, "nation", "kr", "market: kr | us")
 	screenerCmd.Flags().IntVar(&screenerSize, "size", 30, "max stocks to return")
-	screenerCmd.Flags().StringVar(&screenerFilter, "filter", "", "custom raw filter JSON array (preset 대신)")
+	screenerCmd.Flags().StringVar(&screenerFilter, "filter", "", "custom raw filter JSON array (instead of a preset)")
 
 	var themesSize int
 	themesCmd := &cobra.Command{
 		Use:   "themes",
-		Short: "Theme/sector fluctuation ranking (테마 등락 랭킹, 오늘 가장 많이 오른 테마). 공식 API 에 없음",
+		Short: "Theme fluctuation ranking",
+		Long: "Theme fluctuation ranking (today's top-moving themes).\n\n" +
+			"Note: uses a WTS internal endpoint; not available via the official Open API and may change without notice.",
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {

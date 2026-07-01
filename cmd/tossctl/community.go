@@ -8,13 +8,16 @@ import (
 func newCommunityCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "community",
-		Short: "Toss community data (커뮤니티). 공식 API 에 없음",
+		Short: "Toss community leaderboards and social data",
 	}
 
 	var rankType string
 	rankingsCmd := &cobra.Command{
 		Use:   "rankings",
-		Short: "Community leaderboards (인플루언서·수익률·팔로워 급증)",
+		Short: "Community leaderboards (influencers, returns, follower surges)",
+		Long: "Community leaderboards (influencers, returns, follower surges).\n\n" +
+			"Note: uses a WTS internal endpoint; not available via the official Open API and may change without notice.",
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {

@@ -13,8 +13,9 @@ func newPortfolioCmd(opts *rootOptions) *cobra.Command {
 
 	cmd.AddCommand(
 		&cobra.Command{
-			Use:   "positions",
-			Short: "List current positions",
+			Use:         "positions",
+			Short:       "List current positions",
+			Annotations: map[string]string{"source": "both"},
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				app, err := newAppContext(opts)
 				if err != nil {
@@ -30,8 +31,9 @@ func newPortfolioCmd(opts *rootOptions) *cobra.Command {
 			},
 		},
 		&cobra.Command{
-			Use:   "allocation",
-			Short: "Show portfolio allocation",
+			Use:         "allocation",
+			Short:       "Show portfolio allocation",
+			Annotations: map[string]string{"source": "wts"},
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				app, err := newAppContext(opts)
 				if err != nil {
@@ -59,7 +61,10 @@ func newDividendsCmd(opts *rootOptions) *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "dividends",
-		Short: "Annual dividend report (연간 배당 내역 — 총액·지역·월별). 공식 API 에 없음",
+		Short: "Annual dividend report (total, region, monthly)",
+		Long: "Annual dividend report (total, region, monthly).\n\n" +
+			"Note: uses a WTS internal endpoint; not available via the official Open API and may change without notice.",
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -72,7 +77,7 @@ func newDividendsCmd(opts *rootOptions) *cobra.Command {
 			return output.WriteDividends(cmd.OutOrStdout(), app.format, d)
 		},
 	}
-	cmd.Flags().IntVar(&year, "year", 0, "조회 연도 (기본: 올해)")
-	cmd.Flags().BoolVar(&byPaymentDate, "by-payment-date", false, "지급일 기준 (세금·수수료 포함)")
+	cmd.Flags().IntVar(&year, "year", 0, "query year (default: this year)")
+	cmd.Flags().BoolVar(&byPaymentDate, "by-payment-date", false, "by payment date (includes tax and fees)")
 	return cmd
 }

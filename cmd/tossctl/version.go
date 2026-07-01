@@ -15,8 +15,9 @@ import (
 
 func newVersionCmd(opts *rootOptions) *cobra.Command {
 	return &cobra.Command{
-		Use:   "version",
-		Short: "Show tossctl version information",
+		Use:         "version",
+		Short:       "Show tossctl version information",
+		Annotations: map[string]string{"source": "local"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			info := version.Current()
 			latest := lookupLatest(cmd.Context(), opts)

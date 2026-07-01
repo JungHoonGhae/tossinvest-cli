@@ -16,8 +16,9 @@ func newConfigCmd(opts *rootOptions) *cobra.Command {
 
 	cmd.AddCommand(
 		&cobra.Command{
-			Use:   "show",
-			Short: "Show the effective config and config path",
+			Use:         "show",
+			Short:       "Show the effective config and config path",
+			Annotations: map[string]string{"source": "local"},
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				app, err := newAppContext(opts)
 				if err != nil {
@@ -33,8 +34,9 @@ func newConfigCmd(opts *rootOptions) *cobra.Command {
 			},
 		},
 		&cobra.Command{
-			Use:   "init",
-			Short: "Create a default config.json with trading disabled",
+			Use:         "init",
+			Short:       "Create a default config.json with trading disabled",
+			Annotations: map[string]string{"source": "local"},
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				app, err := newAppContext(opts)
 				if err != nil {

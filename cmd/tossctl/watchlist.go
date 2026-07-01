@@ -33,13 +33,13 @@ func pickFolderID(ctx context.Context, app *appContext) (int64, error) {
 	if err != nil {
 		return 0, userFacingCommandError(err)
 	}
-	selected, err := tui.PickFromList("폴더 선택", groupItems(groups))
+	selected, err := tui.PickFromList("Select a folder", groupItems(groups))
 	if err != nil {
 		return 0, err
 	}
 	id, err := strconv.ParseInt(selected, 10, 64)
 	if err != nil {
-		return 0, fmt.Errorf("내부 오류: 폴더 id 파싱 실패: %s", selected)
+		return 0, fmt.Errorf("internal error: failed to parse folder id: %s", selected)
 	}
 	return id, nil
 }
@@ -47,13 +47,14 @@ func pickFolderID(ctx context.Context, app *appContext) (int64, error) {
 func newWatchlistCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "watchlist",
-		Short: "Read and manage watchlist (관심종목 조회·관리)",
+		Short: "Read and manage the watchlist",
 	}
 
 	cmd.AddCommand(
 		&cobra.Command{
-			Use:   "list",
-			Short: "List watchlist entries",
+			Use:         "list",
+			Short:       "List watchlist entries",
+			Annotations: map[string]string{"source": "wts"},
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				app, err := newAppContext(opts)
 				if err != nil {
@@ -67,8 +68,9 @@ func newWatchlistCmd(opts *rootOptions) *cobra.Command {
 			},
 		},
 		&cobra.Command{
-			Use:   "groups",
-			Short: "List watchlist folders (관심종목 폴더)",
+			Use:         "groups",
+			Short:       "List watchlist folders",
+			Annotations: map[string]string{"source": "wts"},
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				app, err := newAppContext(opts)
 				if err != nil {
@@ -82,8 +84,8 @@ func newWatchlistCmd(opts *rootOptions) *cobra.Command {
 			},
 		},
 		newWatchlistGroupCmd(opts),
-		newWatchlistAddRemoveCmd(opts, "add", "관심종목에 종목 추가"),
-		newWatchlistAddRemoveCmd(opts, "remove", "관심종목에서 종목 제거"),
+		newWatchlistAddRemoveCmd(opts, "add", "Add a symbol to the watchlist"),
+		newWatchlistAddRemoveCmd(opts, "remove", "Remove a symbol from the watchlist"),
 	)
 
 	return cmd
@@ -92,14 +94,15 @@ func newWatchlistCmd(opts *rootOptions) *cobra.Command {
 func newWatchlistGroupCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "group",
-		Short: "Manage watchlist folders (폴더 생성·이름변경·삭제)",
+		Short: "Manage watchlist folders (create, rename, delete)",
 	}
 
 	cmd.AddCommand(
 		&cobra.Command{
-			Use:   "create <name>",
-			Short: "Create a watchlist folder",
-			Args:  cobra.MinimumNArgs(1),
+			Use:         "create <name>",
+			Short:       "Create a watchlist folder",
+			Args:        cobra.MinimumNArgs(1),
+			Annotations: map[string]string{"source": "wts"},
 			RunE: func(cmd *cobra.Command, args []string) error {
 				app, err := newAppContext(opts)
 				if err != nil {
@@ -109,14 +112,15 @@ func newWatchlistGroupCmd(opts *rootOptions) *cobra.Command {
 				if err != nil {
 					return userFacingCommandError(err)
 				}
-				fmt.Fprintf(cmd.OutOrStdout(), "폴더 생성: %s (id=%d)\n", g.Name, g.ID)
+				fmt.Fprintf(cmd.OutOrStdout(), "folder created: %s (id=%d)\n", g.Name, g.ID)
 				return nil
 			},
 		},
 		&cobra.Command{
-			Use:   "rename [<id>] <new-name>",
-			Short: "Rename a watchlist folder",
-			Args:  cobra.RangeArgs(1, 2),
+			Use:         "rename [<id>] <new-name>",
+			Short:       "Rename a watchlist folder",
+			Args:        cobra.RangeArgs(1, 2),
+			Annotations: map[string]string{"source": "wts"},
 			RunE: func(cmd *cobra.Command, args []string) error {
 				var id int64
 				var name string
@@ -126,14 +130,14 @@ func newWatchlistGroupCmd(opts *rootOptions) *cobra.Command {
 					var parseErr error
 					id, parseErr = strconv.ParseInt(args[0], 10, 64)
 					if parseErr != nil {
-						return fmt.Errorf("폴더 id 는 숫자여야 합니다: %s", args[0])
+						return fmt.Errorf("folder id must be a number: %s", args[0])
 					}
 					name = strings.Join(args[1:], " ")
 				} else {
 					// 1-arg: treat args[0] as new-name, pick folder interactively.
 					name = args[0]
 					if !tui.IsInteractive(os.Stdin, os.Stdout) {
-						return fmt.Errorf("폴더 id 와 새 이름을 지정하거나 터미널에서 실행하세요")
+						return fmt.Errorf("specify a folder id and new name, or run in an interactive terminal")
 					}
 					app, err := newAppContext(opts)
 					if err != nil {
@@ -146,7 +150,7 @@ func newWatchlistGroupCmd(opts *rootOptions) *cobra.Command {
 					if err := app.client.RenameWatchlistGroup(cmd.Context(), id, name); err != nil {
 						return userFacingCommandError(err)
 					}
-					fmt.Fprintf(cmd.OutOrStdout(), "폴더 이름 변경: id=%d → %s\n", id, name)
+					fmt.Fprintf(cmd.OutOrStdout(), "folder renamed: id=%d -> %s\n", id, name)
 					return nil
 				}
 
@@ -157,14 +161,15 @@ func newWatchlistGroupCmd(opts *rootOptions) *cobra.Command {
 				if err := app.client.RenameWatchlistGroup(cmd.Context(), id, name); err != nil {
 					return userFacingCommandError(err)
 				}
-				fmt.Fprintf(cmd.OutOrStdout(), "폴더 이름 변경: id=%d → %s\n", id, name)
+				fmt.Fprintf(cmd.OutOrStdout(), "folder renamed: id=%d -> %s\n", id, name)
 				return nil
 			},
 		},
 		&cobra.Command{
-			Use:   "delete [<id>]",
-			Short: "Delete a watchlist folder",
-			Args:  cobra.MaximumNArgs(1),
+			Use:         "delete [<id>]",
+			Short:       "Delete a watchlist folder",
+			Args:        cobra.MaximumNArgs(1),
+			Annotations: map[string]string{"source": "wts"},
 			RunE: func(cmd *cobra.Command, args []string) error {
 				var id int64
 
@@ -173,12 +178,12 @@ func newWatchlistGroupCmd(opts *rootOptions) *cobra.Command {
 					var parseErr error
 					id, parseErr = strconv.ParseInt(args[0], 10, 64)
 					if parseErr != nil {
-						return fmt.Errorf("폴더 id 는 숫자여야 합니다: %s", args[0])
+						return fmt.Errorf("folder id must be a number: %s", args[0])
 					}
 				} else {
 					// No id: pick folder interactively (TTY only).
 					if !tui.IsInteractive(os.Stdin, os.Stdout) {
-						return fmt.Errorf("폴더 id 를 지정하거나 터미널에서 실행하세요")
+						return fmt.Errorf("specify a folder id, or run in an interactive terminal")
 					}
 					app, err := newAppContext(opts)
 					if err != nil {
@@ -191,7 +196,7 @@ func newWatchlistGroupCmd(opts *rootOptions) *cobra.Command {
 					if err := app.client.DeleteWatchlistGroup(cmd.Context(), id); err != nil {
 						return userFacingCommandError(err)
 					}
-					fmt.Fprintf(cmd.OutOrStdout(), "폴더 삭제: id=%d\n", id)
+					fmt.Fprintf(cmd.OutOrStdout(), "folder deleted: id=%d\n", id)
 					return nil
 				}
 
@@ -202,7 +207,7 @@ func newWatchlistGroupCmd(opts *rootOptions) *cobra.Command {
 				if err := app.client.DeleteWatchlistGroup(cmd.Context(), id); err != nil {
 					return userFacingCommandError(err)
 				}
-				fmt.Fprintf(cmd.OutOrStdout(), "폴더 삭제: id=%d\n", id)
+				fmt.Fprintf(cmd.OutOrStdout(), "folder deleted: id=%d\n", id)
 				return nil
 			},
 		},
@@ -213,16 +218,17 @@ func newWatchlistGroupCmd(opts *rootOptions) *cobra.Command {
 func newWatchlistAddRemoveCmd(opts *rootOptions, verb, short string) *cobra.Command {
 	var groupID int64
 	c := &cobra.Command{
-		Use:   verb + " <symbol or name>",
-		Short: short,
-		Args:  cobra.MinimumNArgs(1),
+		Use:         verb + " <symbol or name>",
+		Short:       short,
+		Args:        cobra.MinimumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
 				return err
 			}
 			if groupID == 0 {
-				return fmt.Errorf("--group <폴더id> 필요 (`watchlist groups` 로 확인)")
+				return fmt.Errorf("--group <folder-id> is required (see `watchlist groups`)")
 			}
 			symbol := strings.Join(args, " ")
 			if verb == "add" {
@@ -233,14 +239,14 @@ func newWatchlistAddRemoveCmd(opts *rootOptions, verb, short string) *cobra.Comm
 			if err != nil {
 				return userFacingCommandError(err)
 			}
-			action := "추가"
+			action := "added"
 			if verb == "remove" {
-				action = "제거"
+				action = "removed"
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "관심종목 %s: %s (폴더 id=%d)\n", action, symbol, groupID)
+			fmt.Fprintf(cmd.OutOrStdout(), "watchlist %s: %s (folder id=%d)\n", action, symbol, groupID)
 			return nil
 		},
 	}
-	c.Flags().Int64Var(&groupID, "group", 0, "대상 폴더 id (watchlist groups 로 확인)")
+	c.Flags().Int64Var(&groupID, "group", 0, "target folder id (see `watchlist groups`)")
 	return c
 }

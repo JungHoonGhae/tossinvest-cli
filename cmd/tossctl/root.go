@@ -34,16 +34,16 @@ type rootOptions struct {
 }
 
 type appContext struct {
-	format            output.Format
-	paths             config.Paths
-	config            config.File
-	configService     *config.Service
-	loginConfig       auth.LoginConfig
-	authService       *auth.Service
-	client            *hybrid.Client
-	session           *session.Session
-	lineageService    *orderlineage.Service
-	tradingService    *trading.Service
+	format         output.Format
+	paths          config.Paths
+	config         config.File
+	configService  *config.Service
+	loginConfig    auth.LoginConfig
+	authService    *auth.Service
+	client         *hybrid.Client
+	session        *session.Session
+	lineageService *orderlineage.Service
+	tradingService *trading.Service
 }
 
 func newRootCmd() *cobra.Command {
@@ -92,7 +92,7 @@ func newRootCmd() *cobra.Command {
 					HasOfficialCreds: hasOfficialCreds,
 				}
 				if shouldHintOnboarding(state, tui.IsInteractive(os.Stdin, os.Stdout), cmd.Name()) {
-					fmt.Fprintln(cmd.ErrOrStderr(), "처음이신가요? `tossctl init` 으로 인증을 설정하세요.")
+					fmt.Fprintln(cmd.ErrOrStderr(), "First time here? Run `tossctl init` to set up authentication.")
 				}
 			}
 
@@ -478,9 +478,9 @@ func newAppContext(opts *rootOptions) (*appContext, error) {
 			Validator:       wtsClient,
 			ExtensionRunner: wtsClient,
 		}),
-		client:            h,
-		session:           sess,
-		lineageService:    orderlineage.NewService(paths.LineageFile),
-		tradingService:    trading.NewService(cfg.Trading, h.Broker()),
+		client:         h,
+		session:        sess,
+		lineageService: orderlineage.NewService(paths.LineageFile),
+		tradingService: trading.NewService(cfg.Trading, h.Broker()),
 	}, nil
 }

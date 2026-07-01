@@ -15,7 +15,7 @@ func newTransactionsCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "transactions",
 		Short: "Read transaction ledger (trades, cash flow, stock in/out)",
-		Long: "Read-only access to Toss Securities' 거래내역 ledger. " +
+		Long: "Read-only access to Toss Securities' transaction ledger. " +
 			"Covers trades, deposits/withdrawals, dividends, and stock in/out per market. " +
 			"Toss caps a single query at 200 days and paginates.",
 	}
@@ -39,8 +39,9 @@ type transactionsListFlags struct {
 func newTransactionsListCmd(opts *rootOptions) *cobra.Command {
 	flags := &transactionsListFlags{}
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List transactions (trades + cash flow) for a market",
+		Use:         "list",
+		Short:       "List transactions (trades + cash flow) for a market",
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -95,8 +96,9 @@ func newTransactionsListCmd(opts *rootOptions) *cobra.Command {
 func newTransactionsOverviewCmd(opts *rootOptions) *cobra.Command {
 	var market string
 	cmd := &cobra.Command{
-		Use:   "overview",
-		Short: "Show cash overview for a market (orderable, withdrawable, upcoming deposits)",
+		Use:         "overview",
+		Short:       "Show cash overview for a market (orderable, withdrawable, upcoming deposits)",
+		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
