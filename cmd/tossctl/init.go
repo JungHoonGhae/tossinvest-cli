@@ -12,13 +12,11 @@ import (
 
 const officialPreApplyURL = "https://corp.tossinvest.com/ko/open-api"
 
-const (
-	initChoiceOfficial = "Official Open API key only — core supported features only. Most stable (auto token refresh, no browser needed)"
-	initChoiceWeb      = "Web session login only — unlocks unofficial features too, but disconnects sooner and needs more frequent renewal"
-	initChoiceBoth     = "Both (recommended) — stability + maximum coverage, with fallback if the official API is down"
-)
-
 func newInitCmd(opts *rootOptions) *cobra.Command {
+	initChoiceOfficial := i18n.T("init.prompt.choiceOfficial")
+	initChoiceWeb := i18n.T("init.prompt.choiceWeb")
+	initChoiceBoth := i18n.T("init.prompt.choiceBoth")
+
 	return &cobra.Command{
 		Use:         "init",
 		Short:       i18n.T("init.short"),
@@ -26,15 +24,11 @@ func newInitCmd(opts *rootOptions) *cobra.Command {
 		Long:        i18n.T("init.long"),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if !tui.IsInteractive(os.Stdin, os.Stdout) {
-				_, err := fmt.Fprint(cmd.OutOrStdout(),
-					"In a non-interactive environment, set up auth with one of these commands:\n"+
-						"  Web session:    tossctl auth login\n"+
-						"  Official Open API:  tossctl openapi login --key <KEY> --secret <SECRET>\n",
-				)
+				_, err := fmt.Fprint(cmd.OutOrStdout(), i18n.T("init.msg.nonInteractiveGuidance"))
 				return err
 			}
 
-			choice, err := tui.Select("Select an authentication method", []string{
+			choice, err := tui.Select(i18n.T("init.prompt.selectMethod"), []string{
 				initChoiceOfficial,
 				initChoiceWeb,
 				initChoiceBoth,
@@ -72,14 +66,14 @@ func runInitOfficialFlow(cmd *cobra.Command, opts *rootOptions) error {
 	// Show pre-application link when the user has no key yet.
 	existing, _ := official.LoadCredentials(os.Getenv, credFile)
 	if existing == nil {
-		fmt.Fprintf(cmd.OutOrStdout(), "If you don't have an official Open API key yet, apply first: %s\n\n", officialPreApplyURL)
+		fmt.Fprintf(cmd.OutOrStdout(), i18n.T("init.msg.applyLink"), officialPreApplyURL)
 	}
 
-	key, err := tui.Password("API Key")
+	key, err := tui.Password(i18n.T("init.prompt.apiKey"))
 	if err != nil {
 		return err
 	}
-	secret, err := tui.Password("Secret Key")
+	secret, err := tui.Password(i18n.T("init.prompt.secretKey"))
 	if err != nil {
 		return err
 	}
@@ -94,7 +88,7 @@ func runInitOfficialFlow(cmd *cobra.Command, opts *rootOptions) error {
 		if err := saveOpenAPICredentials(credFile, key, secret); err != nil {
 			return err
 		}
-		fmt.Fprintln(cmd.OutOrStdout(), "✓ official Open API key saved")
+		fmt.Fprintln(cmd.OutOrStdout(), i18n.T("init.msg.officialSaved"))
 	} else {
 		fmt.Fprintf(cmd.OutOrStdout(), "✗ %s\n", result.Message)
 	}

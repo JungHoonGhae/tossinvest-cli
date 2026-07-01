@@ -47,11 +47,11 @@ func TestStepsFor(t *testing.T) {
 	}{
 		{
 			onboarding.MethodOfficial,
-			[]string{"키 입력", "시크릿 입력", "검증", "저장"},
+			[]string{"Enter key", "Enter secret", "Validate", "Save"},
 		},
 		{
 			onboarding.MethodWeb,
-			[]string{"브라우저 로그인"},
+			[]string{"Browser login"},
 		},
 		{
 			onboarding.Method("unknown"),
