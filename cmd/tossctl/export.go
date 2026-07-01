@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -11,13 +12,13 @@ import (
 func newExportCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "export",
-		Short: "Export read-only data to machine-friendly formats (CSV/JSON)",
+		Short: i18n.T("export.short"),
 	}
 
 	var positionsMarket string
 	positionsCmd := &cobra.Command{
 		Use:         "positions",
-		Short:       "Export current portfolio positions",
+		Short:       i18n.T("export.positions.short"),
 		Annotations: map[string]string{"source": "both"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
@@ -37,7 +38,7 @@ func newExportCmd(opts *rootOptions) *cobra.Command {
 	var ordersMarket string
 	ordersCmd := &cobra.Command{
 		Use:         "orders",
-		Short:       "Export completed order history",
+		Short:       i18n.T("export.orders.short"),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)

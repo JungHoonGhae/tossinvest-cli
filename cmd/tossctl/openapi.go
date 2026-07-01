@@ -13,6 +13,7 @@ import (
 
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -340,7 +341,7 @@ func readTokenExpiry(tokenFile string) *time.Time {
 func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "openapi",
-		Short: "Manage Toss Open API (official) credentials",
+		Short: i18n.T("openapi.short"),
 	}
 
 	// ── login ──────────────────────────────────────────────────────────────
@@ -350,7 +351,7 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 	)
 	loginCmd := &cobra.Command{
 		Use:         "login",
-		Short:       "Save Open API credentials (non-interactive; --key and --secret required)",
+		Short:       i18n.T("openapi.login.short"),
 		Annotations: map[string]string{"source": "official"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if loginKey == "" || loginSecret == "" {
@@ -374,7 +375,7 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 	// ── test ───────────────────────────────────────────────────────────────
 	testCmd := &cobra.Command{
 		Use:         "test",
-		Short:       "Test saved Open API credentials against the live API",
+		Short:       i18n.T("openapi.test.short"),
 		Annotations: map[string]string{"source": "official"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			format, err := output.ParseFormat(opts.outputFormat)
@@ -407,7 +408,7 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 	// ── logout ─────────────────────────────────────────────────────────────
 	logoutCmd := &cobra.Command{
 		Use:         "logout",
-		Short:       "Remove saved Open API credentials and token cache",
+		Short:       i18n.T("openapi.logout.short"),
 		Annotations: map[string]string{"source": "local"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			credFile, tokenFile, err := resolveOpenAPIPaths(opts)
@@ -427,7 +428,7 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 	// ── status ─────────────────────────────────────────────────────────────
 	statusCmd := &cobra.Command{
 		Use:         "status",
-		Short:       "Show Open API diagnostic dashboard (credentials, key status, IPs, connection)",
+		Short:       i18n.T("openapi.status.short"),
 		Annotations: map[string]string{"source": "official"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			format, err := output.ParseFormat(opts.outputFormat)

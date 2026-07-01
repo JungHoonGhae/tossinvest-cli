@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/tui"
 	"github.com/spf13/cobra"
@@ -20,10 +21,9 @@ const (
 func newInitCmd(opts *rootOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:         "init",
-		Short:       "Interactive onboarding wizard for authentication setup",
+		Short:       i18n.T("init.short"),
 		Annotations: map[string]string{"source": "local"},
-		Long: "Interactively set up authentication via an official Open API key or a web session.\n" +
-			"In non-interactive (CI/AI) environments, prints flag-based command guidance and exits cleanly.",
+		Long:        i18n.T("init.long"),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			if !tui.IsInteractive(os.Stdin, os.Stdout) {
 				_, err := fmt.Fprint(cmd.OutOrStdout(),

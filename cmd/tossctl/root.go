@@ -14,6 +14,7 @@ import (
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/onboarding"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderlineage"
@@ -50,10 +51,9 @@ func newRootCmd() *cobra.Command {
 	opts := &rootOptions{}
 
 	cmd := &cobra.Command{
-		Use:   "tossctl",
-		Short: "CLI for Toss Securities web data and trading experiments",
-		Long: "tossctl is the CLI binary for tossinvest-cli, an unofficial Toss Securities " +
-			"web client with browser-assisted login and a narrow trading beta surface.",
+		Use:          "tossctl",
+		Short:        i18n.T("root.short"),
+		Long:         i18n.T("root.long"),
 		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			format, err := output.ParseFormat(opts.outputFormat)

@@ -1,12 +1,22 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"testing"
 	"unicode"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/spf13/cobra"
 )
+
+// TestMain pins the i18n locale to English before running this package's
+// tests so TestShortDescriptionsAreEnglish sees English Short strings
+// regardless of the host environment's TOSSCTL_LANG/LANG settings.
+func TestMain(m *testing.M) {
+	i18n.SetLang("en")
+	os.Exit(m.Run())
+}
 
 // leafCommands walks the tree and returns commands that actually run (RunE/Run set).
 func leafCommands(root *cobra.Command) []*cobra.Command {

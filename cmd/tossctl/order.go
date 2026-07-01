@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderlineage"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
@@ -67,9 +68,8 @@ type amendFlags struct {
 func newOrderCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "order",
-		Short: "Preview, inspect, and manage trading actions",
-		Long: "Trading commands are intentionally separate from read-only commands and " +
-			"default to a local preview + explicit execute/confirm gates before any live mutation.",
+		Short: i18n.T("order.short"),
+		Long:  i18n.T("order.long"),
 	}
 
 	cmd.AddCommand(
@@ -88,7 +88,7 @@ func newOrderShowCmd(opts *rootOptions) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:         "show [order-id]",
-		Short:       "Show a single order from pending or current-month completed history",
+		Short:       i18n.T("order.show.short"),
 		Args:        cobra.MaximumNArgs(1),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -165,7 +165,7 @@ func newOrderPreviewCmd(opts *rootOptions) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:         "preview",
-		Short:       "Preview a canonical order intent",
+		Short:       i18n.T("order.preview.short"),
 		Annotations: map[string]string{"source": "local"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
@@ -202,7 +202,7 @@ func newOrderPlaceCmd(opts *rootOptions) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:         "place",
-		Short:       "Place a live order with explicit danger approval",
+		Short:       i18n.T("order.place.short"),
 		Annotations: map[string]string{"source": "both", "mutating": "true"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
@@ -250,7 +250,7 @@ func newOrderCancelCmd(opts *rootOptions) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:         "cancel",
-		Short:       "Cancel a live pending order",
+		Short:       i18n.T("order.cancel.short"),
 		Annotations: map[string]string{"source": "both", "mutating": "true"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			// Early non-TTY guard — before expensive app context creation.
@@ -317,7 +317,7 @@ func newOrderAmendCmd(opts *rootOptions) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:         "amend",
-		Short:       "Amend a live pending order",
+		Short:       i18n.T("order.amend.short"),
 		Annotations: map[string]string{"source": "both", "mutating": "true"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			// Early non-TTY guard — before expensive app context creation.

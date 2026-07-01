@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/monitor"
 	"github.com/spf13/cobra"
 )
@@ -13,19 +14,14 @@ import (
 func newMonitorCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "monitor",
-		Short: "Periodic health checks against Toss read-only endpoints",
+		Short: i18n.T("monitor.short"),
 	}
 
 	apiCmd := &cobra.Command{
 		Use:         "api",
-		Short:       "Run schema-invariant probes; exit 1 on any failure",
+		Short:       i18n.T("monitor.api.short"),
 		Annotations: map[string]string{"source": "wts"},
-		Long: `Run schema-invariant probes against the read-only Toss endpoints the
-CLI depends on. Designed for cron / launchd.
-
-Exits 0 when every probe passes, 1 if any probe fails. Compose alert
-channels (Discord, Slack, ntfy, mail, …) in the cron line via "||".
-See AGENTS.md for recipes.`,
+		Long:        i18n.T("monitor.api.long"),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {

@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -26,12 +27,12 @@ func findSector(items []domain.Sector, id int) ([]domain.Sector, bool) {
 func newMarketCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "market",
-		Short: "Market-wide information (trading hours, etc.)",
+		Short: i18n.T("market.short"),
 	}
 
 	hoursCmd := &cobra.Command{
 		Use:         "hours",
-		Short:       "Today's KR and US trading session windows",
+		Short:       i18n.T("market.hours.short"),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
@@ -48,7 +49,7 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 
 	fxCmd := &cobra.Command{
 		Use:         "fx",
-		Short:       "USD/KRW FX and dollar index quotes",
+		Short:       i18n.T("market.fx.short"),
 		Annotations: map[string]string{"source": "both"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
@@ -65,8 +66,8 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 
 	indexCmd := &cobra.Command{
 		Use:         "index [code|name]",
-		Short:       "Major market indices (KOSPI, KOSDAQ, Nasdaq, S&P 500, VIX)",
-		Long:        "Major market indices. Pass a symbol to get index detail (OHLC, 52-week range).",
+		Short:       i18n.T("market.index.short"),
+		Long:        i18n.T("market.index.long"),
 		Args:        cobra.MaximumNArgs(1),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -92,7 +93,7 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	var rankingSize int
 	rankingCmd := &cobra.Command{
 		Use:         "ranking",
-		Short:       "Realtime popularity ranking",
+		Short:       i18n.T("market.ranking.short"),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
@@ -110,7 +111,7 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 
 	signalsCmd := &cobra.Command{
 		Use:         "signals",
-		Short:       "Toss AI market signals",
+		Short:       i18n.T("market.signals.short"),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
@@ -128,7 +129,7 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	var investorsSize int
 	investorsCmd := &cobra.Command{
 		Use:         "investors",
-		Short:       "Net-buy ranking by investor type (foreign, institutional, retail)",
+		Short:       i18n.T("market.investors.short"),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
@@ -147,8 +148,8 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	var earningsMajor bool
 	earningsCmd := &cobra.Command{
 		Use:         "earnings",
-		Short:       "Upcoming earnings-call calendar",
-		Long:        "Upcoming earnings-call calendar. Use --major to show only major companies.",
+		Short:       i18n.T("market.earnings.short"),
+		Long:        i18n.T("market.earnings.long"),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
@@ -169,11 +170,9 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	earningsCmd.Flags().BoolVar(&earningsMajor, "major", false, "show only major companies' earnings calls (curated)")
 
 	sectorsCmd := &cobra.Command{
-		Use:   "sectors [id]",
-		Short: "Industry (TICS) sector fluctuations",
-		Long: "Industry (TICS) sector fluctuations. With no argument, shows top-level sectors; " +
-			"pass an id to drill into sub-industries.\n\n" +
-			"Note: uses a WTS internal endpoint; not available via the official Open API and may change without notice.",
+		Use:         "sectors [id]",
+		Short:       i18n.T("market.sectors.short"),
+		Long:        i18n.T("market.sectors.long"),
 		Args:        cobra.MaximumNArgs(1),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -201,10 +200,9 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	}
 
 	briefingCmd := &cobra.Command{
-		Use:   "briefing",
-		Short: "Personalized AI news briefing",
-		Long: "Personalized AI news briefing.\n\n" +
-			"Note: uses a WTS internal endpoint; not available via the official Open API and may change without notice.",
+		Use:         "briefing",
+		Short:       i18n.T("market.briefing.short"),
+		Long:        i18n.T("market.briefing.long"),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
@@ -225,14 +223,9 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		screenerFilter string
 	)
 	screenerCmd := &cobra.Command{
-		Use:   "screener [preset-id]",
-		Short: "Stock screeners (value, dividend, growth, and more)",
-		Long: `Stock screeners. With no argument, lists available presets; pass a preset id to run it.
-
-For custom conditions, pass a raw JSON array via --filter (Toss web's filter schema):
-  tossctl market screener --filter '[{"id":"marketCap","conditions":[...]}]' --nation kr
-
-To shape the filter ID/condition structure, reference the preset output (--output json).`,
+		Use:         "screener [preset-id]",
+		Short:       i18n.T("market.screener.short"),
+		Long:        i18n.T("market.screener.long"),
 		Args:        cobra.MaximumNArgs(1),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -268,10 +261,9 @@ To shape the filter ID/condition structure, reference the preset output (--outpu
 
 	var themesSize int
 	themesCmd := &cobra.Command{
-		Use:   "themes",
-		Short: "Theme fluctuation ranking",
-		Long: "Theme fluctuation ranking (today's top-moving themes).\n\n" +
-			"Note: uses a WTS internal endpoint; not available via the official Open API and may change without notice.",
+		Use:         "themes",
+		Short:       i18n.T("market.themes.short"),
+		Long:        i18n.T("market.themes.long"),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)

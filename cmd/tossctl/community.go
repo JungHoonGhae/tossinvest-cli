@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -8,15 +9,14 @@ import (
 func newCommunityCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "community",
-		Short: "Toss community leaderboards and social data",
+		Short: i18n.T("community.short"),
 	}
 
 	var rankType string
 	rankingsCmd := &cobra.Command{
-		Use:   "rankings",
-		Short: "Community leaderboards (influencers, returns, follower surges)",
-		Long: "Community leaderboards (influencers, returns, follower surges).\n\n" +
-			"Note: uses a WTS internal endpoint; not available via the official Open API and may change without notice.",
+		Use:         "rankings",
+		Short:       i18n.T("community.rankings.short"),
+		Long:        i18n.T("community.rankings.long"),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)

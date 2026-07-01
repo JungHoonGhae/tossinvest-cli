@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/tui"
 	"github.com/spf13/cobra"
@@ -47,13 +48,13 @@ func pickFolderID(ctx context.Context, app *appContext) (int64, error) {
 func newWatchlistCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "watchlist",
-		Short: "Read and manage the watchlist",
+		Short: i18n.T("watchlist.short"),
 	}
 
 	cmd.AddCommand(
 		&cobra.Command{
 			Use:         "list",
-			Short:       "List watchlist entries",
+			Short:       i18n.T("watchlist.list.short"),
 			Annotations: map[string]string{"source": "wts"},
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				app, err := newAppContext(opts)
@@ -69,7 +70,7 @@ func newWatchlistCmd(opts *rootOptions) *cobra.Command {
 		},
 		&cobra.Command{
 			Use:         "groups",
-			Short:       "List watchlist folders",
+			Short:       i18n.T("watchlist.groups.short"),
 			Annotations: map[string]string{"source": "wts"},
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				app, err := newAppContext(opts)
@@ -84,8 +85,8 @@ func newWatchlistCmd(opts *rootOptions) *cobra.Command {
 			},
 		},
 		newWatchlistGroupCmd(opts),
-		newWatchlistAddRemoveCmd(opts, "add", "Add a symbol to the watchlist"),
-		newWatchlistAddRemoveCmd(opts, "remove", "Remove a symbol from the watchlist"),
+		newWatchlistAddRemoveCmd(opts, "add", i18n.T("watchlist.add.short")),
+		newWatchlistAddRemoveCmd(opts, "remove", i18n.T("watchlist.remove.short")),
 	)
 
 	return cmd
@@ -94,13 +95,13 @@ func newWatchlistCmd(opts *rootOptions) *cobra.Command {
 func newWatchlistGroupCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "group",
-		Short: "Manage watchlist folders (create, rename, delete)",
+		Short: i18n.T("watchlist.group.short"),
 	}
 
 	cmd.AddCommand(
 		&cobra.Command{
 			Use:         "create <name>",
-			Short:       "Create a watchlist folder",
+			Short:       i18n.T("watchlist.group.create.short"),
 			Args:        cobra.MinimumNArgs(1),
 			Annotations: map[string]string{"source": "wts"},
 			RunE: func(cmd *cobra.Command, args []string) error {
@@ -118,7 +119,7 @@ func newWatchlistGroupCmd(opts *rootOptions) *cobra.Command {
 		},
 		&cobra.Command{
 			Use:         "rename [<id>] <new-name>",
-			Short:       "Rename a watchlist folder",
+			Short:       i18n.T("watchlist.group.rename.short"),
 			Args:        cobra.RangeArgs(1, 2),
 			Annotations: map[string]string{"source": "wts"},
 			RunE: func(cmd *cobra.Command, args []string) error {
@@ -167,7 +168,7 @@ func newWatchlistGroupCmd(opts *rootOptions) *cobra.Command {
 		},
 		&cobra.Command{
 			Use:         "delete [<id>]",
-			Short:       "Delete a watchlist folder",
+			Short:       i18n.T("watchlist.group.delete.short"),
 			Args:        cobra.MaximumNArgs(1),
 			Annotations: map[string]string{"source": "wts"},
 			RunE: func(cmd *cobra.Command, args []string) error {

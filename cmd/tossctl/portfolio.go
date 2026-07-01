@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -8,13 +9,13 @@ import (
 func newPortfolioCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "portfolio",
-		Short: "Read portfolio and holdings data",
+		Short: i18n.T("portfolio.short"),
 	}
 
 	cmd.AddCommand(
 		&cobra.Command{
 			Use:         "positions",
-			Short:       "List current positions",
+			Short:       i18n.T("portfolio.positions.short"),
 			Annotations: map[string]string{"source": "both"},
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				app, err := newAppContext(opts)
@@ -32,7 +33,7 @@ func newPortfolioCmd(opts *rootOptions) *cobra.Command {
 		},
 		&cobra.Command{
 			Use:         "allocation",
-			Short:       "Show portfolio allocation",
+			Short:       i18n.T("portfolio.allocation.short"),
 			Annotations: map[string]string{"source": "wts"},
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				app, err := newAppContext(opts)
@@ -60,10 +61,9 @@ func newDividendsCmd(opts *rootOptions) *cobra.Command {
 		byPaymentDate bool
 	)
 	cmd := &cobra.Command{
-		Use:   "dividends",
-		Short: "Annual dividend report (total, region, monthly)",
-		Long: "Annual dividend report (total, region, monthly).\n\n" +
-			"Note: uses a WTS internal endpoint; not available via the official Open API and may change without notice.",
+		Use:         "dividends",
+		Short:       i18n.T("portfolio.dividends.short"),
+		Long:        i18n.T("portfolio.dividends.long"),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)

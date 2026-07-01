@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -19,12 +20,12 @@ import (
 func newQuoteCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "quote",
-		Short: "Read quote data",
+		Short: i18n.T("quote.short"),
 	}
 
 	getCmd := &cobra.Command{
 		Use:         "get <symbol or name>",
-		Short:       "Fetch quote data for a symbol or stock name",
+		Short:       i18n.T("quote.get.short"),
 		Args:        cobra.MinimumNArgs(1),
 		Annotations: map[string]string{"source": "both"},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -50,7 +51,7 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 	)
 	batchCmd := &cobra.Command{
 		Use:         "batch <symbol>[,symbol,...] [...]",
-		Short:       "Fetch quotes for multiple symbols at once (comma-separated supported)",
+		Short:       i18n.T("quote.batch.short"),
 		Args:        cobra.MinimumNArgs(1),
 		Annotations: map[string]string{"source": "both"},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -145,7 +146,7 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 	)
 	chartCmd := &cobra.Command{
 		Use:         "chart <symbol or name>",
-		Short:       "Fetch candle chart for a symbol or stock name",
+		Short:       i18n.T("quote.chart.short"),
 		Args:        cobra.MinimumNArgs(1),
 		Annotations: map[string]string{"source": "both"},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -169,7 +170,7 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 	var tradesCount int
 	tradesCmd := &cobra.Command{
 		Use:         "trades <symbol or name>",
-		Short:       "Fetch recent executed ticks for a symbol",
+		Short:       i18n.T("quote.trades.short"),
 		Args:        cobra.MinimumNArgs(1),
 		Annotations: map[string]string{"source": "both"},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -188,7 +189,7 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 
 	limitsCmd := &cobra.Command{
 		Use:         "limits <symbol or name>",
-		Short:       "Fetch daily upper and lower price band",
+		Short:       i18n.T("quote.limits.short"),
 		Args:        cobra.MinimumNArgs(1),
 		Annotations: map[string]string{"source": "both"},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -206,7 +207,7 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 
 	warningsCmd := &cobra.Command{
 		Use:         "warnings <symbol or name>",
-		Short:       "Fetch buy-caution badges",
+		Short:       i18n.T("quote.warnings.short"),
 		Args:        cobra.MinimumNArgs(1),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -225,7 +226,7 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 	var flowsSize int
 	flowsCmd := &cobra.Command{
 		Use:         "flows <symbol or name>",
-		Short:       "Investor-type net flows (KR: retail, foreign, institutional)",
+		Short:       i18n.T("quote.flows.short"),
 		Args:        cobra.MinimumNArgs(1),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -244,7 +245,7 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 
 	orderbookCmd := &cobra.Command{
 		Use:         "orderbook <symbol or name>",
-		Short:       "Bid/ask depth ladder",
+		Short:       i18n.T("quote.orderbook.short"),
 		Args:        cobra.MinimumNArgs(1),
 		Annotations: map[string]string{"source": "both"},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -262,7 +263,7 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 
 	sellableCmd := &cobra.Command{
 		Use:         "sellable <symbol or name>",
-		Short:       "Sellable quantity for a held symbol",
+		Short:       i18n.T("quote.sellable.short"),
 		Args:        cobra.MinimumNArgs(1),
 		Annotations: map[string]string{"source": "both"},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -280,7 +281,7 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 
 	commissionCmd := &cobra.Command{
 		Use:         "commission <symbol or name>",
-		Short:       "Commission and tax rate",
+		Short:       i18n.T("quote.commission.short"),
 		Args:        cobra.MinimumNArgs(1),
 		Annotations: map[string]string{"source": "both"},
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/updatecheck"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/version"
@@ -16,7 +17,7 @@ import (
 func newVersionCmd(opts *rootOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:         "version",
-		Short:       "Show tossctl version information",
+		Short:       i18n.T("version.short"),
 		Annotations: map[string]string{"source": "local"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			info := version.Current()

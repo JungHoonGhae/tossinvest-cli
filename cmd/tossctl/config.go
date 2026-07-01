@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -11,13 +12,13 @@ import (
 func newConfigCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
-		Short: "Inspect and initialize tossctl config",
+		Short: i18n.T("config.short"),
 	}
 
 	cmd.AddCommand(
 		&cobra.Command{
 			Use:         "show",
-			Short:       "Show the effective config and config path",
+			Short:       i18n.T("config.show.short"),
 			Annotations: map[string]string{"source": "local"},
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				app, err := newAppContext(opts)
@@ -35,7 +36,7 @@ func newConfigCmd(opts *rootOptions) *cobra.Command {
 		},
 		&cobra.Command{
 			Use:         "init",
-			Short:       "Create a default config.json with trading disabled",
+			Short:       i18n.T("config.init.short"),
 			Annotations: map[string]string{"source": "local"},
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				app, err := newAppContext(opts)

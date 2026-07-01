@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/push"
 	"github.com/spf13/cobra"
 )
@@ -14,14 +15,14 @@ import (
 func newPushCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "push",
-		Short: "Subscribe to Toss Securities push notifications (SSE)",
+		Short: i18n.T("push.short"),
 	}
 
 	var retry bool
 
 	listenCmd := &cobra.Command{
 		Use:         "listen",
-		Short:       "Stream SSE events as JSON lines to stdout",
+		Short:       i18n.T("push.listen.short"),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
