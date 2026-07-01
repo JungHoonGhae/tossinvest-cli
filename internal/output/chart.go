@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 // ANSI color codes for chart rendering. Populated only when stdout is a TTY
@@ -76,7 +77,7 @@ func writeChartCSV(w io.Writer, chart domain.Chart) error {
 
 func writeChartTable(w io.Writer, chart domain.Chart) error {
 	if len(chart.Candles) == 0 {
-		_, err := fmt.Fprintln(w, "no candle data")
+		_, err := fmt.Fprint(w, i18n.T("output.chart.noData"))
 		return err
 	}
 

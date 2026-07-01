@@ -6,9 +6,14 @@ import (
 	"testing"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 func TestSessionTime(t *testing.T) {
+	prev := i18n.Lang()
+	i18n.SetLang("ko")
+	defer i18n.SetLang(prev)
+
 	cases := []struct{ in, want string }{
 		{"", "휴장"},
 		{"09:00:00.000", "09:00"},
@@ -23,6 +28,10 @@ func TestSessionTime(t *testing.T) {
 }
 
 func TestWriteStockWarningsEmpty(t *testing.T) {
+	prev := i18n.Lang()
+	i18n.SetLang("ko")
+	defer i18n.SetLang(prev)
+
 	var buf bytes.Buffer
 	sw := domain.StockWarnings{ProductCode: "A005930", Name: "삼성전자"}
 	if err := WriteStockWarnings(&buf, FormatTable, sw); err != nil {
@@ -34,6 +43,10 @@ func TestWriteStockWarningsEmpty(t *testing.T) {
 }
 
 func TestWriteScreenerResultTable(t *testing.T) {
+	prev := i18n.Lang()
+	i18n.SetLang("ko")
+	defer i18n.SetLang(prev)
+
 	var buf bytes.Buffer
 	sr := domain.ScreenerResult{
 		PresetName: "꾸준한 배당주", Nation: "kr", TotalCount: 26,
@@ -206,6 +219,10 @@ func TestWriteThemeRankingsJSON(t *testing.T) {
 }
 
 func TestWriteThemeRankingsEmpty(t *testing.T) {
+	prev := i18n.Lang()
+	i18n.SetLang("ko")
+	defer i18n.SetLang(prev)
+
 	var buf bytes.Buffer
 	if err := WriteThemeRankings(&buf, FormatTable, domain.ThemeRankings{}); err != nil {
 		t.Fatal(err)

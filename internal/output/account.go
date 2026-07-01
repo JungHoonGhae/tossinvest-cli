@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 func WriteAccounts(w io.Writer, format Format, accounts []domain.Account, primaryKey string) error {
@@ -41,7 +42,7 @@ func WriteAccounts(w io.Writer, format Format, accounts []domain.Account, primar
 		writer.Flush()
 		return writer.Error()
 	case FormatTable:
-		if _, err := fmt.Fprintf(w, "Primary Key: %s\n", primaryKey); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.account.primaryKey"), primaryKey); err != nil {
 			return err
 		}
 		for _, account := range accounts {
@@ -94,7 +95,7 @@ func WriteAccountSummary(w io.Writer, format Format, summary domain.AccountSumma
 		profitRateStr := fmt.Sprintf("%.2f%%", summary.ProfitRate*100)
 		if _, err := fmt.Fprintf(
 			w,
-			"Total Asset Amount: %s\nEvaluated Profit Amount: %s\nProfit Rate: %s\nOrderable KRW: %s\nOrderable USD: %s\n",
+			i18n.T("output.account.summary.lines"),
 			formatFloat(summary.TotalAssetAmount),
 			profitText(profitAmtStr, summary.EvaluatedProfitAmount, enabled),
 			profitText(profitRateStr, summary.ProfitRate, enabled),

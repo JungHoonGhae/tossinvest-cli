@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 func WriteTrades(w io.Writer, format Format, list domain.TradeList) error {
@@ -32,15 +33,20 @@ func WriteTrades(w io.Writer, format Format, list domain.TradeList) error {
 		cw.Flush()
 		return cw.Error()
 	case FormatTable:
-		headers := []string{"시각", "체결가", "수량", "구분"}
+		headers := []string{
+			i18n.T("output.trades.header.time"),
+			i18n.T("output.trades.header.price"),
+			i18n.T("output.trades.header.volume"),
+			i18n.T("output.trades.header.side"),
+		}
 		rows := make([][]string, 0, len(list.Trades))
 		for _, t := range list.Trades {
 			side := t.TradeType
 			switch t.TradeType {
 			case "BUY":
-				side = "매수"
+				side = i18n.T("output.trades.side.buy")
 			case "SELL":
-				side = "매도"
+				side = i18n.T("output.trades.side.sell")
 			}
 			rows = append(rows, []string{t.Time, formatKRW(t.Price), formatFloat(t.Volume), side})
 		}
@@ -72,7 +78,7 @@ func WritePriceLimits(w io.Writer, format Format, pl domain.PriceLimits) error {
 			name = pl.Symbol
 		}
 		_, err := fmt.Fprintf(w,
-			"%s (%s) · %s\n상한가: %s\n하한가: %s\n",
+			"%s (%s) · %s\n"+i18n.T("output.priceLimits.upper")+": %s\n"+i18n.T("output.priceLimits.lower")+": %s\n",
 			name, pl.ProductCode, pl.Date,
 			formatKRW(pl.UpperLimit), formatKRW(pl.LowerLimit),
 		)
@@ -106,10 +112,10 @@ func WriteStockWarnings(w io.Writer, format Format, sw domain.StockWarnings) err
 			name = sw.Symbol
 		}
 		if len(sw.Warnings) == 0 {
-			_, err := fmt.Fprintf(w, "%s (%s): 매수 유의사항 없음\n", name, sw.ProductCode)
+			_, err := fmt.Fprintf(w, i18n.T("output.warnings.none"), name, sw.ProductCode)
 			return err
 		}
-		if _, err := fmt.Fprintf(w, "%s (%s) 매수 유의사항 %d건\n", name, sw.ProductCode, len(sw.Warnings)); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.warnings.count"), name, sw.ProductCode, len(sw.Warnings)); err != nil {
 			return err
 		}
 		for _, x := range sw.Warnings {
@@ -155,17 +161,25 @@ func WriteTradingHours(w io.Writer, format Format, th domain.TradingHours) error
 		cw.Flush()
 		return cw.Error()
 	case FormatTable:
-		headers := []string{"시장", "구분", "일자", "개장", "마감"}
-		rows := [][]string{
-			{"KR", "오늘", th.KR.Date, sessionTime(th.KR.StartTime), sessionTime(th.KR.EndTime)},
-			{"US", "오늘", th.US.Date, sessionTime(th.US.StartTime), sessionTime(th.US.EndTime)},
+		headers := []string{
+			i18n.T("output.hours.header.market"),
+			i18n.T("output.hours.header.session"),
+			i18n.T("output.hours.header.date"),
+			i18n.T("output.hours.header.open"),
+			i18n.T("output.hours.header.close"),
 		}
-		// 오늘 휴장 시 다음 영업일도 표시
+		today := i18n.T("output.hours.session.today")
+		next := i18n.T("output.hours.session.next")
+		rows := [][]string{
+			{"KR", today, th.KR.Date, sessionTime(th.KR.StartTime), sessionTime(th.KR.EndTime)},
+			{"US", today, th.US.Date, sessionTime(th.US.StartTime), sessionTime(th.US.EndTime)},
+		}
+		// Also show the next business day when today's session is closed.
 		if th.KR.StartTime == "" && th.NextKR.Date != "" {
-			rows = append(rows, []string{"KR", "다음", th.NextKR.Date, sessionTime(th.NextKR.StartTime), sessionTime(th.NextKR.EndTime)})
+			rows = append(rows, []string{"KR", next, th.NextKR.Date, sessionTime(th.NextKR.StartTime), sessionTime(th.NextKR.EndTime)})
 		}
 		if th.US.StartTime == "" && th.NextUS.Date != "" {
-			rows = append(rows, []string{"US", "다음", th.NextUS.Date, sessionTime(th.NextUS.StartTime), sessionTime(th.NextUS.EndTime)})
+			rows = append(rows, []string{"US", next, th.NextUS.Date, sessionTime(th.NextUS.StartTime), sessionTime(th.NextUS.EndTime)})
 		}
 		return renderTable(w, headers, rows)
 	default:
@@ -192,7 +206,11 @@ func WriteExchangeRates(w io.Writer, format Format, er domain.ExchangeRates) err
 		cw.Flush()
 		return cw.Error()
 	case FormatTable:
-		headers := []string{"이름", "기준", "현재"}
+		headers := []string{
+			i18n.T("output.fx.header.name"),
+			i18n.T("output.fx.header.base"),
+			i18n.T("output.fx.header.current"),
+		}
 		rows := make([][]string, 0, len(er.Rates))
 		for _, r := range er.Rates {
 			rows = append(rows, []string{r.Name, formatFloat(r.Base), formatFloat(r.Close)})
@@ -222,7 +240,11 @@ func WriteScreenerPresets(w io.Writer, format Format, sp domain.ScreenerPresets)
 		cw.Flush()
 		return cw.Error()
 	case FormatTable:
-		headers := []string{"ID", "이름", "설명"}
+		headers := []string{
+			i18n.T("output.screener.presets.header.id"),
+			i18n.T("output.screener.presets.header.name"),
+			i18n.T("output.screener.presets.header.description"),
+		}
 		rows := make([][]string, 0, len(sp.Presets))
 		for _, p := range sp.Presets {
 			rows = append(rows, []string{p.ID, p.Name, p.Description})
@@ -230,7 +252,7 @@ func WriteScreenerPresets(w io.Writer, format Format, sp domain.ScreenerPresets)
 		if err := renderTable(w, headers, rows); err != nil {
 			return err
 		}
-		_, err := fmt.Fprintln(w, "\n실행: tossctl market screener <ID> [--nation kr|us]")
+		_, err := fmt.Fprint(w, i18n.T("output.screener.presets.hint"))
 		return err
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
@@ -258,11 +280,16 @@ func WriteScreenerResult(w io.Writer, format Format, sr domain.ScreenerResult) e
 		cw.Flush()
 		return cw.Error()
 	case FormatTable:
-		if _, err := fmt.Fprintf(w, "%s (%s) — %d종목 중 상위 %d\n",
+		if _, err := fmt.Fprintf(w, i18n.T("output.screener.result.header"),
 			sr.PresetName, sr.Nation, sr.TotalCount, len(sr.Stocks)); err != nil {
 			return err
 		}
-		headers := []string{"종목", "이름", "현재가", "변동률"}
+		headers := []string{
+			i18n.T("output.screener.result.header.symbol"),
+			i18n.T("output.screener.result.header.name"),
+			i18n.T("output.screener.result.header.price"),
+			i18n.T("output.screener.result.header.changeRate"),
+		}
 		rows := make([][]string, 0, len(sr.Stocks))
 		for _, s := range sr.Stocks {
 			rows = append(rows, []string{s.ProductCode, s.Name, formatFloat(s.Close), formatPct(s.ChangeRate)})
@@ -294,12 +321,17 @@ func WriteAISignals(w io.Writer, format Format, sg domain.AISignals) error {
 	case FormatTable:
 		label := sg.Label
 		if label == "" {
-			label = "AI 시그널"
+			label = i18n.T("output.signals.defaultLabel")
 		}
 		if _, err := fmt.Fprintf(w, "%s\n", label); err != nil {
 			return err
 		}
-		headers := []string{"종목", "시그널", "키워드", "등락"}
+		headers := []string{
+			i18n.T("output.signals.header.symbol"),
+			i18n.T("output.signals.header.signal"),
+			i18n.T("output.signals.header.keyword"),
+			i18n.T("output.signals.header.change"),
+		}
 		rows := make([][]string, 0, len(sg.Signals))
 		for _, s := range sg.Signals {
 			rows = append(rows, []string{s.AssetName, s.Title, s.Keyword, s.Fluctuation})
@@ -335,10 +367,15 @@ func WriteTradingFlows(w io.Writer, format Format, tf domain.TradingFlows) error
 		if name == "" {
 			name = tf.Symbol
 		}
-		if _, err := fmt.Fprintf(w, "%s (%s) 수급 — 순매수(주)\n", name, tf.ProductCode); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.flows.title"), name, tf.ProductCode); err != nil {
 			return err
 		}
-		headers := []string{"일자", "개인", "외국인", "기관"}
+		headers := []string{
+			i18n.T("output.flows.header.date"),
+			i18n.T("output.flows.header.individual"),
+			i18n.T("output.flows.header.foreign"),
+			i18n.T("output.flows.header.institution"),
+		}
 		rows := make([][]string, 0, len(tf.Flows))
 		for _, f := range tf.Flows {
 			rows = append(rows, []string{
@@ -382,7 +419,13 @@ func WriteMarketIndices(w io.Writer, format Format, mi domain.MarketIndices) err
 		cw.Flush()
 		return cw.Error()
 	case FormatTable:
-		headers := []string{"지수", "코드", "현재", "변동", "변동률"}
+		headers := []string{
+			i18n.T("output.indices.header.index"),
+			i18n.T("output.indices.header.code"),
+			i18n.T("output.indices.header.current"),
+			i18n.T("output.indices.header.change"),
+			i18n.T("output.indices.header.changeRate"),
+		}
 		rows := make([][]string, 0, len(mi.Indices))
 		for _, x := range mi.Indices {
 			sign := ""
@@ -429,13 +472,13 @@ func WriteIndexQuote(w io.Writer, format Format, q domain.IndexQuote) error {
 			sign = "+"
 		}
 		fmt.Fprintf(w, "%s (%s)\n", q.Name, q.Code)
-		fmt.Fprintf(w, "  현재     %.2f  (%s%.2f, %s)\n", q.Close, sign, q.Change, formatPct(q.ChangeRate))
-		fmt.Fprintf(w, "  시/고/저  %.2f / %.2f / %.2f\n", q.Open, q.High, q.Low)
+		fmt.Fprintf(w, "  %-8s %.2f  (%s%.2f, %s)\n", i18n.T("output.indexQuote.current"), q.Close, sign, q.Change, formatPct(q.ChangeRate))
+		fmt.Fprintf(w, "  %-8s %.2f / %.2f / %.2f\n", i18n.T("output.indexQuote.ohl"), q.Open, q.High, q.Low)
 		if q.High52w != 0 || q.Low52w != 0 {
-			fmt.Fprintf(w, "  52주     고 %.2f / 저 %.2f\n", q.High52w, q.Low52w)
+			fmt.Fprintf(w, "  %-8s %s %.2f / %s %.2f\n", i18n.T("output.indexQuote.week52"), i18n.T("output.indexQuote.week52.high"), q.High52w, i18n.T("output.indexQuote.week52.low"), q.Low52w)
 		}
 		if q.Volume != 0 {
-			fmt.Fprintf(w, "  거래량   %s\n", formatFloat(q.Volume))
+			fmt.Fprintf(w, "  %-8s %s\n", i18n.T("output.indexQuote.volume"), formatFloat(q.Volume))
 		}
 		return nil
 	default:
@@ -464,7 +507,12 @@ func WriteStockRanking(w io.Writer, format Format, sr domain.StockRanking) error
 		cw.Flush()
 		return cw.Error()
 	case FormatTable:
-		headers := []string{"순위", "종목", "이름", "시장"}
+		headers := []string{
+			i18n.T("output.ranking.header.rank"),
+			i18n.T("output.ranking.header.symbol"),
+			i18n.T("output.ranking.header.name"),
+			i18n.T("output.ranking.header.market"),
+		}
 		rows := make([][]string, 0, len(sr.Stocks))
 		for _, x := range sr.Stocks {
 			rows = append(rows, []string{fmt.Sprintf("%d", x.Rank), x.Symbol, x.Name, x.Market})
@@ -479,7 +527,7 @@ func WriteStockRanking(w io.Writer, format Format, sr domain.StockRanking) error
 // dash for a closed/holiday session (null → empty string).
 func sessionTime(s string) string {
 	if s == "" {
-		return "휴장"
+		return i18n.T("output.session.closed")
 	}
 	if len(s) >= 5 {
 		return s[:5]
@@ -518,10 +566,10 @@ func WriteOrderBook(w io.Writer, format Format, ob domain.OrderBook) error {
 		if name == "" {
 			name = ob.Symbol
 		}
-		if _, err := fmt.Fprintf(w, "%s (%s) · 호가\n", name, ob.ProductCode); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.orderbook.title"), name, ob.ProductCode); err != nil {
 			return err
 		}
-		if _, err := fmt.Fprintf(w, "%-12s %12s  매도(offer)\n", "잔량", "호가"); err != nil {
+		if _, err := fmt.Fprintf(w, "%-12s %12s  %s\n", i18n.T("output.orderbook.header.volume"), i18n.T("output.orderbook.header.price"), i18n.T("output.orderbook.asks")); err != nil {
 			return err
 		}
 		// Offers high-to-low (worst ask at top, best ask just above spread).
@@ -536,11 +584,11 @@ func WriteOrderBook(w io.Writer, format Format, ob domain.OrderBook) error {
 		}
 		// Bids best-first (highest bid just below spread).
 		for _, lv := range ob.Bids {
-			if _, err := fmt.Fprintf(w, "%12s  %12s  매수(bid)\n", formatKRW(lv.Price), formatFloat(lv.Volume)); err != nil {
+			if _, err := fmt.Fprintf(w, "%12s  %12s  %s\n", formatKRW(lv.Price), formatFloat(lv.Volume), i18n.T("output.orderbook.bids")); err != nil {
 				return err
 			}
 		}
-		_, err := fmt.Fprintf(w, "\n총 매도잔량: %s · 총 매수잔량: %s\n", formatFloat(ob.TotalOffer), formatFloat(ob.TotalBid))
+		_, err := fmt.Fprintf(w, i18n.T("output.orderbook.totalLine"), formatFloat(ob.TotalOffer), formatFloat(ob.TotalBid))
 		return err
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
@@ -569,7 +617,7 @@ func WriteSellableQuantity(w io.Writer, format Format, sq domain.SellableQuantit
 		if name == "" {
 			name = sq.Symbol
 		}
-		_, err := fmt.Fprintf(w, "%s (%s)\n매도가능수량: %s주\n", name, sq.ProductCode, formatFloat(sq.Quantity))
+		_, err := fmt.Fprintf(w, i18n.T("output.sellable.line"), name, sq.ProductCode, formatFloat(sq.Quantity))
 		return err
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
@@ -598,7 +646,7 @@ func WriteCommission(w io.Writer, format Format, c domain.Commission) error {
 		if name == "" {
 			name = c.Symbol
 		}
-		_, err := fmt.Fprintf(w, "%s (%s)\n수수료율: %s\n세금(거래세)율: %s\n",
+		_, err := fmt.Fprintf(w, i18n.T("output.commission.line"),
 			name, c.ProductCode, formatPercent(c.CommissionRate), formatPercent(c.TaxRate))
 		return err
 	default:
@@ -634,7 +682,7 @@ func WriteInvestorRankings(w io.Writer, format Format, ir domain.InvestorRanking
 		return cw.Error()
 	case FormatTable:
 		for _, r := range ir.Rankings {
-			if _, err := fmt.Fprintf(w, "\n[%s] 순매수 상위\n순위  종목                    순매수\n", r.InvestorType); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.investorRankings.header"), r.InvestorType); err != nil {
 				return err
 			}
 			for _, s := range r.Stocks {
@@ -670,10 +718,10 @@ func WriteEarningCalls(w io.Writer, format Format, ec domain.EarningCalls) error
 		return cw.Error()
 	case FormatTable:
 		if len(ec.Events) == 0 {
-			_, err := fmt.Fprintln(w, "예정된 어닝콜이 없습니다")
+			_, err := fmt.Fprint(w, i18n.T("output.earnings.empty"))
 			return err
 		}
-		if _, err := fmt.Fprintf(w, "예정 어닝콜\n일시               기업            구분\n"); err != nil {
+		if _, err := fmt.Fprint(w, i18n.T("output.earnings.header")); err != nil {
 			return err
 		}
 		for _, e := range ec.Events {
@@ -720,32 +768,32 @@ func WriteDividends(w io.Writer, format Format, d domain.Dividends) error {
 		cw.Flush()
 		return cw.Error()
 	case FormatTable:
-		basis := "수령·예정 기준"
+		basis := i18n.T("output.dividends.basis.receivedEstimated")
 		if d.ByPaymentDate {
-			basis = "지급일 기준"
+			basis = i18n.T("output.dividends.basis.paymentDate")
 		}
-		if _, err := fmt.Fprintf(w, "%d년 배당 (%s)\n", d.Year, basis); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.dividends.yearHeader"), d.Year, basis); err != nil {
 			return err
 		}
-		fmt.Fprintf(w, "  총 배당  %s\n", divAmt(d.Summary.Total))
-		fmt.Fprintf(w, "  수령     %s\n", divAmt(d.Summary.Paid))
-		fmt.Fprintf(w, "  예정     %s\n", divAmt(d.Summary.Estimated))
+		fmt.Fprintf(w, "  %-7s  %s\n", i18n.T("output.dividends.total"), divAmt(d.Summary.Total))
+		fmt.Fprintf(w, "  %-7s  %s\n", i18n.T("output.dividends.paid"), divAmt(d.Summary.Paid))
+		fmt.Fprintf(w, "  %-7s  %s\n", i18n.T("output.dividends.estimated"), divAmt(d.Summary.Estimated))
 		if d.Summary.Tax != nil {
-			fmt.Fprintf(w, "  세금     %s\n", divAmt(*d.Summary.Tax))
+			fmt.Fprintf(w, "  %-7s  %s\n", i18n.T("output.dividends.tax"), divAmt(*d.Summary.Tax))
 		}
 		if len(d.Regions) > 0 {
-			fmt.Fprintf(w, "지역별\n")
+			fmt.Fprint(w, i18n.T("output.dividends.byRegion"))
 			for _, r := range d.Regions {
 				fmt.Fprintf(w, "  %-3s  %s\n", strings.ToUpper(r.Region), divAmt(r.Summary.Total))
 			}
 		}
 		if len(d.Monthly) > 0 {
-			fmt.Fprintf(w, "월별\n")
+			fmt.Fprint(w, i18n.T("output.dividends.byMonth"))
 			for _, m := range d.Monthly {
 				if m.Summary.Total.KRW == 0 && m.Summary.Total.USD == 0 {
 					continue
 				}
-				fmt.Fprintf(w, "  %2d월  %s\n", m.Month, divAmt(m.Summary.Total))
+				fmt.Fprintf(w, "  %2d%s  %s\n", m.Month, i18n.T("output.dividends.monthSuffix"), divAmt(m.Summary.Total))
 			}
 		}
 		return nil
@@ -779,22 +827,22 @@ func WriteCommunityRanking(w io.Writer, format Format, r domain.CommunityRanking
 		return cw.Error()
 	case FormatTable:
 		if len(r.Users) == 0 {
-			_, err := fmt.Fprintln(w, "랭킹 데이터가 없습니다")
+			_, err := fmt.Fprint(w, i18n.T("output.community.empty"))
 			return err
 		}
 		switch r.Type {
 		case "TOP_10_PROFIT_ROSS_AMOUNT":
-			fmt.Fprintf(w, "수익금 랭킹\n순위  닉네임            수익금          수익률\n")
+			fmt.Fprint(w, i18n.T("output.community.profitHeader"))
 			for _, u := range r.Users {
 				fmt.Fprintf(w, "%2d   %-16s  %12s원  %.1f%%\n", u.Rank, u.Nickname, formatKRW(u.ProfitAmountKRW), u.ProfitRate*100)
 			}
 		case "TOP_10_FOLLOWING_INCREASE":
-			fmt.Fprintf(w, "팔로워 급증 랭킹\n순위  닉네임            팔로워     증가\n")
+			fmt.Fprint(w, i18n.T("output.community.followingHeader"))
 			for _, u := range r.Users {
 				fmt.Fprintf(w, "%2d   %-16s  %7d  +%d\n", u.Rank, u.Nickname, u.FollowingCount, u.FollowingIncrease)
 			}
 		default: // INFLUENCER
-			fmt.Fprintf(w, "인플루언서 랭킹\n순위  닉네임\n")
+			fmt.Fprint(w, i18n.T("output.community.influencerHeader"))
 			for _, u := range r.Users {
 				fmt.Fprintf(w, "%2d   %s\n", u.Rank, u.Nickname)
 				if u.Description != "" {
@@ -836,11 +884,15 @@ func WriteThemeRankings(w io.Writer, format Format, r domain.ThemeRankings) erro
 		return cw.Error()
 	case FormatTable:
 		if len(r.Items) == 0 {
-			_, err := fmt.Fprintln(w, "테마 데이터가 없습니다")
+			_, err := fmt.Fprint(w, i18n.T("output.themes.empty"))
 			return err
 		}
 		enabled := colorEnabled(w, format)
-		headers := []string{"테마", "등락률", "상승/전체"}
+		headers := []string{
+			i18n.T("output.themes.header.theme"),
+			i18n.T("output.themes.header.changeRate"),
+			i18n.T("output.themes.header.riseTotal"),
+		}
 		plain := make([][]string, 0, len(r.Items))
 		disp := make([][]string, 0, len(r.Items))
 		for _, t := range r.Items {
@@ -880,10 +932,10 @@ func WriteSectors(w io.Writer, format Format, sectors domain.Sectors) error {
 		return cw.Error()
 	case FormatTable:
 		if len(list) == 0 {
-			_, err := fmt.Fprintln(w, "업종 데이터가 없습니다")
+			_, err := fmt.Fprint(w, i18n.T("output.sectors.empty"))
 			return err
 		}
-		if _, err := fmt.Fprintf(w, "업종            종목수    1일      1개월     1년\n"); err != nil {
+		if _, err := fmt.Fprint(w, i18n.T("output.sectors.header")); err != nil {
 			return err
 		}
 		for _, s := range list {
@@ -921,7 +973,7 @@ func WriteNewsBriefing(w io.Writer, format Format, b domain.NewsBriefing) error 
 		return cw.Error()
 	case FormatTable:
 		if len(b.Items) == 0 {
-			_, err := fmt.Fprintln(w, "브리핑이 없습니다")
+			_, err := fmt.Fprint(w, i18n.T("output.briefing.empty"))
 			return err
 		}
 		for _, it := range b.Items {

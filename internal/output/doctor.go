@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/doctor"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 func WriteDoctorReport(w io.Writer, format Format, report doctor.Report) error {
@@ -19,10 +20,10 @@ func WriteDoctorReport(w io.Writer, format Format, report doctor.Report) error {
 	case FormatTable:
 		if _, err := fmt.Fprintf(
 			w,
-			"Version: %s\nCommit: %s\nDate: %s\nGo: %s\nOS/Arch: %s/%s\nConfig Dir: %s\nCache Dir: %s\nConfig File: %s\nSession File: %s\nLineage File: %s\n",
+			i18n.T("output.doctor.header"),
 			report.Version.Version,
 			report.Version.Commit,
-			emptyFallback(report.Version.Date, "n/a"),
+			emptyFallback(report.Version.Date, i18n.T("output.doctor.dateFallback")),
 			report.GoVersion,
 			report.OS,
 			report.Arch,
@@ -34,7 +35,7 @@ func WriteDoctorReport(w io.Writer, format Format, report doctor.Report) error {
 		); err != nil {
 			return err
 		}
-		if _, err := fmt.Fprintln(w, "\nGeneral Checks:"); err != nil {
+		if _, err := fmt.Fprint(w, i18n.T("output.doctor.generalChecks")); err != nil {
 			return err
 		}
 		for _, check := range report.Checks {
@@ -42,7 +43,7 @@ func WriteDoctorReport(w io.Writer, format Format, report doctor.Report) error {
 				return err
 			}
 		}
-		if _, err := fmt.Fprintln(w, "\nAuth Checks:"); err != nil {
+		if _, err := fmt.Fprint(w, i18n.T("output.doctor.authChecks")); err != nil {
 			return err
 		}
 		for _, check := range report.Auth.Checks {
@@ -70,7 +71,7 @@ func WriteAuthDoctorReport(w io.Writer, format Format, report doctor.AuthReport)
 	case FormatCSV:
 		return fmt.Errorf("csv output is not supported for auth doctor")
 	case FormatTable:
-		if _, err := fmt.Fprintf(w, "Python: %s\nHelper Dir: %s\n", report.PythonBinary, report.HelperDir); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.doctor.auth.python"), report.PythonBinary, report.HelperDir); err != nil {
 			return err
 		}
 		for _, check := range report.Checks {

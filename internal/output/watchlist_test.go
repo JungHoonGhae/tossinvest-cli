@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 var testWatchlistItems = []domain.WatchlistItem{
@@ -14,6 +15,10 @@ var testWatchlistItems = []domain.WatchlistItem{
 }
 
 func TestWriteWatchlistTable(t *testing.T) {
+	prev := i18n.Lang()
+	i18n.SetLang("ko")
+	defer i18n.SetLang(prev)
+
 	var buf bytes.Buffer
 	if err := WriteWatchlist(&buf, FormatTable, testWatchlistItems); err != nil {
 		t.Fatalf("WriteWatchlist error: %v", err)

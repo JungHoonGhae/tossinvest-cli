@@ -7,6 +7,7 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
 
@@ -34,7 +35,7 @@ func WriteTradingPreview(w io.Writer, format Format, preview trading.Preview) er
 	case FormatTable:
 		if _, err := fmt.Fprintf(
 			w,
-			"Kind: %s\nConfirm Token: %s\nCanonical: %s\nLive Ready: %t\nMutation Ready: %t\n",
+			i18n.T("output.trading.preview.lines"),
 			preview.Kind,
 			preview.ConfirmToken,
 			preview.Canonical,
@@ -46,7 +47,7 @@ func WriteTradingPreview(w io.Writer, format Format, preview trading.Preview) er
 		if len(preview.Warnings) == 0 {
 			return nil
 		}
-		if _, err := fmt.Fprintln(w, "Warnings:"); err != nil {
+		if _, err := fmt.Fprint(w, i18n.T("output.trading.warnings")); err != nil {
 			return err
 		}
 		for _, warning := range preview.Warnings {
@@ -90,63 +91,63 @@ func WriteMutationResult(w io.Writer, format Format, result trading.MutationResu
 		writer.Flush()
 		return writer.Error()
 	case FormatTable:
-		if _, err := fmt.Fprintf(w, "Kind: %s\nStatus: %s\n", result.Kind, result.Status); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.trading.mutation.kindStatus"), result.Kind, result.Status); err != nil {
 			return err
 		}
 		if result.OrderID != "" {
-			if _, err := fmt.Fprintf(w, "Order ID: %s\n", result.OrderID); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.trading.mutation.orderId"), result.OrderID); err != nil {
 				return err
 			}
 		}
 		if result.OriginalOrderID != "" {
-			if _, err := fmt.Fprintf(w, "Original Order ID: %s\n", result.OriginalOrderID); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.trading.mutation.originalOrderId"), result.OriginalOrderID); err != nil {
 				return err
 			}
 		}
 		if result.CurrentOrderID != "" {
-			if _, err := fmt.Fprintf(w, "Current Order ID: %s\n", result.CurrentOrderID); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.trading.mutation.currentOrderId"), result.CurrentOrderID); err != nil {
 				return err
 			}
 		}
 		if result.Symbol != "" {
-			if _, err := fmt.Fprintf(w, "Symbol: %s\n", result.Symbol); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.trading.mutation.symbol"), result.Symbol); err != nil {
 				return err
 			}
 		}
 		if result.Market != "" {
-			if _, err := fmt.Fprintf(w, "Market: %s\n", result.Market); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.trading.mutation.market"), result.Market); err != nil {
 				return err
 			}
 		}
 		if result.Quantity > 0 {
-			if _, err := fmt.Fprintf(w, "Quantity: %s\n", strconv.FormatFloat(result.Quantity, 'f', -1, 64)); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.trading.mutation.quantity"), strconv.FormatFloat(result.Quantity, 'f', -1, 64)); err != nil {
 				return err
 			}
 		}
 		if result.FilledQuantity > 0 {
-			if _, err := fmt.Fprintf(w, "Filled Quantity: %s\n", strconv.FormatFloat(result.FilledQuantity, 'f', -1, 64)); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.trading.mutation.filledQuantity"), strconv.FormatFloat(result.FilledQuantity, 'f', -1, 64)); err != nil {
 				return err
 			}
 		}
 		if result.Price > 0 {
-			if _, err := fmt.Fprintf(w, "Price: %s\n", strconv.FormatFloat(result.Price, 'f', -1, 64)); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.trading.mutation.price"), strconv.FormatFloat(result.Price, 'f', -1, 64)); err != nil {
 				return err
 			}
 		}
 		if result.AverageExecutionPrice > 0 {
-			if _, err := fmt.Fprintf(w, "Average Execution Price: %s\n", strconv.FormatFloat(result.AverageExecutionPrice, 'f', -1, 64)); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.trading.mutation.avgExecutionPrice"), strconv.FormatFloat(result.AverageExecutionPrice, 'f', -1, 64)); err != nil {
 				return err
 			}
 		}
 		if result.OrderDate != "" {
-			if _, err := fmt.Fprintf(w, "Order Date: %s\n", result.OrderDate); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.trading.mutation.orderDate"), result.OrderDate); err != nil {
 				return err
 			}
 		}
 		if len(result.Warnings) == 0 {
 			return nil
 		}
-		if _, err := fmt.Fprintln(w, "Warnings:"); err != nil {
+		if _, err := fmt.Fprint(w, i18n.T("output.trading.warnings")); err != nil {
 			return err
 		}
 		for _, warning := range result.Warnings {

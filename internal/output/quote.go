@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 func WriteQuote(w io.Writer, format Format, quote domain.Quote) error {
@@ -81,7 +82,7 @@ func writeQuoteTable(w io.Writer, quote domain.Quote, enabled bool) error {
 	changeRateStr := fmt.Sprintf("%.2f%%", quote.ChangeRate*100)
 	if _, err := fmt.Fprintf(
 		w,
-		"Product Code: %s\nSymbol: %s\nName: %s\nMarket: %s (%s)\nCurrency: %s\nReference Price: %s\nLast: %s\nChange: %s\nChange Rate: %s\nVolume: %s\n",
+		i18n.T("output.quote.summary"),
 		quote.ProductCode,
 		quote.Symbol,
 		quote.Name,
@@ -97,40 +98,41 @@ func writeQuoteTable(w io.Writer, quote domain.Quote, enabled bool) error {
 		return err
 	}
 
-	// 당일 OHLC + 52주 고저 + 시총/거래대금/체결강도 (v3 details 가 채워준 경우만)
+	// Same-day OHLC + 52-week range + market cap/trading value/strength (only
+	// populated when the v3 details endpoint filled them in).
 	if quote.Open != 0 || quote.High != 0 || quote.Low != 0 {
-		if _, err := fmt.Fprintf(w, "OHLC: %s / %s / %s / %s\n",
+		if _, err := fmt.Fprintf(w, i18n.T("output.quote.ohlc"),
 			formatFloat(quote.Open), formatFloat(quote.High), formatFloat(quote.Low), formatFloat(quote.Last)); err != nil {
 			return err
 		}
 	}
 	if quote.High52w != 0 || quote.Low52w != 0 {
-		if _, err := fmt.Fprintf(w, "52W High/Low: %s / %s\n", formatFloat(quote.High52w), formatFloat(quote.Low52w)); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.quote.week52"), formatFloat(quote.High52w), formatFloat(quote.Low52w)); err != nil {
 			return err
 		}
 	}
 	if quote.MarketCap != 0 {
-		if _, err := fmt.Fprintf(w, "Market Cap: %s\n", formatFloat(quote.MarketCap)); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.quote.marketCap"), formatFloat(quote.MarketCap)); err != nil {
 			return err
 		}
 	}
 	if quote.TradingValue != 0 {
-		if _, err := fmt.Fprintf(w, "Trading Value: %s\n", formatFloat(quote.TradingValue)); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.quote.tradingValue"), formatFloat(quote.TradingValue)); err != nil {
 			return err
 		}
 	}
 	if quote.TradingStrength != 0 {
-		if _, err := fmt.Fprintf(w, "Trading Strength: %.2f%%\n", quote.TradingStrength); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.quote.tradingStrength"), quote.TradingStrength); err != nil {
 			return err
 		}
 	}
 	if quote.UpperLimit != 0 || quote.LowerLimit != 0 {
-		if _, err := fmt.Fprintf(w, "Upper/Lower Limit: %s / %s\n", formatFloat(quote.UpperLimit), formatFloat(quote.LowerLimit)); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.quote.limits"), formatFloat(quote.UpperLimit), formatFloat(quote.LowerLimit)); err != nil {
 			return err
 		}
 	}
 
-	_, err := fmt.Fprintf(w, "Status: %s\nBadges: %d\nNotices: %d\nFetched At: %s\n",
+	_, err := fmt.Fprintf(w, i18n.T("output.quote.footer"),
 		quote.Status, quote.BadgeCount, quote.NoticeCount,
 		quote.FetchedAt.Format("2006-01-02 15:04:05Z07:00"))
 	return err
@@ -166,9 +168,15 @@ func WriteQuotesWithCharts(w io.Writer, format Format, quotes []domain.Quote, ch
 	case FormatTable:
 		enabled := colorEnabled(w, format)
 		showCharts := charts != nil
-		headers := []string{"종목", "이름", "현재가", "변동", "변동률"}
+		headers := []string{
+			i18n.T("output.quotes.header.symbol"),
+			i18n.T("output.quotes.header.name"),
+			i18n.T("output.quotes.header.price"),
+			i18n.T("output.quotes.header.change"),
+			i18n.T("output.quotes.header.changeRate"),
+		}
 		if showCharts {
-			headers = append(headers, "차트")
+			headers = append(headers, i18n.T("output.quotes.header.chart"))
 		}
 		var plainRows, coloredRows [][]string
 		for i, q := range quotes {

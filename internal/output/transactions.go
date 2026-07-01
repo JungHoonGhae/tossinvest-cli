@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 func WriteTransactions(w io.Writer, format Format, items []domain.Transaction) error {
@@ -59,13 +60,22 @@ func WriteTransactions(w io.Writer, format Format, items []domain.Transaction) e
 		return writer.Error()
 	case FormatTable:
 		if len(items) == 0 {
-			_, err := fmt.Fprintln(w, "No transactions in range")
+			_, err := fmt.Fprint(w, i18n.T("output.transactions.empty"))
 			return err
 		}
-		if _, err := fmt.Fprintf(w, "Transactions: %d\n", len(items)); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.transactions.count"), len(items)); err != nil {
 			return err
 		}
-		headers := []string{"일시", "시장", "유형", "종목", "수량", "금액", "순현금", "잔고"}
+		headers := []string{
+			i18n.T("output.transactions.header.when"),
+			i18n.T("output.transactions.header.market"),
+			i18n.T("output.transactions.header.type"),
+			i18n.T("output.transactions.header.symbol"),
+			i18n.T("output.transactions.header.quantity"),
+			i18n.T("output.transactions.header.amount"),
+			i18n.T("output.transactions.header.netCash"),
+			i18n.T("output.transactions.header.balance"),
+		}
 		rows := make([][]string, 0, len(items))
 		for _, it := range items {
 			when := it.DateTime
@@ -163,29 +173,34 @@ func WriteTransactionsOverview(w io.Writer, format Format, overview domain.Trans
 		return writer.Error()
 	case FormatTable:
 		market := strings.ToUpper(overview.Market)
-		if _, err := fmt.Fprintf(w, "Market: %s\n", market); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.transactions.overview.market"), market); err != nil {
 			return err
 		}
 		// Toss returns the US orderable/settlement amounts both in USD and in their
 		// KRW equivalence; they represent the same money, not two separate pools.
 		// Table view shows only the market's primary currency; JSON preserves both.
 		primary := primaryCurrencyCode(overview.Market)
-		if _, err := fmt.Fprintf(w, "Orderable: %s %s\n", primary,
+		if _, err := fmt.Fprintf(w, i18n.T("output.transactions.overview.orderable"), primary,
 			pickPrimaryAmount(overview.Market, overview.OrderableKRW, overview.OrderableUSD)); err != nil {
 			return err
 		}
-		if err := renderBucketsForMarket(w, "Withdrawable:", "날짜", primary, overview.Market, overview.Withdrawable); err != nil {
+		dateHeader := i18n.T("output.transactions.overview.dateHeader")
+		if err := renderBucketsForMarket(w, i18n.T("output.transactions.overview.withdrawable"), dateHeader, primary, overview.Market, overview.Withdrawable); err != nil {
 			return err
 		}
-		if err := renderBucketsForMarket(w, "Display withdrawable:", "날짜", primary, overview.Market, overview.DisplayWithdrawable); err != nil {
+		if err := renderBucketsForMarket(w, i18n.T("output.transactions.overview.displayWithdrawable"), dateHeader, primary, overview.Market, overview.DisplayWithdrawable); err != nil {
 			return err
 		}
-		if err := renderBucketsForMarket(w, "Deposit schedule:", "날짜", primary, overview.Market, overview.Deposit); err != nil {
+		if err := renderBucketsForMarket(w, i18n.T("output.transactions.overview.depositSchedule"), dateHeader, primary, overview.Market, overview.Deposit); err != nil {
 			return err
 		}
 		if len(overview.EstimateSettlement) > 0 {
-			fmt.Fprintln(w, "\nEstimated settlement:")
-			headers := []string{"날짜", "매수", "매도"}
+			fmt.Fprint(w, i18n.T("output.transactions.overview.settlementTitle"))
+			headers := []string{
+				i18n.T("output.transactions.overview.settlement.header.date"),
+				i18n.T("output.transactions.overview.settlement.header.buy"),
+				i18n.T("output.transactions.overview.settlement.header.sell"),
+			}
 			rows := make([][]string, 0, len(overview.EstimateSettlement))
 			for _, e := range overview.EstimateSettlement {
 				rows = append(rows, []string{
@@ -199,8 +214,8 @@ func WriteTransactionsOverview(w io.Writer, format Format, overview domain.Trans
 			}
 		}
 		if len(overview.WithdrawableBottomSheet) > 0 {
-			fmt.Fprintln(w, "\nWithdrawable breakdown:")
-			headers := []string{"항목", primary}
+			fmt.Fprint(w, i18n.T("output.transactions.overview.breakdownTitle"))
+			headers := []string{i18n.T("output.transactions.overview.breakdown.header.item"), primary}
 			rows := make([][]string, 0, len(overview.WithdrawableBottomSheet))
 			for _, b := range overview.WithdrawableBottomSheet {
 				rows = append(rows, []string{b.Title, pickPrimaryAmount(overview.Market, b.KRW, b.USD)})

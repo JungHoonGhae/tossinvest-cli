@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 func WriteConfigStatus(w io.Writer, format Format, status config.Status) error {
@@ -46,7 +47,7 @@ func WriteConfigStatus(w io.Writer, format Format, status config.Status) error {
 	case FormatTable:
 		if _, err := fmt.Fprintf(
 			w,
-			"Config File: %s\nExists: %t\nSchema: %s\nSchema Version: %d\n",
+			i18n.T("output.config.file"),
 			status.ConfigFile,
 			status.Exists,
 			status.Schema,
@@ -55,13 +56,13 @@ func WriteConfigStatus(w io.Writer, format Format, status config.Status) error {
 			return err
 		}
 		if status.SourceSchemaVersion > 0 && status.SourceSchemaVersion != status.SchemaVersion {
-			if _, err := fmt.Fprintf(w, "Source Schema Version: %d\n", status.SourceSchemaVersion); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.config.sourceSchemaVersion"), status.SourceSchemaVersion); err != nil {
 				return err
 			}
 		}
 		if _, err := fmt.Fprintf(
 			w,
-			"Trading Place: %t\nTrading Sell: %t\nTrading Fractional: %t\nTrading Cancel: %t\nTrading Amend: %t\nAllow Live Order Actions: %t\nDangerous Automation: %s\nUpdate Check: %s\n",
+			i18n.T("output.config.tradingLines"),
 			status.Trading.Place,
 			status.Trading.Sell,
 			status.Trading.Fractional,
@@ -76,7 +77,7 @@ func WriteConfigStatus(w io.Writer, format Format, status config.Status) error {
 		if len(status.LegacyFields) == 0 {
 			return nil
 		}
-		_, err := fmt.Fprintf(w, "Legacy Fields: %s\n", strings.Join(status.LegacyFields, ", "))
+		_, err := fmt.Fprintf(w, i18n.T("output.config.legacyFields"), strings.Join(status.LegacyFields, ", "))
 		return err
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
@@ -86,14 +87,14 @@ func WriteConfigStatus(w io.Writer, format Format, status config.Status) error {
 func formatDangerousAutomation(value config.DangerousAutomation) string {
 	enabled := value.EnabledActions()
 	if len(enabled) == 0 {
-		return "none"
+		return i18n.T("output.config.dangerousAutomation.none")
 	}
 	return strings.Join(enabled, ", ")
 }
 
 func formatUpdateCheck(value config.UpdateCheck) string {
 	if value.Enabled {
-		return "enabled"
+		return i18n.T("output.config.updateCheck.enabled")
 	}
-	return "disabled"
+	return i18n.T("output.config.updateCheck.disabled")
 }

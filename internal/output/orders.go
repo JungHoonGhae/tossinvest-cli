@@ -8,14 +8,15 @@ import (
 	"strconv"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 func WriteOrders(w io.Writer, format Format, orders []domain.Order) error {
-	return writeOrderList(w, format, "Pending Orders", "No pending orders", orders)
+	return writeOrderList(w, format, i18n.T("output.orders.pending.title"), i18n.T("output.orders.pending.empty"), orders)
 }
 
 func WriteCompletedOrders(w io.Writer, format Format, orders []domain.Order) error {
-	return writeOrderList(w, format, "Completed Orders", "No completed orders", orders)
+	return writeOrderList(w, format, i18n.T("output.orders.completed.title"), i18n.T("output.orders.completed.empty"), orders)
 }
 
 func WriteOrder(w io.Writer, format Format, order domain.Order) error {
@@ -53,53 +54,53 @@ func WriteOrder(w io.Writer, format Format, order domain.Order) error {
 		writer.Flush()
 		return writer.Error()
 	case FormatTable:
-		if _, err := fmt.Fprintf(w, "Order ID: %s\n", order.ID); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.order.orderId"), order.ID); err != nil {
 			return err
 		}
 		if order.ResolvedFromID != "" {
-			if _, err := fmt.Fprintf(w, "Resolved From: %s\n", order.ResolvedFromID); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.order.resolvedFrom"), order.ResolvedFromID); err != nil {
 				return err
 			}
 		}
-		if _, err := fmt.Fprintf(w, "Symbol: %s\n", order.Symbol); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.order.symbol"), order.Symbol); err != nil {
 			return err
 		}
 		if order.Name != "" {
-			if _, err := fmt.Fprintf(w, "Name: %s\n", order.Name); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.order.name"), order.Name); err != nil {
 				return err
 			}
 		}
 		if order.Market != "" {
-			if _, err := fmt.Fprintf(w, "Market: %s\n", order.Market); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.order.market"), order.Market); err != nil {
 				return err
 			}
 		}
-		if _, err := fmt.Fprintf(w, "Side: %s\nStatus: %s\n", order.Side, order.Status); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.order.sideStatus"), order.Side, order.Status); err != nil {
 			return err
 		}
-		if _, err := fmt.Fprintf(w, "Quantity: %s\n", strconv.FormatFloat(order.Quantity, 'f', -1, 64)); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.order.quantity"), strconv.FormatFloat(order.Quantity, 'f', -1, 64)); err != nil {
 			return err
 		}
 		if order.FilledQuantity > 0 {
-			if _, err := fmt.Fprintf(w, "Filled Quantity: %s\n", strconv.FormatFloat(order.FilledQuantity, 'f', -1, 64)); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.order.filledQuantity"), strconv.FormatFloat(order.FilledQuantity, 'f', -1, 64)); err != nil {
 				return err
 			}
 		}
-		if _, err := fmt.Fprintf(w, "Price: %s\n", strconv.FormatFloat(order.Price, 'f', -1, 64)); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.order.price"), strconv.FormatFloat(order.Price, 'f', -1, 64)); err != nil {
 			return err
 		}
 		if order.AverageExecutionPrice > 0 {
-			if _, err := fmt.Fprintf(w, "Average Execution Price: %s\n", strconv.FormatFloat(order.AverageExecutionPrice, 'f', -1, 64)); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.order.avgExecutionPrice"), strconv.FormatFloat(order.AverageExecutionPrice, 'f', -1, 64)); err != nil {
 				return err
 			}
 		}
 		if order.OrderDate != "" {
-			if _, err := fmt.Fprintf(w, "Order Date: %s\n", order.OrderDate); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.order.orderDate"), order.OrderDate); err != nil {
 				return err
 			}
 		}
 		if order.SubmittedAt != nil {
-			if _, err := fmt.Fprintf(w, "Submitted At: %s\n", order.SubmittedAt.Format("2006-01-02 15:04:05Z07:00")); err != nil {
+			if _, err := fmt.Fprintf(w, i18n.T("output.order.submittedAt"), order.SubmittedAt.Format("2006-01-02 15:04:05Z07:00")); err != nil {
 				return err
 			}
 		}
@@ -149,10 +150,18 @@ func writeOrderList(w io.Writer, format Format, title, emptyMessage string, orde
 			_, err := fmt.Fprintln(w, emptyMessage)
 			return err
 		}
-		if _, err := fmt.Fprintf(w, "%s: %d\n", title, len(orders)); err != nil {
+		if _, err := fmt.Fprintf(w, i18n.T("output.orders.count"), title, len(orders)); err != nil {
 			return err
 		}
-		headers := []string{"종목", "매매", "상태", "수량", "체결", "가격", "주문ID"}
+		headers := []string{
+			i18n.T("output.orders.header.symbol"),
+			i18n.T("output.orders.header.side"),
+			i18n.T("output.orders.header.status"),
+			i18n.T("output.orders.header.quantity"),
+			i18n.T("output.orders.header.filled"),
+			i18n.T("output.orders.header.price"),
+			i18n.T("output.orders.header.orderId"),
+		}
 		var rows [][]string
 		for _, order := range orders {
 			rows = append(rows, []string{

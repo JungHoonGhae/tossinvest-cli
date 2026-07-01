@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 func WriteWatchlist(w io.Writer, format Format, items []domain.WatchlistItem) error {
@@ -36,7 +37,16 @@ func WriteWatchlist(w io.Writer, format Format, items []domain.WatchlistItem) er
 		return writer.Error()
 	case FormatTable:
 		enabled := colorEnabled(w, format)
-		headers := []string{"그룹", "종목", "이름", "기준가", "현재가", "등락", "등락률", "통화"}
+		headers := []string{
+			i18n.T("output.watchlist.header.group"),
+			i18n.T("output.watchlist.header.symbol"),
+			i18n.T("output.watchlist.header.name"),
+			i18n.T("output.watchlist.header.base"),
+			i18n.T("output.watchlist.header.current"),
+			i18n.T("output.watchlist.header.change"),
+			i18n.T("output.watchlist.header.changeRate"),
+			i18n.T("output.watchlist.header.currency"),
+		}
 		var plainRows, coloredRows [][]string
 		for _, item := range items {
 			change := item.Last - item.Base
@@ -99,7 +109,12 @@ func WriteWatchlistGroups(w io.Writer, format Format, groups []domain.WatchlistG
 		cw.Flush()
 		return cw.Error()
 	case FormatTable:
-		headers := []string{"ID", "폴더", "종목수", "구분"}
+		headers := []string{
+			i18n.T("output.watchlist.groups.header.id"),
+			i18n.T("output.watchlist.groups.header.folder"),
+			i18n.T("output.watchlist.groups.header.count"),
+			i18n.T("output.watchlist.groups.header.type"),
+		}
 		rows := make([][]string, 0, len(groups))
 		for _, g := range groups {
 			rows = append(rows, []string{fmt.Sprintf("%d", g.ID), g.Name, fmt.Sprintf("%d", g.ItemCount), g.Type})

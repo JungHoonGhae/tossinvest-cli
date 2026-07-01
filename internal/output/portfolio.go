@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 func WritePositions(w io.Writer, format Format, positions []domain.Position) error {
@@ -114,9 +115,19 @@ func writePositionsTable(w io.Writer, positions []domain.Position, enabled bool)
 		}
 	}
 
-	headers := []string{"종목", "수량", "매입가", "현재가", "평가금", "손익", "수익률", "일간손익", "일간률"}
+	headers := []string{
+		i18n.T("output.positions.header.symbol"),
+		i18n.T("output.positions.header.quantity"),
+		i18n.T("output.positions.header.avgPrice"),
+		i18n.T("output.positions.header.currentPrice"),
+		i18n.T("output.positions.header.marketValue"),
+		i18n.T("output.positions.header.pnl"),
+		i18n.T("output.positions.header.rate"),
+		i18n.T("output.positions.header.dailyPnl"),
+		i18n.T("output.positions.header.dailyRate"),
+	}
 	if hasUS {
-		headers = append(headers, "USD 손익", "USD 률")
+		headers = append(headers, i18n.T("output.positions.header.usdPnl"), i18n.T("output.positions.header.usdRate"))
 	}
 
 	var plainRows, coloredRows [][]string
