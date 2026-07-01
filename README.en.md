@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://tossinvest-cli.vercel.app/"><img src="docs/assets/hero-banner.png" alt="tossinvest-cli — connect your AI agents to Toss Securities" width="100%" /></a>
+  <a href="https://tossinvest-cli.vercel.app/"><img src="docs/assets/hero-banner-v5.png" alt="tossinvest-cli — connect your AI agents to Toss Securities" width="100%" /></a>
 </p>
 
 <p align="right"><a href="README.md">한국어</a> · <strong>English</strong></p>
