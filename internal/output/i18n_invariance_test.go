@@ -2,6 +2,7 @@ package output
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 	"time"
 
@@ -454,6 +455,47 @@ var testInvarianceCommunityRanking = domain.CommunityRanking{
 		{Rank: 2, Nickname: "test-user-2", UserProfileID: 1002, ProfitAmountKRW: 5432100, ProfitRate: 0.123},
 	},
 	FetchedAt: time.Unix(0, 0).UTC(),
+}
+
+// TestDividendsTableNoRawKeys guards against i18n.T() rendering a raw
+// catalog key when the resolved value is intentionally empty (e.g.
+// output.dividends.monthSuffix is "" in en.json since English month
+// numbers need no suffix, vs. "월" in ko.json). Before the T() fix, a
+// present-but-empty catalog value was treated as a miss and T() returned
+// the literal key string, which leaked into the English dividends table's
+// "By month" rows (e.g. "1output.dividends.monthSuffix  100,000 KRW").
+func TestDividendsTableNoRawKeys(t *testing.T) {
+	restore := setTestLang(t)
+	defer restore()
+
+	i18n.SetLang("en")
+	var enBuf bytes.Buffer
+	if err := WriteDividends(&enBuf, FormatTable, testInvarianceDividends); err != nil {
+		t.Fatalf("render (en) failed: %v", err)
+	}
+	enOut := enBuf.String()
+	if strings.Contains(enOut, "output.dividends.monthSuffix") {
+		t.Fatalf("en table leaked raw i18n key output.dividends.monthSuffix:\n%s", enOut)
+	}
+	if strings.Contains(enOut, "output.") {
+		t.Fatalf("en table leaked a raw i18n key (contains \"output.\"):\n%s", enOut)
+	}
+	if !strings.Contains(enOut, "   1  100,000 KRW") {
+		t.Fatalf("en table expected a bare month number (\"   1  100,000 KRW\") for month 1, got:\n%s", enOut)
+	}
+
+	i18n.SetLang("ko")
+	var koBuf bytes.Buffer
+	if err := WriteDividends(&koBuf, FormatTable, testInvarianceDividends); err != nil {
+		t.Fatalf("render (ko) failed: %v", err)
+	}
+	koOut := koBuf.String()
+	if strings.Contains(koOut, "output.dividends.monthSuffix") {
+		t.Fatalf("ko table leaked raw i18n key output.dividends.monthSuffix:\n%s", koOut)
+	}
+	if !strings.Contains(koOut, "   1월  100,000원") {
+		t.Fatalf("ko table expected \"1월\" for month 1, got:\n%s", koOut)
+	}
 }
 
 // setTestLang saves/restores the active i18n language around a test so

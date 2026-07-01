@@ -88,7 +88,7 @@ func TestLeafCommandsHaveSourceAnnotation(t *testing.T) {
 			continue
 		}
 		if !valid[src] {
-			t.Errorf("%s: invalid source %q (want official|wts|both)", c.CommandPath(), src)
+			t.Errorf("%s: invalid source %q (want official|wts|both|local)", c.CommandPath(), src)
 		}
 	}
 }

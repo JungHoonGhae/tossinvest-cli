@@ -85,12 +85,14 @@ func Lang() string {
 }
 
 // T returns the localized string for key; falls back to en, then the key.
+// A present key is honored even if its value is empty — an empty value is
+// an intentional "render nothing here," not a miss.
 func T(key string) string {
 	lang := Lang()
-	if v, ok := loadCatalog(lang)[key]; ok && v != "" {
+	if v, ok := loadCatalog(lang)[key]; ok {
 		return v
 	}
-	if v, ok := loadCatalog("en")[key]; ok && v != "" {
+	if v, ok := loadCatalog("en")[key]; ok {
 		return v
 	}
 	return key
