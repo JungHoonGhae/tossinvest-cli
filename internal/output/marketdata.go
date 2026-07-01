@@ -741,7 +741,7 @@ func WriteEarningCalls(w io.Writer, format Format, ec domain.EarningCalls) error
 
 // divAmt renders a dual-currency dividend amount (e.g. "1,234,567원  $1,234.56").
 func divAmt(a domain.DividendAmount) string {
-	s := formatKRW(a.KRW) + "원"
+	s := formatKRW(a.KRW) + i18n.T("output.dividends.krwSuffix")
 	if a.USD != 0 {
 		s += fmt.Sprintf("  $%s", formatFloat(a.USD))
 	}
@@ -834,7 +834,7 @@ func WriteCommunityRanking(w io.Writer, format Format, r domain.CommunityRanking
 		case "TOP_10_PROFIT_ROSS_AMOUNT":
 			fmt.Fprint(w, i18n.T("output.community.profitHeader"))
 			for _, u := range r.Users {
-				fmt.Fprintf(w, "%2d   %-16s  %12s원  %.1f%%\n", u.Rank, u.Nickname, formatKRW(u.ProfitAmountKRW), u.ProfitRate*100)
+				fmt.Fprintf(w, "%2d   %-16s  %12s%s  %.1f%%\n", u.Rank, u.Nickname, formatKRW(u.ProfitAmountKRW), i18n.T("output.community.krwSuffix"), u.ProfitRate*100)
 			}
 		case "TOP_10_FOLLOWING_INCREASE":
 			fmt.Fprint(w, i18n.T("output.community.followingHeader"))

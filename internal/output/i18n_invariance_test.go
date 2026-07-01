@@ -3,9 +3,13 @@ package output
 import (
 	"bytes"
 	"testing"
+	"time"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/doctor"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/version"
 )
 
 // TestJSONOutputLanguageInvariant is the safety net for the localization work
@@ -44,6 +48,66 @@ func TestJSONOutputLanguageInvariant(t *testing.T) {
 			name: "watchlist",
 			render: func(w *bytes.Buffer) error {
 				return WriteWatchlist(w, FormatJSON, testWatchlistItems)
+			},
+		},
+		{
+			name: "accounts",
+			render: func(w *bytes.Buffer) error {
+				return WriteAccounts(w, FormatJSON, testInvarianceAccounts, "acct-primary")
+			},
+		},
+		{
+			name: "accountSummary",
+			render: func(w *bytes.Buffer) error {
+				return WriteAccountSummary(w, FormatJSON, testInvarianceAccountSummary)
+			},
+		},
+		{
+			name: "configStatus",
+			render: func(w *bytes.Buffer) error {
+				return WriteConfigStatus(w, FormatJSON, testInvarianceConfigStatus)
+			},
+		},
+		{
+			name: "doctorReport",
+			render: func(w *bytes.Buffer) error {
+				return WriteDoctorReport(w, FormatJSON, testInvarianceDoctorReport)
+			},
+		},
+		{
+			name: "trades",
+			render: func(w *bytes.Buffer) error {
+				return WriteTrades(w, FormatJSON, testInvarianceTradeList)
+			},
+		},
+		{
+			name: "priceLimits",
+			render: func(w *bytes.Buffer) error {
+				return WritePriceLimits(w, FormatJSON, testInvariancePriceLimits)
+			},
+		},
+		{
+			name: "stockWarnings",
+			render: func(w *bytes.Buffer) error {
+				return WriteStockWarnings(w, FormatJSON, testInvarianceStockWarnings)
+			},
+		},
+		{
+			name: "tradingHours",
+			render: func(w *bytes.Buffer) error {
+				return WriteTradingHours(w, FormatJSON, testInvarianceTradingHours)
+			},
+		},
+		{
+			name: "dividends",
+			render: func(w *bytes.Buffer) error {
+				return WriteDividends(w, FormatJSON, testInvarianceDividends)
+			},
+		},
+		{
+			name: "communityRanking",
+			render: func(w *bytes.Buffer) error {
+				return WriteCommunityRanking(w, FormatJSON, testInvarianceCommunityRanking)
 			},
 		},
 	}
@@ -102,6 +166,60 @@ func TestCSVOutputLanguageInvariant(t *testing.T) {
 			name: "transactions",
 			render: func(w *bytes.Buffer) error {
 				return WriteTransactions(w, FormatCSV, testTransactions)
+			},
+		},
+		{
+			name: "accounts",
+			render: func(w *bytes.Buffer) error {
+				return WriteAccounts(w, FormatCSV, testInvarianceAccounts, "acct-primary")
+			},
+		},
+		{
+			name: "accountSummary",
+			render: func(w *bytes.Buffer) error {
+				return WriteAccountSummary(w, FormatCSV, testInvarianceAccountSummary)
+			},
+		},
+		{
+			name: "configStatus",
+			render: func(w *bytes.Buffer) error {
+				return WriteConfigStatus(w, FormatCSV, testInvarianceConfigStatus)
+			},
+		},
+		{
+			name: "trades",
+			render: func(w *bytes.Buffer) error {
+				return WriteTrades(w, FormatCSV, testInvarianceTradeList)
+			},
+		},
+		{
+			name: "priceLimits",
+			render: func(w *bytes.Buffer) error {
+				return WritePriceLimits(w, FormatCSV, testInvariancePriceLimits)
+			},
+		},
+		{
+			name: "tradingHours",
+			render: func(w *bytes.Buffer) error {
+				return WriteTradingHours(w, FormatCSV, testInvarianceTradingHours)
+			},
+		},
+		{
+			name: "stockWarnings",
+			render: func(w *bytes.Buffer) error {
+				return WriteStockWarnings(w, FormatCSV, testInvarianceStockWarnings)
+			},
+		},
+		{
+			name: "dividends",
+			render: func(w *bytes.Buffer) error {
+				return WriteDividends(w, FormatCSV, testInvarianceDividends)
+			},
+		},
+		{
+			name: "communityRanking",
+			render: func(w *bytes.Buffer) error {
+				return WriteCommunityRanking(w, FormatCSV, testInvarianceCommunityRanking)
 			},
 		},
 	}
@@ -168,6 +286,174 @@ var testInvarianceOrders = []domain.Order{
 		Price:          70000,
 		OrderDate:      "2026-01-01",
 	},
+}
+
+// testInvarianceAccounts is synthetic account metadata (no real account
+// data) used only to exercise the accounts renderer across locales.
+var testInvarianceAccounts = []domain.Account{
+	{
+		ID:          "ACCT-TEST-0001",
+		DisplayName: "Test Account",
+		Name:        "Test Account",
+		Type:        "STOCK",
+		Currency:    "KRW",
+		Markets:     []string{"KR", "US"},
+		Primary:     true,
+	},
+}
+
+// testInvarianceAccountSummary is synthetic summary data (no real account
+// data) used only to exercise the account-summary renderer across locales.
+var testInvarianceAccountSummary = domain.AccountSummary{
+	TotalAssetAmount:      12345678,
+	EvaluatedProfitAmount: 123456,
+	ProfitRate:            0.0123,
+	OrderableAmountKRW:    1000000,
+	OrderableAmountUSD:    500,
+	Markets: map[string]domain.AccountMarketSummary{
+		"KR": {
+			Market:                "KR",
+			PendingBuyOrderAmount: 0,
+			EvaluatedAmount:       1000000,
+			PrincipalAmount:       900000,
+			EvaluatedProfitAmount: 100000,
+			ProfitRate:            0.111,
+			TotalAssetAmount:      1000000,
+			OrderableAmountKRW:    500000,
+			OrderableAmountUSD:    0,
+		},
+	},
+}
+
+// testInvarianceConfigStatus is synthetic config data (no real account data)
+// used only to exercise the config-status renderer across locales.
+var testInvarianceConfigStatus = config.Status{
+	ConfigFile:          "/tmp/tossctl-test-config.json",
+	Exists:              true,
+	Schema:              "https://example.com/schema.json",
+	SchemaVersion:       config.SchemaVersion,
+	SourceSchemaVersion: config.SchemaVersion,
+	LegacyFields:        []string{"legacy_field_a"},
+	Trading: config.Trading{
+		Place:                 false,
+		Sell:                  false,
+		Fractional:            false,
+		Cancel:                false,
+		Amend:                 false,
+		AllowLiveOrderActions: false,
+		DangerousAutomation:   config.DangerousAutomation{AcceptFXConsent: false},
+	},
+	UpdateCheck: config.UpdateCheck{Enabled: true},
+}
+
+// testInvarianceDoctorReport is synthetic diagnostics data (no real account
+// data) used only to exercise the doctor renderer across locales.
+var testInvarianceDoctorReport = doctor.Report{
+	Version:   version.Info{Version: "0.0.0-test", Commit: "deadbeef", Date: "2026-01-01"},
+	GoVersion: "go1.25",
+	OS:        "darwin",
+	Arch:      "arm64",
+	Paths: config.Paths{
+		ConfigDir:   "/tmp/config",
+		CacheDir:    "/tmp/cache",
+		ConfigFile:  "/tmp/config/config.json",
+		SessionFile: "/tmp/config/session.json",
+		LineageFile: "/tmp/config/lineage.json",
+	},
+	Config: testInvarianceConfigStatus,
+	Auth: doctor.AuthReport{
+		PythonBinary: "/usr/bin/python3",
+		HelperDir:    "/tmp/auth-helper",
+		Checks: []doctor.Check{
+			{Name: "session", Status: doctor.CheckOK, Summary: "session is valid"},
+		},
+	},
+	Checks: []doctor.Check{
+		{Name: "config", Status: doctor.CheckOK, Summary: "config is valid"},
+	},
+	OpenAPISummary: "openapi: enabled, prefer=auto",
+}
+
+// testInvarianceTradeList is synthetic tick data (no real account data) used
+// only to exercise the trades renderer across locales.
+var testInvarianceTradeList = domain.TradeList{
+	ProductCode: "A005930",
+	Symbol:      "005930",
+	Name:        "Test Corp",
+	Trades: []domain.Trade{
+		{Time: "09:00:01", Price: 70000, Volume: 10, TradeType: "BUY", CumulativeVolume: 10},
+		{Time: "09:00:05", Price: 70100, Volume: 5, TradeType: "SELL", CumulativeVolume: 15},
+	},
+	FetchedAt: time.Unix(0, 0).UTC(),
+}
+
+// testInvariancePriceLimits is synthetic price-band data (no real account
+// data) used only to exercise the price-limits renderer across locales.
+var testInvariancePriceLimits = domain.PriceLimits{
+	ProductCode: "A005930",
+	Symbol:      "005930",
+	Name:        "Test Corp",
+	Date:        "2026-01-01",
+	UpperLimit:  91000,
+	LowerLimit:  49000,
+}
+
+// testInvarianceStockWarnings is synthetic warning-badge data (no real
+// account data) used only to exercise the stock-warnings renderer across
+// locales.
+var testInvarianceStockWarnings = domain.StockWarnings{
+	ProductCode: "A005930",
+	Symbol:      "005930",
+	Name:        "Test Corp",
+	Warnings: []domain.StockWarning{
+		{Type: "CAUTION", Title: "Caution", Text: "synthetic test warning"},
+	},
+	FetchedAt: time.Unix(0, 0).UTC(),
+}
+
+// testInvarianceTradingHours is synthetic session-window data (no real
+// account data) used only to exercise the trading-hours renderer across
+// locales.
+var testInvarianceTradingHours = domain.TradingHours{
+	KR:     domain.MarketSession{Date: "2026-01-01", StartTime: "09:00", EndTime: "15:30"},
+	US:     domain.MarketSession{Date: "2026-01-01", StartTime: "22:30", EndTime: "05:00"},
+	NextKR: domain.MarketSession{Date: "2026-01-02", StartTime: "09:00", EndTime: "15:30"},
+	NextUS: domain.MarketSession{Date: "2026-01-02", StartTime: "22:30", EndTime: "05:00"},
+}
+
+// testInvarianceDividends is synthetic dividend data (no real account data)
+// used only to exercise the dividends renderer across locales, including
+// the KRW-suffix fix.
+var testInvarianceDividends = domain.Dividends{
+	Year:          2026,
+	ByPaymentDate: false,
+	Summary: domain.DividendSummary{
+		Total:     domain.DividendAmount{KRW: 1234567, USD: 123.45},
+		Paid:      domain.DividendAmount{KRW: 1000000, USD: 100},
+		Estimated: domain.DividendAmount{KRW: 234567, USD: 23.45},
+		Tax:       &domain.DividendAmount{KRW: 15000, USD: 1.5},
+	},
+	Regions: []domain.DividendRegion{
+		{Region: "kr", Summary: domain.DividendSummary{Total: domain.DividendAmount{KRW: 1000000}}},
+		{Region: "us", Summary: domain.DividendSummary{Total: domain.DividendAmount{USD: 123.45}}},
+	},
+	Monthly: []domain.DividendMonth{
+		{Month: 1, Summary: domain.DividendSummary{Total: domain.DividendAmount{KRW: 100000}}},
+		{Month: 2, Summary: domain.DividendSummary{Total: domain.DividendAmount{KRW: 0, USD: 0}}},
+	},
+	FetchedAt: time.Unix(0, 0).UTC(),
+}
+
+// testInvarianceCommunityRanking is synthetic leaderboard data (no real
+// account data) used only to exercise the community-ranking renderer across
+// locales, including the KRW-suffix fix.
+var testInvarianceCommunityRanking = domain.CommunityRanking{
+	Type: "TOP_10_PROFIT_ROSS_AMOUNT",
+	Users: []domain.CommunityUser{
+		{Rank: 1, Nickname: "test-user-1", UserProfileID: 1001, ProfitAmountKRW: 9876543, ProfitRate: 0.256},
+		{Rank: 2, Nickname: "test-user-2", UserProfileID: 1002, ProfitAmountKRW: 5432100, ProfitRate: 0.123},
+	},
+	FetchedAt: time.Unix(0, 0).UTC(),
 }
 
 // setTestLang saves/restores the active i18n language around a test so
