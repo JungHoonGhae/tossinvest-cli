@@ -3,25 +3,45 @@ title: 변경 이력
 description: tossctl 버전별 변경 사항 (사용자 관점)
 ---
 
+{/* AUTO-GENERATED from ../../../CHANGELOG.md by scripts/sync-changelog.mjs — do not edit directly. */}
+
 버전별 변경 사항입니다. 각 릴리즈의 바이너리·릴리즈 노트는 [GitHub Releases](https://github.com/JungHoonGhae/tossinvest-cli/releases)에서도 볼 수 있습니다.
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-07-01
+
+### 새 기능
+- **한국어 UI 라우팅** — `--lang ko` (또는 환경변수 `LANG`/`TOSSCTL_LANG`) 로 help·온보딩 프롬프트·표 출력을 한국어로 볼 수 있습니다. 기본값은 OS 로케일을 따르고, 감지되지 않으면 영어로 표시합니다. `--output json|csv` 는 언어 설정과 무관하게 항상 고정된 형식을 유지합니다.
+
 ### 개선
-- 라우팅 백엔드 값 `official` → `openapi` 로 명칭 정리 (`--backend openapi`, `openapi.prefer: "openapi"`). `tossctl openapi`·`openapi.*` 와 일관됩니다. 기존 `official` 은 deprecated 별칭으로 계속 동작합니다.
+- CLI 커맨드 설명(`--help`)을 영어로 통일하고, 각 커맨드가 어떤 경로로 동작하는지(공식 Open API / WTS / 둘 다 / 로컬) 구조화된 메타로 노출했습니다.
+
+## [0.13.1] - 2026-06-29
+
+### 개선
+- `market themes` 테이블 정렬 개선 — 한글 표시폭을 반영해 열을 맞추고 헤더 구분선을 추가했습니다.
+
+## [0.13.0] - 2026-06-29
+
+### 새 기능
+- **`market themes`** — 테마 등락 랭킹. 오늘 가장 많이 오른 토스 테마(예: 배터리·연예기획사)를 등락률·상승종목수와 함께 보여줍니다. `--size N` 으로 개수 조정(0=전체). 공식 Open API 에는 없는 토스 WTS 고유 기능입니다. `--output json|csv` 지원.
+
+### 개선
+- 라우팅 백엔드 값 명칭 정리 — `--backend` 플래그와 `openapi.prefer` 의 `official` 값을 `openapi` 로 바꿨습니다(`tossctl openapi` 서브커맨드·`openapi.*` 설정과 일관). 기존 `official` 은 deprecated 별칭으로 계속 동작하므로 기존 설정·스크립트는 그대로 작동합니다.
 
 ## [0.12.0] - 2026-06-27
 
 ### 새 기능
 - **대화형 주문·폴더 선택** — 터미널에서 `order cancel`, `order amend`, `order show`를 `--order-id` 없이 실행하면 대기/최근 주문 목록을 직접 골라 진행할 수 있습니다. `watchlist group delete`·`rename`도 폴더 이름 없이 실행하면 목록에서 선택합니다 (`rename "새이름"`처럼 새 이름만 전달하면 폴더를 고릅니다). 플래그·인자를 지정하면 기존과 동일하게 비대화형으로 동작하며, 파이프·비TTY에서는 프롬프트 없이 명확한 오류를 반환합니다.
-- **공식 Open API 자동 라우팅** — 토스 공식 Open API 키를 선택적으로 연결할 수 있습니다. 연결하면 공식이 지원하는 조회·거래 기능은 공식 OAuth 경로로 처리되어 더 안정적이며, 토큰을 자동 갱신합니다. 공식에 없는 기능은 기존대로 WTS 경로를 씁니다. 키 없이도 모든 기능이 동작하며, 원하는 시점에 선택적으로 추가할 수 있습니다.
+- **하이브리드 공식 Open API 연동** — 토스 공식 Open API 키를 선택적으로 연결할 수 있습니다. 연결하면 공식이 지원하는 조회·거래 기능은 OAuth 경로로 처리되어 더 안정적이며, 토큰을 자동 갱신합니다. 공식에 없는 기능은 기존대로 WTS 경로를 씁니다. 키 없이도 모든 기능이 동작하며, 원하는 시점에 선택적으로 추가할 수 있습니다.
 - **`tossctl init`** — 온보딩 위저드. 처음 설치한 사용자를 위해 웹 세션 로그인·공식 키 등록·거래 설정을 단계별로 안내합니다.
 - **`tossctl openapi login`** — 공식 API Key·Secret을 등록합니다. 환경변수(`TOSSCTL_OPENAPI_KEY`/`TOSSCTL_OPENAPI_SECRET`) 또는 플래그로 전달하거나 대화형으로 입력할 수 있습니다. 자격증명 파일은 `0600` 권한으로 저장됩니다.
 - **`tossctl openapi status`** — 현재 키·토큰·허용 IP·라우팅 상태를 진단합니다. IP 미허용·토큰 만료·키 미설정 등 오류 원인을 설명합니다.
 - **`tossctl openapi test`** — 실제 API 호출로 공식 키 연결을 검증합니다.
 - **`tossctl openapi logout`** — 자격증명 파일을 삭제합니다.
-- **`--backend auto|wts|openapi`** 전역 플래그 — 요청별로 라우팅 백엔드를 직접 지정합니다.
-- **`doctor` 공식 키 진단** — `tossctl doctor` 가 공식 키·토큰·IP 허용 상태를 함께 점검합니다.
+- **`--backend auto|wts|official`** 전역 플래그 — 요청별로 라우팅 백엔드를 직접 지정합니다.
+- **`doctor` 하이브리드 진단** — `tossctl doctor` 가 공식 키·토큰·IP 허용 상태를 함께 점검합니다.
 
 ### 개선
 - **핵심 출력 손익 색상** — 포트폴리오·계좌·시세·관심종목의 주요 손익 수치에 한국식 색(상승/이익=빨강, 하락/손실=파랑)을 표시합니다. 파이프·비TTY·`NO_COLOR` 환경 및 `--output json|csv` 에서는 색 없이 기존과 동일하게 동작합니다.

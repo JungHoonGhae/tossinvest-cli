@@ -4,10 +4,11 @@
   "private": true,
   "packageManager": "pnpm@10.27.0",
   "scripts": {
-    "build": "next build",
-    "dev": "next dev",
+    "build": "node scripts/sync-changelog.mjs && next build",
+    "dev": "node scripts/sync-changelog.mjs && next dev",
     "start": "serve out",
-    "types:check": "fumadocs-mdx && next build"
+    "types:check": "node scripts/sync-changelog.mjs && fumadocs-mdx && next build",
+    "sync:changelog": "node scripts/sync-changelog.mjs"
   },
   "dependencies": {
     "@orama/orama": "^3.1.18",
