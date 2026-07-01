@@ -11,8 +11,8 @@ import (
 func TestDoctorOpenAPISummaryAbsent(t *testing.T) {
 	t.Parallel()
 	got := doctorOpenAPISummary(doctorOpenAPIInputs{credsPresent: false})
-	if !strings.Contains(got, "미설정") {
-		t.Fatalf("expected 미설정 hint for absent creds, got %q", got)
+	if !strings.Contains(got, "not configured") {
+		t.Fatalf("expected not-configured hint for absent creds, got %q", got)
 	}
 	if !strings.Contains(got, "tossctl openapi login") {
 		t.Fatalf("expected login command in hint, got %q", got)
@@ -29,10 +29,10 @@ func TestDoctorOpenAPISummaryPresentOK(t *testing.T) {
 		credsPresent: true,
 		probeOK:      true,
 	})
-	if !strings.Contains(got, "연결 정상") {
-		t.Fatalf("expected 연결 정상, got %q", got)
+	if !strings.Contains(got, "connection OK") {
+		t.Fatalf("expected connection OK, got %q", got)
 	}
-	if !strings.Contains(got, "현재 IP 허용됨") {
+	if !strings.Contains(got, "current IP allowed") {
 		t.Fatalf("expected IP allowed text, got %q", got)
 	}
 	// No error markers for a successful probe.
@@ -48,7 +48,7 @@ func TestDoctorOpenAPISummaryIPNotAllowed(t *testing.T) {
 		probeOK:      false,
 		probeErrKind: "ip_not_allowed",
 	})
-	if !strings.Contains(got, "IP 미허용") {
+	if !strings.Contains(got, "IP not allowed") {
 		t.Fatalf("expected IP not allowed message, got %q", got)
 	}
 	if !strings.Contains(got, "tossctl openapi status") {
@@ -66,7 +66,7 @@ func TestDoctorOpenAPISummaryAuthError(t *testing.T) {
 		probeOK:      false,
 		probeErrKind: "auth",
 	})
-	if !strings.Contains(got, "인증 실패") {
+	if !strings.Contains(got, "auth failed") {
 		t.Fatalf("expected auth error message, got %q", got)
 	}
 	if !strings.Contains(got, "❌") {
@@ -91,8 +91,8 @@ func TestDoctorOpenAPISummaryExpiringKey(t *testing.T) {
 	if !strings.Contains(got, "⚠") {
 		t.Fatalf("expected warning symbol for expiring key, got %q", got)
 	}
-	if !strings.Contains(got, "만료") {
-		t.Fatalf("expected 만료 in summary, got %q", got)
+	if !strings.Contains(got, "expiring") {
+		t.Fatalf("expected expiring in summary, got %q", got)
 	}
 }
 
@@ -107,11 +107,11 @@ func TestDoctorOpenAPISummaryNonExpiringKey(t *testing.T) {
 		keyActive:    true,
 		expiresAt:    &expiresAt,
 	})
-	if strings.Contains(got, "만료 임박") {
+	if strings.Contains(got, "expiring soon") {
 		t.Fatalf("should NOT warn for non-expiring key (60 days), got %q", got)
 	}
-	if !strings.Contains(got, "연결 정상") {
-		t.Fatalf("expected 연결 정상, got %q", got)
+	if !strings.Contains(got, "connection OK") {
+		t.Fatalf("expected connection OK, got %q", got)
 	}
 }
 

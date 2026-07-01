@@ -120,9 +120,9 @@ func userFacingPlaceError(paths config.Paths, err error, intent *orderintent.Pla
 			previewCommand = buildPlaceCommand("preview", intent, "")
 		}
 		if message := strings.TrimSpace(prepareRejected.BrokerMessage); message != "" {
-			return fmt.Errorf("broker rejected order preparation before submission: %s\n1. Toss app/web에서 잔액, 환전 동의, 또는 broker prompt를 확인합니다.\n2. 준비가 끝나면 `%s`를 다시 실행합니다.\n3. 새 confirm token으로 `tossctl order place ... --execute --confirm <new-confirm-token>`를 다시 실행합니다.", message, previewCommand)
+			return fmt.Errorf("broker rejected order preparation before submission: %s\n1. Check balance, FX consent, or broker prompts in the Toss app/web.\n2. Once ready, rerun `%s`.\n3. Rerun with a new confirm token: `tossctl order place ... --execute --confirm <new-confirm-token>`.", message, previewCommand)
 		}
-		return fmt.Errorf("broker rejected order preparation before submission.\n1. Toss app/web에서 잔액, 환전 동의, 또는 broker prompt를 확인합니다.\n2. 준비가 끝나면 `%s`를 다시 실행합니다.\n3. 새 confirm token으로 `tossctl order place ... --execute --confirm <new-confirm-token>`를 다시 실행합니다.", previewCommand)
+		return fmt.Errorf("broker rejected order preparation before submission.\n1. Check balance, FX consent, or broker prompts in the Toss app/web.\n2. Once ready, rerun `%s`.\n3. Rerun with a new confirm token: `tossctl order place ... --execute --confirm <new-confirm-token>`.", previewCommand)
 	}
 
 	return userFacingTradingError(paths, err)
@@ -147,35 +147,35 @@ func formatBranchRequiredError(branchRequired *trading.BranchRequiredError, inte
 
 	switch branchRequired.Branch {
 	case trading.BranchFundingRequired:
-		return fmt.Errorf("주문 준비 단계에서 잔액 또는 주문가능금액이 부족해 진행이 중단되었습니다.%s\n1. Toss 앱 또는 웹에서 주문가능금액을 채웁니다.\n2. 필요한 경우 원화 입금 또는 계좌 충전을 완료합니다.\n3. 완료 후 `%s`를 다시 실행해 새 confirm token을 받습니다.\nRetry: `%s`", messageSuffix, previewCommand, placeCommand)
+		return fmt.Errorf("order preparation stopped because balance or orderable amount is insufficient.%s\n1. Top up the orderable amount in the Toss app or web.\n2. If needed, complete a KRW deposit or account top-up.\n3. Once done, rerun `%s` to get a new confirm token.\nRetry: `%s`", messageSuffix, previewCommand, placeCommand)
 	case trading.BranchFXConsentRequired:
 		if branchRequired.Source == trading.BranchSourcePostPrepareConfirmation {
 			return formatPostPrepareFXBranchError(branchRequired)
 		}
-		return fmt.Errorf("주문 준비 단계에서 환전 또는 외화 사용 동의가 필요해 진행이 중단되었습니다.%s\n1. Toss 앱 또는 웹에서 해당 미국주식 주문의 환전 또는 외화 사용 동의 화면으로 이동합니다.\n2. 환전 또는 외화 사용 동의를 완료합니다.\n3. 완료 후 `%s`를 다시 실행해 새 confirm token을 받습니다.\nRetry: `%s`", messageSuffix, previewCommand, placeCommand)
+		return fmt.Errorf("order preparation stopped because FX exchange or foreign-currency usage consent is required.%s\n1. In the Toss app or web, go to the FX exchange / foreign-currency consent screen for this US stock order.\n2. Complete the FX exchange or foreign-currency consent.\n3. Once done, rerun `%s` to get a new confirm token.\nRetry: `%s`", messageSuffix, previewCommand, placeCommand)
 	default:
 		if messageSuffix == "" {
 			messageSuffix = "\nBroker message: unavailable"
 		}
-		return fmt.Errorf("broker requires operator action before the order can continue.%s\n1. Toss 앱 또는 웹에서 필요한 안내를 완료합니다.\n2. 완료 후 `%s`를 다시 실행해 새 confirm token을 받습니다.\n3. 새 confirm token으로 `%s`를 다시 실행합니다.", messageSuffix, previewCommand, placeCommand)
+		return fmt.Errorf("broker requires operator action before the order can continue.%s\n1. Complete the required guidance in the Toss app or web.\n2. Once done, rerun `%s` to get a new confirm token.\n3. Rerun `%s` with the new confirm token.", messageSuffix, previewCommand, placeCommand)
 	}
 }
 
 func formatPostPrepareFXBranchError(branchRequired *trading.BranchRequiredError) error {
 	lines := []string{
-		"주문 준비는 통과했지만, 웹과 동일한 환전 확인 단계에서 중단되었습니다.",
+		"Order preparation passed, but was stopped at the same FX confirmation step as the web.",
 	}
 
 	if fx := branchRequired.FX; fx != nil {
 		if fx.NeedExchangeUSD > 0 {
-			lines = append(lines, fmt.Sprintf("%s달러가 부족해요.", formatDisplayDecimal(fx.NeedExchangeUSD, 2)))
+			lines = append(lines, fmt.Sprintf("Short by $%s.", formatDisplayDecimal(fx.NeedExchangeUSD, 2)))
 		}
-		lines = append(lines, "주식 구매를 위해 환전할게요.")
+		lines = append(lines, "We'll exchange currency to purchase the stock.")
 		if fx.EstimatedExchangeKRW > 0 {
-			lines = append(lines, fmt.Sprintf("예상 환전 금액: %s원", formatGroupedInt(int64(math.Round(fx.EstimatedExchangeKRW)))))
+			lines = append(lines, fmt.Sprintf("Estimated exchange amount: %s KRW", formatGroupedInt(int64(math.Round(fx.EstimatedExchangeKRW)))))
 		}
 		if fx.USDExchangeRate > 0 {
-			lines = append(lines, fmt.Sprintf("예상 환율: %s원/USD", formatGroupedFixed(fx.USDExchangeRate, 2)))
+			lines = append(lines, fmt.Sprintf("Estimated exchange rate: %s KRW/USD", formatGroupedFixed(fx.USDExchangeRate, 2)))
 		}
 	}
 
@@ -184,10 +184,10 @@ func formatPostPrepareFXBranchError(branchRequired *trading.BranchRequiredError)
 	}
 
 	lines = append(lines,
-		"주의: 주문이 취소되면 계좌에는 달러로 남아있어요.",
-		"1. Toss 앱 또는 웹에서 같은 미국주식 주문 화면으로 이동합니다.",
-		"2. 환전 확인 화면에서 주문을 계속 진행할지 결정합니다.",
-		"3. 기본 동작은 여기서 중단입니다. 자동으로 계속 진행하려면 `trading.dangerous_automation.accept_fx_consent=true`를 설정한 뒤 다시 시도합니다.",
+		"Note: if the order is canceled, the funds will remain in the account as USD.",
+		"1. Go to the same US stock order screen in the Toss app or web.",
+		"2. Decide whether to proceed with the order on the FX confirmation screen.",
+		"3. The default behavior stops here. To proceed automatically, set `trading.dangerous_automation.accept_fx_consent=true` and retry.",
 	)
 
 	return fmt.Errorf("%s", strings.Join(lines, "\n"))

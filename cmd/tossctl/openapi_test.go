@@ -410,7 +410,7 @@ func TestOpenAPIStatusNoCredentials(t *testing.T) {
 
 	out := outBuf.String()
 	// Should mention setup guidance.
-	if !strings.Contains(out, "미설정") && !strings.Contains(out, "login") && !strings.Contains(out, "init") {
+	if !strings.Contains(out, "not configured") && !strings.Contains(out, "login") && !strings.Contains(out, "init") {
 		t.Fatalf("expected setup guidance in output, got %q", out)
 	}
 }
@@ -457,8 +457,8 @@ func TestBuildStatusReportExpiryWarning(t *testing.T) {
 	if r.ConnectionOK != true {
 		t.Error("expected ConnectionOK=true")
 	}
-	if r.CurrentIPStatus != "현재 IP 허용됨" {
-		t.Errorf("expected '현재 IP 허용됨', got %q", r.CurrentIPStatus)
+	if r.CurrentIPStatus != "current IP allowed" {
+		t.Errorf("expected 'current IP allowed', got %q", r.CurrentIPStatus)
 	}
 }
 
@@ -493,7 +493,7 @@ func TestBuildStatusReportIPNotAllowed(t *testing.T) {
 	r := buildStatusReport(in)
 
 	// Current IP status should contain "add IP" guidance.
-	if !strings.Contains(r.CurrentIPStatus, "허용") && !strings.Contains(r.CurrentIPStatus, "추가") {
+	if !strings.Contains(r.CurrentIPStatus, "allow") && !strings.Contains(r.CurrentIPStatus, "add") {
 		t.Errorf("expected IP add instruction in CurrentIPStatus, got %q", r.CurrentIPStatus)
 	}
 	if r.ConnectionOK {

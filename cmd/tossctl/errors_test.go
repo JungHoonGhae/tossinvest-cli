@@ -35,7 +35,7 @@ func TestUserFacingPlaceErrorFormatsFundingGuidance(t *testing.T) {
 	}
 
 	message := err.Error()
-	if !strings.Contains(message, "잔액 또는 주문가능금액이 부족") {
+	if !strings.Contains(message, "balance or orderable amount is insufficient") {
 		t.Fatalf("expected funding guidance, got %q", message)
 	}
 	if !strings.Contains(message, "tossctl order preview --symbol TSLL --market us --side buy --type limit --qty 1 --price 500 --currency-mode KRW") {
@@ -67,10 +67,10 @@ func TestUserFacingPlaceErrorFormatsFXGuidance(t *testing.T) {
 	}
 
 	message := err.Error()
-	if !strings.Contains(message, "환전 또는 외화 사용 동의가 필요") {
+	if !strings.Contains(message, "FX exchange or foreign-currency usage consent is required") {
 		t.Fatalf("expected fx guidance, got %q", message)
 	}
-	if !strings.Contains(message, "Toss 앱 또는 웹에서 해당 미국주식 주문의 환전 또는 외화 사용 동의 화면으로 이동") {
+	if !strings.Contains(message, "FX exchange / foreign-currency consent screen for this US stock order") {
 		t.Fatalf("expected fx steps, got %q", message)
 	}
 }
@@ -103,19 +103,19 @@ func TestUserFacingPlaceErrorFormatsPostPrepareFXGuidance(t *testing.T) {
 	}
 
 	message := err.Error()
-	if !strings.Contains(message, "주문 준비는 통과했지만") {
+	if !strings.Contains(message, "Order preparation passed") {
 		t.Fatalf("expected post-prepare intro, got %q", message)
 	}
-	if !strings.Contains(message, "0.68달러가 부족해요.") {
+	if !strings.Contains(message, "Short by $0.68.") {
 		t.Fatalf("expected need-exchange line, got %q", message)
 	}
-	if !strings.Contains(message, "예상 환전 금액: 1,020원") {
+	if !strings.Contains(message, "Estimated exchange amount: 1,020 KRW") {
 		t.Fatalf("expected estimated exchange amount, got %q", message)
 	}
-	if !strings.Contains(message, "예상 환율: 1,500.21원/USD") {
+	if !strings.Contains(message, "Estimated exchange rate: 1,500.21 KRW/USD") {
 		t.Fatalf("expected exchange rate detail, got %q", message)
 	}
-	if !strings.Contains(message, "계좌에는 달러로 남아있어요") {
+	if !strings.Contains(message, "remain in the account as USD") {
 		t.Fatalf("expected retained-USD warning, got %q", message)
 	}
 	if !strings.Contains(message, "accept_fx_consent=true") {

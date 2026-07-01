@@ -51,31 +51,31 @@ func validateOpenAPICredentials(ctx context.Context, creds official.Credentials,
 		return probeResult{
 			OK:        false,
 			ErrorKind: "ip_not_allowed",
-			Message:   "이 IP에서 API 접근이 허용되지 않습니다. Toss 개발자 포털에서 IP를 허용 목록에 추가해주세요.",
+			Message:   "API access is not allowed from this IP. Add this IP to the allow list in the Toss developer portal.",
 		}, nil
 	case errors.Is(err, official.ErrAuth):
 		return probeResult{
 			OK:        false,
 			ErrorKind: "auth",
-			Message:   "인증 실패: API 키와 시크릿을 확인해주세요.",
+			Message:   "Authentication failed: check your API key and secret.",
 		}, nil
 	case errors.Is(err, official.ErrRateLimited):
 		return probeResult{
 			OK:        false,
 			ErrorKind: "rate_limited",
-			Message:   "API 호출 한도를 초과했습니다. 잠시 후 다시 시도해주세요.",
+			Message:   "API call limit exceeded. Please try again later.",
 		}, nil
 	case errors.Is(err, official.ErrServer):
 		return probeResult{
 			OK:        false,
 			ErrorKind: "server_error",
-			Message:   "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+			Message:   "A server error occurred. Please try again later.",
 		}, nil
 	case errors.Is(err, official.ErrTransport):
 		return probeResult{
 			OK:        false,
 			ErrorKind: "transport_error",
-			Message:   "네트워크 연결에 문제가 있습니다. 인터넷 연결을 확인해주세요.",
+			Message:   "There is a network connection problem. Check your internet connection.",
 		}, nil
 	default:
 		return probeResult{
@@ -179,13 +179,13 @@ func buildStatusReport(in statusInputs) statusReport {
 
 	// Key metadata (from WTS — graceful degrade on error).
 	if in.keyInfoErr != nil {
-		r.KeyMetaError = "키 메타 조회 실패(웹세션 필요)"
+		r.KeyMetaError = "key metadata lookup failed (web session required)"
 	} else if in.keyInfo != nil {
 		r.KeyActive = in.keyInfo.Active
 		if in.keyInfo.Active {
-			r.KeyStatus = "활성"
+			r.KeyStatus = "active"
 		} else {
-			r.KeyStatus = "비활성"
+			r.KeyStatus = "inactive"
 		}
 		if !in.keyInfo.IssuedAt.IsZero() {
 			r.KeyIssuedAt = in.keyInfo.IssuedAt.Format("2006-01-02")
@@ -195,51 +195,51 @@ func buildStatusReport(in statusInputs) statusReport {
 			remaining := time.Until(in.keyInfo.ExpiresAt)
 			days := int(remaining.Hours() / 24)
 			if days >= 0 && days <= 30 {
-				r.KeyExpiryWarning = fmt.Sprintf("⚠ 만료 임박 (D-%d)", days)
+				r.KeyExpiryWarning = fmt.Sprintf("⚠ expiring soon (D-%d)", days)
 			}
 		}
 	}
 
 	// Allowed IPs error (graceful degrade).
 	if in.allowedIPsErr != nil {
-		r.AllowedIPsErr = "IP 목록 조회 실패(웹세션 필요)"
+		r.AllowedIPsErr = "IP list lookup failed (web session required)"
 	}
 
 	// Access token validity (best-effort).
 	if in.tokenExpiresAt == nil {
-		r.TokenStatus = "없음/만료"
+		r.TokenStatus = "none/expired"
 	} else if time.Now().Before(*in.tokenExpiresAt) {
-		r.TokenStatus = fmt.Sprintf("유효 (만료 %s)", in.tokenExpiresAt.Format("15:04"))
+		r.TokenStatus = fmt.Sprintf("valid (expires %s)", in.tokenExpiresAt.Format("15:04"))
 	} else {
-		r.TokenStatus = "만료됨"
+		r.TokenStatus = "expired"
 	}
 
 	// Connection + current IP (live probe is ground truth).
 	if in.probe.OK {
-		r.ConnectionStatus = "✅ 정상"
+		r.ConnectionStatus = "✅ OK"
 		r.ConnectionDetail = in.probe.Message
-		r.CurrentIPStatus = "현재 IP 허용됨"
+		r.CurrentIPStatus = "current IP allowed"
 	} else {
 		r.ConnectionDetail = in.probe.Message
 		switch in.probe.ErrorKind {
 		case "ip_not_allowed":
-			r.ConnectionStatus = "❌ IP 미허용"
-			r.CurrentIPStatus = "❌ 현재 공인 IP가 허용목록에 없음 — 토스 설정 > Open API > 허용 IP에 추가"
+			r.ConnectionStatus = "❌ IP not allowed"
+			r.CurrentIPStatus = "❌ current public IP is not in the allow list — add it under Toss settings > Open API > Allowed IPs"
 		case "auth":
-			r.ConnectionStatus = "❌ 인증실패"
-			r.CurrentIPStatus = "알 수 없음"
+			r.ConnectionStatus = "❌ auth failed"
+			r.CurrentIPStatus = "unknown"
 		case "rate_limited":
 			r.ConnectionStatus = "❌ rate limited"
-			r.CurrentIPStatus = "알 수 없음"
+			r.CurrentIPStatus = "unknown"
 		case "server_error":
-			r.ConnectionStatus = "❌ 서버오류"
-			r.CurrentIPStatus = "알 수 없음"
+			r.ConnectionStatus = "❌ server error"
+			r.CurrentIPStatus = "unknown"
 		case "transport_error":
-			r.ConnectionStatus = "❌ 네트워크"
-			r.CurrentIPStatus = "알 수 없음"
+			r.ConnectionStatus = "❌ network error"
+			r.CurrentIPStatus = "unknown"
 		default:
-			r.ConnectionStatus = "❌ 오류"
-			r.CurrentIPStatus = "알 수 없음"
+			r.ConnectionStatus = "❌ error"
+			r.CurrentIPStatus = "unknown"
 		}
 	}
 
@@ -259,57 +259,57 @@ func renderStatusReport(w io.Writer, format output.Format, r statusReport) error
 		fmt.Fprintf(w, "  %-22s %s\n", label, value)
 	}
 
-	fmt.Fprintln(w, "[ 자격증명 ]")
-	writeLine("설정 여부:", boolLabel(r.CredentialsConfigured, "설정됨", "미설정"))
+	fmt.Fprintln(w, "[ Credentials ]")
+	writeLine("Configured:", boolLabel(r.CredentialsConfigured, "yes", "no"))
 	if r.CredentialsConfigured {
-		writeLine("소스:", r.CredentialsSource)
-		writeLine("키:", r.MaskedKey)
+		writeLine("Source:", r.CredentialsSource)
+		writeLine("Key:", r.MaskedKey)
 	}
 
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "[ 키 상태 (WTS) ]")
+	fmt.Fprintln(w, "[ Key Status (WTS) ]")
 	if r.KeyMetaError != "" {
-		writeLine("조회 결과:", r.KeyMetaError)
+		writeLine("Lookup result:", r.KeyMetaError)
 	} else {
-		writeLine("상태:", r.KeyStatus)
+		writeLine("Status:", r.KeyStatus)
 		if r.KeyIssuedAt != "" {
-			writeLine("발급일:", r.KeyIssuedAt)
+			writeLine("Issued:", r.KeyIssuedAt)
 		}
 		if r.KeyExpiresAt != "" {
-			writeLine("만료일:", r.KeyExpiresAt)
+			writeLine("Expires:", r.KeyExpiresAt)
 		}
 		if r.KeyExpiryWarning != "" {
-			writeLine("경고:", r.KeyExpiryWarning)
+			writeLine("Warning:", r.KeyExpiryWarning)
 		}
 	}
 
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "[ 허용 IP ]")
+	fmt.Fprintln(w, "[ Allowed IPs ]")
 	if r.AllowedIPsErr != "" {
-		writeLine("조회 결과:", r.AllowedIPsErr)
+		writeLine("Lookup result:", r.AllowedIPsErr)
 	} else if len(r.AllowedIPs) == 0 {
-		writeLine("목록:", "(없음)")
+		writeLine("List:", "(none)")
 	} else {
-		writeLine("목록:", strings.Join(r.AllowedIPs, ", "))
+		writeLine("List:", strings.Join(r.AllowedIPs, ", "))
 	}
-	writeLine("현재 IP:", r.CurrentIPStatus)
+	writeLine("Current IP:", r.CurrentIPStatus)
 
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "[ 액세스 토큰 ]")
-	writeLine("상태:", r.TokenStatus)
+	fmt.Fprintln(w, "[ Access Token ]")
+	writeLine("Status:", r.TokenStatus)
 
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "[ 연결 (라이브 프로브) ]")
-	writeLine("결과:", r.ConnectionStatus)
+	fmt.Fprintln(w, "[ Connection (Live Probe) ]")
+	writeLine("Result:", r.ConnectionStatus)
 	if r.ConnectionDetail != "" && r.ConnectionDetail != "ok" {
-		writeLine("상세:", r.ConnectionDetail)
+		writeLine("Detail:", r.ConnectionDetail)
 	}
 
 	fmt.Fprintln(w)
-	fmt.Fprintln(w, "[ 라우팅 ]")
+	fmt.Fprintln(w, "[ Routing ]")
 	writeLine("prefer:", r.RoutingPrefer)
-	writeLine("fallback:", boolLabel(r.RoutingFallback, "활성화", "비활성화"))
-	writeLine("공식 API 지원 ops:", fmt.Sprintf("%d개", r.EligibleOpsCount))
+	writeLine("fallback:", boolLabel(r.RoutingFallback, "enabled", "disabled"))
+	writeLine("official API-eligible ops:", fmt.Sprintf("%d", r.EligibleOpsCount))
 
 	return nil
 }
