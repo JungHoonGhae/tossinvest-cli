@@ -127,6 +127,7 @@ func newRootCmd() *cobra.Command {
 		"",
 		"Override routing backend for this run: auto|wts|openapi",
 	)
+	cmd.PersistentFlags().String("lang", "", "UI language for help, prompts, and table output: en|ko (also TOSSCTL_LANG / LANG)")
 
 	cmd.AddCommand(
 		newInitCmd(opts),
