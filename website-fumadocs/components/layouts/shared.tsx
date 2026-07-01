@@ -10,6 +10,7 @@ import Link from 'fumadocs-core/link';
 import { TossctlIcon } from '@/app/layout.client';
 import { defineI18nUI } from 'fumadocs-ui/i18n';
 import { i18n } from '@/lib/i18n';
+import { GithubInfo } from 'fumadocs-ui/components/github-info';
 
 export const gitConfig = {
   user: 'JungHoonGhae',
@@ -138,6 +139,13 @@ export function baseOptions(): BaseLayoutProps {
     i18n: true,
     nav: {
       title: logo,
+      children: (
+        <GithubInfo
+          owner={gitConfig.user}
+          repo={gitConfig.repo}
+          className="max-lg:hidden"
+        />
+      ),
     },
   };
 }
