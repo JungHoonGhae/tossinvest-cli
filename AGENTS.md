@@ -11,6 +11,26 @@ tossctl auth status      # Session: active / Live Check: valid 여야 함
 
 `auth status` 가 active 가 아니면 사용자가 직접 `tossctl auth login` 으로 QR + 폰 2차 인증을 마쳐야 합니다 (에이전트가 대신 못 함).
 
+## Command taxonomy & safety
+
+Every leaf command carries machine-readable annotations:
+
+- `source`: `official` (official Open API only), `wts` (WTS internal endpoint only),
+  or `both` (official preferred, WTS fallback). `wts` endpoints are unofficial and
+  may change without notice.
+- `mutating: true`: the command changes account state (live trading). Only
+  `order place`, `order cancel`, `order amend` carry this.
+
+Rules for agents:
+
+- **Never auto-invoke `mutating: true` commands.** A human must approve every
+  live order. Trading is also gated in `config.json` (disabled by default).
+- **Preview before placing.** Use `order preview` to validate a canonical order
+  intent, then let a human run `order place`.
+- Prefer `--json` for machine-readable output.
+- Treat `source: wts` results as best-effort; add a `monitor api` probe when you
+  build automation on top of them.
+
 ## API 회귀 감지 → 알림
 
 `monitor api` 는 exit 0/1 만 반환합니다. 알림 채널은 cron 라인의 `||` 우항에서 자유롭게 합성합니다.
