@@ -624,3 +624,39 @@ type BuyingPower struct {
 	Currency        string  `json:"currency"`
 	CashBuyingPower float64 `json:"cash_buying_power"`
 }
+
+// PrimeExchangeFee is a foreign-exchange fee comparison across three tiers:
+// non-member, Prime member (list price), and the actual benefit-adjusted fee.
+type PrimeExchangeFee struct {
+	NonPrimeFee int `json:"non_prime_fee"`
+	PrimeFee    int `json:"prime_fee"`
+	BenefitFee  int `json:"benefit_fee"`
+}
+
+// PrimeInterestTier is a cash-balance interest-rate comparison (KRW or USD)
+// across the same three tiers as PrimeExchangeFee.
+type PrimeInterestTier struct {
+	Status           string `json:"status"`
+	NonPrimeInterest int    `json:"non_prime_interest"`
+	PrimeInterest    int    `json:"prime_interest"`
+	BenefitInterest  int    `json:"benefit_interest"`
+}
+
+// PrimeStatus is the account's Toss Prime membership state plus this month's
+// fee/interest benefit comparison. Not in the official Open API — 공식
+// Open API 에 없는 tossctl 고유 기능.
+type PrimeStatus struct {
+	IsMember        bool              `json:"is_member"`
+	UserID          *string           `json:"user_id,omitempty"`
+	PrimeType       *string           `json:"prime_type,omitempty"`
+	BenefitsStartAt *string           `json:"benefits_start_at,omitempty"`
+	BenefitsEndAt   *string           `json:"benefits_end_at,omitempty"`
+	CycleNumber     *int              `json:"cycle_number,omitempty"`
+	Month           string            `json:"month"`
+	Exchange        PrimeExchangeFee  `json:"exchange"`
+	InterestKRW     PrimeInterestTier `json:"interest_krw"`
+	InterestUSD     PrimeInterestTier `json:"interest_usd"`
+	BaseRate        float64           `json:"base_rate"`
+	MonthlyTotalKRW float64           `json:"monthly_total_krw"`
+	FetchedAt       time.Time         `json:"fetched_at"`
+}
