@@ -51,3 +51,43 @@ func profitText(s string, value float64, enabled bool) string {
 		return s
 	}
 }
+
+// ColorEnabled reports whether ANSI styling should be applied for w under
+// format — true only for table output on a real terminal with NO_COLOR
+// unset. Exported so commands outside this package (e.g. `tossctl update`)
+// can gate their own highlighted text using the same rule as the table
+// renderers in this package, instead of duplicating the NO_COLOR/TTY check.
+func ColorEnabled(w io.Writer, format Format) bool {
+	return colorEnabled(w, format)
+}
+
+var (
+	styleSuccess   = colorRenderer.NewStyle().Foreground(lipgloss.Color("10")) // 초록
+	styleFail      = colorRenderer.NewStyle().Foreground(lipgloss.Color("9"))  // 빨강
+	styleHighlight = colorRenderer.NewStyle().Bold(true).Foreground(lipgloss.Color("10"))
+)
+
+// StyleSuccess renders s in green when enabled, or returns s unchanged.
+func StyleSuccess(s string, enabled bool) string {
+	if !enabled {
+		return s
+	}
+	return styleSuccess.Render(s)
+}
+
+// StyleFail renders s in red when enabled, or returns s unchanged.
+func StyleFail(s string, enabled bool) string {
+	if !enabled {
+		return s
+	}
+	return styleFail.Render(s)
+}
+
+// StyleHighlight renders s in bold green when enabled, or returns s
+// unchanged (used e.g. for the target version in an update confirmation).
+func StyleHighlight(s string, enabled bool) string {
+	if !enabled {
+		return s
+	}
+	return styleHighlight.Render(s)
+}
