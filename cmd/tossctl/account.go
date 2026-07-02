@@ -49,6 +49,25 @@ func newAccountCmd(opts *rootOptions) *cobra.Command {
 				return output.WriteAccountSummary(cmd.OutOrStdout(), app.format, summary)
 			},
 		},
+		&cobra.Command{
+			Use:         "prime",
+			Short:       i18n.T("account.prime.short"),
+			Long:        i18n.T("account.prime.long"),
+			Annotations: map[string]string{"source": "wts"},
+			RunE: func(cmd *cobra.Command, _ []string) error {
+				app, err := newAppContext(opts)
+				if err != nil {
+					return err
+				}
+
+				status, err := app.client.GetPrimeStatus(cmd.Context())
+				if err != nil {
+					return userFacingCommandError(err)
+				}
+
+				return output.WriteAccountPrime(cmd.OutOrStdout(), app.format, status)
+			},
+		},
 	)
 
 	return cmd
