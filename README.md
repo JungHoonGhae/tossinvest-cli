@@ -6,10 +6,10 @@
 
 <div align="center">
   <h1>tossinvest-cli</h1>
-  <p><strong>AI 에이전트를 토스증권에 연결하는 비공식 CLI — 공식 Open API 범위는 100% 포함하고, 토스 WTS(웹)엔 있지만 공식 API엔 없는 기능까지 다룹니다(공식 키 연결 시 자동 라우팅).</strong></p>
-  <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot 등 어떤 AI 에이전트든 동일한 명령 체계(<code>tossctl</code>)로 토스증권 계좌·시세·거래를 다룰 수 있습니다. 사람이 직접 터미널에서 쓸 수도 있습니다.</p>
-  <p><sub>수급 · 시장지수 · 토스 AI 시그널 · 조건검색(스크리너) · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview — <strong>공식 Open API엔 없는 토스 WTS 고유 영역까지</strong> 커버합니다. <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
-  <p><sub><em>An unofficial Toss Securities CLI for AI agents — a superset of the official Open API: 100% of its read &amp; trade coverage, plus more.</em></sub></p>
+  <p><strong>토스증권 공식 API가 지원하는 범위를 100% 포함하고, 공식엔 없는 WTS 전용 기능 20가지를 더합니다.</strong></p>
+  <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — 어떤 AI 에이전트든 하나의 명령 체계(<code>tossctl</code>)로 토스증권 계좌·시세·거래를 다룹니다. 터미널에서 직접 써도 됩니다.</p>
+  <p><sub>수급 · 시장지수 · AI 시그널 · 조건검색 · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview — <strong>공식 API엔 없는 토스 WTS 기능까지 전부 포함합니다.</strong> <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
+  <p><sub><em>An unofficial Toss Securities CLI for AI agents. Covers 100% of the official Open API — plus 20 WTS-only features you won't find there.</em></sub></p>
 </div>
 
 <p align="center">
