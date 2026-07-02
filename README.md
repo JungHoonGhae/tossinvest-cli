@@ -6,10 +6,10 @@
 
 <div align="center">
   <h1>tossinvest-cli</h1>
-  <p><strong>토스증권 공식 API가 지원하는 범위를 100% 포함하고, 공식엔 없는 WTS 전용 기능 20가지를 더합니다.</strong></p>
+  <p><strong>토스증권 공식 API가 지원하는 범위를 100% 포함하고, 공식엔 없는 WTS 전용 기능 21가지를 더합니다.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — 어떤 AI 에이전트든 하나의 명령 체계(<code>tossctl</code>)로 토스증권 계좌·시세·거래를 다룹니다. 터미널에서 직접 써도 됩니다.</p>
   <p><sub>수급 · 시장지수 · AI 시그널 · 조건검색 · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview — <strong>공식 API엔 없는 토스 WTS 기능까지 전부 포함합니다.</strong> <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
-  <p><sub><em>An unofficial Toss Securities CLI for AI agents. Covers 100% of the official Open API — plus 20 WTS-only features you won't find there.</em></sub></p>
+  <p><sub><em>An unofficial Toss Securities CLI for AI agents. Covers 100% of the official Open API — plus 21 WTS-only features you won't find there.</em></sub></p>
 </div>
 
 <p align="center">
@@ -181,7 +181,7 @@ Waiting for approval in the Toss app on your phone...
 ## 지원 범위
 
 > **tossctl 은 토스 공식 Open API 의 조회·거래 범위를 100% 커버하고, 그 너머까지 다룹니다.**
-> 공식 [Open API 문서](https://developers.tossinvest.com/docs)의 모든 엔드포인트(계좌·잔고·시세·호가·체결·캔들·상하한가·매도가능수량·수수료·주문 등)에 대응하며, 추가로 수급·시장지수·AI 시그널·조건검색·관심종목 관리·거래내역 ledger·실시간 푸시·원화 소수점 주문·dry-run preview 등 **12개 이상이 공식에 없는 tossctl 고유 범위**입니다.
+> 공식 [Open API 문서](https://developers.tossinvest.com/docs)의 모든 엔드포인트(계좌·잔고·시세·호가·체결·캔들·상하한가·매도가능수량·수수료·주문 등)에 대응하며, 추가로 수급·시장지수·AI 시그널·조건검색·관심종목 관리·거래내역 ledger·실시간 푸시·원화 소수점 주문·dry-run preview 등 **21개가 공식에 없는 tossctl 고유 범위**입니다.
 
 <p align="center">
   <img src="docs/assets/api-comparison.svg" alt="tossctl vs 공식 Open API(예정) 커버리지 비교 — tossctl 이 상위집합" width="840" />
@@ -256,7 +256,7 @@ US 지정가는 `--currency-mode`로 가격 해석을 선택합니다: `KRW` (�
 ### 왜 tossctl 인가 — 공식 API 는 토스 기능의 일부일 뿐
 
 공식 Open API 는 **REST 조회·주문의 기본만** 제공합니다 (약 20개 엔드포인트). 반면
-토스 웹앱(WTS)이 실제로 쓰는 **의미있는 조회·거래 기능은 ~430개** — 온보딩·KYC·약관·
+토스 웹앱(WTS)이 실제로 쓰는 **의미있는 조회·거래 기능은 ~440개** — 온보딩·KYC·약관·
 프로모션·텔레메트리 같은 무의미한 엔드포인트는 뺀 숫자입니다.
 
 > **공식 Open API 는 그중 약 4%만 커버합니다.** tossctl 은 나머지 범위 위에서 동작하며,
@@ -542,7 +542,7 @@ tossctl openapi logout      # 자격증명 파일 삭제
 ### API 회귀 감시
 
 ```bash
-tossctl monitor api           # 16개 endpoint schema probe (병렬); exit 0 통과, 1 실패
+tossctl monitor api           # 25개 endpoint schema probe (병렬); exit 0 통과, 1 실패
 tossctl monitor api --quiet   # cron 용
 ```
 

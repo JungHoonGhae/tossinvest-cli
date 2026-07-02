@@ -6,7 +6,7 @@
 
 <div align="center">
   <h1>tossinvest-cli</h1>
-  <p><strong>Covers 100% of Toss Securities' official API — plus 20 WTS-only features you won't find there.</strong></p>
+  <p><strong>Covers 100% of Toss Securities' official API — plus 21 WTS-only features you won't find there.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — any AI agent drives Toss Securities accounts, quotes, and trades through one command interface (<code>tossctl</code>). Works just as well by hand in a terminal.</p>
   <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — <strong>Toss WTS features the official API doesn't expose, all included.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
   <p><sub><em>An unofficial Toss Securities CLI for AI agents. Auto-routes through the official OAuth path when you connect an official key.</em></sub></p>
@@ -125,7 +125,7 @@ Waiting for approval in the Toss app on your phone...
 ## Support Scope
 
 > **tossctl covers 100% of the official Toss Open API's read & trade coverage — and goes beyond.**
-> It maps to every endpoint in the official [Open API docs](https://developers.tossinvest.com/docs) (accounts, holdings, quotes, orderbook, ticks, candles, price limits, sellable quantity, commissions, orders, …), and adds investor flows, market indices, AI signals, screener, watchlist management, transaction ledger, real-time push, fractional orders, dry-run preview, and more — **12+ features that aren't in the official API are tossctl-only.**
+> It maps to every endpoint in the official [Open API docs](https://developers.tossinvest.com/docs) (accounts, holdings, quotes, orderbook, ticks, candles, price limits, sellable quantity, commissions, orders, …), and adds investor flows, market indices, AI signals, screener, watchlist management, transaction ledger, real-time push, fractional orders, dry-run preview, and more — **21 features that aren't in the official API are tossctl-only.**
 
 <p align="center">
   <img src="docs/assets/api-comparison.en.svg" alt="tossctl vs official Open API (upcoming) coverage — tossctl is a superset" width="900" />
@@ -195,7 +195,7 @@ US limit prices choose interpretation via `--currency-mode`: `KRW` (default, con
 ### Why tossctl — the official API is a fraction of Toss
 
 The official Open API offers only **basic REST read/order** (~20 endpoints). Toss's
-own web app (WTS) actually uses **~430 meaningful read/trade endpoints** — that's
+own web app (WTS) actually uses **~440 meaningful read/trade endpoints** — that's
 after excluding noise like onboarding, KYC, terms, promotions, and telemetry.
 
 > **The official Open API covers only ~4% of that.** tossctl works across the
@@ -453,7 +453,7 @@ tossctl auth login|status|extend|doctor|logout
 ### API regression watch
 
 ```bash
-tossctl monitor api           # schema-probe 16 endpoints (parallel); exit 0 pass, 1 fail
+tossctl monitor api           # schema-probe 25 endpoints (parallel); exit 0 pass, 1 fail
 tossctl monitor api --quiet   # for cron
 ```
 
