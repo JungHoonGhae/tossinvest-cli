@@ -172,7 +172,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **Transaction ledger** | `transactions list --market us\|kr` (trades · transfers · dividends) | ❌ | ✅ |
 | **Cash overview** | `transactions overview --market us\|kr` (orderable · withdrawable · incoming) | ❌ | ✅ |
 | **CSV export** | `export positions\|orders --market`, `transactions list --output csv` | ❌ | ✅ |
-| **Real-time push** | `push listen` (SSE stream — order/price change events) | ❌ *(official is REST only)* | ✅ |
+| **Real-time push** | `push listen` (SSE stream — order/price change events) | ❌ *(official API is REST only)* | ✅ |
 
 ### Trading
 

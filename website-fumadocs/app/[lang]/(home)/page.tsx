@@ -43,37 +43,37 @@ const content = {
     thesis: {
       label: '왜 지금',
       headline: '공식 API, 기다릴 필요 없습니다',
-      body: 'tossctl은 공식 Open API 지원 범위를 100% 포함하고, 공식엔 없는 토스 WTS 고유 기능 21개를 더해 총 40개를 하나의 명령 체계로 제공합니다. 신청·승인 없이 지금 바로 시작할 수 있고, 공식 키를 연결하면 해당 기능은 자동으로 OAuth 경로로 라우팅돼 더 안정적입니다. 공식이 여는 범위는 토스 WTS 전체의 약 4%뿐이라, tossctl이 그만큼 더 넓은 영역을 커버합니다.',
+      body: 'tossctl은 공식 Open API 지원 범위를 100% 포함하고, 공식 Open API엔 없는 토스 WTS 고유 기능 21개를 더해 총 40개를 하나의 명령 체계로 제공합니다. 신청·승인 없이 지금 바로 시작할 수 있고, 공식 키를 연결하면 해당 기능은 자동으로 OAuth 경로로 라우팅돼 더 안정적입니다. 공식 Open API가 여는 범위는 토스 WTS 전체의 약 4%뿐이라, tossctl이 그만큼 더 넓은 영역을 커버합니다.',
       points: [
-        { k: '공식 전부 100% 커버', v: '공식이 여는 범위를 빠짐없이 100% 포함합니다. 공식 키를 연결하면 OAuth 경로로 더 안정적으로 동작합니다.' },
+        { k: '공식 Open API 전부 100% 커버', v: '공식 Open API가 여는 범위를 빠짐없이 100% 포함합니다. 공식 키를 연결하면 OAuth 경로로 더 안정적으로 동작합니다.' },
         { k: 'WTS 기능 21개 추가', v: '토스 WTS엔 있지만 공식 API엔 없는 수급·지수·AI 시그널·스크리너·배당 등 21개까지. 합계 40개.' },
         { k: '에이전트 연동', v: '모든 명령이 JSON으로 출력되어 AI 에이전트와 바로 연동됩니다.' },
-        { k: '공식은 약 4%', v: '공식 Open API는 토스 WTS 기능 ~440개 중 약 4%만 엽니다. tossctl은 그 너머까지 다룹니다.' },
+        { k: '공식 Open API는 약 4%', v: '공식 Open API는 토스 WTS 기능 ~440개 중 약 4%만 엽니다. tossctl은 그 너머까지 다룹니다.' },
       ],
     },
     why: {
       headline: '새 기능은 늘 앱(WTS)에 먼저 출시됩니다',
       p1: '어느 플랫폼이든 자사 앱은 사용자 경험이 모이는 핵심 공간입니다. 새 기능을 가장 빠르게 실험하고 통합하기 좋은 곳도 앱이라, 신기능은 자연스럽게 앱(WTS)에 먼저 들어갑니다. 반면 외부 공개용 API는 버전·호환성·지원 부담이 크기 때문에, 안정적으로 열 수 있는 범위를 신중히 골라 뒤따라 공개합니다. 공식 API가 보수적인 건 인색해서가 아니라 합리적인 선택입니다.',
-      p2: '그 결과 수급·시장지수·AI 시그널·스크리너·실시간 푸시처럼 토스의 색이 강한 기능일수록 앱에 먼저, 더 빨리 출시됩니다. 누구의 잘못이 아니라 플랫폼의 구조입니다. tossctl은 이 구조를 거스르지 않고 그대로 활용합니다. 앱이 쓰는 길(WTS)을 1차 경로로 삼아 지금 바로 쓰되, 공식이 지원하는 기능은 공식 경로로 자동 라우팅해 안정성도 함께 가져갑니다.',
+      p2: '그 결과 수급·시장지수·AI 시그널·스크리너·실시간 푸시처럼 토스의 색이 강한 기능일수록 앱에 먼저, 더 빨리 출시됩니다. 누구의 잘못이 아니라 플랫폼의 구조입니다. tossctl은 이 구조를 거스르지 않고 그대로 활용합니다. 앱이 쓰는 길(WTS)을 1차 경로로 삼아 지금 바로 쓰되, 공식 Open API가 지원하는 기능은 공식 API 경로로 자동 라우팅해 안정성도 함께 가져갑니다.',
       kicker: '더 빠른 범위와 더 안정적인 경로, 둘 다 취합니다.',
     },
     sectionLabel: '왜 tossctl 인가',
     compareLabel: '공식 OPEN API 의 상위집합',
     compareLead: (
       <>
-        공식 지원 전부(<span className="text-brand-200">100% 커버</span>) +
+        공식 Open API 지원 전부(<span className="text-brand-200">100% 커버</span>) +
         고유 <span className="text-brand-200">21개</span> = 총 <span className="text-brand-200">40개</span>
       </>
     ),
     stats: [
-      { n: '40', l: '공식 지원 전부 + 고유 21 = tossctl 총 기능 수' },
+      { n: '40', l: '공식 Open API 지원 전부 + 고유 21 = tossctl 총 기능 수' },
       { n: '21', l: '공식 API엔 없는 토스 WTS 기능' },
       { n: '약 4%', l: '(참고) 공식 Open API가 여는 토스 WTS 기능 비중' },
     ],
     coverage: {
       bright: '공식 Open API · 토스 WTS의 약 4%',
       dim: '토스 WTS 전체 기능 ~440개',
-      note: 'tossctl은 공식이 다루는 약 4%를 100% 포함하고, 공식에 없는 나머지 WTS 기능까지 넓혀갑니다.',
+      note: 'tossctl은 공식 Open API가 다루는 약 4%를 100% 포함하고, 공식 Open API에 없는 나머지 WTS 기능까지 넓혀갑니다.',
     },
     official: {
       name: '공식 Open API',
@@ -82,9 +82,9 @@ const content = {
     },
     toss: {
       name: 'tossctl',
-      note: '공식 전부 100% 커버 + 고유 21 = 총 40개',
+      note: '공식 Open API 전부 100% 커버 + 고유 21 = 총 40개',
       items: [
-        '공식 지원 기능 전부 (공식 키 연결 시 OAuth 경로로 더 안정적)',
+        '공식 Open API 지원 기능 전부 (공식 키 연결 시 OAuth 경로로 더 안정적)',
         '수급·시장지수·지수 상세·업종 등락',
         'AI 시그널·뉴스 브리핑·조건검색',
         '배당·커뮤니티 랭킹·관심종목·실시간 푸시·dry-run preview',
@@ -112,7 +112,7 @@ const content = {
       },
       {
         q: '공식 API가 넓어지면 tossctl 은 무의미해지나요?',
-        a: '오히려 더 좋아집니다. 공식이 지원하는 기능은 자동으로 공식 경로(OAuth)로 라우팅해 안정성을 높이고, 공식에 아직 없는 범위는 계속 WTS 로 채웁니다. 공식 범위는 언제나 100% 포함합니다.',
+        a: '오히려 더 좋아집니다. 공식 Open API가 지원하는 기능은 자동으로 공식 API 경로(OAuth)로 라우팅해 안정성을 높이고, 공식 Open API에 아직 없는 범위는 계속 WTS 로 채웁니다. 공식 Open API 범위는 언제나 100% 포함합니다.',
       },
       {
         q: '합법인가요? 토스 공식인가요?',
@@ -159,7 +159,7 @@ const content = {
       headline: "You don't have to wait for the official API",
       body: "tossctl covers 100% of the official Open API's supported range and adds 21 more Toss WTS features the official API doesn't expose, for a total of 40 — all through one command interface. No application, no approval, start right now. Connect an official key and those features auto-route through OAuth for extra stability. The official API only opens about 4% of the full Toss WTS surface, so tossctl reaches a lot further.",
       points: [
-        { k: '100% of official covered', v: "tossctl covers the official's whole area 100%. Add an official key and it routes through OAuth (more stable, auto-renewing)." },
+        { k: '100% of official API covered', v: "tossctl covers the official API's whole area 100%. Add an official key and it routes through OAuth (more stable, auto-renewing)." },
         { k: '+21 WTS features', v: "Flows, indices, AI signals, screener, dividends: 21 Toss WTS features the official API doesn't expose. Total: 40." },
         { k: 'Agents included', v: 'Every command answers in JSON, so people and agents use it the same way.' },
         { k: 'Official ≈ 4%', v: 'Of ~440 Toss WTS features, the official Open API opens only about 4% — tossctl covers the rest too.' },
@@ -168,26 +168,26 @@ const content = {
     why: {
       headline: 'New features always ship in the app first',
       p1: "On any platform, the first-party app is where the core experience lives. It's also the best place to ship and integrate new features fast, so new capabilities naturally land in the app (WTS) first. A public API carries real versioning, compatibility, and support costs, so it opens a carefully chosen, stable subset afterwards. The official API being conservative is reasonable, not stingy.",
-      p2: "As a result, the most Toss-flavored capabilities (flows, indices, AI signals, screener, real-time push) arrive in the app first and fastest. That is not anyone's fault, it is the shape of the platform. tossctl works with that shape rather than against it: it uses the path the app itself uses (WTS) as the primary route so you can use those features now, while auto-routing officially-supported features through the official path to keep stability.",
+      p2: "As a result, the most Toss-flavored capabilities (flows, indices, AI signals, screener, real-time push) arrive in the app first and fastest. That is not anyone's fault, it is the shape of the platform. tossctl works with that shape rather than against it: it uses the path the app itself uses (WTS) as the primary route so you can use those features now, while auto-routing features the official API supports through the official API's path to keep stability.",
       kicker: 'The faster surface and the steadier route, both at once.',
     },
     sectionLabel: 'WHY TOSSCTL',
     compareLabel: 'A SUPERSET OF THE OFFICIAL OPEN API',
     compareLead: (
       <>
-        All official-supported features (<span className="text-brand-200">100% covered</span>) +{' '}
+        Everything the official API supports (<span className="text-brand-200">100% covered</span>) +{' '}
         <span className="text-brand-200">21</span> unique = <span className="text-brand-200">40 total</span>
       </>
     ),
     stats: [
-      { n: '40', l: 'total: all official-supported + 21 unique' },
+      { n: '40', l: 'total: everything the official API supports + 21 unique' },
       { n: '21', l: "Toss WTS features the official API doesn't expose" },
       { n: '~4%', l: '(for context) of Toss WTS features the official API opens' },
     ],
     coverage: {
       bright: 'Official Open API · ~4% of WTS',
       dim: '~440 total Toss WTS features',
-      note: 'tossctl covers 100% of the official ~4% and keeps expanding into the rest of WTS.',
+      note: "tossctl covers 100% of the official API's ~4% and keeps expanding into the rest of WTS.",
     },
     official: {
       name: 'Official Open API',
@@ -196,9 +196,9 @@ const content = {
     },
     toss: {
       name: 'tossctl',
-      note: '100% of official + 21 unique = 40 total',
+      note: '100% of the official API + 21 unique = 40 total',
       items: [
-        'All official-supported features (official key unlocks OAuth routing)',
+        'Everything the official API supports (official key unlocks OAuth routing)',
         'Flows · indices · index detail · sectors',
         'AI signals · news briefing · screener',
         'Dividends · community rankings · watchlist · real-time push · dry-run',
@@ -226,7 +226,7 @@ const content = {
       },
       {
         q: 'Does tossctl become pointless once the official API grows?',
-        a: 'It gets better. Officially-supported features auto-route through the official path (OAuth) for stability, while the rest keep coming from WTS. tossctl always covers 100% of the official scope.',
+        a: "It gets better. Features the official API supports auto-route through the official API's path (OAuth) for stability, while the rest keep coming from WTS. tossctl always covers 100% of the official API's scope.",
       },
       {
         q: 'Is this legal? Is it official?',

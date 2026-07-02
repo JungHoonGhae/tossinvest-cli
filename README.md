@@ -6,7 +6,7 @@
 
 <div align="center">
   <h1>tossinvest-cli</h1>
-  <p><strong>토스증권 공식 API가 지원하는 범위를 100% 포함하고, 공식엔 없는 WTS 전용 기능 21가지를 더합니다.</strong></p>
+  <p><strong>토스증권 공식 API가 지원하는 범위를 100% 포함하고, 공식 API엔 없는 WTS 전용 기능 21가지를 더합니다.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — 어떤 AI 에이전트든 하나의 명령 체계(<code>tossctl</code>)로 토스증권 계좌·시세·거래를 다룹니다. 터미널에서 직접 써도 됩니다.</p>
   <p><sub>수급 · 시장지수 · AI 시그널 · 조건검색 · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview — <strong>공식 API엔 없는 토스 WTS 기능까지 전부 포함합니다.</strong> <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
   <p><sub><em>An unofficial Toss Securities CLI for AI agents. Covers 100% of the official Open API — plus 21 WTS-only features you won't find there.</em></sub></p>
@@ -91,7 +91,7 @@
 ## 공식 Open API 자동 라우팅 <!--since:2026-06-27-->
 
 tossctl은 웹 세션(WTS)만으로도 전부 동작합니다. 토스 공식 Open API 키를 선택적으로
-연결하면 공식이 지원하는 기능은 공식 OAuth 경로로, 나머지는 WTS로 각각 처리하는 **자동
+연결하면 공식 Open API가 지원하는 기능은 공식 API OAuth 경로로, 나머지는 WTS로 각각 처리하는 **자동
 라우팅**이 켜집니다. 키 없이도 모든 기능을 쓸 수 있고, 원하는 시점에 추가할 수 있습니다.
 
 > 공식 Open API 와 WTS 웹 세션의 차이(인증·갱신·커버리지·안정성), IP 자동 등록, 라우팅
@@ -103,7 +103,7 @@ tossctl init                          # 온보딩 위저드 (처음 설정 시)
 tossctl openapi login                 # 공식 키 등록 (환경변수도 지원)
 tossctl openapi status                # 키·토큰·허용 IP·라우팅 진단
 tossctl openapi test                  # 연결 검증
-tossctl account summary --backend openapi  # 공식 경로 강제 (선택)
+tossctl account summary --backend openapi  # 공식 API 경로 강제 (선택)
 ```
 
 키를 연결하면 CI·서버·에이전트에서 사람 개입 없이 토큰이 자동 갱신됩니다.
@@ -181,7 +181,7 @@ Waiting for approval in the Toss app on your phone...
 ## 지원 범위
 
 > **tossctl 은 토스 공식 Open API 의 조회·거래 범위를 100% 커버하고, 그 너머까지 다룹니다.**
-> 공식 [Open API 문서](https://developers.tossinvest.com/docs)의 모든 엔드포인트(계좌·잔고·시세·호가·체결·캔들·상하한가·매도가능수량·수수료·주문 등)에 대응하며, 추가로 수급·시장지수·AI 시그널·조건검색·관심종목 관리·거래내역 ledger·실시간 푸시·원화 소수점 주문·dry-run preview 등 **21개가 공식에 없는 tossctl 고유 범위**입니다.
+> 공식 [Open API 문서](https://developers.tossinvest.com/docs)의 모든 엔드포인트(계좌·잔고·시세·호가·체결·캔들·상하한가·매도가능수량·수수료·주문 등)에 대응하며, 추가로 수급·시장지수·AI 시그널·조건검색·관심종목 관리·거래내역 ledger·실시간 푸시·원화 소수점 주문·dry-run preview 등 **21개가 공식 Open API에 없는 tossctl 고유 범위**입니다.
 
 <p align="center">
   <img src="docs/assets/api-comparison.svg" alt="tossctl vs 공식 Open API(예정) 커버리지 비교 — tossctl 이 상위집합" width="840" />
@@ -190,7 +190,7 @@ Waiting for approval in the Toss app on your phone...
 토스증권 공식 Open API 는 현재 **사전 신청자 대상으로 단계적 롤아웃** 중이며, REST only 의
 좁은 범위입니다 (공식 문서: <https://developers.tossinvest.com/docs>). 아래 표의
 `공식 API (예정)` 칼럼은 그 문서 기준 공식이 커버하는 범위이고, `tossctl` 칼럼은 우리가
-제공하는 범위입니다. **공식의 ✅ 행은 tossctl 도 전부 ✅ — 즉 공식 범위를 100% 커버합니다.**
+제공하는 범위입니다. **공식 Open API의 ✅ 행은 tossctl 도 전부 ✅ — 즉 공식 Open API 범위를 100% 커버합니다.**
 
 - ✅ 지원 · ❌ 미지원 · 🔸 부분 지원 · 🆕 최근 한 달 내 새로 추가된 기능
 - **`공식 API (예정)` 칼럼 = 공개 문서 기준 예상 커버리지** (사전 신청자 단계적 롤아웃 — 변동 가능).
@@ -232,7 +232,7 @@ Waiting for approval in the Toss app on your phone...
 | **거래내역 ledger** | `transactions list --market us\|kr` (매매·입출금·배당·입출고) | ❌ | ✅ |
 | **현금 overview** | `transactions overview --market us\|kr` (주문가능·출금가능·예정입금) | ❌ | ✅ |
 | **CSV 내보내기** | `export positions\|orders --market`, `transactions list --output csv` | ❌ | ✅ |
-| **실시간 푸시** | `push listen` (SSE 스트림 — 주문/가격 변경 알림) | ❌ *(공식 REST only)* | ✅ |
+| **실시간 푸시** | `push listen` (SSE 스트림 — 주문/가격 변경 알림) | ❌ *(공식 API REST only)* | ✅ |
 
 ### 거래
 
@@ -260,15 +260,15 @@ US 지정가는 `--currency-mode`로 가격 해석을 선택합니다: `KRW` (�
 프로모션·텔레메트리 같은 무의미한 엔드포인트는 뺀 숫자입니다.
 
 > **공식 Open API 는 그중 약 4%만 커버합니다.** tossctl 은 나머지 범위 위에서 동작하며,
-> 공식에 없는 기능(수급·시장지수·AI 시그널·스크리너·투자자별 순매수·어닝콜·배당 내역·
+> 공식 Open API에 없는 기능(수급·시장지수·AI 시그널·스크리너·투자자별 순매수·어닝콜·배당 내역·
 > 커뮤니티 랭킹·업종별 등락·뉴스 브리핑·실시간 푸시·원화 소수점 주문·dry-run preview 등)을 이미 제공하고,
 > **남은 의미있는 범위를 계속 구현해 나갑니다.**
 
 장기적으로 tossctl 이 더 나은 이유:
 
-- **범위** — 공식은 좁은 영역을 단계적으로 천천히 엽니다. tossctl 은 웹 전체(아래 카탈로그)를 추적해 골라 구현하므로 항상 더 넓습니다.
-- **속도** — 새 기능은 어느 플랫폼이든 자사 앱에서 가장 빠르게 통합되므로 늘 웹앱(WTS)에 먼저 실리고, 외부 공개용 API 는 안정적인 범위만 뒤따라 엽니다(누구의 잘못이 아니라 구조적으로 자연스러운 일). tossctl 은 주간 모니터로 신규 엔드포인트를 잡아 **공식 출시를 기다리지 않고 먼저 구현**합니다. [왜 공식 API가 늦는지 ↗](https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi)
-- **상위호환** — 공식이 커버하는 범위는 [이미 100% 지원](#지원-범위)합니다 (공식이 따라와도 우리가 앞섭니다).
+- **범위** — 공식 Open API는 좁은 영역을 단계적으로 천천히 엽니다. tossctl 은 웹 전체(아래 카탈로그)를 추적해 골라 구현하므로 항상 더 넓습니다.
+- **속도** — 새 기능은 어느 플랫폼이든 자사 앱에서 가장 빠르게 통합되므로 늘 웹앱(WTS)에 먼저 실리고, 외부 공개용 API 는 안정적인 범위만 뒤따라 엽니다(누구의 잘못이 아니라 구조적으로 자연스러운 일). tossctl 은 주간 모니터로 신규 엔드포인트를 잡아 **공식 Open API 출시를 기다리지 않고 먼저 구현**합니다. [왜 공식 API가 늦는지 ↗](https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi)
+- **상위호환** — 공식 Open API가 커버하는 범위는 [이미 100% 지원](#지원-범위)합니다 (공식 Open API가 따라와도 우리가 앞섭니다).
 - **안정성(복원력)** — 공식 Open API 는 엔드포인트 그룹별 초당 1~10회로 제한됩니다(계좌 조회가 **초당 1회**로 가장 빡빡). 빠르게 반복하면 10번 중 8번이 막혀요(실측 3개 시점). tossctl 은 막히면 **곧바로 웹 세션으로 우회**해 데이터를 가져오므로 사용자는 막힌 줄도 모르고 항상 성공합니다 — 자동매매·대시보드처럼 계속 불러야 할 때 차이가 큽니다. (한도 숫자는 토스 정책에 따라 바뀔 수 있어도 '막히면 우회'하는 구조는 그대로.) [공식 한도 표 + 실측 ↗](docs/migration/open-api.md#rate-limit-실측)
 
 #### WTS 웹 API 카탈로그 (지속 추적)
