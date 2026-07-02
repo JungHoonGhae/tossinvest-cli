@@ -6,9 +6,9 @@
 
 <div align="center">
   <h1>tossinvest-cli</h1>
-  <p><strong>Covers 100% of Toss Securities' official API — plus 21 WTS-only features you won't find there.</strong></p>
+  <p><strong>Investor flows · AI signals · screener · dividends — Toss WTS features that only lived in the web app, now in your terminal.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — any AI agent drives Toss Securities accounts, quotes, and trades through one command interface (<code>tossctl</code>). Works just as well by hand in a terminal.</p>
-  <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — <strong>Toss WTS features the official API doesn't expose, all included.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
+  <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — 21 WTS-only features, and <strong>100% of the official Open API's coverage, included too.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
   <p><sub><em>An unofficial Toss Securities CLI for AI agents. Auto-routes through the official OAuth path when you connect an official key.</em></sub></p>
 </div>
 
