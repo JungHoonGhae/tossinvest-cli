@@ -4,10 +4,10 @@
   "chunk_count": 26,
   "total": 934,
   "counts": {
-    "implemented": 70,
-    "candidate": 372,
+    "implemented": 72,
+    "candidate": 370,
     "excluded": 492,
-    "candidate_next": 24,
+    "candidate_next": 22,
     "meaningful": 442
   },
   "overrides": {},
@@ -1859,9 +1859,7 @@
       "first_seen": "2026-06-29"
     },
     "/api/v1/prime/users/benefits": {
-      "status": "candidate",
-      "priority": "next",
-      "note": "토스프라임 혜택·구독 상태",
+      "status": "implemented",
       "first_seen": "2026-06-29"
     },
     "/api/v1/prime/users/benefits/cumulative": {
@@ -1871,9 +1869,7 @@
       "first_seen": "2026-06-29"
     },
     "/api/v1/prime/users/info": {
-      "status": "candidate",
-      "priority": "next",
-      "note": "토스프라임 혜택·구독 상태",
+      "status": "implemented",
       "first_seen": "2026-06-29"
     },
     "/api/v1/product-eligibility/domestic-leverage-etp/trading": {
