@@ -30,6 +30,11 @@ Rules for agents:
 - Prefer `--json` for machine-readable output.
 - Treat `source: wts` results as best-effort; add a `monitor api` probe when you
   build automation on top of them.
+- **Don't auto-run `tossctl update`.** It changes the tossctl binary itself
+  (not account state), but an agent silently switching versions mid-task can
+  surprise the human running it — let a human trigger it, or run
+  `tossctl update --check` (read-only) if you need to know whether an update
+  exists.
 
 ## API 회귀 감지 → 알림
 

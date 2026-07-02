@@ -148,6 +148,8 @@ tossctl auth login
 tossctl account summary --output json
 ```
 
+설치 후 새 버전이 나오면 `tossctl update` 로 갱신할 수 있습니다 (Homebrew로 설치했다면 `brew upgrade tossctl-cli` 로 자동 위임됩니다).
+
 > `auth login`에는 Google Chrome과 Python이 필요하며, 설치 스크립트가 자동으로 설정합니다.
 > Windows, Homebrew, 소스 빌드 등 다른 설치 방법은 [설치](#설치) 섹션을 참고하세요.
 >

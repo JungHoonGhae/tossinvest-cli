@@ -4,6 +4,9 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 
 ## [Unreleased]
 
+### 새 기능
+- **`tossctl update`** — 설치 경로(Homebrew / install.sh·install.ps1 / 소스 빌드)를 자동 감지해 알맞은 방식으로 tossctl을 최신 버전으로 갱신합니다. `--check` 로 다운로드 없이 새 버전 여부만 확인, `--yes` 로 확인 프롬프트 생략 가능.
+
 ## [0.14.0] - 2026-07-01
 
 ### 새 기능
