@@ -131,3 +131,74 @@ func WriteAccountSummary(w io.Writer, format Format, summary domain.AccountSumma
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
 }
+
+// WriteAccountPrime renders the account's Toss Prime membership status and
+// fee/interest benefit comparison.
+func WriteAccountPrime(w io.Writer, format Format, p domain.PrimeStatus) error {
+	switch format {
+	case FormatJSON:
+		encoder := json.NewEncoder(w)
+		encoder.SetIndent("", "  ")
+		return encoder.Encode(p)
+	case FormatCSV:
+		writer := csv.NewWriter(w)
+		if err := writer.Write([]string{"metric", "non_prime", "prime", "benefit"}); err != nil {
+			return err
+		}
+		rows := [][4]string{
+			{"exchange_fee", strconv.Itoa(p.Exchange.NonPrimeFee), strconv.Itoa(p.Exchange.PrimeFee), strconv.Itoa(p.Exchange.BenefitFee)},
+			{"interest_krw", strconv.Itoa(p.InterestKRW.NonPrimeInterest), strconv.Itoa(p.InterestKRW.PrimeInterest), strconv.Itoa(p.InterestKRW.BenefitInterest)},
+			{"interest_usd", strconv.Itoa(p.InterestUSD.NonPrimeInterest), strconv.Itoa(p.InterestUSD.PrimeInterest), strconv.Itoa(p.InterestUSD.BenefitInterest)},
+		}
+		for _, row := range rows {
+			if err := writer.Write(row[:]); err != nil {
+				return err
+			}
+		}
+		writer.Flush()
+		return writer.Error()
+	case FormatTable:
+		if p.IsMember {
+			primeType := ""
+			if p.PrimeType != nil {
+				primeType = *p.PrimeType
+			}
+			endAt := ""
+			if p.BenefitsEndAt != nil {
+				endAt = *p.BenefitsEndAt
+			}
+			if _, err := fmt.Fprintf(w, i18n.T("output.accountPrime.member.header"), primeType, endAt); err != nil {
+				return err
+			}
+		} else {
+			if _, err := fmt.Fprint(w, i18n.T("output.accountPrime.nonMember.header")); err != nil {
+				return err
+			}
+		}
+		header := i18n.T("output.accountPrime.comparisonHeader")
+		if _, err := fmt.Fprintf(w, header, "", i18n.T("output.accountPrime.columnNonMember"), i18n.T("output.accountPrime.columnPrime"), i18n.T("output.accountPrime.columnBenefit")); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(w, header,
+			i18n.T("output.accountPrime.exchangeLabel"),
+			strconv.Itoa(p.Exchange.NonPrimeFee), strconv.Itoa(p.Exchange.PrimeFee), strconv.Itoa(p.Exchange.BenefitFee),
+		); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(w, header,
+			i18n.T("output.accountPrime.interestKrwLabel"),
+			strconv.Itoa(p.InterestKRW.NonPrimeInterest), strconv.Itoa(p.InterestKRW.PrimeInterest), strconv.Itoa(p.InterestKRW.BenefitInterest),
+		); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(w, header,
+			i18n.T("output.accountPrime.interestUsdLabel"),
+			strconv.Itoa(p.InterestUSD.NonPrimeInterest), strconv.Itoa(p.InterestUSD.PrimeInterest), strconv.Itoa(p.InterestUSD.BenefitInterest),
+		); err != nil {
+			return err
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported output format: %s", format)
+	}
+}
