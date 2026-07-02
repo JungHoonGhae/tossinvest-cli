@@ -1,5 +1,7 @@
 {
   "_meta.lang": "en",
+  "update.short": "Update tossctl to the latest version",
+  "update.long": "Detects how this tossctl binary was installed (Homebrew, install.sh/install.ps1, or a source build) and upgrades it using that same mechanism.",
   "account.list.short": "List available accounts",
   "account.short": "Read account-level data",
   "account.summary.short": "Show a summary for the selected account",

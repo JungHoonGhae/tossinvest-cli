@@ -1,5 +1,7 @@
 {
   "_meta.lang": "ko",
+  "update.short": "tossctl를 최신 버전으로 업데이트",
+  "update.long": "이 tossctl 바이너리가 어떻게 설치됐는지(Homebrew, install.sh/install.ps1, 또는 소스 빌드) 감지해 같은 방식으로 갱신합니다.",
   "account.list.short": "이용 가능한 계좌 목록 조회",
   "account.short": "계좌 단위 데이터 조회",
   "account.summary.short": "선택한 계좌의 요약 정보 표시",

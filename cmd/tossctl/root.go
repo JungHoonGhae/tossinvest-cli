@@ -19,6 +19,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/onboarding"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderlineage"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/selfupdate"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/tui"
@@ -132,6 +133,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(
 		newInitCmd(opts),
 		newVersionCmd(opts),
+		newUpdateCmd(opts),
 		newDoctorCmd(opts),
 		newConfigCmd(opts),
 		newAuthCmd(opts),
@@ -316,13 +318,32 @@ func writeUpdateNoticeIfNeeded(ctx context.Context, stderr io.Writer, opts *root
 	configFile, _ := configFilePath(opts)
 	fmt.Fprintf(
 		stderr,
-		"\n✨ tossctl %s available (current %s) — `brew upgrade tossctl-cli` or %s\n   Disable: set update_check.enabled=false in %s\n",
+		"\n✨ tossctl %s available (current %s) — %s\n   Disable: set update_check.enabled=false in %s\n",
 		latest,
 		version.Version,
-		version.ReleasesLatestURL,
+		updateActionHint(version.Version),
 		configFile,
 	)
 	checker.MarkUpdateNotified()
+}
+
+// updateActionHint returns the right upgrade instruction for the running
+// binary's install method, so the "update available" nudge doesn't tell a
+// curl-installed user to run `brew upgrade` (or a brew user to run
+// `tossctl update`, which would just re-delegate to brew anyway but is a
+// confusing detour).
+func updateActionHint(currentVersion string) string {
+	execPath, err := os.Executable()
+	if err != nil {
+		return "`tossctl update` or " + version.ReleasesLatestURL
+	}
+	if resolved, err := filepath.EvalSymlinks(execPath); err == nil {
+		execPath = resolved
+	}
+	if selfupdate.DetectInstallMethod(execPath, currentVersion) == selfupdate.MethodHomebrew {
+		return "`brew upgrade tossctl-cli` or " + version.ReleasesLatestURL
+	}
+	return "`tossctl update` or " + version.ReleasesLatestURL
 }
 
 // newUpdateChecker constructs an updatecheck.Checker honoring update_check
