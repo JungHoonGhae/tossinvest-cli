@@ -54,7 +54,7 @@ func newVersionCmd(opts *rootOptions) *cobra.Command {
 				if latest != "" {
 					suffix := ""
 					if updateAvailable {
-						suffix = " (update available — `brew upgrade tossctl-cli` or " + version.ReleasesLatestURL + ")"
+						suffix = " (update available — " + updateActionHint(info.Version) + ")"
 					}
 					if _, err := fmt.Fprintf(cmd.OutOrStdout(), "latest: %s%s\n", latest, suffix); err != nil {
 						return err
