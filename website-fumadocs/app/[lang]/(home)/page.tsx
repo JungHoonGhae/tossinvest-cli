@@ -71,9 +71,10 @@ const content = {
       { n: '약 4%', l: '(참고) 공식 Open API가 여는 토스 WTS 기능 비중' },
     ],
     coverage: {
-      bright: '공식 Open API · 토스 WTS의 약 4%',
-      dim: '토스 WTS 전체 기능 ~440개',
-      note: 'tossctl은 공식 Open API가 다루는 약 4%를 100% 포함하고, 공식 Open API에 없는 나머지 WTS 기능까지 넓혀갑니다.',
+      addedLabel: 'tossctl 고유 21개 추가',
+      officialLabel: '공식 Open API 19개',
+      restLabel: '아직 다루지 않은 나머지 WTS',
+      note: 'tossctl은 공식 Open API 지원 범위(19개)를 100% 포함하고, 고유 기능 21개를 더해 총 40개를 하나의 명령 체계로 제공합니다. 토스 WTS 전체 ~440개 중 의미있는 범위를 계속 넓혀갑니다.',
     },
     official: {
       name: '공식 Open API',
@@ -185,9 +186,10 @@ const content = {
       { n: '~4%', l: '(for context) of Toss WTS features the official API opens' },
     ],
     coverage: {
-      bright: 'Official Open API · ~4% of WTS',
-      dim: '~440 total Toss WTS features',
-      note: "tossctl covers 100% of the official API's ~4% and keeps expanding into the rest of WTS.",
+      addedLabel: '21 tossctl-only additions',
+      officialLabel: '19 official API features',
+      restLabel: 'not yet covered',
+      note: "tossctl covers 100% of what the official API supports (19) and adds 21 more, for 40 total — all through one command interface. Continuing to expand across the ~440 total Toss WTS features.",
     },
     official: {
       name: 'Official Open API',
@@ -349,10 +351,22 @@ const COMPANIES: { name: string; logo?: string; h?: number; w?: number }[] = [
   { name: 'Daangn', logo: '/logos/companies/daangn.svg', h: 43 },
 ];
 
-// Coverage dot-map: the official API is a sliver of the Toss web-app surface.
-function CoverageGrid({ bright, dim, note }: { bright: string; dim: string; note: string }) {
+// Coverage dot-map: tossctl (official-matching + unique) reaches much further into
+// the Toss web-app surface than the official API alone.
+function CoverageGrid({
+  addedLabel,
+  officialLabel,
+  restLabel,
+  note,
+}: {
+  addedLabel: string;
+  officialLabel: string;
+  restLabel: string;
+  note: string;
+}) {
   const total = 160;
-  const official = 6; // ~4%
+  const official = 7; // ~19/440
+  const tossctlTotal = 15; // ~40/440
   return (
     <div className="rounded-xl border border-white/10 bg-[#0f0f0f] p-6">
       <div className="grid grid-cols-[repeat(20,minmax(0,1fr))] gap-1.5">
@@ -360,17 +374,25 @@ function CoverageGrid({ bright, dim, note }: { bright: string; dim: string; note
           <span
             key={i}
             className={
-              'aspect-square rounded-[2px] ' + (i < official ? 'bg-brand-200' : 'bg-white/[0.06]')
+              'aspect-square rounded-[2px] ' +
+              (i < official
+                ? 'bg-brand-200/40'
+                : i < tossctlTotal
+                  ? 'bg-brand-200'
+                  : 'bg-white/[0.06]')
             }
           />
         ))}
       </div>
       <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[11px] text-white/45">
         <span className="inline-flex items-center gap-2">
-          <span className="size-2.5 rounded-[2px] bg-brand-200" /> {bright}
+          <span className="size-2.5 rounded-[2px] bg-brand-200" /> {addedLabel}
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="size-2.5 rounded-[2px] bg-white/[0.12]" /> {dim}
+          <span className="size-2.5 rounded-[2px] bg-brand-200/40" /> {officialLabel}
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="size-2.5 rounded-[2px] bg-white/[0.12]" /> {restLabel}
         </span>
       </div>
       <p className="mt-3 text-[12px] leading-relaxed text-white/45">{note}</p>
@@ -622,7 +644,12 @@ $ tossctl order preview --symbol TSLA --side buy --qty 1 --price 250`}</code>
           <p className="mb-8 max-w-2xl text-lg text-white/80">{t.compareLead}</p>
 
           <div className="mb-8 grid gap-6 lg:grid-cols-[1.5fr_1fr] lg:items-stretch">
-            <CoverageGrid bright={t.coverage.bright} dim={t.coverage.dim} note={t.coverage.note} />
+            <CoverageGrid
+              addedLabel={t.coverage.addedLabel}
+              officialLabel={t.coverage.officialLabel}
+              restLabel={t.coverage.restLabel}
+              note={t.coverage.note}
+            />
             <div className="grid grid-cols-1 divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10 bg-[#0f0f0f] sm:grid-cols-3 sm:divide-x sm:divide-y-0 lg:grid-cols-1 lg:divide-x-0 lg:divide-y">
               {t.stats.map((s) => (
                 <div key={s.l} className="px-4 py-6 text-center lg:py-5">
