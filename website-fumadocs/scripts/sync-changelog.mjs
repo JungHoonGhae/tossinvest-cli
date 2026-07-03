@@ -2,7 +2,7 @@
 // Generates content/docs/changelog.mdx (+ .en.mdx) from the repo-root
 // CHANGELOG.md. Do not hand-edit the generated .mdx files — edit
 // ../../CHANGELOG.md and re-run this script (or `pnpm build` / `pnpm dev`).
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -10,6 +10,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..', '..');
 const changelogPath = path.join(repoRoot, 'CHANGELOG.md');
 const outDir = path.join(__dirname, '..', 'content', 'docs');
+
+// Some deploy environments (e.g. Vercel with this project's subdirectory as
+// the build root) only check out website-fumadocs/, not the monorepo root —
+// so ../../CHANGELOG.md isn't reachable there. Skip regeneration rather than
+// failing the whole build; the already-committed content/docs/changelog.mdx
+// stays as the fallback.
+if (!existsSync(changelogPath)) {
+  console.warn(`sync-changelog: ${changelogPath} not found (outside build root?) — skipping, keeping committed changelog.mdx`);
+  process.exit(0);
+}
 
 function loadBody() {
   const raw = readFileSync(changelogPath, 'utf8');

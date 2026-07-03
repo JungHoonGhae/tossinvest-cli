@@ -351,9 +351,10 @@ const COMPANIES: { name: string; logo?: string; h?: number; w?: number }[] = [
 
 // Coverage dot-map: tossctl (official-matching + unique) reaches much further into
 // the Toss web-app surface than the official API alone.
-// Direct comparison: tossctl's own total (official-matching + unique), not
-// scaled against the full WTS universe — so the colored area itself carries
-// the "tossctl covers more" message instead of being dwarfed by empty space.
+// Containment metaphor: the official API is a small circle inside tossctl's
+// larger one — tossctl's own total (official-matching + unique), not scaled
+// against the full WTS universe, so the visual itself carries the "tossctl
+// covers more" message.
 function CoverageGrid({
   addedLabel,
   officialLabel,
@@ -365,26 +366,27 @@ function CoverageGrid({
 }) {
   const official = 19;
   const added = 21;
-  const total = official + added; // 40 — tossctl's own total, the grid's whole
+  const total = official + added; // 40 — tossctl's own total
+  const innerPct = Math.round((official / total) * 100); // inner circle size, linear (not area) so "official" reads as visibly smaller
   return (
     <div className="rounded-xl border border-white/10 bg-[#0f0f0f] p-6">
-      <div className="grid grid-cols-10 gap-1.5">
-        {Array.from({ length: total }).map((_, i) => (
-          <span
-            key={i}
-            className={'aspect-square rounded-[2px] ' + (i < official ? 'bg-brand-200/40' : 'bg-brand-200')}
+      <div className="flex items-center justify-center py-6">
+        <div className="relative flex size-48 items-center justify-center rounded-full bg-orange-400">
+          <div
+            className="rounded-full bg-[#0f0f0f] ring-1 ring-inset ring-white/10"
+            style={{ width: `${innerPct}%`, height: `${innerPct}%` }}
           />
-        ))}
+        </div>
       </div>
-      <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[11px] text-white/45">
+      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-mono text-[11px] text-white/45">
         <span className="inline-flex items-center gap-2">
-          <span className="size-2.5 rounded-[2px] bg-brand-200" /> {addedLabel}
+          <span className="size-2.5 rounded-full bg-orange-400" /> {addedLabel}
         </span>
         <span className="inline-flex items-center gap-2">
-          <span className="size-2.5 rounded-[2px] bg-brand-200/40" /> {officialLabel}
+          <span className="size-2.5 rounded-full bg-[#0f0f0f] ring-1 ring-inset ring-white/20" /> {officialLabel}
         </span>
       </div>
-      <p className="mt-3 text-[12px] leading-relaxed text-white/45">{note}</p>
+      <p className="mt-3 text-center text-[12px] leading-relaxed text-white/45">{note}</p>
     </div>
   );
 }
