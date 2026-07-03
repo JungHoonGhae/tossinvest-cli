@@ -73,8 +73,7 @@ const content = {
     coverage: {
       addedLabel: 'tossctl 고유 21개 추가',
       officialLabel: '공식 Open API 19개',
-      restLabel: '아직 다루지 않은 나머지 WTS',
-      note: 'tossctl은 공식 Open API 지원 범위(19개)를 100% 포함하고, 고유 기능 21개를 더해 총 40개를 하나의 명령 체계로 제공합니다. 토스 WTS 전체 ~440개 중 의미있는 범위를 계속 넓혀갑니다.',
+      note: 'tossctl은 공식 Open API 지원 범위(19개)를 100% 포함하고, 고유 기능 21개를 더해 총 40개를 하나의 명령 체계로 제공합니다. (참고: 토스 WTS 전체는 ~440개, 의미있는 범위를 계속 넓혀가는 중입니다.)',
     },
     official: {
       name: '공식 Open API',
@@ -188,8 +187,7 @@ const content = {
     coverage: {
       addedLabel: '21 tossctl-only additions',
       officialLabel: '19 official API features',
-      restLabel: 'not yet covered',
-      note: "tossctl covers 100% of what the official API supports (19) and adds 21 more, for 40 total — all through one command interface. Continuing to expand across the ~440 total Toss WTS features.",
+      note: "tossctl covers 100% of what the official API supports (19) and adds 21 more, for 40 total — all through one command interface. (For context: Toss WTS has ~440 features total, and tossctl keeps expanding into the meaningful ones.)",
     },
     official: {
       name: 'Official Open API',
@@ -353,34 +351,28 @@ const COMPANIES: { name: string; logo?: string; h?: number; w?: number }[] = [
 
 // Coverage dot-map: tossctl (official-matching + unique) reaches much further into
 // the Toss web-app surface than the official API alone.
+// Direct comparison: tossctl's own total (official-matching + unique), not
+// scaled against the full WTS universe — so the colored area itself carries
+// the "tossctl covers more" message instead of being dwarfed by empty space.
 function CoverageGrid({
   addedLabel,
   officialLabel,
-  restLabel,
   note,
 }: {
   addedLabel: string;
   officialLabel: string;
-  restLabel: string;
   note: string;
 }) {
-  const total = 160;
-  const official = 7; // ~19/440
-  const tossctlTotal = 15; // ~40/440
+  const official = 19;
+  const added = 21;
+  const total = official + added; // 40 — tossctl's own total, the grid's whole
   return (
     <div className="rounded-xl border border-white/10 bg-[#0f0f0f] p-6">
-      <div className="grid grid-cols-[repeat(20,minmax(0,1fr))] gap-1.5">
+      <div className="grid grid-cols-10 gap-1.5">
         {Array.from({ length: total }).map((_, i) => (
           <span
             key={i}
-            className={
-              'aspect-square rounded-[2px] ' +
-              (i < official
-                ? 'bg-brand-200/40'
-                : i < tossctlTotal
-                  ? 'bg-brand-200'
-                  : 'bg-white/[0.06]')
-            }
+            className={'aspect-square rounded-[2px] ' + (i < official ? 'bg-brand-200/40' : 'bg-brand-200')}
           />
         ))}
       </div>
@@ -390,9 +382,6 @@ function CoverageGrid({
         </span>
         <span className="inline-flex items-center gap-2">
           <span className="size-2.5 rounded-[2px] bg-brand-200/40" /> {officialLabel}
-        </span>
-        <span className="inline-flex items-center gap-2">
-          <span className="size-2.5 rounded-[2px] bg-white/[0.12]" /> {restLabel}
         </span>
       </div>
       <p className="mt-3 text-[12px] leading-relaxed text-white/45">{note}</p>
@@ -647,7 +636,6 @@ $ tossctl order preview --symbol TSLA --side buy --qty 1 --price 250`}</code>
             <CoverageGrid
               addedLabel={t.coverage.addedLabel}
               officialLabel={t.coverage.officialLabel}
-              restLabel={t.coverage.restLabel}
               note={t.coverage.note}
             />
             <div className="grid grid-cols-1 divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10 bg-[#0f0f0f] sm:grid-cols-3 sm:divide-x sm:divide-y-0 lg:grid-cols-1 lg:divide-x-0 lg:divide-y">
