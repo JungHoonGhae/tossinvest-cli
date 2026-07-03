@@ -6,10 +6,10 @@
 
 <div align="center">
   <h1>tossinvest-cli</h1>
-  <p><strong>수급 · AI 시그널 · 조건검색 · 배당 — 토스 웹앱(WTS)에만 있던 기능을 터미널에서 씁니다.</strong></p>
+  <p><strong>토스증권을 위한 AI 에이전트 CLI. 공식 API는 물론, 웹앱에만 있던 기능까지 하나로.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — 어떤 AI 에이전트든 하나의 명령 체계(<code>tossctl</code>)로 토스증권 계좌·시세·거래를 다룹니다. 터미널에서 직접 써도 됩니다.</p>
   <p><sub>수급 · 시장지수 · AI 시그널 · 조건검색 · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview 등 WTS 전용 기능 21가지 — <strong>공식 Open API 지원 범위도 물론 100% 포함합니다.</strong> <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
-  <p><sub><em>An unofficial Toss Securities CLI for AI agents. Brings 21 Toss WTS-only features to the terminal — plus 100% of the official Open API's coverage.</em></sub></p>
+  <p><sub><em>An AI agent CLI for Toss Securities — 100% of the official Open API, plus 21 features only the web app had.</em></sub></p>
 </div>
 
 <p align="center">
