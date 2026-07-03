@@ -99,86 +99,126 @@ export const { provider } = defineI18nUI(i18n, {
   },
 });
 
-export const linkItems: LinkItemType[] = [
-  {
-    type: 'custom',
-    on: 'nav',
-    children: (
-      <NavbarMenu>
-        <NavbarMenuTrigger>
-          <Link href="/docs">문서</Link>
-        </NavbarMenuTrigger>
-        <NavbarMenuContent>
-          <NavbarMenuLink href="/docs" className="md:row-span-2">
-            <div className="-mx-3 -mt-3 overflow-hidden rounded-t-lg border-b bg-[#0b1220] p-3 text-white">
-              <div className="mb-3 flex items-center gap-2 text-sm font-medium">
-                <TossctlIcon className="size-4 shrink-0" />
-                tossctl
+const navText = {
+  ko: {
+    docs: '문서',
+    docsBlurb: '설치·사용·명령 레퍼런스·안전 모델을 한곳에서.',
+    quickstart: '시작하기',
+    quickstartBlurb: '설치하고 첫 조회까지 빠르게.',
+    agents: 'AI 에이전트',
+    agentsBlurb: '에이전트 연동 규칙과 출력 계약.',
+    commands: '명령 레퍼런스',
+    commandsShort: '명령',
+    commandsBlurb: '전체 명령과 출력 형식.',
+    safety: '안전 모델',
+    safetyBlurb: '거래 보호 장치와 게이트.',
+    changelog: '변경 이력',
+  },
+  en: {
+    docs: 'Docs',
+    docsBlurb: 'Install, usage, command reference, and the safety model — all in one place.',
+    quickstart: 'Quick Start',
+    quickstartBlurb: 'Install and run your first query fast.',
+    agents: 'AI Agent Guide',
+    agentsBlurb: 'Agent integration rules and output contracts.',
+    commands: 'Command Reference',
+    commandsShort: 'Commands',
+    commandsBlurb: 'Every command and output format.',
+    safety: 'Safety Model',
+    safetyBlurb: 'Trading safeguards and gates.',
+    changelog: 'Changelog',
+  },
+} as const;
+
+// i18n config hides the "ko" prefix (hideLocale: 'default-locale') — only
+// "en" gets prefixed. Every nav href must go through this, or switching to
+// English and then clicking any nav link silently drops back to Korean.
+function withLocale(path: string, lang?: string): string {
+  return lang === 'en' ? `/en${path}` : path;
+}
+
+export function linkItems(lang?: string): LinkItemType[] {
+  const t = navText[lang === 'en' ? 'en' : 'ko'];
+  const href = (path: string) => withLocale(path, lang);
+  return [
+    {
+      type: 'custom',
+      on: 'nav',
+      children: (
+        <NavbarMenu>
+          <NavbarMenuTrigger>
+            <Link href={href('/docs')}>{t.docs}</Link>
+          </NavbarMenuTrigger>
+          <NavbarMenuContent>
+            <NavbarMenuLink href={href('/docs')} className="md:row-span-2">
+              <div className="-mx-3 -mt-3 overflow-hidden rounded-t-lg border-b bg-[#0b1220] p-3 text-white">
+                <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+                  <TossctlIcon className="size-4 shrink-0" />
+                  tossctl
+                </div>
+                <div className="rounded-lg border border-white/10 bg-black/30 p-3 font-mono text-[11px] leading-relaxed text-white/70">
+                  <div><span className="text-white/40">$</span> tossctl account summary</div>
+                  <div><span className="text-white/40">$</span> tossctl quote get 005930</div>
+                  <div><span className="text-white/40">$</span> tossctl market index nasdaq</div>
+                </div>
               </div>
-              <div className="rounded-lg border border-white/10 bg-black/30 p-3 font-mono text-[11px] leading-relaxed text-white/70">
-                <div><span className="text-white/40">$</span> tossctl account summary</div>
-                <div><span className="text-white/40">$</span> tossctl quote get 005930</div>
-                <div><span className="text-white/40">$</span> tossctl market index nasdaq</div>
-              </div>
-            </div>
-            <p className="font-medium">문서</p>
-            <p className="text-fd-muted-foreground text-sm">
-              설치·사용·명령 레퍼런스·안전 모델을 한곳에서.
-            </p>
-          </NavbarMenuLink>
+              <p className="font-medium">{t.docs}</p>
+              <p className="text-fd-muted-foreground text-sm">{t.docsBlurb}</p>
+            </NavbarMenuLink>
 
-          <NavbarMenuLink href="/docs/getting-started/quickstart" className="lg:col-start-2">
-            <Rocket className="bg-fd-primary text-fd-primary-foreground p-1 mb-2 rounded-md" />
-            <p className="font-medium">시작하기</p>
-            <p className="text-fd-muted-foreground text-sm">설치하고 첫 조회까지 빠르게.</p>
-          </NavbarMenuLink>
+            <NavbarMenuLink href={href('/docs/getting-started/quickstart')} className="lg:col-start-2">
+              <Rocket className="bg-fd-primary text-fd-primary-foreground p-1 mb-2 rounded-md" />
+              <p className="font-medium">{t.quickstart}</p>
+              <p className="text-fd-muted-foreground text-sm">{t.quickstartBlurb}</p>
+            </NavbarMenuLink>
 
-          <NavbarMenuLink href="/docs/guide/agents" className="lg:col-start-2">
-            <Bot className="bg-fd-primary text-fd-primary-foreground p-1 mb-2 rounded-md" />
-            <p className="font-medium">AI 에이전트</p>
-            <p className="text-fd-muted-foreground text-sm">에이전트 연동 규칙과 출력 계약.</p>
-          </NavbarMenuLink>
+            <NavbarMenuLink href={href('/docs/guide/agents')} className="lg:col-start-2">
+              <Bot className="bg-fd-primary text-fd-primary-foreground p-1 mb-2 rounded-md" />
+              <p className="font-medium">{t.agents}</p>
+              <p className="text-fd-muted-foreground text-sm">{t.agentsBlurb}</p>
+            </NavbarMenuLink>
 
-          <NavbarMenuLink href="/docs/reference/commands" className="lg:col-start-3 lg:row-start-1">
-            <TerminalSquare className="bg-fd-primary text-fd-primary-foreground p-1 mb-2 rounded-md" />
-            <p className="font-medium">명령 레퍼런스</p>
-            <p className="text-fd-muted-foreground text-sm">전체 명령과 출력 형식.</p>
-          </NavbarMenuLink>
+            <NavbarMenuLink href={href('/docs/reference/commands')} className="lg:col-start-3 lg:row-start-1">
+              <TerminalSquare className="bg-fd-primary text-fd-primary-foreground p-1 mb-2 rounded-md" />
+              <p className="font-medium">{t.commands}</p>
+              <p className="text-fd-muted-foreground text-sm">{t.commandsBlurb}</p>
+            </NavbarMenuLink>
 
-          <NavbarMenuLink href="/docs/guide/safety" className="lg:col-start-3 lg:row-start-2">
-            <ShieldCheck className="bg-fd-primary text-fd-primary-foreground p-1 mb-2 rounded-md" />
-            <p className="font-medium">안전 모델</p>
-            <p className="text-fd-muted-foreground text-sm">거래 보호 장치와 게이트.</p>
-          </NavbarMenuLink>
-        </NavbarMenuContent>
-      </NavbarMenu>
-    ),
-  },
-  {
-    text: '시작하기',
-    url: '/docs/getting-started/quickstart',
-    icon: <Rocket />,
-    active: 'nested-url',
-  },
-  {
-    text: 'AI 에이전트',
-    url: '/docs/guide/agents',
-    icon: <Bot />,
-    active: 'nested-url',
-  },
-  {
-    text: '명령',
-    url: '/docs/reference/commands',
-    icon: <TerminalSquare />,
-    active: 'nested-url',
-  },
-  {
-    text: '변경 이력',
-    url: '/docs/changelog',
-    icon: <History />,
-    active: 'nested-url',
-  },
-];
+            <NavbarMenuLink href={href('/docs/guide/safety')} className="lg:col-start-3 lg:row-start-2">
+              <ShieldCheck className="bg-fd-primary text-fd-primary-foreground p-1 mb-2 rounded-md" />
+              <p className="font-medium">{t.safety}</p>
+              <p className="text-fd-muted-foreground text-sm">{t.safetyBlurb}</p>
+            </NavbarMenuLink>
+          </NavbarMenuContent>
+        </NavbarMenu>
+      ),
+    },
+    {
+      text: t.quickstart,
+      url: href('/docs/getting-started/quickstart'),
+      icon: <Rocket />,
+      active: 'nested-url',
+    },
+    {
+      text: t.agents,
+      url: href('/docs/guide/agents'),
+      icon: <Bot />,
+      active: 'nested-url',
+    },
+    {
+      text: t.commandsShort,
+      url: href('/docs/reference/commands'),
+      icon: <TerminalSquare />,
+      active: 'nested-url',
+    },
+    {
+      text: t.changelog,
+      url: href('/docs/changelog'),
+      icon: <History />,
+      active: 'nested-url',
+    },
+  ];
+}
 
 export const logoIcon = <TossctlIcon className="size-5 shrink-0" />;
 

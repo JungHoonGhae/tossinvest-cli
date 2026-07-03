@@ -11,7 +11,7 @@ export default async function Layout({ params, children }: LayoutProps<'/[lang]/
     <DocsLayout
       {...base}
       tree={source.getPageTree(lang)}
-      links={linkItems.filter((item) => item.type === 'icon')}
+      links={linkItems(lang).filter((item) => item.type === 'icon')}
       nav={{
         ...base.nav,
         title: (

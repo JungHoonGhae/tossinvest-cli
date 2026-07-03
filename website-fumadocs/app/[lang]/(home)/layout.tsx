@@ -1,11 +1,12 @@
 import { HomeLayout } from 'fumadocs-ui/layouts/home';
 import { baseOptions, linkItems } from '@/components/layouts/shared';
 
-export default function Layout({ children }: LayoutProps<'/[lang]'>) {
+export default async function Layout({ params, children }: LayoutProps<'/[lang]'>) {
+  const { lang } = await params;
   return (
     <HomeLayout
       {...baseOptions()}
-      links={linkItems}
+      links={linkItems(lang)}
       // 랜딩은 디자인 소스(MZ8Ua)에 맞춰 항상 다크 — 토글은 동작하지 않으므로 숨긴다.
       // (테마 토글은 docs 레이아웃에서는 그대로 동작)
       themeSwitch={{ enabled: false }}
