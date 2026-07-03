@@ -1,5 +1,5 @@
 import type { BaseLayoutProps, LinkItemType } from 'fumadocs-ui/layouts/shared';
-import { Bot, Github, History, Rocket, ShieldCheck, TerminalSquare } from 'lucide-react';
+import { Bot, Github, History, Rocket, ShieldCheck, Star, TerminalSquare } from 'lucide-react';
 import {
   NavbarMenu,
   NavbarMenuContent,
@@ -10,13 +10,76 @@ import Link from 'fumadocs-core/link';
 import { TossctlIcon } from '@/app/layout.client';
 import { defineI18nUI } from 'fumadocs-ui/i18n';
 import { i18n } from '@/lib/i18n';
-import { GithubInfo } from 'fumadocs-ui/components/github-info';
 
 export const gitConfig = {
   user: 'JungHoonGhae',
   repo: 'tossinvest-cli',
   branch: 'main',
 };
+
+// A GitHub API failure (rate limit, network blip) must never take the whole
+// site down — fumadocs' own GithubInfo throws on fetch failure, which 500s
+// every page since this renders in the shared nav. Same star-count UI, but
+// swallows failures and falls back to icon + repo name with no star count.
+async function humanizeStars(stars: number): Promise<string> {
+  if (stars < 1000) return stars.toString();
+  if (stars < 100000) {
+    const value = (stars / 1000).toFixed(1);
+    return value.endsWith('.0') ? `${value.slice(0, -2)}K` : `${value}K`;
+  }
+  return `${Math.floor(stars / 1000)}K`;
+}
+
+async function SafeGithubInfo({
+  owner,
+  repo,
+  token,
+  className,
+}: {
+  owner: string;
+  repo: string;
+  token?: string;
+  className?: string;
+}) {
+  let stars: string | null = null;
+  try {
+    const headers = new Headers({ 'Content-Type': 'application/json' });
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+      headers,
+      next: { revalidate: 60 },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      stars = await humanizeStars(data.stargazers_count);
+    }
+  } catch {
+    // network error, rate limit, etc. — render without the star count below
+  }
+
+  return (
+    <a
+      href={`https://github.com/${owner}/${repo}`}
+      rel="noreferrer noopener"
+      target="_blank"
+      className={
+        'flex flex-col gap-1.5 rounded-lg p-2 text-sm text-fd-foreground/80 transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground lg:flex-row lg:items-center ' +
+        (className ?? '')
+      }
+    >
+      <p className="flex items-center gap-2 truncate">
+        <Github className="size-3.5" />
+        {owner}/{repo}
+      </p>
+      {stars !== null && (
+        <p className="flex items-center gap-1 text-xs text-fd-muted-foreground">
+          <Star className="size-3" />
+          {stars}
+        </p>
+      )}
+    </a>
+  );
+}
 
 // i18n UI translations (ko default + en). `provider(locale)` feeds RootProvider.
 export const { provider } = defineI18nUI(i18n, {
@@ -115,14 +178,6 @@ export const linkItems: LinkItemType[] = [
     icon: <History />,
     active: 'nested-url',
   },
-  {
-    type: 'icon',
-    url: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
-    label: 'github',
-    text: 'GitHub',
-    icon: <Github />,
-    external: true,
-  },
 ];
 
 export const logoIcon = <TossctlIcon className="size-5 shrink-0" />;
@@ -140,9 +195,10 @@ export function baseOptions(): BaseLayoutProps {
     nav: {
       title: logo,
       children: (
-        <GithubInfo
+        <SafeGithubInfo
           owner={gitConfig.user}
           repo={gitConfig.repo}
+          token={process.env.GITHUB_TOKEN}
           className="max-lg:hidden"
         />
       ),

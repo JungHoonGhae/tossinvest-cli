@@ -5,31 +5,31 @@
 
 @theme {
   --spacing-page: 1436px;
-  /* tossctl green (design source: prompt caret #34D399) */
-  --color-brand: #10a572;
+  /* tossctl orange (design source: hub-and-spoke coverage diagram accent) */
+  --color-brand: #ea580c;
   --color-brand-foreground: white;
-  --color-brand-secondary: #0e8d62;
+  --color-brand-secondary: #c2410c;
   --color-brand-secondary-foreground: #ffffff;
-  --color-brand-200: #34d399;
-  --overview-color: #10a572;
-  --getting-started-color: #10a572;
+  --color-brand-200: #fb923c;
+  --overview-color: #ea580c;
+  --getting-started-color: #ea580c;
   --guide-color: hsl(218, 60%, 52%);
   --reference-color: hsl(273, 50%, 52%);
 
-  --color-landing-foreground: #1c3b30;
-  --color-landing-foreground-200: #5b8a78;
+  --color-landing-foreground: #3b2412;
+  --color-landing-foreground-200: #8a6a5b;
 }
 
 .dark {
-  --color-landing-foreground: #d4f5e8;
-  --color-landing-foreground-200: #7fcaae;
-  --color-brand: #34d399;
-  --color-brand-secondary: #6ee7b7;
-  --color-brand-secondary-foreground: #03261a;
-  --color-brand-foreground: #03261a;
-  --color-brand-200: #a7f3d0;
-  --overview-color: #34d399;
-  --getting-started-color: #6ee7b7;
+  --color-landing-foreground: #fde4d0;
+  --color-landing-foreground-200: #ca9a7f;
+  --color-brand: #fb923c;
+  --color-brand-secondary: #fdba74;
+  --color-brand-secondary-foreground: #431407;
+  --color-brand-foreground: #431407;
+  --color-brand-200: #fed7aa;
+  --overview-color: #fb923c;
+  --getting-started-color: #fdba74;
   --guide-color: #96b8ff;
   --reference-color: #cfb2ff;
   --protocol-color: #cfb2ff;

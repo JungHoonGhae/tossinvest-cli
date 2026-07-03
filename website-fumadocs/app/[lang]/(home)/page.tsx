@@ -23,7 +23,7 @@ const AGENTS = [
 const INTEGRATIONS = [
   { name: 'OpenClaw', logo: '/logos/openclaw.svg', sub: 'agent' },
   { name: 'opencode', logo: '/logos/opencode.svg', sub: 'agent' },
-  { name: 'bash', logo: '/logos/bash.svg', sub: 'shell' },
+  { name: 'Hermes Agent', logo: '/logos/hermes.png', sub: 'agent' },
 ];
 
 const content = {
@@ -71,9 +71,11 @@ const content = {
       { n: '약 4%', l: '(참고) 공식 Open API가 여는 토스 WTS 기능 비중' },
     ],
     coverage: {
-      addedLabel: 'tossctl 고유 21개 추가',
-      officialLabel: '공식 Open API 19개',
-      note: 'tossctl은 공식 Open API 지원 범위(19개)를 100% 포함하고, 고유 기능 21개를 더해 총 40개를 하나의 명령 체계로 제공합니다. (참고: 토스 WTS 전체는 ~440개, 의미있는 범위를 계속 넓혀가는 중입니다.)',
+      addedLabel: '토스 WTS 고유 기능',
+      officialLabel: '공식 Open API',
+      hubLabel: 'tossctl',
+      hubNote: '두 소스를 하나의 명령 체계로',
+      note: 'tossctl은 공식 Open API 지원 범위(19개)를 100% 포함하고, 공식엔 없는 토스 WTS 고유 기능 21개를 더해 총 40개를 제공합니다. (참고: 토스 WTS 전체는 ~440개, 의미있는 범위를 계속 넓혀가는 중입니다.)',
     },
     official: {
       name: '공식 Open API',
@@ -185,9 +187,11 @@ const content = {
       { n: '~4%', l: '(for context) of Toss WTS features the official API opens' },
     ],
     coverage: {
-      addedLabel: '21 tossctl-only additions',
-      officialLabel: '19 official API features',
-      note: "tossctl covers 100% of what the official API supports (19) and adds 21 more, for 40 total — all through one command interface. (For context: Toss WTS has ~440 features total, and tossctl keeps expanding into the meaningful ones.)",
+      addedLabel: 'Toss WTS-only features',
+      officialLabel: 'Official Open API',
+      hubLabel: 'tossctl',
+      hubNote: 'Two sources, one command interface',
+      note: "tossctl covers 100% of what the official API supports (19) and adds 21 Toss WTS-only features the official API doesn't expose, for 40 total. (For context: Toss WTS has ~440 features total, and tossctl keeps expanding into the meaningful ones.)",
     },
     official: {
       name: 'Official Open API',
@@ -302,6 +306,7 @@ const MARQUEE = [
   { name: 'Mistral', logo: '/logos/mq/mistralai.svg' },
   { name: 'Kimi CLI', logo: '/logos/mq/moonshotai.svg' },
   { name: 'OpenClaw', logo: '/logos/openclaw.svg' },
+  { name: 'Hermes Agent', logo: '/logos/hermes.png' },
 ];
 function Marquee() {
   // Two identical groups translated by exactly -50% → seamless infinite loop.
@@ -351,41 +356,41 @@ const COMPANIES: { name: string; logo?: string; h?: number; w?: number }[] = [
 
 // Coverage dot-map: tossctl (official-matching + unique) reaches much further into
 // the Toss web-app surface than the official API alone.
-// Containment metaphor: the official API is a small circle inside tossctl's
-// larger one — tossctl's own total (official-matching + unique), not scaled
-// against the full WTS universe, so the visual itself carries the "tossctl
-// covers more" message.
-function CoverageGrid({
-  addedLabel,
+// Hub-and-spoke: tossctl sits in the middle, pulling from two real sources
+// (the official Open API and the Toss WTS web app) — this is the actual
+// hybrid-routing architecture, not an abstract proportion chart.
+function CoverageHub({
   officialLabel,
+  wtsLabel,
+  hubLabel,
+  hubNote,
   note,
 }: {
-  addedLabel: string;
   officialLabel: string;
+  wtsLabel: string;
+  hubLabel: string;
+  hubNote: string;
   note: string;
 }) {
-  const official = 19;
-  const added = 21;
-  const total = official + added; // 40 — tossctl's own total
-  const innerPct = Math.round((official / total) * 100); // inner circle size, linear (not area) so "official" reads as visibly smaller
   return (
     <div className="rounded-xl border border-white/10 bg-[#0f0f0f] p-6">
-      <div className="flex items-center justify-center py-6">
-        <div className="relative flex size-48 items-center justify-center rounded-full bg-orange-400">
-          <div
-            className="rounded-full bg-[#0f0f0f] ring-1 ring-inset ring-white/10"
-            style={{ width: `${innerPct}%`, height: `${innerPct}%` }}
-          />
+      <div className="flex flex-col items-center gap-3 py-4 sm:flex-row sm:justify-center sm:gap-0">
+        <div className="flex w-full flex-col items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4 text-center sm:w-40">
+          <span className="text-2xl font-bold text-sky-400">19</span>
+          <span className="font-mono text-[11px] text-white/45">{officialLabel}</span>
+        </div>
+        <div className="h-6 w-px bg-white/15 sm:h-px sm:w-10" />
+        <div className="flex flex-col items-center gap-1 rounded-full border-2 border-orange-400 bg-orange-400/10 px-8 py-5 text-center">
+          <span className="text-3xl font-bold text-orange-400">40</span>
+          <span className="font-mono text-[11px] text-orange-300">{hubLabel}</span>
+        </div>
+        <div className="h-6 w-px bg-white/15 sm:h-px sm:w-10" />
+        <div className="flex w-full flex-col items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4 text-center sm:w-40">
+          <span className="text-2xl font-bold text-brand-200">21</span>
+          <span className="font-mono text-[11px] text-white/45">{wtsLabel}</span>
         </div>
       </div>
-      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-mono text-[11px] text-white/45">
-        <span className="inline-flex items-center gap-2">
-          <span className="size-2.5 rounded-full bg-orange-400" /> {addedLabel}
-        </span>
-        <span className="inline-flex items-center gap-2">
-          <span className="size-2.5 rounded-full bg-[#0f0f0f] ring-1 ring-inset ring-white/20" /> {officialLabel}
-        </span>
-      </div>
+      <p className="mt-1 text-center text-[11px] text-white/35">{hubNote}</p>
       <p className="mt-3 text-center text-[12px] leading-relaxed text-white/45">{note}</p>
     </div>
   );
@@ -520,6 +525,9 @@ export default async function HomePage(props: PageProps<'/[lang]'>) {
               />
               <DotTrails />
               <TossctlIcon className="relative size-[80px] drop-shadow-[0_0_40px_rgba(255,255,255,0.08)]" />
+              <span className="absolute left-1/2 top-[152px] -translate-x-1/2 font-mono text-[11px] tracking-wide text-white/40">
+                tossctl
+              </span>
             </div>
 
             <div className="relative z-2 hidden flex-col gap-3 lg:flex">
@@ -635,9 +643,11 @@ $ tossctl order preview --symbol TSLA --side buy --qty 1 --price 250`}</code>
           <p className="mb-8 max-w-2xl text-lg text-white/80">{t.compareLead}</p>
 
           <div className="mb-8 grid gap-6 lg:grid-cols-[1.5fr_1fr] lg:items-stretch">
-            <CoverageGrid
-              addedLabel={t.coverage.addedLabel}
+            <CoverageHub
               officialLabel={t.coverage.officialLabel}
+              wtsLabel={t.coverage.addedLabel}
+              hubLabel={t.coverage.hubLabel}
+              hubNote={t.coverage.hubNote}
               note={t.coverage.note}
             />
             <div className="grid grid-cols-1 divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10 bg-[#0f0f0f] sm:grid-cols-3 sm:divide-x sm:divide-y-0 lg:grid-cols-1 lg:divide-x-0 lg:divide-y">
