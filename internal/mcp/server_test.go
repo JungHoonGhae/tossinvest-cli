@@ -10,16 +10,26 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
 
-// runServer feeds newline-delimited JSON-RPC request lines through Serve and
-// returns the decoded responses (one per line the server emitted).
+// runServer feeds request lines through a server whose trading is fully
+// disabled (the default config posture).
 func runServer(t *testing.T, client *official.Client, lines ...string) []map[string]any {
+	t.Helper()
+	return runServerPolicy(t, client, config.Trading{}, lines...)
+}
+
+// runServerPolicy is like runServer but with an explicit trading policy, used to
+// exercise the write gate.
+func runServerPolicy(t *testing.T, client *official.Client, policy config.Trading, lines ...string) []map[string]any {
 	t.Helper()
 	in := strings.NewReader(strings.Join(lines, "\n") + "\n")
 	var out bytes.Buffer
-	s := NewServer(client, "test", "0.0.0")
+	tradingSvc := trading.NewService(policy, OfficialBroker{Client: client})
+	s := NewServer(client, tradingSvc, "test", "0.0.0")
 	if err := s.Serve(context.Background(), in, &out); err != nil {
 		t.Fatalf("Serve: %v", err)
 	}
@@ -197,6 +207,113 @@ func TestCallOperationMissingRequiredParam(t *testing.T) {
 	}
 	if !strings.Contains(text, "currency") {
 		t.Errorf("error should name the missing param: %q", text)
+	}
+}
+
+func TestListOperationsIncludesGatedWrites(t *testing.T) {
+	c := dummyClient(t, nil)
+	resps := runServer(t, c,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_operations","arguments":{"query":"place_order"}}}`,
+	)
+	text, _ := toolText(t, resps[0])
+	var payload struct {
+		Operations []struct {
+			ID    string `json:"id"`
+			Write bool   `json:"write"`
+		} `json:"operations"`
+	}
+	if err := json.Unmarshal([]byte(text), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Operations) != 1 || !payload.Operations[0].Write {
+		t.Fatalf("place_order should be listed as a write op: %+v", payload.Operations)
+	}
+}
+
+func TestPlaceOrderPreviewDoesNotExecute(t *testing.T) {
+	// No routes: a live POST would 404. Preview must not hit the network.
+	c := dummyClient(t, nil)
+	resps := runServer(t, c,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"call_operation","arguments":{"operation":"place_order","params":{"symbol":"AAPL","side":"buy","market":"us","quantity":1,"price":100,"currency_mode":"USD"}}}}`,
+	)
+	text, isErr := toolText(t, resps[0])
+	if isErr {
+		t.Fatalf("preview should not error: %s", text)
+	}
+	var preview struct {
+		Kind          string `json:"kind"`
+		ConfirmToken  string `json:"confirm_token"`
+		MutationReady bool   `json:"mutation_ready"`
+	}
+	if err := json.Unmarshal([]byte(text), &preview); err != nil {
+		t.Fatal(err)
+	}
+	if preview.Kind != "place" || preview.ConfirmToken == "" {
+		t.Fatalf("unexpected preview: %s", text)
+	}
+	if preview.MutationReady {
+		t.Errorf("mutation_ready must be false when config disables trading")
+	}
+}
+
+func TestPlaceOrderExecuteBlockedWhenDisabled(t *testing.T) {
+	c := dummyClient(t, nil) // disabled policy (default)
+	resps := runServer(t, c,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"call_operation","arguments":{"operation":"place_order","params":{"symbol":"AAPL","side":"buy","market":"us","quantity":1,"price":100,"currency_mode":"USD","execute":true,"confirm":"whatever"}}}}`,
+	)
+	text, isErr := toolText(t, resps[0])
+	if !isErr {
+		t.Fatalf("execute with trading disabled must be an error, got: %s", text)
+	}
+}
+
+func TestPlaceOrderExecuteSubmitsWhenEnabled(t *testing.T) {
+	c := dummyClient(t, map[string]string{
+		"/api/v1/accounts": `{"result":[{"accountNo":"123-45","accountSeq":7,"accountType":"BROKERAGE"}]}`,
+		"/api/v1/orders":   `{"result":{"orderId":"ORD-777"}}`,
+	})
+	policy := config.Trading{Place: true, AllowLiveOrderActions: true}
+
+	// Step 1: preview to obtain the confirm token.
+	preResp := runServerPolicy(t, c, policy,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"call_operation","arguments":{"operation":"place_order","params":{"symbol":"AAPL","side":"buy","market":"us","quantity":1,"price":100,"currency_mode":"USD"}}}}`,
+	)
+	preText, _ := toolText(t, preResp[0])
+	var preview struct {
+		ConfirmToken  string `json:"confirm_token"`
+		MutationReady bool   `json:"mutation_ready"`
+	}
+	if err := json.Unmarshal([]byte(preText), &preview); err != nil {
+		t.Fatal(err)
+	}
+	if !preview.MutationReady {
+		t.Fatalf("mutation_ready should be true with enabling policy: %s", preText)
+	}
+
+	// Step 2: execute with the token.
+	line := `{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"call_operation","arguments":{"operation":"place_order","params":{"symbol":"AAPL","side":"buy","market":"us","quantity":1,"price":100,"currency_mode":"USD","execute":true,"confirm":"` + preview.ConfirmToken + `"}}}}`
+	execResp := runServerPolicy(t, c, policy, line)
+	execText, isErr := toolText(t, execResp[0])
+	if isErr {
+		t.Fatalf("execute with valid token should succeed: %s", execText)
+	}
+	if !strings.Contains(execText, "ORD-777") {
+		t.Errorf("expected order id in result: %s", execText)
+	}
+}
+
+func TestPlaceOrderExecuteWrongTokenFails(t *testing.T) {
+	c := dummyClient(t, map[string]string{
+		"/api/v1/accounts": `{"result":[{"accountNo":"123-45","accountSeq":7,"accountType":"BROKERAGE"}]}`,
+		"/api/v1/orders":   `{"result":{"orderId":"ORD-777"}}`,
+	})
+	policy := config.Trading{Place: true, AllowLiveOrderActions: true}
+	resps := runServerPolicy(t, c, policy,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"call_operation","arguments":{"operation":"place_order","params":{"symbol":"AAPL","side":"buy","market":"us","quantity":1,"price":100,"currency_mode":"USD","execute":true,"confirm":"bad-token"}}}}`,
+	)
+	text, isErr := toolText(t, resps[0])
+	if !isErr {
+		t.Fatalf("execute with wrong confirm token must fail, got: %s", text)
 	}
 }
 

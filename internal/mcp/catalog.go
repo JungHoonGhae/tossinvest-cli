@@ -10,12 +10,16 @@
 // The design mirrors the catalog mode of the KIS_MCP_Server reference
 // (list-kis-api-specs / get-kis-api-spec / call-kis-api).
 //
-// ponytail: operations are hand-registered as thin dispatchers over the tested
-// official.Client typed methods. When the official OpenAPI surface stabilises
-// further, this registry is the natural seam to generate directly from the spec
-// (see docs/migration; project goal "discovery-based dynamic commands"). Writes
-// (place/cancel/modify order) are intentionally not exposed yet — they must
-// route through the trading confirmation flow, tracked as a follow-up.
+// Read operations are thin dispatchers over the tested official.Client typed
+// methods. Write operations (order place/cancel/modify) go through the shared
+// trading.Service — the same config gate, dry-run preview, and execute/confirm
+// token flow the `tossctl order` CLI uses — bound to an official-only broker so
+// no WTS web session is ever involved.
+//
+// ponytail: operations are hand-registered. When the official OpenAPI surface
+// stabilises further, this registry is the natural seam to generate directly
+// from the spec (see docs/migration; project goal "discovery-based dynamic
+// commands").
 package mcp
 
 import (
@@ -24,7 +28,18 @@ import (
 	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
+
+// Deps carries the backends a handler may need. Read operations use Client;
+// write (order-mutation) operations go through Trading, which applies the
+// config gate, dry-run preview, and confirm-token flow — the same policy the
+// `tossctl order` CLI enforces. Trading routes to an official-only broker, so
+// no WTS web session is involved.
+type Deps struct {
+	Client  *official.Client
+	Trading *trading.Service
+}
 
 // Param describes a single input parameter of an operation.
 type Param struct {
@@ -36,14 +51,17 @@ type Param struct {
 
 // Operation is one callable API operation in the catalog.
 type Operation struct {
-	ID       string  `json:"id"`
-	Method   string  `json:"method"`
-	Path     string  `json:"path"`
-	Category string  `json:"category"`
-	Summary  string  `json:"summary"`
-	Params   []Param `json:"params"`
-	// handler executes the operation against an authenticated client.
-	handler func(ctx context.Context, c *official.Client, args map[string]any) (any, error)
+	ID       string `json:"id"`
+	Method   string `json:"method"`
+	Path     string `json:"path"`
+	Category string `json:"category"`
+	Summary  string `json:"summary"`
+	// Write marks state-changing operations (order place/cancel/modify). They
+	// are gated by config and require an explicit execute + confirm token.
+	Write  bool    `json:"write"`
+	Params []Param `json:"params"`
+	// handler executes the operation against the given backends.
+	handler func(ctx context.Context, d *Deps, args map[string]any) (any, error)
 }
 
 // requiredNames returns the names of the operation's required parameters.
@@ -63,9 +81,10 @@ type Catalog struct {
 	byID map[string]Operation
 }
 
-// NewCatalog builds the read-only operation catalog over the official API.
+// NewCatalog builds the operation catalog over the official API (reads plus
+// gated order-mutation writes).
 func NewCatalog() *Catalog {
-	ops := readOperations()
+	ops := append(readOperations(), writeOperations()...)
 	byID := make(map[string]Operation, len(ops))
 	for _, o := range ops {
 		byID[o.ID] = o
@@ -105,7 +124,7 @@ func (c *Catalog) Get(id string) (Operation, bool) {
 
 // Call validates the arguments against the operation's required parameters and
 // dispatches to its handler. It returns the operation's result payload.
-func (c *Catalog) Call(ctx context.Context, client *official.Client, id string, args map[string]any) (any, error) {
+func (c *Catalog) Call(ctx context.Context, deps *Deps, id string, args map[string]any) (any, error) {
 	op, ok := c.byID[id]
 	if !ok {
 		return nil, fmt.Errorf("unknown operation %q (use list_operations to discover valid ids)", id)
@@ -125,5 +144,5 @@ func (c *Catalog) Call(ctx context.Context, client *official.Client, id string, 
 	if len(missing) > 0 {
 		return nil, fmt.Errorf("operation %q is missing required parameter(s): %s", id, strings.Join(missing, ", "))
 	}
-	return op.handler(ctx, client, args)
+	return op.handler(ctx, deps, args)
 }

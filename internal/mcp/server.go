@@ -9,6 +9,7 @@ import (
 	"io"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
 
 // protocolVersion is the MCP protocol version this server defaults to when the
@@ -24,16 +25,18 @@ const protocolVersion = "2025-06-18"
 // grows materially.
 type Server struct {
 	catalog *Catalog
-	client  *official.Client
+	deps    *Deps
 	name    string
 	version string
 }
 
-// NewServer constructs a Server over the given authenticated client.
-func NewServer(client *official.Client, name, version string) *Server {
+// NewServer constructs a Server over the given authenticated client and trading
+// service. tradingSvc drives gated order-mutation operations; pass one built on
+// an OfficialBroker so writes never touch a WTS session.
+func NewServer(client *official.Client, tradingSvc *trading.Service, name, version string) *Server {
 	return &Server{
 		catalog: NewCatalog(),
-		client:  client,
+		deps:    &Deps{Client: client, Trading: tradingSvc},
 		name:    name,
 		version: version,
 	}
@@ -182,7 +185,7 @@ func (s *Server) handleToolsList() any {
 		},
 		{
 			Name:        "call_operation",
-			Description: "Call a Toss official API operation by id with its parameters. Read-only operations only. Returns the JSON result payload.",
+			Description: "Call a Toss official API operation by id with its parameters. Reads return the JSON payload. Write operations (place/cancel/modify order) are gated: without execute=true they return a dry-run preview with a confirm_token; pass execute=true plus confirm=<token> to submit (also requires config to enable trading).",
 			InputSchema: obj(map[string]any{
 				"operation": map[string]any{"type": "string", "description": "operation id"},
 				"params":    map[string]any{"type": "object", "description": "operation parameters (see describe_operation)"},
@@ -246,7 +249,7 @@ func (s *Server) handleToolsCall(ctx context.Context, params json.RawMessage) (a
 			return toolError("call_operation requires the 'operation' parameter")
 		}
 		opArgs, _ := call.Arguments["params"].(map[string]any)
-		result, err := s.catalog.Call(ctx, s.client, id, opArgs)
+		result, err := s.catalog.Call(ctx, s.deps, id, opArgs)
 		if err != nil {
 			return toolError("%s", err.Error())
 		}
@@ -263,6 +266,7 @@ type listItem struct {
 	Path     string   `json:"path"`
 	Category string   `json:"category"`
 	Summary  string   `json:"summary"`
+	Write    bool     `json:"write,omitempty"`
 	Required []string `json:"required,omitempty"`
 }
 
@@ -272,7 +276,7 @@ func (s *Server) listOperationsPayload(query string, limit int) any {
 	for _, o := range ops {
 		items = append(items, listItem{
 			ID: o.ID, Method: o.Method, Path: o.Path,
-			Category: o.Category, Summary: o.Summary, Required: o.requiredNames(),
+			Category: o.Category, Summary: o.Summary, Write: o.Write, Required: o.requiredNames(),
 		})
 	}
 	return map[string]any{"count": len(items), "operations": items}

@@ -59,53 +59,53 @@ func TestShouldHintOnboarding(t *testing.T) {
 	}{
 		// ── should hint ────────────────────────────────────────────────────────
 		{
-			name: "needs onboarding + interactive + eligible cmd (portfolio)",
+			name:  "needs onboarding + interactive + eligible cmd (portfolio)",
 			state: needsOnboarding, interactive: true, cmdName: "portfolio", want: true,
 		},
 		{
-			name: "needs onboarding + interactive + eligible cmd (account)",
+			name:  "needs onboarding + interactive + eligible cmd (account)",
 			state: needsOnboarding, interactive: true, cmdName: "account", want: true,
 		},
 		{
-			name: "needs onboarding + interactive + eligible cmd (quote)",
+			name:  "needs onboarding + interactive + eligible cmd (quote)",
 			state: needsOnboarding, interactive: true, cmdName: "quote", want: true,
 		},
 
 		// ── excluded by cmdName ────────────────────────────────────────────────
 		{
-			name: "needs onboarding + interactive + init",
+			name:  "needs onboarding + interactive + init",
 			state: needsOnboarding, interactive: true, cmdName: "init", want: false,
 		},
 		{
-			name: "needs onboarding + interactive + help",
+			name:  "needs onboarding + interactive + help",
 			state: needsOnboarding, interactive: true, cmdName: "help", want: false,
 		},
 		{
-			name: "needs onboarding + interactive + completion",
+			name:  "needs onboarding + interactive + completion",
 			state: needsOnboarding, interactive: true, cmdName: "completion", want: false,
 		},
 		{
-			name: "needs onboarding + interactive + version",
+			name:  "needs onboarding + interactive + version",
 			state: needsOnboarding, interactive: true, cmdName: "version", want: false,
 		},
 
 		// ── excluded by non-interactive ────────────────────────────────────────
 		{
-			name: "needs onboarding + non-interactive + eligible cmd",
+			name:  "needs onboarding + non-interactive + eligible cmd",
 			state: needsOnboarding, interactive: false, cmdName: "portfolio", want: false,
 		},
 
 		// ── excluded because no onboarding needed ─────────────────────────────
 		{
-			name: "has session only — no hint",
+			name:  "has session only — no hint",
 			state: hasSession, interactive: true, cmdName: "portfolio", want: false,
 		},
 		{
-			name: "has official only — no hint",
+			name:  "has official only — no hint",
 			state: hasOfficial, interactive: true, cmdName: "portfolio", want: false,
 		},
 		{
-			name: "has both — no hint",
+			name:  "has both — no hint",
 			state: hasBoth, interactive: true, cmdName: "portfolio", want: false,
 		},
 	}

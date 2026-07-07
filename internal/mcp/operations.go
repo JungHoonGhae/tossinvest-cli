@@ -80,32 +80,32 @@ func readOperations() []Operation {
 		{
 			ID: "accounts", Method: "GET", Path: "/api/v1/accounts",
 			Category: "account", Summary: "List brokerage accounts.",
-			handler: func(ctx context.Context, c *official.Client, _ map[string]any) (any, error) {
-				return c.Accounts(ctx)
+			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
+				return d.Client.Accounts(ctx)
 			},
 		},
 		{
 			ID: "buying_power", Method: "GET", Path: "/api/v1/buying-power",
 			Category: "account", Summary: "Cash buying power for a currency.",
 			Params: []Param{{Name: "currency", Type: "string", Required: true, Desc: `"KRW" or "USD"`}},
-			handler: func(ctx context.Context, c *official.Client, args map[string]any) (any, error) {
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				currency, err := argString(args, "currency")
 				if err != nil {
 					return nil, err
 				}
-				return c.BuyingPower(ctx, currency)
+				return d.Client.BuyingPower(ctx, currency)
 			},
 		},
 		{
 			ID: "holdings", Method: "GET", Path: "/api/v1/holdings",
 			Category: "account", Summary: "Current stock holdings; optionally filter by symbol.",
 			Params: []Param{{Name: "symbol", Type: "string", Desc: "optional ticker filter"}},
-			handler: func(ctx context.Context, c *official.Client, args map[string]any) (any, error) {
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbol, err := argString(args, "symbol")
 				if err != nil {
 					return nil, err
 				}
-				return c.Holdings(ctx, symbol)
+				return d.Client.Holdings(ctx, symbol)
 			},
 		},
 		{
@@ -119,7 +119,7 @@ func readOperations() []Operation {
 				{Name: "cursor", Type: "string", Desc: "pagination cursor"},
 				{Name: "limit", Type: "integer"},
 			},
-			handler: func(ctx context.Context, c *official.Client, args map[string]any) (any, error) {
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				var f official.OrdersFilter
 				var err error
 				if f.Status, err = argString(args, "status"); err != nil {
@@ -140,67 +140,67 @@ func readOperations() []Operation {
 				if f.Limit, err = argInt(args, "limit"); err != nil {
 					return nil, err
 				}
-				return c.Orders(ctx, f)
+				return d.Client.Orders(ctx, f)
 			},
 		},
 		{
 			ID: "order", Method: "GET", Path: "/api/v1/orders/{orderId}",
 			Category: "order", Summary: "Fetch a single order by id.",
 			Params: []Param{{Name: "order_id", Type: "string", Required: true}},
-			handler: func(ctx context.Context, c *official.Client, args map[string]any) (any, error) {
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				orderID, err := argString(args, "order_id")
 				if err != nil {
 					return nil, err
 				}
-				return c.OrderByID(ctx, orderID)
+				return d.Client.OrderByID(ctx, orderID)
 			},
 		},
 		{
 			ID: "sellable_quantity", Method: "GET", Path: "/api/v1/sellable-quantity",
 			Category: "order", Summary: "Sellable quantity for a symbol.",
 			Params: []Param{{Name: "symbol", Type: "string", Required: true}},
-			handler: func(ctx context.Context, c *official.Client, args map[string]any) (any, error) {
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbol, err := argString(args, "symbol")
 				if err != nil {
 					return nil, err
 				}
-				return c.SellableQuantity(ctx, symbol)
+				return d.Client.SellableQuantity(ctx, symbol)
 			},
 		},
 		{
 			ID: "prices", Method: "GET", Path: "/api/v1/prices",
 			Category: "market", Summary: "Latest prices for one or more symbols.",
 			Params: []Param{{Name: "symbols", Type: "string[]", Required: true, Desc: "list of tickers"}},
-			handler: func(ctx context.Context, c *official.Client, args map[string]any) (any, error) {
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbols, err := argStringSlice(args, "symbols")
 				if err != nil {
 					return nil, err
 				}
-				return c.Prices(ctx, symbols)
+				return d.Client.Prices(ctx, symbols)
 			},
 		},
 		{
 			ID: "stocks", Method: "GET", Path: "/api/v1/stocks",
 			Category: "market", Summary: "Stock metadata/quotes for one or more symbols.",
 			Params: []Param{{Name: "symbols", Type: "string[]", Required: true, Desc: "list of tickers"}},
-			handler: func(ctx context.Context, c *official.Client, args map[string]any) (any, error) {
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbols, err := argStringSlice(args, "symbols")
 				if err != nil {
 					return nil, err
 				}
-				return c.Stocks(ctx, symbols)
+				return d.Client.Stocks(ctx, symbols)
 			},
 		},
 		{
 			ID: "orderbook", Method: "GET", Path: "/api/v1/orderbook",
 			Category: "market", Summary: "Order book (bids/asks) for a symbol.",
 			Params: []Param{{Name: "symbol", Type: "string", Required: true}},
-			handler: func(ctx context.Context, c *official.Client, args map[string]any) (any, error) {
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbol, err := argString(args, "symbol")
 				if err != nil {
 					return nil, err
 				}
-				return c.Orderbook(ctx, symbol)
+				return d.Client.Orderbook(ctx, symbol)
 			},
 		},
 		{
@@ -210,7 +210,7 @@ func readOperations() []Operation {
 				{Name: "symbol", Type: "string", Required: true},
 				{Name: "count", Type: "integer", Desc: "number of trades (0 = API default)"},
 			},
-			handler: func(ctx context.Context, c *official.Client, args map[string]any) (any, error) {
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbol, err := argString(args, "symbol")
 				if err != nil {
 					return nil, err
@@ -219,7 +219,7 @@ func readOperations() []Operation {
 				if err != nil {
 					return nil, err
 				}
-				return c.Trades(ctx, symbol, count)
+				return d.Client.Trades(ctx, symbol, count)
 			},
 		},
 		{
@@ -232,7 +232,7 @@ func readOperations() []Operation {
 				{Name: "before", Type: "string", Desc: "cursor: return candles before this timestamp"},
 				{Name: "adjusted", Type: "boolean", Desc: "price adjusted for splits/dividends"},
 			},
-			handler: func(ctx context.Context, c *official.Client, args map[string]any) (any, error) {
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbol, err := argString(args, "symbol")
 				if err != nil {
 					return nil, err
@@ -253,31 +253,31 @@ func readOperations() []Operation {
 				if err != nil {
 					return nil, err
 				}
-				return c.Candles(ctx, symbol, interval, count, before, adjusted)
+				return d.Client.Candles(ctx, symbol, interval, count, before, adjusted)
 			},
 		},
 		{
 			ID: "price_limits", Method: "GET", Path: "/api/v1/price-limits",
 			Category: "market", Summary: "Upper/lower price limits for a symbol.",
 			Params: []Param{{Name: "symbol", Type: "string", Required: true}},
-			handler: func(ctx context.Context, c *official.Client, args map[string]any) (any, error) {
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbol, err := argString(args, "symbol")
 				if err != nil {
 					return nil, err
 				}
-				return c.PriceLimits(ctx, symbol)
+				return d.Client.PriceLimits(ctx, symbol)
 			},
 		},
 		{
 			ID: "warnings", Method: "GET", Path: "/api/v1/stocks/{symbol}/warnings",
 			Category: "market", Summary: "Trading warnings/designations for a symbol.",
 			Params: []Param{{Name: "symbol", Type: "string", Required: true}},
-			handler: func(ctx context.Context, c *official.Client, args map[string]any) (any, error) {
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbol, err := argString(args, "symbol")
 				if err != nil {
 					return nil, err
 				}
-				return c.Warnings(ctx, symbol)
+				return d.Client.Warnings(ctx, symbol)
 			},
 		},
 		{
@@ -287,7 +287,7 @@ func readOperations() []Operation {
 				{Name: "base", Type: "string", Required: true, Desc: `e.g. "USD"`},
 				{Name: "quote", Type: "string", Required: true, Desc: `e.g. "KRW"`},
 			},
-			handler: func(ctx context.Context, c *official.Client, args map[string]any) (any, error) {
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				base, err := argString(args, "base")
 				if err != nil {
 					return nil, err
@@ -296,19 +296,19 @@ func readOperations() []Operation {
 				if err != nil {
 					return nil, err
 				}
-				return c.ExchangeRate(ctx, base, quote)
+				return d.Client.ExchangeRate(ctx, base, quote)
 			},
 		},
 		{
 			ID: "commissions", Method: "GET", Path: "/api/v1/commissions",
 			Category: "market", Summary: "Commission/fee schedule for a symbol.",
 			Params: []Param{{Name: "symbol", Type: "string", Required: true}},
-			handler: func(ctx context.Context, c *official.Client, args map[string]any) (any, error) {
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbol, err := argString(args, "symbol")
 				if err != nil {
 					return nil, err
 				}
-				return c.Commissions(ctx, symbol)
+				return d.Client.Commissions(ctx, symbol)
 			},
 		},
 	}

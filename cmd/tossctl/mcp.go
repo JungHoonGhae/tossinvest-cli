@@ -6,6 +6,7 @@ import (
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/mcp"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/version"
 	"github.com/spf13/cobra"
 )
@@ -19,11 +20,13 @@ import (
 func newMCPCmd(opts *rootOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "mcp",
-		Short: "Run a stdio MCP server over the official Toss Open API (read-only catalog)",
+		Short: "Run a stdio MCP server over the official Toss Open API (catalog surface)",
 		Long: "Run a Model Context Protocol server on stdin/stdout that exposes the " +
-			"official Toss Open API as a catalog of read-only operations. Configure it " +
-			"in an MCP host as the command `tossctl mcp`. Requires saved Open API " +
-			"credentials (`tossctl openapi login`).",
+			"official Toss Open API as a catalog of operations (reads plus gated order " +
+			"place/cancel/modify). Configure it in an MCP host as the command " +
+			"`tossctl mcp`. Order mutations follow the same config gate and " +
+			"execute/confirm flow as `tossctl order` and use the official API only " +
+			"(no WTS). Requires saved Open API credentials (`tossctl openapi login`).",
 		Annotations:  map[string]string{"source": "official"},
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
@@ -40,7 +43,17 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 				return fmt.Errorf("no Open API credentials found; run `tossctl openapi login --key K --secret S` first")
 			}
 			client := official.New(*creds, tokenFile)
-			server := mcp.NewServer(client, "tossinvest-cli", version.Current().Version)
+
+			// Trading (order place/cancel/modify) is gated by config exactly as
+			// the CLI's `tossctl order` is, and routed through an official-only
+			// broker so writes never touch a WTS session.
+			cfg, err := loadConfig(opts)
+			if err != nil {
+				return err
+			}
+			tradingSvc := trading.NewService(cfg.Trading, mcp.OfficialBroker{Client: client})
+
+			server := mcp.NewServer(client, tradingSvc, "tossinvest-cli", version.Current().Version)
 			// Serve blocks until stdin reaches EOF (host closed the pipe).
 			return server.Serve(cmd.Context(), cmd.InOrStdin(), cmd.OutOrStdout())
 		},

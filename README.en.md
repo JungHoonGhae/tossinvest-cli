@@ -63,13 +63,16 @@
 
 `tossctl` can expose the official Toss Open API as an **MCP (Model Context Protocol) server**.
 Register it in an MCP host (Claude Code, Claude Desktop, Codex, …) and an agent can query
-accounts, holdings, prices, order book, trades, and candles in natural language. It speaks
-JSON-RPC 2.0 over stdin/stdout — no separate server or port.
+accounts, holdings, prices, order book, trades, and candles — and **place, cancel, or modify
+orders** — in natural language. It speaks JSON-RPC 2.0 over stdin/stdout — no separate server
+or port.
 
 Registering ~20 APIs as individual tools would bloat the always-on context, so it uses a
 **catalog** surface of just three tools: `list_operations`, `describe_operation`, and
-`call_operation`. Read-only for now (no order placement — deferred for safety). Save
-credentials first with `tossctl openapi login`.
+`call_operation`. Order mutations are **gated exactly like the `tossctl order` CLI**: enable
+them in config (`trading.*` + `allow_live_order_actions`); a plain call returns a dry-run
+preview with a `confirm_token`, and submitting requires `execute: true` plus `confirm: <token>`.
+Writes use the official API only (no WTS). Save credentials first with `tossctl openapi login`.
 
 ```json
 {
