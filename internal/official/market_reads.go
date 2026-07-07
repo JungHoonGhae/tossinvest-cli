@@ -374,3 +374,40 @@ func adaptRanking(typ, marketCountry, duration string, raw apiRankingResult) dom
 		FetchedAt:     time.Now().UTC(),
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Market indicator prices
+// ---------------------------------------------------------------------------
+
+// apiMarketIndicatorPrice mirrors MarketIndicatorPriceResponse.
+type apiMarketIndicatorPrice struct {
+	Symbol    string `json:"symbol"`
+	Timestamp string `json:"timestamp"` // nullable → "" when null
+	LastPrice string `json:"lastPrice"`
+}
+
+// MarketIndicatorPrices fetches current prices for market indicators (지수 등).
+// symbols is comma-joined; max 200 per spec. Only catalog symbols (e.g. KOSPI,
+// KOSDAQ) are supported by the API.
+func (c *Client) MarketIndicatorPrices(ctx context.Context, symbols []string) (domain.MarketIndicatorPrices, error) {
+	q := url.Values{}
+	q.Set("symbols", strings.Join(symbols, ","))
+	var raw []apiMarketIndicatorPrice
+	if err := c.get(ctx, "/api/v1/market-indicators/prices", q, &raw); err != nil {
+		return domain.MarketIndicatorPrices{}, err
+	}
+	return adaptMarketIndicatorPrices(raw), nil
+}
+
+// adaptMarketIndicatorPrices converts the official response array to domain.
+func adaptMarketIndicatorPrices(raw []apiMarketIndicatorPrice) domain.MarketIndicatorPrices {
+	out := make([]domain.MarketIndicatorPrice, 0, len(raw))
+	for _, p := range raw {
+		out = append(out, domain.MarketIndicatorPrice{
+			Symbol:    p.Symbol,
+			LastPrice: parseDecimal(p.LastPrice),
+			Timestamp: p.Timestamp,
+		})
+	}
+	return domain.MarketIndicatorPrices{Indicators: out, FetchedAt: time.Now().UTC()}
+}

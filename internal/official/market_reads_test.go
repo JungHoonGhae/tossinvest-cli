@@ -388,3 +388,55 @@ func TestRankingsIntegration(t *testing.T) {
 		t.Fatalf("unexpected result: %+v", got)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Market indicator prices
+// ---------------------------------------------------------------------------
+
+func TestAdaptMarketIndicatorPricesUnit(t *testing.T) {
+	raw := []apiMarketIndicatorPrice{
+		{Symbol: "KOSPI", Timestamp: "2026-06-11T15:30:00+09:00", LastPrice: "2812.45"},
+		{Symbol: "KOSDAQ", Timestamp: "", LastPrice: "845.1"},
+	}
+	got := adaptMarketIndicatorPrices(raw)
+	if len(got.Indicators) != 2 {
+		t.Fatalf("len: %d", len(got.Indicators))
+	}
+	if got.Indicators[0].Symbol != "KOSPI" || got.Indicators[0].LastPrice != 2812.45 {
+		t.Fatalf("item0: %+v", got.Indicators[0])
+	}
+	if got.Indicators[1].Timestamp != "" || got.Indicators[1].LastPrice != 845.1 {
+		t.Fatalf("item1 (null timestamp): %+v", got.Indicators[1])
+	}
+}
+
+func TestMarketIndicatorPricesIntegration(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/market-indicators/prices":
+			if r.URL.Query().Get("symbols") != "KOSPI,KOSDAQ" {
+				t.Errorf("symbols: got %q", r.URL.Query().Get("symbols"))
+			}
+			_, _ = w.Write([]byte(`{"result":[{"symbol":"KOSPI","timestamp":"2026-06-11T15:30:00+09:00","lastPrice":"2812.45"},{"symbol":"KOSDAQ","timestamp":null,"lastPrice":"845.1"}]}`))
+		default:
+			t.Errorf("unexpected path %q", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+	)
+	got, err := c.MarketIndicatorPrices(context.Background(), []string{"KOSPI", "KOSDAQ"})
+	if err != nil {
+		t.Fatalf("MarketIndicatorPrices: %v", err)
+	}
+	if len(got.Indicators) != 2 || got.Indicators[1].Symbol != "KOSDAQ" || got.Indicators[1].Timestamp != "" {
+		t.Fatalf("unexpected: %+v", got)
+	}
+}
