@@ -12,6 +12,7 @@ import (
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
 )
 
 // route is the keystone: it decides official-vs-WTS and emits a fallback notice
@@ -169,5 +170,8 @@ func TestOfficialOnlyReadsRequireKey(t *testing.T) {
 	}
 	if _, err := c.ConditionalOrder(context.Background(), "co-1"); !errors.Is(err, ErrOfficialKeyRequired) {
 		t.Errorf("ConditionalOrder: want ErrOfficialKeyRequired, got %v", err)
+	}
+	if err := c.CancelConditionalOrder(context.Background(), orderintent.ConditionalCancelIntent{ID: "co-1"}); !errors.Is(err, ErrOfficialKeyRequired) {
+		t.Errorf("CancelConditionalOrder: want ErrOfficialKeyRequired, got %v", err)
 	}
 }

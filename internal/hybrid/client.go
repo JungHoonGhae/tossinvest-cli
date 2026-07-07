@@ -22,6 +22,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
 )
 
 // Policy controls how the hybrid router chooses between official and WTS.
@@ -224,6 +225,14 @@ func (c *Client) ConditionalOrder(ctx context.Context, id string) (domain.Condit
 		return domain.ConditionalOrder{}, ErrOfficialKeyRequired
 	}
 	return c.off.ConditionalOrder(ctx, id)
+}
+
+// CancelConditionalOrder cancels a conditional order. official-only.
+func (c *Client) CancelConditionalOrder(ctx context.Context, intent orderintent.ConditionalCancelIntent) error {
+	if c.off == nil {
+		return ErrOfficialKeyRequired
+	}
+	return c.off.CancelConditionalOrder(ctx, intent.ID)
 }
 
 // --- Intentionally NOT overridden (served by embedded WTS) ------------------

@@ -528,6 +528,41 @@ func newOrderConditionalCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(listCmd, getCmd)
+	var cancelExec bool
+	var cancelConfirm string
+	cancelCmd := &cobra.Command{
+		Use:         "cancel <conditional-order-id>",
+		Short:       i18n.T("order.conditional.cancel.short"),
+		Args:        cobra.ExactArgs(1),
+		Annotations: map[string]string{"source": "official", "mutating": "true"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			intent := orderintent.ConditionalCancelIntent{ID: args[0]}
+			canonical := orderintent.CanonicalConditionalCancel(intent)
+			gateErr := conditionalGate(app.config, canonical, cancelExec, cancelConfirm)
+			if gateErr == errConditionalPreviewOnly {
+				fmt.Fprintf(cmd.OutOrStdout(), "%s\n%s: %s\n",
+					i18n.T("order.conditional.cancel.previewLine"),
+					i18n.T("order.conditional.confirmToken"),
+					orderintent.ConfirmToken(canonical))
+				return nil
+			}
+			if gateErr != nil {
+				return gateErr
+			}
+			if err := app.client.CancelConditionalOrder(cmd.Context(), intent); err != nil {
+				return userFacingCommandError(err)
+			}
+			fmt.Fprintln(cmd.OutOrStdout(), i18n.T("order.conditional.cancel.done"))
+			return nil
+		},
+	}
+	cancelCmd.Flags().BoolVar(&cancelExec, "execute", false, "actually cancel (omit for preview + confirm token)")
+	cancelCmd.Flags().StringVar(&cancelConfirm, "confirm", "", "confirm token from the preview")
+
+	cmd.AddCommand(listCmd, getCmd, cancelCmd)
 	return cmd
 }
