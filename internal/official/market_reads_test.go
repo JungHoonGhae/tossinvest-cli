@@ -440,3 +440,60 @@ func TestMarketIndicatorPricesIntegration(t *testing.T) {
 		t.Fatalf("unexpected: %+v", got)
 	}
 }
+
+func TestAdaptMarketIndicatorCandlesUnit(t *testing.T) {
+	raw := apiMarketIndicatorCandlePage{
+		Candles: []apiMarketIndicatorCandle{
+			{Timestamp: "2026-06-11T09:00:00+09:00", OpenPrice: "2798.32", HighPrice: "2820.15", LowPrice: "2790.1", ClosePrice: "2812.45", Volume: "123456"},
+		},
+		NextBefore: "2026-06-10T09:00:00+09:00",
+	}
+	got := adaptMarketIndicatorCandles("KOSPI", "1d", raw)
+	if got.Symbol != "KOSPI" || got.Interval != "1d" {
+		t.Fatalf("meta: %+v", got)
+	}
+	if got.NextBefore != "2026-06-10T09:00:00+09:00" {
+		t.Fatalf("NextBefore: %q", got.NextBefore)
+	}
+	if len(got.Candles) != 1 {
+		t.Fatalf("len: %d", len(got.Candles))
+	}
+	c0 := got.Candles[0]
+	if c0.Open != 2798.32 || c0.High != 2820.15 || c0.Low != 2790.1 || c0.Close != 2812.45 || c0.Volume != 123456 {
+		t.Fatalf("candle0: %+v", c0)
+	}
+}
+
+func TestMarketIndicatorCandlesIntegration(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/market-indicators/KOSPI/candles":
+			if r.URL.Query().Get("interval") != "1d" {
+				t.Errorf("interval: got %q", r.URL.Query().Get("interval"))
+			}
+			if r.URL.Query().Get("count") != "5" {
+				t.Errorf("count: got %q", r.URL.Query().Get("count"))
+			}
+			_, _ = w.Write([]byte(`{"result":{"candles":[{"timestamp":"2026-06-11T09:00:00+09:00","openPrice":"2798.32","highPrice":"2820.15","lowPrice":"2790.1","closePrice":"2812.45","volume":"123456"}],"nextBefore":null}}`))
+		default:
+			t.Errorf("unexpected path %q", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+	)
+	got, err := c.MarketIndicatorCandles(context.Background(), "KOSPI", "1d", 5, "")
+	if err != nil {
+		t.Fatalf("MarketIndicatorCandles: %v", err)
+	}
+	if got.Symbol != "KOSPI" || len(got.Candles) != 1 || got.Candles[0].Close != 2812.45 || got.NextBefore != "" {
+		t.Fatalf("unexpected: %+v", got)
+	}
+}

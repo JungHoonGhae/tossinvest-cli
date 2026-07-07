@@ -411,3 +411,67 @@ func adaptMarketIndicatorPrices(raw []apiMarketIndicatorPrice) domain.MarketIndi
 	}
 	return domain.MarketIndicatorPrices{Indicators: out, FetchedAt: time.Now().UTC()}
 }
+
+// ---------------------------------------------------------------------------
+// Market indicator candles
+// ---------------------------------------------------------------------------
+
+// apiMarketIndicatorCandle mirrors MarketIndicatorCandle.
+type apiMarketIndicatorCandle struct {
+	Timestamp  string `json:"timestamp"`
+	OpenPrice  string `json:"openPrice"`
+	HighPrice  string `json:"highPrice"`
+	LowPrice   string `json:"lowPrice"`
+	ClosePrice string `json:"closePrice"`
+	Volume     string `json:"volume"`
+}
+
+// apiMarketIndicatorCandlePage mirrors MarketIndicatorCandlePageResponse.
+type apiMarketIndicatorCandlePage struct {
+	Candles    []apiMarketIndicatorCandle `json:"candles"`
+	NextBefore string                     `json:"nextBefore"` // nullable → "" when null
+}
+
+// MarketIndicatorCandles fetches OHLCV candles for one indicator symbol.
+// interval: 1m | 1d. count optional (0 = API default, max 200). before is an
+// optional ISO 8601 pagination upper bound (inclusive); pass the previous
+// page's NextBefore to page. url.Values.Encode escapes "+" as "%2B" as the
+// spec requires.
+func (c *Client) MarketIndicatorCandles(ctx context.Context, symbol, interval string, count int, before string) (domain.MarketIndicatorCandles, error) {
+	q := url.Values{}
+	q.Set("interval", interval)
+	if count > 0 {
+		q.Set("count", strconv.Itoa(count))
+	}
+	if before != "" {
+		q.Set("before", before)
+	}
+	var raw apiMarketIndicatorCandlePage
+	path := "/api/v1/market-indicators/" + url.PathEscape(symbol) + "/candles"
+	if err := c.get(ctx, path, q, &raw); err != nil {
+		return domain.MarketIndicatorCandles{}, err
+	}
+	return adaptMarketIndicatorCandles(symbol, interval, raw), nil
+}
+
+// adaptMarketIndicatorCandles converts the official candle page to domain.
+func adaptMarketIndicatorCandles(symbol, interval string, raw apiMarketIndicatorCandlePage) domain.MarketIndicatorCandles {
+	candles := make([]domain.MarketIndicatorCandle, 0, len(raw.Candles))
+	for _, cd := range raw.Candles {
+		candles = append(candles, domain.MarketIndicatorCandle{
+			Timestamp: cd.Timestamp,
+			Open:      parseDecimal(cd.OpenPrice),
+			High:      parseDecimal(cd.HighPrice),
+			Low:       parseDecimal(cd.LowPrice),
+			Close:     parseDecimal(cd.ClosePrice),
+			Volume:    parseDecimal(cd.Volume),
+		})
+	}
+	return domain.MarketIndicatorCandles{
+		Symbol:     symbol,
+		Interval:   interval,
+		Candles:    candles,
+		NextBefore: raw.NextBefore,
+		FetchedAt:  time.Now().UTC(),
+	}
+}
