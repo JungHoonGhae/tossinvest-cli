@@ -12,6 +12,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/auth"
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
@@ -25,6 +26,10 @@ func userFacingCommandError(err error) error {
 
 	if errors.Is(err, context.Canceled) {
 		return fmt.Errorf("canceled")
+	}
+
+	if errors.Is(err, hybrid.ErrOfficialKeyRequired) {
+		return fmt.Errorf("this feature requires a Toss official Open API key\n  run `tossctl openapi login` to connect one\n  (issue a key: https://corp.tossinvest.com/ko/open-api)")
 	}
 
 	if errors.Is(err, session.ErrNoSession) || errors.Is(err, tossclient.ErrNoSession) {

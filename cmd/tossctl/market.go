@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
@@ -279,6 +280,82 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	}
 	themesCmd.Flags().IntVar(&themesSize, "size", 20, "number of ranked themes (0 = all)")
 
-	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, sectorsCmd, themesCmd, screenerCmd)
+	var rankingsType, rankingsMarket, rankingsDuration string
+	var rankingsCount int
+	var rankingsExcludeCaution bool
+	rankingsCmd := &cobra.Command{
+		Use:         "rankings",
+		Short:       i18n.T("market.rankings.short"),
+		Long:        i18n.T("market.rankings.long"),
+		Annotations: map[string]string{"source": "official"},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			r, err := app.client.Rankings(cmd.Context(), rankingsType, rankingsMarket, rankingsDuration, rankingsExcludeCaution, rankingsCount)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteRanking(cmd.OutOrStdout(), app.format, r)
+		},
+	}
+	rankingsCmd.Flags().StringVar(&rankingsType, "type", "MARKET_TRADING_AMOUNT", "ranking type (MARKET_TRADING_AMOUNT|MARKET_TRADING_VOLUME|TOP_GAINERS|TOP_LOSERS|TOSS_SECURITIES_TRADING_AMOUNT|TOSS_SECURITIES_TRADING_VOLUME)")
+	rankingsCmd.Flags().StringVar(&rankingsMarket, "market", "KR", "market country (KR|US)")
+	rankingsCmd.Flags().StringVar(&rankingsDuration, "duration", "1d", "duration (realtime|1d|1w|1mo|3mo|6mo|1y)")
+	rankingsCmd.Flags().IntVar(&rankingsCount, "count", 0, "number of rows (max 100; 0 = API default)")
+	rankingsCmd.Flags().BoolVar(&rankingsExcludeCaution, "exclude-caution", false, "exclude investment-caution stocks")
+
+	indicatorCmd := &cobra.Command{
+		Use:         "indicator [symbols]",
+		Short:       i18n.T("market.indicator.short"),
+		Long:        i18n.T("market.indicator.long"),
+		Args:        cobra.ArbitraryArgs,
+		Annotations: map[string]string{"source": "official"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			symbols := args
+			if len(symbols) == 0 {
+				symbols = []string{"KOSPI", "KOSDAQ"}
+			} else if len(symbols) == 1 {
+				// allow comma-separated single arg: "KOSPI,KOSDAQ"
+				symbols = strings.Split(symbols[0], ",")
+			}
+			p, err := app.client.MarketIndicatorPrices(cmd.Context(), symbols)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteMarketIndicatorPrices(cmd.OutOrStdout(), app.format, p)
+		},
+	}
+
+	var candleInterval, candleBefore string
+	var candleCount int
+	indicatorCandlesCmd := &cobra.Command{
+		Use:         "indicator-candles <symbol>",
+		Short:       i18n.T("market.indicatorCandles.short"),
+		Long:        i18n.T("market.indicatorCandles.long"),
+		Args:        cobra.ExactArgs(1),
+		Annotations: map[string]string{"source": "official"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			c, err := app.client.MarketIndicatorCandles(cmd.Context(), args[0], candleInterval, candleCount, candleBefore)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteMarketIndicatorCandles(cmd.OutOrStdout(), app.format, c)
+		},
+	}
+	indicatorCandlesCmd.Flags().StringVar(&candleInterval, "interval", "1d", "candle interval (1m|1d)")
+	indicatorCandlesCmd.Flags().IntVar(&candleCount, "count", 0, "number of candles (max 200; 0 = API default)")
+	indicatorCandlesCmd.Flags().StringVar(&candleBefore, "before", "", "pagination upper bound (ISO 8601; pass previous nextBefore)")
+
+	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, sectorsCmd, themesCmd, screenerCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd)
 	return cmd
 }
