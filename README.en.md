@@ -164,6 +164,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **Market indicator candles** | `market indicator-candles KOSPI --interval 1d` | ✅ | ✅ |
 | **Market investor trading** | `market investor-trading KOSPI --interval 1d` | ✅ | ✅ |
 | **Conditional order reads** | `order conditional list`, `order conditional get <id>` | ✅ | ✅ |
+| **Conditional order trading** | `order conditional place\|cancel\|modify` (safety gate: config opt-in + --execute + --confirm) | ✅ | ✅ |
 | **🆕 Net-buy ranking by investor** | `market investors` (foreign · institution · retail top net-buy) | ❌ | ✅ |
 | **🆕 Earnings calendar** | `market earnings` (`--major` for curated majors) | ❌ | ✅ |
 | **🆕 Dividend report** | `portfolio dividends` (annual total · region · monthly, `--by-payment-date` tax) | ❌ | ✅ |
@@ -299,6 +300,7 @@ tossctl config show
 | `place` | Allow the `order place` path (broker API branch: place) |
 | `cancel` | Allow the `order cancel` path |
 | `amend` | Allow the `order amend` path |
+| `conditional` | Allow the `order conditional place/cancel/modify` paths (official Open API, `allow_live_order_actions` also required) |
 | `sell` | Allow sell orders (`place` also required) — **scope declaration**: limit yourself to buy-only / include sell |
 | `fractional` | Allow fractional orders (`place` also required, US market orders only) — **scope declaration** |
 | `allow_live_order_actions` | Master kill-switch — for any of `place/cancel/amend` to reach the real broker, this must also be `true` |

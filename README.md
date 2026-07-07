@@ -233,6 +233,7 @@ Waiting for approval in the Toss app on your phone...
 | **시장 지표 캔들** | `market indicator-candles KOSPI --interval 1d` | ✅ | ✅ |
 | **시장 투자자별 매매동향** | `market investor-trading KOSPI --interval 1d` | ✅ | ✅ |
 | **조건주문 조회** | `order conditional list`, `order conditional get <id>` | ✅ | ✅ |
+| **조건주문 거래** | `order conditional place\|cancel\|modify` (안전 게이트: config 허용 + --execute + --confirm) | ✅ | ✅ |
 | **🆕 투자자별 순매수 상위** | `market investors` (외국인·기관·개인 순매수 상위) | ❌ | ✅ |
 | **🆕 실적(어닝콜) 일정** | `market earnings` (`--major` 주요 기업 큐레이션) | ❌ | ✅ |
 | **🆕 배당 내역** | `portfolio dividends` (연간 총액·지역·월별, `--by-payment-date` 세금) | ❌ | ✅ |
@@ -371,6 +372,7 @@ tossctl config show
 | `place` | `order place` 경로 허용 (broker API 분기: place) |
 | `cancel` | `order cancel` 경로 허용 (broker API 분기: cancel) |
 | `amend` | `order amend` 경로 허용 (broker API 분기: amend) |
+| `conditional` | `order conditional place/cancel/modify` 경로 허용 (공식 Open API, `allow_live_order_actions`도 필요) |
 | `sell` | 매도 주문 허용 (`place`도 필요) — **scope 선언**: 유저가 스스로 "매수만/매도 포함" 범위 제한 |
 | `fractional` | 소수점 주문 허용 (`place`도 필요, US 시장가만) — **scope 선언** |
 | `allow_live_order_actions` | 마스터 킬스위치 — 위 `place/cancel/amend` 중 하나라도 실제 broker에 도달하려면 이 값도 `true`여야 함 |

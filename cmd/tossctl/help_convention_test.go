@@ -95,9 +95,12 @@ func TestLeafCommandsHaveSourceAnnotation(t *testing.T) {
 
 func TestMutatingAnnotationOnTradeCommands(t *testing.T) {
 	wantMutating := map[string]bool{
-		"tossctl order place":  true,
-		"tossctl order cancel": true,
-		"tossctl order amend":  true,
+		"tossctl order place":              true,
+		"tossctl order cancel":             true,
+		"tossctl order amend":              true,
+		"tossctl order conditional place":  true,
+		"tossctl order conditional cancel": true,
+		"tossctl order conditional modify": true,
 	}
 	for _, c := range leafCommands(newRootCmd()) {
 		path := c.CommandPath()
