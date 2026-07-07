@@ -93,6 +93,8 @@
   "order.conditional.get.short": "Show one conditional order (official API key required)",
   "order.conditional.list.short": "List conditional orders (official API key required)",
   "order.conditional.long": "List and inspect conditional orders via the official Toss Open API. Requires a connected official key.",
+  "order.conditional.modify.done": "Conditional order modified.",
+  "order.conditional.modify.short": "Modify a conditional order (official API key required)",
   "order.conditional.place.short": "Create a conditional order (official API key required)",
   "order.conditional.place.long": "Create a stop/trigger conditional order via the official Toss Open API. Requires a connected official key AND config opt-in. Run without --execute for a preview + confirm token.",
   "order.conditional.place.done": "Conditional order created",

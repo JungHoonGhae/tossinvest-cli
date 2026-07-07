@@ -622,6 +622,64 @@ func newOrderConditionalCmd(opts *rootOptions) *cobra.Command {
 	placeCmd.Flags().BoolVar(&plExec, "execute", false, "actually place (omit for preview + confirm token)")
 	placeCmd.Flags().StringVar(&plConfirm, "confirm", "", "confirm token from the preview")
 
-	cmd.AddCommand(listCmd, getCmd, cancelCmd, placeCmd)
+	var (
+		mdType, mdOrderType, mdExpire, mdConfirm, mdFirstSide, mdSecondSide string
+		mdQty, mdFirstTrigger, mdFirstOrder, mdSecondTrigger, mdSecondOrder float64
+		mdConfirmHigh, mdExec                                               bool
+	)
+	modifyCmd := &cobra.Command{
+		Use:         "modify <conditional-order-id>",
+		Short:       i18n.T("order.conditional.modify.short"),
+		Args:        cobra.ExactArgs(1),
+		Annotations: map[string]string{"source": "official", "mutating": "true"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			intent := orderintent.ConditionalModifyIntent{
+				ID: args[0], Type: mdType, OrderType: mdOrderType, ExpireDate: mdExpire,
+				Quantity: mdQty, ConfirmHighValue: mdConfirmHigh,
+				First: orderintent.ConditionLeg{OrderSide: mdFirstSide, TriggerPrice: mdFirstTrigger, OrderPrice: mdFirstOrder},
+			}
+			if mdType == "OCO" || mdType == "OTO" {
+				if mdSecondSide == "" {
+					return fmt.Errorf("--second-side/--second-trigger required for %s", mdType)
+				}
+				intent.Second = &orderintent.ConditionLeg{OrderSide: mdSecondSide, TriggerPrice: mdSecondTrigger, OrderPrice: mdSecondOrder}
+			}
+			canonical := orderintent.CanonicalConditionalModify(intent)
+			gateErr := conditionalGate(app.config, canonical, mdExec, mdConfirm)
+			if gateErr == errConditionalPreviewOnly {
+				fmt.Fprintf(cmd.OutOrStdout(), "%s %s x%s\n%s: %s\n",
+					intent.ID, intent.Type, strconv.FormatFloat(intent.Quantity, 'f', -1, 64),
+					i18n.T("order.conditional.confirmToken"), orderintent.ConfirmToken(canonical))
+				return nil
+			}
+			if gateErr != nil {
+				return gateErr
+			}
+			if err := app.client.ModifyConditionalOrder(cmd.Context(), intent); err != nil {
+				return userFacingCommandError(err)
+			}
+			fmt.Fprintln(cmd.OutOrStdout(), i18n.T("order.conditional.modify.done"))
+			return nil
+		},
+	}
+	modifyCmd.Flags().StringVar(&mdType, "type", "SINGLE", "SINGLE|OCO|OTO")
+	modifyCmd.Flags().Float64Var(&mdQty, "qty", 0, "quantity (required)")
+	modifyCmd.Flags().StringVar(&mdOrderType, "order-type", "LIMIT", "LIMIT|MARKET")
+	modifyCmd.Flags().StringVar(&mdExpire, "expire", "", "expire date YYYY-MM-DD (required)")
+	modifyCmd.Flags().StringVar(&mdFirstSide, "first-side", "", "first leg side BUY|SELL")
+	modifyCmd.Flags().Float64Var(&mdFirstTrigger, "first-trigger", 0, "first leg trigger price")
+	modifyCmd.Flags().Float64Var(&mdFirstOrder, "first-order-price", 0, "first leg limit price")
+	modifyCmd.Flags().StringVar(&mdSecondSide, "second-side", "", "second leg side (OCO/OTO)")
+	modifyCmd.Flags().Float64Var(&mdSecondTrigger, "second-trigger", 0, "second leg trigger price")
+	modifyCmd.Flags().Float64Var(&mdSecondOrder, "second-order-price", 0, "second leg limit price")
+	modifyCmd.Flags().BoolVar(&mdConfirmHigh, "confirm-high-value", false, "consent for orders >= 1억원")
+	modifyCmd.Flags().BoolVar(&mdExec, "execute", false, "actually modify (omit for preview + confirm token)")
+	modifyCmd.Flags().StringVar(&mdConfirm, "confirm", "", "confirm token from the preview")
+
+	cmd.AddCommand(listCmd, getCmd, cancelCmd, placeCmd, modifyCmd)
 	return cmd
 }

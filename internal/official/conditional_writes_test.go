@@ -80,3 +80,37 @@ func TestCreateConditionalOrderIntegration(t *testing.T) {
 		t.Fatalf("ref: %+v", ref)
 	}
 }
+
+func TestModifyConditionalOrderIntegration(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/conditional-orders/co-1/modify":
+			var got map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&got)
+			if got["quantity"] != "5" || got["orderType"] != "MARKET" {
+				t.Errorf("body: %+v", got)
+			}
+			_, _ = w.Write([]byte(`{"result":null}`))
+		default:
+			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+		WithAccountSeq(1),
+	)
+	err := c.ModifyConditionalOrder(context.Background(), "co-1", ConditionalModifyBody{
+		Type: "SINGLE", Quantity: "5", OrderType: "MARKET", ExpireDate: "2026-12-31",
+		First: ConditionLegBody{OrderSide: "SELL", TriggerPrice: "68000"},
+	})
+	if err != nil {
+		t.Fatalf("ModifyConditionalOrder: %v", err)
+	}
+}

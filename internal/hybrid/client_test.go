@@ -177,4 +177,7 @@ func TestOfficialOnlyReadsRequireKey(t *testing.T) {
 	if _, err := c.CreateConditionalOrder(context.Background(), orderintent.ConditionalPlaceIntent{Symbol: "005930", Type: "SINGLE"}); !errors.Is(err, ErrOfficialKeyRequired) {
 		t.Errorf("CreateConditionalOrder: want ErrOfficialKeyRequired, got %v", err)
 	}
+	if err := c.ModifyConditionalOrder(context.Background(), orderintent.ConditionalModifyIntent{ID: "co-1", Type: "SINGLE"}); !errors.Is(err, ErrOfficialKeyRequired) {
+		t.Errorf("ModifyConditionalOrder: want ErrOfficialKeyRequired, got %v", err)
+	}
 }

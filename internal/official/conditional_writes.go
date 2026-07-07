@@ -47,3 +47,19 @@ func (c *Client) CreateConditionalOrder(ctx context.Context, body ConditionalCre
 	}
 	return domain.ConditionalOrderRef{ID: raw.ConditionalOrderID, ClientOrderID: raw.ClientOrderID}, nil
 }
+
+// ConditionalModifyBody mirrors ConditionalOrderModifyRequest (no symbol/clientOrderId).
+type ConditionalModifyBody struct {
+	Type                  string            `json:"type"`
+	Quantity              string            `json:"quantity"`
+	OrderType             string            `json:"orderType"`
+	ExpireDate            string            `json:"expireDate"`
+	First                 ConditionLegBody  `json:"first"`
+	Second                *ConditionLegBody `json:"second,omitempty"`
+	ConfirmHighValueOrder bool              `json:"confirmHighValueOrder"`
+}
+
+// ModifyConditionalOrder modifies an existing conditional order (POST /modify).
+func (c *Client) ModifyConditionalOrder(ctx context.Context, id string, body ConditionalModifyBody) error {
+	return c.postAcct(ctx, "/api/v1/conditional-orders/"+url.PathEscape(id)+"/modify", body, nil)
+}

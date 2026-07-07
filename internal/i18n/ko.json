@@ -93,6 +93,8 @@
   "order.conditional.get.short": "조건주문 단건 조회 (공식 API 키 필요)",
   "order.conditional.list.short": "조건주문 목록 (공식 API 키 필요)",
   "order.conditional.long": "토스 공식 Open API 로 조건주문을 조회·확인합니다. 공식 키 연결이 필요합니다.",
+  "order.conditional.modify.done": "조건주문을 수정했습니다.",
+  "order.conditional.modify.short": "조건주문 수정 (공식 API 키 필요)",
   "order.conditional.place.short": "조건주문 생성 (공식 API 키 필요)",
   "order.conditional.place.long": "토스 공식 Open API 로 트리거(STOP) 조건주문을 생성합니다. 공식 키 연결과 config 허용이 필요합니다. --execute 없이 실행하면 미리보기 + 확인 토큰을 보여줍니다.",
   "order.conditional.place.done": "조건주문을 생성했습니다",

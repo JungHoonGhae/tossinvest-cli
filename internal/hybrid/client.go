@@ -253,6 +253,22 @@ func (c *Client) CreateConditionalOrder(ctx context.Context, intent orderintent.
 	return c.off.CreateConditionalOrder(ctx, body)
 }
 
+// ModifyConditionalOrder modifies a conditional order. official-only.
+func (c *Client) ModifyConditionalOrder(ctx context.Context, intent orderintent.ConditionalModifyIntent) error {
+	if c.off == nil {
+		return ErrOfficialKeyRequired
+	}
+	body := official.ConditionalModifyBody{
+		Type: intent.Type, Quantity: fmtDec(intent.Quantity), OrderType: intent.OrderType,
+		ExpireDate: intent.ExpireDate, First: officialLeg(intent.First), ConfirmHighValueOrder: intent.ConfirmHighValue,
+	}
+	if intent.Second != nil {
+		s := officialLeg(*intent.Second)
+		body.Second = &s
+	}
+	return c.off.ModifyConditionalOrder(ctx, intent.ID, body)
+}
+
 func fmtDec(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
 
 func officialLeg(l orderintent.ConditionLeg) official.ConditionLegBody {
