@@ -356,6 +356,30 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	indicatorCandlesCmd.Flags().IntVar(&candleCount, "count", 0, "number of candles (max 200; 0 = API default)")
 	indicatorCandlesCmd.Flags().StringVar(&candleBefore, "before", "", "pagination upper bound (ISO 8601; pass previous nextBefore)")
 
-	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, sectorsCmd, themesCmd, screenerCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd)
+	var investorTradingInterval, investorTradingUntil string
+	var investorTradingCount int
+	investorTradingCmd := &cobra.Command{
+		Use:         "investor-trading <symbol>",
+		Short:       i18n.T("market.investorTrading.short"),
+		Long:        i18n.T("market.investorTrading.long"),
+		Args:        cobra.ExactArgs(1),
+		Annotations: map[string]string{"source": "official"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			it, err := app.client.MarketInvestorTrading(cmd.Context(), args[0], investorTradingInterval, investorTradingCount, investorTradingUntil)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteInvestorTrading(cmd.OutOrStdout(), app.format, it)
+		},
+	}
+	investorTradingCmd.Flags().StringVar(&investorTradingInterval, "interval", "1d", "aggregation interval (1d|1w|1mo|1y)")
+	investorTradingCmd.Flags().IntVar(&investorTradingCount, "count", 0, "number of records (max 100; 0 = API default)")
+	investorTradingCmd.Flags().StringVar(&investorTradingUntil, "until", "", "inclusive upper-bound date (YYYY-MM-DD)")
+
+	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, sectorsCmd, themesCmd, screenerCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd)
 	return cmd
 }

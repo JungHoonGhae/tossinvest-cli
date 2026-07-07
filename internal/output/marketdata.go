@@ -1133,3 +1133,52 @@ func WriteMarketIndicatorCandles(w io.Writer, format Format, c domain.MarketIndi
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
 }
+
+// WriteInvestorTrading renders market-wide investor trading (net amounts).
+func WriteInvestorTrading(w io.Writer, format Format, it domain.InvestorTrading) error {
+	switch format {
+	case FormatJSON:
+		enc := json.NewEncoder(w)
+		enc.SetIndent("", "  ")
+		return enc.Encode(it)
+	case FormatCSV:
+		cw := csv.NewWriter(w)
+		if err := cw.Write([]string{"date", "individual_net", "foreigner_net", "institution_net", "other_net"}); err != nil {
+			return err
+		}
+		for _, r := range it.Records {
+			if err := cw.Write([]string{
+				r.Date,
+				strconv.FormatFloat(r.Individual.NetAmount, 'f', -1, 64),
+				strconv.FormatFloat(r.Foreigner.NetAmount, 'f', -1, 64),
+				strconv.FormatFloat(r.Institution.NetAmount, 'f', -1, 64),
+				strconv.FormatFloat(r.OtherCorporation.NetAmount, 'f', -1, 64),
+			}); err != nil {
+				return err
+			}
+		}
+		cw.Flush()
+		return cw.Error()
+	case FormatTable:
+		headers := []string{
+			i18n.T("output.investorTrading.header.date"),
+			i18n.T("output.investorTrading.header.individual"),
+			i18n.T("output.investorTrading.header.foreigner"),
+			i18n.T("output.investorTrading.header.institution"),
+			i18n.T("output.investorTrading.header.other"),
+		}
+		rows := make([][]string, 0, len(it.Records))
+		for _, r := range it.Records {
+			rows = append(rows, []string{
+				r.Date,
+				strconv.FormatFloat(r.Individual.NetAmount, 'f', -1, 64),
+				strconv.FormatFloat(r.Foreigner.NetAmount, 'f', -1, 64),
+				strconv.FormatFloat(r.Institution.NetAmount, 'f', -1, 64),
+				strconv.FormatFloat(r.OtherCorporation.NetAmount, 'f', -1, 64),
+			})
+		}
+		return renderTable(w, headers, rows)
+	default:
+		return fmt.Errorf("unsupported output format: %s", format)
+	}
+}

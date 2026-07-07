@@ -281,3 +281,36 @@ func TestWriteMarketIndicatorCandlesTable(t *testing.T) {
 		t.Errorf("missing close: %q", buf.String())
 	}
 }
+
+func TestWriteInvestorTradingTable(t *testing.T) {
+	it := domain.InvestorTrading{
+		Symbol: "KOSPI", Interval: "1d",
+		Records: []domain.InvestorTradingRecord{
+			{
+				Date:             "2026-06-11",
+				Individual:       domain.InvestorTradingParty{NetAmount: -150000000000},
+				Foreigner:        domain.InvestorTradingParty{NetAmount: 200000000000},
+				Institution:      domain.InvestorTradingParty{NetAmount: -80000000000},
+				OtherCorporation: domain.InvestorTradingParty{NetAmount: 10000000000},
+			},
+		},
+	}
+	var buf bytes.Buffer
+	if err := WriteInvestorTrading(&buf, FormatTable, it); err != nil {
+		t.Fatalf("WriteInvestorTrading: %v", err)
+	}
+	if !strings.Contains(buf.String(), "2026-06-11") {
+		t.Errorf("missing date: %q", buf.String())
+	}
+}
+
+func TestWriteInvestorTradingJSON(t *testing.T) {
+	it := domain.InvestorTrading{Symbol: "KOSPI", Records: []domain.InvestorTradingRecord{{Date: "D"}}}
+	var buf bytes.Buffer
+	if err := WriteInvestorTrading(&buf, FormatJSON, it); err != nil {
+		t.Fatalf("WriteInvestorTrading JSON: %v", err)
+	}
+	if !strings.Contains(buf.String(), `"symbol": "KOSPI"`) {
+		t.Errorf("json missing: %q", buf.String())
+	}
+}
