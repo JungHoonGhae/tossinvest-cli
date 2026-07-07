@@ -161,4 +161,7 @@ func TestOfficialOnlyReadsRequireKey(t *testing.T) {
 	if _, err := c.MarketIndicatorCandles(context.Background(), "KOSPI", "1d", 5, ""); !errors.Is(err, ErrOfficialKeyRequired) {
 		t.Errorf("MarketIndicatorCandles: want ErrOfficialKeyRequired, got %v", err)
 	}
+	if _, err := c.MarketInvestorTrading(context.Background(), "KOSPI", "1d", 0, ""); !errors.Is(err, ErrOfficialKeyRequired) {
+		t.Errorf("MarketInvestorTrading: want ErrOfficialKeyRequired, got %v", err)
+	}
 }

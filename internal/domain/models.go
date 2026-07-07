@@ -717,3 +717,30 @@ type MarketIndicatorCandles struct {
 	NextBefore string                  `json:"next_before,omitempty"`
 	FetchedAt  time.Time               `json:"fetched_at"`
 }
+
+// InvestorTradingParty is one investor group's buy/sell/net amounts (KRW).
+type InvestorTradingParty struct {
+	BuyAmount  float64 `json:"buy_amount"`
+	SellAmount float64 `json:"sell_amount"`
+	NetAmount  float64 `json:"net_amount"`
+}
+
+// InvestorTradingRecord is one period's market-wide investor trading.
+type InvestorTradingRecord struct {
+	Date             string               `json:"date"`
+	UpdatedAt        string               `json:"updated_at"`
+	Individual       InvestorTradingParty `json:"individual"`
+	Foreigner        InvestorTradingParty `json:"foreigner"`
+	Institution      InvestorTradingParty `json:"institution"`
+	OtherCorporation InvestorTradingParty `json:"other_corporation"`
+}
+
+// InvestorTrading is market-wide (KOSPI/KOSDAQ) investor trading over time.
+// Source: GET /api/v1/market-indicators/{symbol}/investor-trading (official Open API, key required).
+type InvestorTrading struct {
+	Symbol    string                  `json:"symbol"`
+	Interval  string                  `json:"interval"`
+	Records   []InvestorTradingRecord `json:"records"`
+	NextUntil string                  `json:"next_until,omitempty"`
+	FetchedAt time.Time               `json:"fetched_at"`
+}

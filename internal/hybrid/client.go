@@ -201,6 +201,15 @@ func (c *Client) MarketIndicatorCandles(ctx context.Context, symbol, interval st
 	return c.off.MarketIndicatorCandles(ctx, symbol, interval, count, before)
 }
 
+// MarketInvestorTrading serves official market-wide investor trading.
+// official-only (see Rankings).
+func (c *Client) MarketInvestorTrading(ctx context.Context, symbol, interval string, count int, until string) (domain.InvestorTrading, error) {
+	if c.off == nil {
+		return domain.InvestorTrading{}, ErrOfficialKeyRequired
+	}
+	return c.off.MarketInvestorTrading(ctx, symbol, interval, count, until)
+}
+
 // --- Intentionally NOT overridden (served by embedded WTS) ------------------
 //
 // These are left to the embedded *client.Client because the official API does

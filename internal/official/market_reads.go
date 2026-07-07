@@ -475,3 +475,81 @@ func adaptMarketIndicatorCandles(symbol, interval string, raw apiMarketIndicator
 		FetchedAt:  time.Now().UTC(),
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Investor trading (market-wide)
+// ---------------------------------------------------------------------------
+
+// apiInvestorTradingAmount mirrors InvestorTradingAmount: {buyAmount, sellAmount}.
+type apiInvestorTradingAmount struct {
+	BuyAmount  string `json:"buyAmount"`
+	SellAmount string `json:"sellAmount"`
+}
+
+// apiInvestorTradingRecord mirrors InvestorTradingRecord. institution.breakdown
+// (7 sub-parties) is intentionally not modeled — YAGNI; the 4 top-level parties
+// carry the buy/sell totals we render.
+type apiInvestorTradingRecord struct {
+	Date             string                   `json:"date"`
+	UpdatedAt        string                   `json:"updatedAt"`
+	Individual       apiInvestorTradingAmount `json:"individual"`
+	Foreigner        apiInvestorTradingAmount `json:"foreigner"`
+	Institution      apiInvestorTradingAmount `json:"institution"`
+	OtherCorporation apiInvestorTradingAmount `json:"otherCorporation"`
+}
+
+// apiInvestorTradingResult mirrors InvestorTradingResponse (unwrapped result).
+type apiInvestorTradingResult struct {
+	NextUntil string                     `json:"nextUntil"` // nullable → "" when null
+	Records   []apiInvestorTradingRecord `json:"records"`
+}
+
+// MarketInvestorTrading fetches market-wide (KOSPI/KOSDAQ) investor trading.
+// interval: 1d|1w|1mo|1y. count optional (0 = API default, max 100). until is an
+// optional inclusive YYYY-MM-DD upper bound; pass previous NextUntil to page.
+func (c *Client) MarketInvestorTrading(ctx context.Context, symbol, interval string, count int, until string) (domain.InvestorTrading, error) {
+	q := url.Values{}
+	q.Set("interval", interval)
+	if count > 0 {
+		q.Set("count", strconv.Itoa(count))
+	}
+	if until != "" {
+		q.Set("until", until)
+	}
+	var raw apiInvestorTradingResult
+	path := "/api/v1/market-indicators/" + url.PathEscape(symbol) + "/investor-trading"
+	if err := c.get(ctx, path, q, &raw); err != nil {
+		return domain.InvestorTrading{}, err
+	}
+	return adaptInvestorTrading(symbol, interval, raw), nil
+}
+
+// party converts one raw buy/sell pair to domain, computing net = buy - sell.
+func party(a apiInvestorTradingAmount) domain.InvestorTradingParty {
+	buy := parseDecimal(a.BuyAmount)
+	sell := parseDecimal(a.SellAmount)
+	return domain.InvestorTradingParty{BuyAmount: buy, SellAmount: sell, NetAmount: buy - sell}
+}
+
+// adaptInvestorTrading converts the official response to domain. symbol/interval
+// are echoed from args.
+func adaptInvestorTrading(symbol, interval string, raw apiInvestorTradingResult) domain.InvestorTrading {
+	records := make([]domain.InvestorTradingRecord, 0, len(raw.Records))
+	for _, r := range raw.Records {
+		records = append(records, domain.InvestorTradingRecord{
+			Date:             r.Date,
+			UpdatedAt:        r.UpdatedAt,
+			Individual:       party(r.Individual),
+			Foreigner:        party(r.Foreigner),
+			Institution:      party(r.Institution),
+			OtherCorporation: party(r.OtherCorporation),
+		})
+	}
+	return domain.InvestorTrading{
+		Symbol:    symbol,
+		Interval:  interval,
+		Records:   records,
+		NextUntil: raw.NextUntil,
+		FetchedAt: time.Now().UTC(),
+	}
+}

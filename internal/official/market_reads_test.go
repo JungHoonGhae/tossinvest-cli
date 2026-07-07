@@ -497,3 +497,69 @@ func TestMarketIndicatorCandlesIntegration(t *testing.T) {
 		t.Fatalf("unexpected: %+v", got)
 	}
 }
+
+func TestAdaptInvestorTradingUnit(t *testing.T) {
+	raw := apiInvestorTradingResult{
+		NextUntil: "2026-06-09",
+		Records: []apiInvestorTradingRecord{
+			{
+				Date: "2026-06-11", UpdatedAt: "2026-06-11T18:10:00+09:00",
+				Individual:       apiInvestorTradingAmount{BuyAmount: "5200000000000", SellAmount: "5350000000000"},
+				Foreigner:        apiInvestorTradingAmount{BuyAmount: "3800000000000", SellAmount: "3600000000000"},
+				Institution:      apiInvestorTradingAmount{BuyAmount: "2100000000000", SellAmount: "2180000000000"},
+				OtherCorporation: apiInvestorTradingAmount{BuyAmount: "50000000000", SellAmount: "40000000000"},
+			},
+		},
+	}
+	got := adaptInvestorTrading("KOSPI", "1d", raw)
+	if got.Symbol != "KOSPI" || got.Interval != "1d" || got.NextUntil != "2026-06-09" {
+		t.Fatalf("meta: %+v", got)
+	}
+	if len(got.Records) != 1 {
+		t.Fatalf("records len: %d", len(got.Records))
+	}
+	r := got.Records[0]
+	if r.Individual.BuyAmount != 5200000000000 || r.Individual.SellAmount != 5350000000000 {
+		t.Fatalf("individual: %+v", r.Individual)
+	}
+	if r.Individual.NetAmount != -150000000000 { // buy - sell
+		t.Fatalf("individual net: want -150000000000, got %v", r.Individual.NetAmount)
+	}
+	if r.Foreigner.NetAmount != 200000000000 {
+		t.Fatalf("foreigner net: %v", r.Foreigner.NetAmount)
+	}
+}
+
+func TestMarketInvestorTradingIntegration(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/market-indicators/KOSPI/investor-trading":
+			if r.URL.Query().Get("interval") != "1d" {
+				t.Errorf("interval: got %q", r.URL.Query().Get("interval"))
+			}
+			_, _ = w.Write([]byte(`{"result":{"nextUntil":null,"records":[{"date":"2026-06-11","updatedAt":"2026-06-11T18:10:00+09:00","individual":{"buyAmount":"5200000000000","sellAmount":"5350000000000"},"foreigner":{"buyAmount":"3800000000000","sellAmount":"3600000000000"},"institution":{"buyAmount":"2100000000000","sellAmount":"2180000000000"},"otherCorporation":{"buyAmount":"50000000000","sellAmount":"40000000000"}}]}}`))
+		default:
+			t.Errorf("unexpected path %q", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+	)
+	got, err := c.MarketInvestorTrading(context.Background(), "KOSPI", "1d", 0, "")
+	if err != nil {
+		t.Fatalf("MarketInvestorTrading: %v", err)
+	}
+	if got.Symbol != "KOSPI" || len(got.Records) != 1 || got.NextUntil != "" {
+		t.Fatalf("unexpected: %+v", got)
+	}
+	if got.Records[0].Foreigner.NetAmount != 200000000000 {
+		t.Fatalf("foreigner net: %v", got.Records[0].Foreigner.NetAmount)
+	}
+}
