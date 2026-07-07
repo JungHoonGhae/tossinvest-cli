@@ -311,5 +311,24 @@ func readOperations() []Operation {
 				return d.Client.Commissions(ctx, symbol)
 			},
 		},
+		{
+			ID: "market_calendar", Method: "GET", Path: "/api/v1/market-calendar/{country}",
+			Category: "market", Summary: "Trading-hours calendar (prev/today/next business day) for KR or US.",
+			Params: []Param{
+				{Name: "country", Type: "string", Required: true, Desc: `"KR" or "US"`},
+				{Name: "date", Type: "string", Desc: "reference date YYYY-MM-DD (default: today)"},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				country, err := argString(args, "country")
+				if err != nil {
+					return nil, err
+				}
+				date, err := argString(args, "date")
+				if err != nil {
+					return nil, err
+				}
+				return d.Client.MarketCalendar(ctx, country, date)
+			},
+		},
 	}
 }

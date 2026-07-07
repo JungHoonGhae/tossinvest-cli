@@ -80,6 +80,7 @@ func (c *Client) ExchangeRate(ctx context.Context, base, quote string) (domain.E
 //     rate field (buying exchange rate) serves the same purpose.
 //
 //   - Name: not provided by /exchange-rate; left empty.
+//
 //   - basisPoint, rateChangeType, validFrom, validUntil: informational only;
 //     not mapped to domain (no corresponding domain fields).
 func adaptExchangeRate(raw apiExchangeRate) domain.ExchangeRate {

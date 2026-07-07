@@ -19,7 +19,7 @@ func TestAdaptHoldingsUnit(t *testing.T) {
 			Quantity:             "100",
 			LastPrice:            "72000",
 			AveragePurchasePrice: "65000",
-			MarketValue:          struct {
+			MarketValue: struct {
 				Amount          string `json:"amount"`
 				AmountAfterCost string `json:"amountAfterCost"`
 				PurchaseAmount  string `json:"purchaseAmount"`

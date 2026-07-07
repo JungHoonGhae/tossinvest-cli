@@ -113,6 +113,7 @@ func (c *Client) Holdings(ctx context.Context, symbol string) ([]domain.Position
 //     WTS dailyProfitLossRate.
 //
 //   - ProductCode, MarketCode: not available from /holdings; left empty.
+//
 //   - USD-specific fields (AveragePriceUSD etc.): not individually provided;
 //     left zero (official uses a single-currency HoldingsItem).
 func adaptHoldings(items []apiHoldingsItem) []domain.Position {

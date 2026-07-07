@@ -5,7 +5,7 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 ## [Unreleased]
 
 ### 새 기능
-- **`tossctl mcp`** — 공식 Toss Open API를 MCP(Model Context Protocol) 서버로 노출합니다. stdin/stdout(JSON-RPC 2.0) 위에서 동작하며 Claude Code·Claude Desktop·Codex 등 MCP 호스트에 `tossctl mcp` 커맨드로 등록해 쓸 수 있습니다. 20여 개의 API를 개별 툴로 등록하는 대신, 상시 컨텍스트를 최소화하는 **catalog 방식**(`list_operations` / `describe_operation` / `call_operation` 3개 툴)으로 노출합니다. 조회(계좌·잔고·주문·시세·호가·체결·캔들·환율 등)뿐 아니라 **주문 실행(매수/매도·취소·정정)** 도 지원합니다. 주문은 CLI(`tossctl order`)와 동일하게 config 게이트(`trading.*` + `allow_live_order_actions`)와 preview→execute/confirm 2단계 흐름을 따르며(기본은 dry-run preview), **공식 API 경로만 사용(WTS 미경유)** 합니다. `tossctl openapi login` 으로 저장한 자격증명이 필요합니다.
+- **`tossctl mcp`** — 공식 Toss Open API를 MCP(Model Context Protocol) 서버로 노출합니다. stdin/stdout(JSON-RPC 2.0) 위에서 동작하며 Claude Code·Claude Desktop·Codex 등 MCP 호스트에 `tossctl mcp` 커맨드로 등록해 쓸 수 있습니다. 20여 개의 API를 개별 툴로 등록하는 대신, 상시 컨텍스트를 최소화하는 **catalog 방식**(`list_operations` / `describe_operation` / `call_operation` 3개 툴)으로 노출합니다. 공식 Open API의 **조회·거래 엔드포인트를 100% 커버**합니다 — 조회(계좌·잔고·주문·시세·호가·체결·캔들·환율·수수료·장운영시간 등)뿐 아니라 **주문 실행(매수/매도·취소·정정)** 도 지원합니다. 주문은 CLI(`tossctl order`)와 동일하게 config 게이트(`trading.*` + `allow_live_order_actions`)와 preview→execute/confirm 2단계 흐름을 따르며(기본은 dry-run preview), **공식 API 경로만 사용(WTS 미경유)** 합니다. `tossctl openapi login` 으로 저장한 자격증명이 필요합니다.
 
 ## [0.18.0] - 2026-07-08
 

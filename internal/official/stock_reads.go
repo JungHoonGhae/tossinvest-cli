@@ -28,15 +28,15 @@ import (
 //	leverageFactor  string (decimal, nullable)
 //	koreanMarketDetail object (KR only, nullable)
 type apiStockInfo struct {
-	Symbol         string `json:"symbol"`
-	Name           string `json:"name"`
-	EnglishName    string `json:"englishName"`
-	Market         string `json:"market"`
-	Currency       string `json:"currency"`
-	Status         string `json:"status"`
-	SecurityType   string `json:"securityType"`
-	IsCommonShare  bool   `json:"isCommonShare"`
-	IsinCode       string `json:"isinCode"`
+	Symbol        string `json:"symbol"`
+	Name          string `json:"name"`
+	EnglishName   string `json:"englishName"`
+	Market        string `json:"market"`
+	Currency      string `json:"currency"`
+	Status        string `json:"status"`
+	SecurityType  string `json:"securityType"`
+	IsCommonShare bool   `json:"isCommonShare"`
+	IsinCode      string `json:"isinCode"`
 }
 
 // Stocks fetches basic stock metadata for a batch of symbols.
@@ -74,7 +74,9 @@ func (c *Client) Stocks(ctx context.Context, symbols []string) ([]domain.Quote, 
 //
 //   - Last, Change, Volume, Open/High/Low etc.: not available from /stocks.
 //     Call /prices or /prices+/stocks in combination for full quote.
+//
 //   - Market (display name): not available; MarketCode is the enum value.
+//
 //   - ProductCode, ReferencePrice etc.: not in /stocks.
 func adaptStocks(raw []apiStockInfo) []domain.Quote {
 	out := make([]domain.Quote, 0, len(raw))

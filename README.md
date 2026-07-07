@@ -123,9 +123,10 @@ tossctl account summary --backend openapi  # 공식 API 경로 강제 (선택)
 ### MCP 서버 (`tossctl mcp`) <!--since:2026-07-08-->
 
 공식 Open API 를 **MCP(Model Context Protocol) 서버**로도 노출합니다. Claude Code·Claude
-Desktop·Codex 등 MCP 호스트에 등록하면 에이전트가 자연어로 계좌·잔고·시세·호가·체결·캔들을
-조회하고 **주문(매수/매도·취소·정정)** 까지 실행할 수 있습니다. stdin/stdout(JSON-RPC 2.0) 으로
-동작하며 별도 서버·포트가 필요 없습니다.
+Desktop·Codex 등 MCP 호스트에 등록하면 에이전트가 자연어로 계좌·잔고·시세·호가·체결·캔들·
+장운영시간을 조회하고 **주문(매수/매도·취소·정정)** 까지 실행할 수 있습니다 — 공식 Open API의
+조회·거래 엔드포인트를 100% 커버합니다. stdin/stdout(JSON-RPC 2.0) 으로 동작하며 별도 서버·
+포트가 필요 없습니다.
 
 20여 개의 API 를 개별 툴로 등록하면 상시 컨텍스트가 커지므로, **catalog 방식**으로 딱 3개
 툴만 상시 노출합니다:
