@@ -51,7 +51,7 @@ func TestConditionalOrdersIntegration(t *testing.T) {
 		case "/oauth2/token":
 			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
 		case "/api/v1/conditional-orders":
-			if r.URL.Query().Get("status") != "WATCHING" {
+			if r.URL.Query().Get("status") != "OPEN" {
 				t.Errorf("status: got %q", r.URL.Query().Get("status"))
 			}
 			_, _ = w.Write([]byte(`{"result":{"conditionalOrders":[{"conditionalOrderId":"co-1","type":"SINGLE","status":"WATCHING","symbol":"005930","market":"KR","quantity":"10","orderType":"LIMIT","expireDate":"2026-12-31","first":{"type":"STOP","status":"WATCHING","triggerPrice":"70000","targetProfitRate":null,"orderPrice":"69900","triggeredOrderId":null},"second":null,"createdAt":"2026-07-08T09:00:00+09:00"}],"nextCursor":null,"hasNext":false}}`))
@@ -68,7 +68,7 @@ func TestConditionalOrdersIntegration(t *testing.T) {
 		WithHTTPClient(srv.Client()),
 		WithAccountSeq(1),
 	)
-	got, err := c.ConditionalOrders(context.Background(), "WATCHING", "", "", 0)
+	got, err := c.ConditionalOrders(context.Background(), "OPEN", "", "", 0)
 	if err != nil {
 		t.Fatalf("ConditionalOrders: %v", err)
 	}

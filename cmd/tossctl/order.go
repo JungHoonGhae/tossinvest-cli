@@ -505,7 +505,7 @@ func newOrderConditionalCmd(opts *rootOptions) *cobra.Command {
 			return output.WriteConditionalOrders(cmd.OutOrStdout(), app.format, l)
 		},
 	}
-	listCmd.Flags().StringVar(&listStatus, "status", "", "filter by status (e.g. WATCHING)")
+	listCmd.Flags().StringVar(&listStatus, "status", "OPEN", "lifecycle filter, required by the API (OPEN = in-progress, CLOSED = finished)")
 	listCmd.Flags().StringVar(&listSymbol, "symbol", "", "filter by symbol")
 	listCmd.Flags().StringVar(&listCursor, "cursor", "", "pagination cursor (from previous next_cursor)")
 	listCmd.Flags().IntVar(&listLimit, "limit", 0, "max rows (0 = API default)")
