@@ -313,3 +313,78 @@ func TestTradesIntegration(t *testing.T) {
 		t.Fatalf("Trades: %+v", got.Trades)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Rankings
+// ---------------------------------------------------------------------------
+
+func TestAdaptRankingUnit(t *testing.T) {
+	raw := apiRankingResult{
+		RankedAt: "2026-06-10T14:30:00+09:00",
+		Rankings: []apiRankingItem{
+			{
+				Rank: 1, Symbol: "005930", Currency: "KRW",
+				Price:         apiRankingPrice{LastPrice: "71900", BasePrice: "71000", ChangeRate: "0.0127"},
+				TradingVolume: "12345678", TradingAmount: "888000000000",
+			},
+			{
+				Rank: 2, Symbol: "000660", Currency: "KRW",
+				Price:         apiRankingPrice{LastPrice: "175000", BasePrice: "176000", ChangeRate: ""},
+				TradingVolume: "2222", TradingAmount: "3333",
+			},
+		},
+	}
+	got := adaptRanking("MARKET_TRADING_AMOUNT", "KR", "1d", raw)
+	if got.Type != "MARKET_TRADING_AMOUNT" || got.MarketCountry != "KR" || got.Duration != "1d" {
+		t.Fatalf("meta not carried: %+v", got)
+	}
+	if got.RankedAt != "2026-06-10T14:30:00+09:00" {
+		t.Fatalf("RankedAt: got %q", got.RankedAt)
+	}
+	if len(got.Items) != 2 {
+		t.Fatalf("Items len: want 2, got %d", len(got.Items))
+	}
+	if got.Items[0].LastPrice != 71900 || got.Items[0].ChangeRate != 0.0127 || got.Items[0].TradingAmount != 888000000000 {
+		t.Fatalf("item0 decimals: %+v", got.Items[0])
+	}
+	if got.Items[1].ChangeRate != 0 { // "" → 0 (nullable)
+		t.Fatalf("item1 ChangeRate: want 0 for empty, got %v", got.Items[1].ChangeRate)
+	}
+}
+
+func TestRankingsIntegration(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/rankings":
+			if r.URL.Query().Get("type") != "MARKET_TRADING_AMOUNT" {
+				t.Errorf("type: got %q", r.URL.Query().Get("type"))
+			}
+			if r.URL.Query().Get("marketCountry") != "KR" {
+				t.Errorf("marketCountry: got %q", r.URL.Query().Get("marketCountry"))
+			}
+			if r.URL.Query().Get("duration") != "1d" {
+				t.Errorf("duration: got %q", r.URL.Query().Get("duration"))
+			}
+			_, _ = w.Write([]byte(`{"result":{"rankedAt":"2026-06-10T14:30:00+09:00","rankings":[{"rank":1,"symbol":"005930","currency":"KRW","price":{"lastPrice":"71900","basePrice":"71000","changeRate":"0.0127"},"tradingVolume":"12345678","tradingAmount":"888000000000"}]}}`))
+		default:
+			t.Errorf("unexpected path %q", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+	)
+	got, err := c.Rankings(context.Background(), "MARKET_TRADING_AMOUNT", "KR", "1d", false, 0)
+	if err != nil {
+		t.Fatalf("Rankings: %v", err)
+	}
+	if len(got.Items) != 1 || got.Items[0].Symbol != "005930" || got.Items[0].LastPrice != 71900 {
+		t.Fatalf("unexpected result: %+v", got)
+	}
+}

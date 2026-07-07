@@ -294,3 +294,83 @@ func adaptTrades(symbol string, raw []apiTrade) domain.TradeList {
 		// ProductCode, Name — not in /trades response
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Rankings
+// ---------------------------------------------------------------------------
+
+// apiRankingPrice mirrors RankingPrice: {lastPrice, basePrice, changeRate?}.
+type apiRankingPrice struct {
+	LastPrice  string `json:"lastPrice"`
+	BasePrice  string `json:"basePrice"`
+	ChangeRate string `json:"changeRate"` // nullable → "" when null
+}
+
+// apiRankingItem mirrors RankingItem in the official /rankings response.
+type apiRankingItem struct {
+	Rank          int             `json:"rank"`
+	Symbol        string          `json:"symbol"`
+	Currency      string          `json:"currency"`
+	Price         apiRankingPrice `json:"price"`
+	TradingVolume string          `json:"tradingVolume"`
+	TradingAmount string          `json:"tradingAmount"`
+}
+
+// apiRankingResult mirrors RankingResponse (the unwrapped `result`).
+type apiRankingResult struct {
+	RankedAt string           `json:"rankedAt"` // nullable → "" when null
+	Rankings []apiRankingItem `json:"rankings"`
+}
+
+// Rankings fetches the official stock ranking.
+// typ: MARKET_TRADING_AMOUNT | MARKET_TRADING_VOLUME | TOP_GAINERS | TOP_LOSERS |
+//
+//	TOSS_SECURITIES_TRADING_AMOUNT | TOSS_SECURITIES_TRADING_VOLUME
+//
+// marketCountry: KR | US. duration: realtime|1d|1w|1mo|3mo|6mo|1y.
+// count is optional (0 = API default); max 100 per spec.
+func (c *Client) Rankings(ctx context.Context, typ, marketCountry, duration string, excludeCaution bool, count int) (domain.Ranking, error) {
+	q := url.Values{}
+	q.Set("type", typ)
+	q.Set("marketCountry", marketCountry)
+	q.Set("duration", duration)
+	if excludeCaution {
+		q.Set("excludeInvestmentCaution", "true")
+	}
+	if count > 0 {
+		q.Set("count", strconv.Itoa(count))
+	}
+	var raw apiRankingResult
+	if err := c.get(ctx, "/api/v1/rankings", q, &raw); err != nil {
+		return domain.Ranking{}, err
+	}
+	return adaptRanking(typ, marketCountry, duration, raw), nil
+}
+
+// adaptRanking converts the official RankingResponse to domain.Ranking.
+// The type/market/duration are echoed from the request (the response body does
+// not repeat them). Decimal strings → float64 via parseDecimal; a null
+// changeRate/rankedAt arrives as "" and maps to 0 / "".
+func adaptRanking(typ, marketCountry, duration string, raw apiRankingResult) domain.Ranking {
+	items := make([]domain.RankingItem, 0, len(raw.Rankings))
+	for _, r := range raw.Rankings {
+		items = append(items, domain.RankingItem{
+			Rank:          r.Rank,
+			Symbol:        r.Symbol,
+			Currency:      r.Currency,
+			LastPrice:     parseDecimal(r.Price.LastPrice),
+			BasePrice:     parseDecimal(r.Price.BasePrice),
+			ChangeRate:    parseDecimal(r.Price.ChangeRate),
+			TradingVolume: parseDecimal(r.TradingVolume),
+			TradingAmount: parseDecimal(r.TradingAmount),
+		})
+	}
+	return domain.Ranking{
+		Type:          typ,
+		MarketCountry: marketCountry,
+		Duration:      duration,
+		RankedAt:      raw.RankedAt,
+		Items:         items,
+		FetchedAt:     time.Now().UTC(),
+	}
+}
