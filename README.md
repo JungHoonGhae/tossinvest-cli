@@ -232,6 +232,7 @@ Waiting for approval in the Toss app on your phone...
 | **시장 지표 현재가** | `market indicator KOSPI,KOSDAQ` | ✅ | ✅ |
 | **시장 지표 캔들** | `market indicator-candles KOSPI --interval 1d` | ✅ | ✅ |
 | **시장 투자자별 매매동향** | `market investor-trading KOSPI --interval 1d` | ✅ | ✅ |
+| **조건주문 조회** | `order conditional list`, `order conditional get <id>` | ✅ | ✅ |
 | **🆕 투자자별 순매수 상위** | `market investors` (외국인·기관·개인 순매수 상위) | ❌ | ✅ |
 | **🆕 실적(어닝콜) 일정** | `market earnings` (`--major` 주요 기업 큐레이션) | ❌ | ✅ |
 | **🆕 배당 내역** | `portfolio dividends` (연간 총액·지역·월별, `--by-payment-date` 세금) | ❌ | ✅ |

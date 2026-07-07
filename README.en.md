@@ -163,6 +163,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **Market indicator price** | `market indicator KOSPI,KOSDAQ` | ✅ | ✅ |
 | **Market indicator candles** | `market indicator-candles KOSPI --interval 1d` | ✅ | ✅ |
 | **Market investor trading** | `market investor-trading KOSPI --interval 1d` | ✅ | ✅ |
+| **Conditional order reads** | `order conditional list`, `order conditional get <id>` | ✅ | ✅ |
 | **🆕 Net-buy ranking by investor** | `market investors` (foreign · institution · retail top net-buy) | ❌ | ✅ |
 | **🆕 Earnings calendar** | `market earnings` (`--major` for curated majors) | ❌ | ✅ |
 | **🆕 Dividend report** | `portfolio dividends` (annual total · region · monthly, `--by-payment-date` tax) | ❌ | ✅ |

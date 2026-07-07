@@ -78,6 +78,7 @@ func newOrderCmd(opts *rootOptions) *cobra.Command {
 		newOrderPlaceCmd(opts),
 		newOrderCancelCmd(opts),
 		newOrderAmendCmd(opts),
+		newOrderConditionalCmd(opts),
 	)
 
 	return cmd
@@ -477,4 +478,56 @@ func recordMutationLineage(app *appContext, result *trading.MutationResult) {
 	if err := app.lineageService.Record(originalOrderID, entry); err != nil {
 		result.Warnings = append(result.Warnings, fmt.Sprintf("Could not update local lineage cache at %s: %v", app.paths.LineageFile, err))
 	}
+}
+
+func newOrderConditionalCmd(opts *rootOptions) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "conditional",
+		Short: i18n.T("order.conditional.short"),
+		Long:  i18n.T("order.conditional.long"),
+	}
+
+	var listStatus, listSymbol, listCursor string
+	var listLimit int
+	listCmd := &cobra.Command{
+		Use:         "list",
+		Short:       i18n.T("order.conditional.list.short"),
+		Annotations: map[string]string{"source": "official"},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			l, err := app.client.ConditionalOrders(cmd.Context(), listStatus, listSymbol, listCursor, listLimit)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteConditionalOrders(cmd.OutOrStdout(), app.format, l)
+		},
+	}
+	listCmd.Flags().StringVar(&listStatus, "status", "", "filter by status (e.g. WATCHING)")
+	listCmd.Flags().StringVar(&listSymbol, "symbol", "", "filter by symbol")
+	listCmd.Flags().StringVar(&listCursor, "cursor", "", "pagination cursor (from previous next_cursor)")
+	listCmd.Flags().IntVar(&listLimit, "limit", 0, "max rows (0 = API default)")
+
+	getCmd := &cobra.Command{
+		Use:         "get <conditional-order-id>",
+		Short:       i18n.T("order.conditional.get.short"),
+		Args:        cobra.ExactArgs(1),
+		Annotations: map[string]string{"source": "official"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			o, err := app.client.ConditionalOrder(cmd.Context(), args[0])
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteConditionalOrder(cmd.OutOrStdout(), app.format, o)
+		},
+	}
+
+	cmd.AddCommand(listCmd, getCmd)
+	return cmd
 }

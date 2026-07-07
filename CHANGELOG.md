@@ -4,6 +4,9 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 
 ## [Unreleased]
 
+### 새 기능
+- **`order conditional list` / `order conditional get`** — 공식 Open API 로 조건주문(감시 조건부 주문)의 목록·상세를 조회합니다. 공식 키 연결이 필요합니다.
+
 ## [0.17.0] - 2026-07-08
 
 ### 새 기능
