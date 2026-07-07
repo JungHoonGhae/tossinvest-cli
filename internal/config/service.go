@@ -26,6 +26,7 @@ type Trading struct {
 	Fractional            bool                `json:"fractional"`
 	Cancel                bool                `json:"cancel"`
 	Amend                 bool                `json:"amend"`
+	Conditional           bool                `json:"conditional"`
 	AllowLiveOrderActions bool                `json:"allow_live_order_actions"`
 	DangerousAutomation   DangerousAutomation `json:"dangerous_automation"`
 }
@@ -134,6 +135,7 @@ type rawTrading struct {
 	Fractional            bool                    `json:"fractional"`
 	Cancel                bool                    `json:"cancel"`
 	Amend                 bool                    `json:"amend"`
+	Conditional           bool                    `json:"conditional"`
 	AllowLiveOrderActions *bool                   `json:"allow_live_order_actions"`
 	AllowDangerousExecute *bool                   `json:"allow_dangerous_execute"`
 	DangerousAutomation   *rawDangerousAutomation `json:"dangerous_automation"`
@@ -252,6 +254,7 @@ func (s *Service) load() (File, bool, legacyMetadata, error) {
 	cfg.Trading.Fractional = raw.Trading.Fractional
 	cfg.Trading.Cancel = raw.Trading.Cancel
 	cfg.Trading.Amend = raw.Trading.Amend
+	cfg.Trading.Conditional = raw.Trading.Conditional
 
 	// trading.grant was removed in v0.4.3 — it gated nothing that the other
 	// per-action toggles + allow_live_order_actions didn't already gate. We

@@ -162,6 +162,65 @@ func (c *Client) getAcct(ctx context.Context, path string, q url.Values, out any
 	return c.getWithHeaders(ctx, path, q, extra, out)
 }
 
+// postAcct is like post but injects the X-Tossinvest-Account header (lazy seq).
+func (c *Client) postAcct(ctx context.Context, path string, body any, out any) error {
+	seq, err := c.ensureAccountSeq(ctx)
+	if err != nil {
+		return err
+	}
+	extra := map[string]string{"X-Tossinvest-Account": strconv.Itoa(seq)}
+	return c.postWithHeaders(ctx, path, body, extra, out)
+}
+
+// deleteAcct performs an authenticated DELETE with the account header, mirroring
+// getWithHeaders' token/401-retry/unwrap flow (there is no generic doWithHeaders).
+func (c *Client) deleteAcct(ctx context.Context, path string, out any) error {
+	seq, err := c.ensureAccountSeq(ctx)
+	if err != nil {
+		return err
+	}
+	rawURL := c.base + path
+	makeReq := func(tok string) (*http.Request, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodDelete, rawURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s", ErrTransport, err)
+		}
+		req.Header.Set("Authorization", "Bearer "+tok)
+		req.Header.Set("X-Tossinvest-Account", strconv.Itoa(seq))
+		return req, nil
+	}
+	tok, err := c.tm.token(ctx)
+	if err != nil {
+		return err
+	}
+	req, err := makeReq(tok)
+	if err != nil {
+		return err
+	}
+	code, body, err := c.doRequest(req)
+	if err != nil {
+		return err
+	}
+	if code == http.StatusUnauthorized {
+		tok, err = c.tm.refresh(ctx)
+		if err != nil {
+			return err
+		}
+		req, err = makeReq(tok)
+		if err != nil {
+			return err
+		}
+		code, body, err = c.doRequest(req)
+		if err != nil {
+			return err
+		}
+	}
+	if code < 200 || code >= 300 {
+		return classifyStatus(code, body)
+	}
+	return unwrapAndDecode(body, out)
+}
+
 // getWithHeaders performs an authenticated GET request to path (relative to
 // BaseURL), injecting any extraHeaders on top of the Authorization header.
 // Query parameters q may be nil. On 401 the token is refreshed and the request
