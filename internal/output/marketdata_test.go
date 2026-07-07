@@ -231,3 +231,53 @@ func TestWriteThemeRankingsEmpty(t *testing.T) {
 		t.Errorf("expected empty notice: %q", buf.String())
 	}
 }
+
+func TestWriteRankingTable(t *testing.T) {
+	r := domain.Ranking{
+		Type: "MARKET_TRADING_AMOUNT", MarketCountry: "KR", Duration: "1d",
+		Items: []domain.RankingItem{
+			{Rank: 1, Symbol: "005930", LastPrice: 71900, ChangeRate: 0.0127, TradingAmount: 888000000000},
+		},
+	}
+	var buf bytes.Buffer
+	if err := WriteRanking(&buf, FormatTable, r); err != nil {
+		t.Fatalf("WriteRanking: %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "005930") {
+		t.Errorf("table missing symbol: %q", out)
+	}
+}
+
+func TestWriteRankingJSON(t *testing.T) {
+	r := domain.Ranking{Type: "TOP_GAINERS", Items: []domain.RankingItem{{Rank: 1, Symbol: "X"}}}
+	var buf bytes.Buffer
+	if err := WriteRanking(&buf, FormatJSON, r); err != nil {
+		t.Fatalf("WriteRanking JSON: %v", err)
+	}
+	if !strings.Contains(buf.String(), `"symbol": "X"`) {
+		t.Errorf("json missing field: %q", buf.String())
+	}
+}
+
+func TestWriteMarketIndicatorPricesTable(t *testing.T) {
+	p := domain.MarketIndicatorPrices{Indicators: []domain.MarketIndicatorPrice{{Symbol: "KOSPI", LastPrice: 2812.45, Timestamp: "2026-06-11T15:30:00+09:00"}}}
+	var buf bytes.Buffer
+	if err := WriteMarketIndicatorPrices(&buf, FormatTable, p); err != nil {
+		t.Fatalf("WriteMarketIndicatorPrices: %v", err)
+	}
+	if !strings.Contains(buf.String(), "KOSPI") {
+		t.Errorf("missing symbol: %q", buf.String())
+	}
+}
+
+func TestWriteMarketIndicatorCandlesTable(t *testing.T) {
+	c := domain.MarketIndicatorCandles{Symbol: "KOSPI", Interval: "1d", Candles: []domain.MarketIndicatorCandle{{Timestamp: "2026-06-11T09:00:00+09:00", Open: 2798.32, High: 2820.15, Low: 2790.1, Close: 2812.45, Volume: 123456}}}
+	var buf bytes.Buffer
+	if err := WriteMarketIndicatorCandles(&buf, FormatTable, c); err != nil {
+		t.Fatalf("WriteMarketIndicatorCandles: %v", err)
+	}
+	if !strings.Contains(buf.String(), "2812.45") {
+		t.Errorf("missing close: %q", buf.String())
+	}
+}
