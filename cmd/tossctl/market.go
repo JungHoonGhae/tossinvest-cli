@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/youcom"
 	"github.com/spf13/cobra"
 )
 
@@ -217,6 +219,32 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
+	var researchEffort string
+	researchCmd := &cobra.Command{
+		Use:         "research <query>",
+		Short:       i18n.T("market.research.short"),
+		Long:        i18n.T("market.research.long"),
+		Args:        cobra.MinimumNArgs(1),
+		Annotations: map[string]string{"source": "external"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			yc, err := youcom.NewClient()
+			if err != nil {
+				return err
+			}
+			query := strings.Join(args, " ")
+			res, err := yc.Research(cmd.Context(), query, researchEffort)
+			if err != nil {
+				return err
+			}
+			return output.WriteYouComResearch(cmd.OutOrStdout(), app.format, *res)
+		},
+	}
+	researchCmd.Flags().StringVar(&researchEffort, "effort", youcom.DefaultEffort, "research depth: lite | standard | deep | exhaustive (higher = slower & costs more API credits)")
+
 	var (
 		screenerNation string
 		screenerSize   int
@@ -279,6 +307,6 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	}
 	themesCmd.Flags().IntVar(&themesSize, "size", 20, "number of ranked themes (0 = all)")
 
-	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, sectorsCmd, themesCmd, screenerCmd)
+	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, sectorsCmd, themesCmd, screenerCmd, researchCmd)
 	return cmd
 }
