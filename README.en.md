@@ -59,6 +59,26 @@
 
 <!-- sponsors:end -->
 
+## MCP server (`tossctl mcp`) <!--since:2026-07-08-->
+
+`tossctl` can expose the official Toss Open API as an **MCP (Model Context Protocol) server**.
+Register it in an MCP host (Claude Code, Claude Desktop, Codex, …) and an agent can query
+accounts, holdings, prices, order book, trades, and candles in natural language. It speaks
+JSON-RPC 2.0 over stdin/stdout — no separate server or port.
+
+Registering ~20 APIs as individual tools would bloat the always-on context, so it uses a
+**catalog** surface of just three tools: `list_operations`, `describe_operation`, and
+`call_operation`. Read-only for now (no order placement — deferred for safety). Save
+credentials first with `tossctl openapi login`.
+
+```json
+{
+  "mcpServers": {
+    "tossinvest": { "command": "tossctl", "args": ["mcp"] }
+  }
+}
+```
+
 ## Quick Start
 
 ### For Agents

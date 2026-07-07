@@ -150,6 +150,7 @@ func newRootCmd() *cobra.Command {
 		newExportCmd(opts),
 		newPushCmd(opts),
 		newMonitorCmd(opts),
+		newMCPCmd(opts),
 	)
 
 	return cmd
