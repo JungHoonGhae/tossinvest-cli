@@ -9,6 +9,7 @@ import (
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
 )
 
 // WriteConditionalOrders renders a list of conditional orders.
@@ -103,4 +104,20 @@ func WriteConditionalOrder(w io.Writer, format Format, o domain.ConditionalOrder
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
+}
+
+// WriteConditionalPlacePreview renders a create preview: summary + confirm token.
+func WriteConditionalPlacePreview(w io.Writer, intent orderintent.ConditionalPlaceIntent, token string) error {
+	fmt.Fprintf(w, "%s  %s x%s  %s  %s\n",
+		intent.Symbol, intent.Type, strconv.FormatFloat(intent.Quantity, 'f', -1, 64), intent.OrderType, intent.ExpireDate)
+	leg := func(name string, l orderintent.ConditionLeg) {
+		fmt.Fprintf(w, "  %s: %s trigger=%s order=%s\n", name, l.OrderSide,
+			strconv.FormatFloat(l.TriggerPrice, 'f', -1, 64), strconv.FormatFloat(l.OrderPrice, 'f', -1, 64))
+	}
+	leg(i18n.T("output.conditional.leg.first"), intent.First)
+	if intent.Second != nil {
+		leg(i18n.T("output.conditional.leg.second"), *intent.Second)
+	}
+	fmt.Fprintf(w, "%s: %s\n", i18n.T("order.conditional.confirmToken"), token)
+	return nil
 }

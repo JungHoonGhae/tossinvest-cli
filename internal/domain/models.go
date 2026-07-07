@@ -777,3 +777,9 @@ type ConditionalOrderList struct {
 	HasNext    bool               `json:"has_next"`
 	FetchedAt  time.Time          `json:"fetched_at"`
 }
+
+// ConditionalOrderRef is the id returned when creating a conditional order.
+type ConditionalOrderRef struct {
+	ID            string `json:"id"`
+	ClientOrderID string `json:"client_order_id,omitempty"`
+}

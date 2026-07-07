@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
@@ -233,6 +234,33 @@ func (c *Client) CancelConditionalOrder(ctx context.Context, intent orderintent.
 		return ErrOfficialKeyRequired
 	}
 	return c.off.CancelConditionalOrder(ctx, intent.ID)
+}
+
+// CreateConditionalOrder creates a conditional order. official-only.
+func (c *Client) CreateConditionalOrder(ctx context.Context, intent orderintent.ConditionalPlaceIntent) (domain.ConditionalOrderRef, error) {
+	if c.off == nil {
+		return domain.ConditionalOrderRef{}, ErrOfficialKeyRequired
+	}
+	body := official.ConditionalCreateBody{
+		Symbol: intent.Symbol, Type: intent.Type, Quantity: fmtDec(intent.Quantity),
+		OrderType: intent.OrderType, ClientOrderID: intent.ClientOrderID, ExpireDate: intent.ExpireDate,
+		First: officialLeg(intent.First), ConfirmHighValueOrder: intent.ConfirmHighValue,
+	}
+	if intent.Second != nil {
+		s := officialLeg(*intent.Second)
+		body.Second = &s
+	}
+	return c.off.CreateConditionalOrder(ctx, body)
+}
+
+func fmtDec(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
+
+func officialLeg(l orderintent.ConditionLeg) official.ConditionLegBody {
+	b := official.ConditionLegBody{OrderSide: l.OrderSide, TriggerPrice: fmtDec(l.TriggerPrice)}
+	if l.OrderPrice > 0 {
+		b.OrderPrice = fmtDec(l.OrderPrice)
+	}
+	return b
 }
 
 // --- Intentionally NOT overridden (served by embedded WTS) ------------------
