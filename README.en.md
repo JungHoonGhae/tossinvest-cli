@@ -159,6 +159,9 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **Investor flows** | `quote flows <symbol>` (retail · foreign · inst., KR) | ❌ | ✅ |
 | **Market indices** | `market index` (KOSPI · KOSDAQ · Nasdaq · S&P500 · VIX), `market index <code\|name>` detail (OHLC · 52w) | ❌ | ✅ |
 | **Live popularity ranking** | `market ranking --size N` | ❌ | ✅ |
+| **Official ranking (amount/change%)** | `market rankings --type ... --market KR --duration 1d` | ✅ | ✅ |
+| **Market indicator price** | `market indicator KOSPI,KOSDAQ` | ✅ | ✅ |
+| **Market indicator candles** | `market indicator-candles KOSPI --interval 1d` | ✅ | ✅ |
 | **🆕 Net-buy ranking by investor** | `market investors` (foreign · institution · retail top net-buy) | ❌ | ✅ |
 | **🆕 Earnings calendar** | `market earnings` (`--major` for curated majors) | ❌ | ✅ |
 | **🆕 Dividend report** | `portfolio dividends` (annual total · region · monthly, `--by-payment-date` tax) | ❌ | ✅ |

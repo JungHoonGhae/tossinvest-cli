@@ -228,6 +228,9 @@ Waiting for approval in the Toss app on your phone...
 | **수급 (투자자별 순매수)** | `quote flows <symbol>` (개인·외국인·기관, KR) | ❌ | ✅ |
 | **시장 지수** | `market index` (코스피·코스닥·나스닥·S&P500·VIX), `market index <코드\|이름>` 상세(OHLC·52주) | ❌ | ✅ |
 | **실시간 인기 순위** | `market ranking --size N` | ❌ | ✅ |
+| **공식 랭킹(거래대금/등락률)** | `market rankings --type ... --market KR --duration 1d` | ✅ | ✅ |
+| **시장 지표 현재가** | `market indicator KOSPI,KOSDAQ` | ✅ | ✅ |
+| **시장 지표 캔들** | `market indicator-candles KOSPI --interval 1d` | ✅ | ✅ |
 | **🆕 투자자별 순매수 상위** | `market investors` (외국인·기관·개인 순매수 상위) | ❌ | ✅ |
 | **🆕 실적(어닝콜) 일정** | `market earnings` (`--major` 주요 기업 큐레이션) | ❌ | ✅ |
 | **🆕 배당 내역** | `portfolio dividends` (연간 총액·지역·월별, `--by-payment-date` 세금) | ❌ | ✅ |

@@ -4,6 +4,10 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 
 ## [Unreleased]
 
+### 새 기능
+- **`market rankings`** — 토스 공식 Open API 주식 랭킹(거래대금·거래량·급상승·급하락·토스증권 내 상위)을 조회합니다. 공식 키 연결이 필요합니다.
+- **`market indicator` / `market indicator-candles`** — 시장 지표(코스피·코스닥) 현재가와 OHLCV 캔들을 공식 Open API 로 조회합니다. 공식 키 연결이 필요합니다.
+
 ## [0.16.0] - 2026-07-02
 
 ### 새 기능
