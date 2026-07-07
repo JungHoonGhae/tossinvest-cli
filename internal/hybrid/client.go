@@ -15,6 +15,7 @@ package hybrid
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -166,6 +167,38 @@ func (c *Client) GetCommission(ctx context.Context, symbol string) (domain.Commi
 	return route(c,
 		func() (domain.Commission, error) { return c.off.Commissions(ctx, symbol) },
 		func() (domain.Commission, error) { return c.Client.GetCommission(ctx, symbol) })
+}
+
+// ErrOfficialKeyRequired signals a feature that only the official Open API can
+// serve (no WTS equivalent). cmd/tossctl converts it into a friendly hint.
+var ErrOfficialKeyRequired = errors.New("official Open API key required")
+
+// Rankings serves the official /rankings ranking. official-only: no WTS
+// fallback (WTS "popularity" ranking is a different dataset), so a missing key
+// returns ErrOfficialKeyRequired rather than degrading.
+func (c *Client) Rankings(ctx context.Context, typ, marketCountry, duration string, excludeCaution bool, count int) (domain.Ranking, error) {
+	if c.off == nil {
+		return domain.Ranking{}, ErrOfficialKeyRequired
+	}
+	return c.off.Rankings(ctx, typ, marketCountry, duration, excludeCaution, count)
+}
+
+// MarketIndicatorPrices serves official market-indicator current prices.
+// official-only (see Rankings).
+func (c *Client) MarketIndicatorPrices(ctx context.Context, symbols []string) (domain.MarketIndicatorPrices, error) {
+	if c.off == nil {
+		return domain.MarketIndicatorPrices{}, ErrOfficialKeyRequired
+	}
+	return c.off.MarketIndicatorPrices(ctx, symbols)
+}
+
+// MarketIndicatorCandles serves official market-indicator candles.
+// official-only (see Rankings).
+func (c *Client) MarketIndicatorCandles(ctx context.Context, symbol, interval string, count int, before string) (domain.MarketIndicatorCandles, error) {
+	if c.off == nil {
+		return domain.MarketIndicatorCandles{}, ErrOfficialKeyRequired
+	}
+	return c.off.MarketIndicatorCandles(ctx, symbol, interval, count, before)
 }
 
 // --- Intentionally NOT overridden (served by embedded WTS) ------------------

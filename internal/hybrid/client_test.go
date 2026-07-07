@@ -147,3 +147,18 @@ func TestGetOrderBookPassthroughWhenOfficialAbsent(t *testing.T) {
 		t.Fatalf("want product code A005930; got %q", ob.ProductCode)
 	}
 }
+
+func TestOfficialOnlyReadsRequireKey(t *testing.T) {
+	// off == nil simulates "no official credentials connected".
+	c := New(nil, nil, Policy{}, nil)
+
+	if _, err := c.Rankings(context.Background(), "MARKET_TRADING_AMOUNT", "KR", "1d", false, 0); !errors.Is(err, ErrOfficialKeyRequired) {
+		t.Errorf("Rankings: want ErrOfficialKeyRequired, got %v", err)
+	}
+	if _, err := c.MarketIndicatorPrices(context.Background(), []string{"KOSPI"}); !errors.Is(err, ErrOfficialKeyRequired) {
+		t.Errorf("MarketIndicatorPrices: want ErrOfficialKeyRequired, got %v", err)
+	}
+	if _, err := c.MarketIndicatorCandles(context.Background(), "KOSPI", "1d", 5, ""); !errors.Is(err, ErrOfficialKeyRequired) {
+		t.Errorf("MarketIndicatorCandles: want ErrOfficialKeyRequired, got %v", err)
+	}
+}
