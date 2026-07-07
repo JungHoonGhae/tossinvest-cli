@@ -744,3 +744,36 @@ type InvestorTrading struct {
 	NextUntil string                  `json:"next_until,omitempty"`
 	FetchedAt time.Time               `json:"fetched_at"`
 }
+
+// ConditionalOrderCondition is one watch leg of a conditional order.
+type ConditionalOrderCondition struct {
+	Type             string  `json:"type"` // STOP | PROFIT_RATE
+	Status           string  `json:"status"`
+	TriggerPrice     float64 `json:"trigger_price"`
+	TargetProfitRate float64 `json:"target_profit_rate"`
+	OrderPrice       float64 `json:"order_price"`
+	TriggeredOrderID string  `json:"triggered_order_id,omitempty"`
+}
+
+// ConditionalOrder is one conditional order (group of watch legs).
+type ConditionalOrder struct {
+	ID         string                     `json:"id"`
+	Type       string                     `json:"type"` // SINGLE | OCO | OTO
+	Status     string                     `json:"status"`
+	Symbol     string                     `json:"symbol"`
+	Market     string                     `json:"market"`
+	Quantity   float64                    `json:"quantity"`
+	OrderType  string                     `json:"order_type"` // LIMIT | MARKET
+	ExpireDate string                     `json:"expire_date"`
+	First      ConditionalOrderCondition  `json:"first"`
+	Second     *ConditionalOrderCondition `json:"second,omitempty"`
+	CreatedAt  string                     `json:"created_at"`
+}
+
+// ConditionalOrderList is a page of conditional orders.
+type ConditionalOrderList struct {
+	Orders     []ConditionalOrder `json:"orders"`
+	NextCursor string             `json:"next_cursor,omitempty"`
+	HasNext    bool               `json:"has_next"`
+	FetchedAt  time.Time          `json:"fetched_at"`
+}

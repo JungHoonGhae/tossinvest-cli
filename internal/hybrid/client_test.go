@@ -164,4 +164,10 @@ func TestOfficialOnlyReadsRequireKey(t *testing.T) {
 	if _, err := c.MarketInvestorTrading(context.Background(), "KOSPI", "1d", 0, ""); !errors.Is(err, ErrOfficialKeyRequired) {
 		t.Errorf("MarketInvestorTrading: want ErrOfficialKeyRequired, got %v", err)
 	}
+	if _, err := c.ConditionalOrders(context.Background(), "", "", "", 0); !errors.Is(err, ErrOfficialKeyRequired) {
+		t.Errorf("ConditionalOrders: want ErrOfficialKeyRequired, got %v", err)
+	}
+	if _, err := c.ConditionalOrder(context.Background(), "co-1"); !errors.Is(err, ErrOfficialKeyRequired) {
+		t.Errorf("ConditionalOrder: want ErrOfficialKeyRequired, got %v", err)
+	}
 }

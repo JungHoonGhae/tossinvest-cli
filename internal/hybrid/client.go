@@ -210,6 +210,22 @@ func (c *Client) MarketInvestorTrading(ctx context.Context, symbol, interval str
 	return c.off.MarketInvestorTrading(ctx, symbol, interval, count, until)
 }
 
+// ConditionalOrders serves the official conditional-order list. official-only.
+func (c *Client) ConditionalOrders(ctx context.Context, status, symbol, cursor string, limit int) (domain.ConditionalOrderList, error) {
+	if c.off == nil {
+		return domain.ConditionalOrderList{}, ErrOfficialKeyRequired
+	}
+	return c.off.ConditionalOrders(ctx, status, symbol, cursor, limit)
+}
+
+// ConditionalOrder serves one official conditional order by id. official-only.
+func (c *Client) ConditionalOrder(ctx context.Context, id string) (domain.ConditionalOrder, error) {
+	if c.off == nil {
+		return domain.ConditionalOrder{}, ErrOfficialKeyRequired
+	}
+	return c.off.ConditionalOrder(ctx, id)
+}
+
 // --- Intentionally NOT overridden (served by embedded WTS) ------------------
 //
 // These are left to the embedded *client.Client because the official API does
