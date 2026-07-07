@@ -16,8 +16,10 @@ tossctl auth status      # Session: active / Live Check: valid 여야 함
 Every leaf command carries machine-readable annotations:
 
 - `source`: `official` (official Open API only), `wts` (WTS internal endpoint only),
-  or `both` (official preferred, WTS fallback). `wts` endpoints are unofficial and
-  may change without notice.
+  `both` (official preferred, WTS fallback), or `external` (third-party, non-Toss
+  API, e.g. You.com Research for `market research`). `wts` endpoints are unofficial
+  and may change without notice; `external` endpoints require their own API key
+  and are billed by the third party, not Toss.
 - `mutating: true`: the command changes account state (live trading). Only
   `order place`, `order cancel`, `order amend` carry this.
 

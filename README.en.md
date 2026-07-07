@@ -166,6 +166,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **🆕 Sector movements** | `market sectors [id]` (industry tree, 1d·1m·1y returns) | ❌ | ✅ |
 | **🆕 Theme fluctuation ranking** | `market themes` (today's top-moving themes, rising-stock counts) | ❌ | ✅ |
 | **🆕 Personalized news briefing** | `market briefing` (headlines grouped by theme) | ❌ | ✅ |
+| **Deep market research (You.com)** | `market research <query> --effort lite\|standard\|deep\|exhaustive` (external API, cited sources, requires `YDC_API_KEY`) | ❌ | ✅ |
 | **Toss AI signals** | `market signals` (per-symbol AI signal · keywords · move) | ❌ | ✅ |
 | **Stock screener** | `market screener [id]` (preset) · `--filter '<json>'` (custom) `--nation kr\|us` | ❌ | ✅ |
 | **Watchlist read & management** | `watchlist list`·`groups`, `watchlist group create\|rename\|delete`, `watchlist add\|remove --group <id>` | ❌ | ✅ |

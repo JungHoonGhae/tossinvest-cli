@@ -80,7 +80,8 @@ func TestShortDescriptionsAreEnglish(t *testing.T) {
 func TestLeafCommandsHaveSourceAnnotation(t *testing.T) {
 	// local = command hits no remote market/account API (version, config, doctor,
 	// local session ops). official/wts/both = data source for remote commands.
-	valid := map[string]bool{"official": true, "wts": true, "both": true, "local": true}
+	// external = third-party non-Toss API (e.g. You.com Research for `market research`).
+	valid := map[string]bool{"official": true, "wts": true, "both": true, "local": true, "external": true}
 	for _, c := range leafCommands(newRootCmd()) {
 		src, ok := c.Annotations["source"]
 		if !ok {
@@ -88,7 +89,7 @@ func TestLeafCommandsHaveSourceAnnotation(t *testing.T) {
 			continue
 		}
 		if !valid[src] {
-			t.Errorf("%s: invalid source %q (want official|wts|both|local)", c.CommandPath(), src)
+			t.Errorf("%s: invalid source %q (want official|wts|both|local|external)", c.CommandPath(), src)
 		}
 	}
 }
