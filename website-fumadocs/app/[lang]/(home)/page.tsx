@@ -47,7 +47,7 @@ const content = {
       points: [
         { k: 'WTS 기능 21개', v: '토스 WTS엔 있지만 공식 API엔 없는 수급·지수·AI 시그널·스크리너·배당 등 21개. 앱에서만 쓰던 기능을 터미널로.' },
         { k: '공식 Open API 전부 100% 커버', v: '공식 Open API가 여는 범위를 빠짐없이 100% 포함합니다. 공식 키를 연결하면 OAuth 경로로 더 안정적으로 동작합니다.' },
-        { k: '에이전트 연동', v: '모든 명령이 JSON으로 출력되어 AI 에이전트와 바로 연동됩니다.' },
+        { k: '에이전트 연동 — CLI + MCP 둘 다', v: 'CLI는 JSON 출력으로, MCP 서버(tossctl mcp)는 툴로. 두 방식 모두 지원해 Claude·Codex·Cursor 등 어떤 AI 에이전트에든 바로 붙습니다.' },
         { k: '공식 Open API는 약 4%', v: '공식 Open API는 토스 WTS 기능 ~440개 중 약 4%만 엽니다. tossctl은 그 너머까지 다룹니다.' },
       ],
     },
@@ -136,7 +136,7 @@ const content = {
     features: [
       { label: 'DATA', title: '넓은 조회', desc: '계좌·시세·호가·체결·수급·지수·업종·배당·거래내역을 명령 한 줄로 조회합니다.' },
       { label: 'SAFETY', title: '안전한 거래', desc: '거래는 기본으로 꺼져 있고, 주문 전 미리보기와 두 번의 확인을 거칩니다. 실수로 주문이 나가지 않습니다.' },
-      { label: 'AGENTS', title: '에이전트 친화', desc: '모든 결과를 AI가 그대로 읽는 형식으로 내보내 에이전트와 바로 연동됩니다.' },
+      { label: 'AGENTS', title: 'CLI + MCP 둘 다', desc: 'CLI(JSON 출력)로도, MCP 서버(tossctl mcp)로도 붙습니다. 두 방식 모두 지원 — Claude·Codex·Cursor 등 어떤 에이전트에든 그대로 연동됩니다.' },
       { label: 'INTELLIGENCE', title: '토스 AI 기능', desc: '공식 API에는 없는 AI 시그널·뉴스 브리핑·조건검색·커뮤니티 랭킹을 제공합니다.' },
       { label: 'REALTIME', title: '실시간 푸시', desc: '주문·체결·보유 변동을 실시간으로 받아봅니다.' },
       { label: 'AUTOMATION', title: '자동화 우선', desc: '표·파일·실시간 등 원하는 형식으로 내보내 스크립트와 자동화에 바로 연결합니다.' },
@@ -163,7 +163,7 @@ const content = {
       points: [
         { k: '21 WTS-only features', v: "Flows, indices, AI signals, screener, dividends: 21 Toss WTS features the official API doesn't expose. App-only, now in your terminal." },
         { k: '100% of official API covered', v: "tossctl covers the official API's whole area 100%. Add an official key and it routes through OAuth (more stable, auto-renewing)." },
-        { k: 'Agents included', v: 'Every command answers in JSON, so people and agents use it the same way.' },
+        { k: 'Agents — CLI + MCP', v: 'The CLI answers in JSON; the MCP server (tossctl mcp) exposes tools. Both are supported, so Claude, Codex, Cursor and any agent plug in right away.' },
         { k: 'Official ≈ 4%', v: 'Of ~440 Toss WTS features, the official Open API opens only about 4% — tossctl covers the rest too.' },
       ],
     },
@@ -252,7 +252,7 @@ const content = {
     features: [
       { label: 'DATA', title: 'Broad reads', desc: 'Accounts, quotes, orderbook, ticks, flows, indices, sectors, dividends, ledger, in one command.' },
       { label: 'SAFETY', title: 'Safe trading', desc: 'Trading is off by default, with an order preview and two confirmations before anything runs. No accidental orders.' },
-      { label: 'AGENTS', title: 'Agent-friendly', desc: 'Every result comes back in a format AI reads directly, so agents like Claude, Codex, and Cursor connect right away.' },
+      { label: 'AGENTS', title: 'CLI + MCP, both', desc: 'Connect via the CLI (JSON output) or the MCP server (tossctl mcp) — both supported, so agents like Claude, Codex, and Cursor plug in right away.' },
       { label: 'INTELLIGENCE', title: 'Toss AI features', desc: 'AI signals, news briefing, screener, community rankings, none of which the official API has.' },
       { label: 'REALTIME', title: 'Real-time push', desc: 'See order, fill, and holdings changes the moment they happen.' },
       { label: 'AUTOMATION', title: 'Automation-first', desc: 'Export as a table, file, or live feed, drop it straight into scripts and automation.' },

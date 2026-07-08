@@ -30,17 +30,13 @@ async function humanizeStars(stars: number): Promise<string> {
   return `${Math.floor(stars / 1000)}K`;
 }
 
-async function SafeGithubInfo({
-  owner,
-  repo,
-  token,
-  className,
-}: {
-  owner: string;
-  repo: string;
-  token?: string;
-  className?: string;
-}) {
+// Compact GitHub badge for the right-hand nav toolbar: icon + star count only
+// (no owner/repo text — that broke visually and crowded the logo). A GitHub API
+// failure must never 500 the site (this renders in the shared nav), so failures
+// are swallowed and we fall back to just the icon.
+async function GithubBadge({ className }: { className?: string }) {
+  const { user: owner, repo } = gitConfig;
+  const token = process.env.GITHUB_TOKEN;
   let stars: string | null = null;
   try {
     const headers = new Headers({ 'Content-Type': 'application/json' });
@@ -54,7 +50,7 @@ async function SafeGithubInfo({
       stars = await humanizeStars(data.stargazers_count);
     }
   } catch {
-    // network error, rate limit, etc. — render without the star count below
+    // network error, rate limit, etc. — render icon only
   }
 
   return (
@@ -62,24 +58,38 @@ async function SafeGithubInfo({
       href={`https://github.com/${owner}/${repo}`}
       rel="noreferrer noopener"
       target="_blank"
+      aria-label={`GitHub — ${owner}/${repo}`}
       className={
-        'flex flex-col gap-1.5 rounded-lg p-2 text-sm text-fd-foreground/80 transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground lg:flex-row lg:items-center ' +
+        'inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-fd-muted-foreground transition-colors hover:bg-fd-accent hover:text-fd-accent-foreground ' +
         (className ?? '')
       }
     >
-      <p className="flex items-center gap-2 truncate">
-        <Github className="size-3.5" />
-        {owner}/{repo}
-      </p>
+      <Github className="size-4 shrink-0" />
       {stars !== null && (
-        <p className="flex items-center gap-1 text-xs text-fd-muted-foreground">
+        <span className="flex items-center gap-0.5 text-xs tabular-nums">
           <Star className="size-3" />
           {stars}
-        </p>
+        </span>
       )}
     </a>
   );
 }
+
+// HomeLayout: a `secondary` custom link item so it sits in the right-hand nav
+// toolbar (next to theme/language), not crammed against the logo on the left.
+export function githubItem(): LinkItemType {
+  return {
+    type: 'custom',
+    on: 'nav',
+    secondary: true,
+    children: <GithubBadge />,
+  };
+}
+
+// DocsLayout has no right-hand toolbar in the top bar (search/theme live in the
+// sidebar), so the compact badge goes in nav.children next to the logo — now
+// icon + stars only, no repo name.
+export const githubBadge = <GithubBadge className="max-md:hidden" />;
 
 // i18n UI translations (ko default + en). `provider(locale)` feeds RootProvider.
 export const { provider } = defineI18nUI(i18n, {
@@ -234,14 +244,6 @@ export function baseOptions(): BaseLayoutProps {
     i18n: true,
     nav: {
       title: logo,
-      children: (
-        <SafeGithubInfo
-          owner={gitConfig.user}
-          repo={gitConfig.repo}
-          token={process.env.GITHUB_TOKEN}
-          className="max-lg:hidden"
-        />
-      ),
     },
   };
 }

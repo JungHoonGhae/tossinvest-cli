@@ -1,6 +1,6 @@
 import { source } from '@/lib/source';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
-import { baseOptions, linkItems, logoIcon } from '@/components/layouts/shared';
+import { baseOptions, linkItems, logoIcon, githubBadge } from '@/components/layouts/shared';
 import { getSection } from '@/lib/source/navigation';
 
 export default async function Layout({ params, children }: LayoutProps<'/[lang]/docs'>) {
@@ -20,6 +20,7 @@ export default async function Layout({ params, children }: LayoutProps<'/[lang]/
             <span className="font-medium max-md:hidden">tossctl</span>
           </span>
         ),
+        children: githubBadge,
       }}
       sidebar={{
         tabs: {
