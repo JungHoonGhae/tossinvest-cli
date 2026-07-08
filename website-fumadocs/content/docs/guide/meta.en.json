@@ -1,1 +1,1 @@
-{ "title": "Guide", "description": "Agents, safety, configuration", "icon": "BookOpen", "pages": ["agents", "safety", "configuration", "hybrid-openapi"] }
+{ "title": "Guide", "description": "Agents, safety, configuration", "icon": "BookOpen", "pages": ["agents", "mcp", "safety", "configuration", "hybrid-openapi"] }

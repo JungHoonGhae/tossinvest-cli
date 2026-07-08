@@ -1,1 +1,1 @@
-{ "title": "가이드", "description": "에이전트 연동·안전·설정", "icon": "BookOpen", "pages": ["agents", "safety", "configuration", "hybrid-openapi"] }
+{ "title": "가이드", "description": "에이전트 연동·안전·설정", "icon": "BookOpen", "pages": ["agents", "mcp", "safety", "configuration", "hybrid-openapi"] }

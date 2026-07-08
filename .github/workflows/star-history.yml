@@ -1,0 +1,35 @@
+name: star-history
+
+# star-history.com 무료 API 가 이 repo 스타 데이터 접근을 제한하는 문제 때문에,
+# 실제 stargazer 타임스탬프로 SVG 차트를 직접 생성해 repo 에 커밋한다.
+on:
+  schedule:
+    - cron: "0 18 * * 0"   # 매주 일요일 03:00 KST
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Regenerate star-history charts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 tools/gen_star_history.py
+      - name: Commit if changed
+        run: |
+          if [[ -n "$(git status --porcelain docs/assets/star-history)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add docs/assets/star-history
+            git commit -m "chore: star-history 차트 자동 갱신"
+            git push
+          else
+            echo "no change"
+          fi

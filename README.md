@@ -63,11 +63,11 @@
 ---
 
 <p align="center">
-  <a href="https://www.star-history.com/?repos=JungHoonGhae%2Ftossinvest-cli&type=date&legend=top-left">
+  <a href="https://www.star-history.com/#JungHoonGhae/tossinvest-cli&Date">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=JungHoonGhae/tossinvest-cli&type=date&theme=dark&legend=top-left" />
-      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=JungHoonGhae/tossinvest-cli&type=date&legend=top-left" />
-      <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=JungHoonGhae/tossinvest-cli&type=date&legend=top-left" width="600" />
+      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/star-history/star-history-dark.svg" />
+      <source media="(prefers-color-scheme: light)" srcset="docs/assets/star-history/star-history-light.svg" />
+      <img alt="Star History Chart" src="docs/assets/star-history/star-history-light.svg" width="600" />
     </picture>
   </a>
 </p>
@@ -267,6 +267,29 @@ US 지정가는 `--currency-mode`로 가격 해석을 선택합니다: `KRW` (�
 > 커뮤니티 랭킹·업종별 등락·뉴스 브리핑·실시간 푸시·원화 소수점 주문·dry-run preview 등)을 이미 제공하고,
 > **남은 의미있는 범위를 계속 구현해 나갑니다.**
 
+#### 실전 시나리오 — 공식으로 막히는 것, tossctl 로 되는 것
+
+추상적인 "범위가 넓다"가 실제로 무슨 차이인지. **공식만으로는 ❌ → tossctl(WTS 포함)이면 ✅**:
+
+| 하고 싶은 것 | 공식 Open API | tossctl |
+|---|:---:|---|
+| **특정 종목으로 지금까지 실제 얼마 벌고 잃었나(실현손익)** | ❌ 체결단가 없음 | ✅ `completed_orders` 로 전 기간 매수·매도 체결가 집계 |
+| **연도별 배당·원천세 내역 → 금융소득종합과세 대상 판단** | ❌ | ✅ `dividends` (세전/세후·월별) |
+| **해외주식 양도세·양도차손 통산 신고자료** | ❌ | ✅ `transactions` + `completed_orders` 로 원장 구성 |
+| **월별 배당 현금흐름(받은 것 + 예정)** | ❌ | ✅ `dividends` monthly |
+| **종목별 투자자(개인/외국인/기관) 순매수 흐름** | ❌ 체결량까지만 | ✅ `trading_flows` |
+| **코스피·코스닥·VIX 등 지수** | ❌ 개별 종목만 | ✅ `market_indices` / `index_detail` |
+| **오늘 외국인·기관이 담은 종목 top** | ❌ | ✅ `investor_rankings` |
+| **섹터·테마 등락 스캔(무엇이 움직이나)** | ❌ | ✅ `sectors` / `theme_rankings` |
+| **조건검색(고배당·저PBR·성장)** | ❌ | ✅ `screener_presets` |
+| **실적발표(어닝콜) 일정** | ❌ | ✅ `earning_calls` / `earnings_major` |
+| **총자산·평가손익을 한 화면에** | △ `holdings`+`buying_power` 조합 | ✅ `account_summary` 한 번에 |
+| **공식 키 없이 보유·대기주문 조회** | ❌ 키 필요 | ✅ `positions` / `pending_orders` (웹 세션만으로) |
+| **커버드콜 ETF 진짜 총수익(배당 − NAV손실)** | ❌ | ✅ `completed_orders` + `dividends` 결합 |
+| **매수 후 그 종목에 수급이 어땠나 사후분석** | ❌ | ✅ `completed_orders` + `trading_flows` 결합 |
+
+> 요컨대 공식은 *"아는 종목을 정밀 조회하고 주문을 넣는다"* 까지. tossctl 은 여기에 **내 계좌의 실현손익·배당·세금 복기 + 시장 수급·지수 맥락 + 발굴·스크리닝**을 더해, 단순 조회/거래 도구를 **세무·수급·리서치가 붙은 종합 분석 도구**로 확장합니다. 전체 매핑은 [자동 라우팅 가이드 ↗](https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi) 참고.
+
 장기적으로 tossctl 이 더 나은 이유:
 
 - **유연성 — 토스증권에 연결하는 방법이 가장 열려 있습니다.** 터미널 CLI 로, [MCP 서버](#mcp-서버-tossctl-mcp)로 어떤 AI 에이전트(Claude Code·Codex·Gemini·Cursor·Copilot)에든, 스크립트로 — 전부 **하나의 `tossctl`** 이 처리합니다. **공식 키 없이 바로 시작**하고, 연결하면 공식 경로로 **자동 라우팅**. 특정 앱·SDK·언어·에이전트에 묶이지 않습니다.
@@ -383,18 +406,18 @@ Claude Desktop·Codex 등 **JSON 설정 방식** 호스트는 아래 [설정 예
 
 MCP 의 고질적 비용은 **툴 스키마가 모델 컨텍스트에 상시 상주**한다는 점입니다. API 하나당 툴
 하나로 등록하면, 그 툴의 이름·설명·파라미터 스키마 전부가 대화 내내 컨텍스트를 차지합니다.
-tossctl 의 API 표면은 **35개 오퍼레이션**(공식 조회 16 + 주문 3 + WTS 전용 조회 16) — 이걸 개별
-툴로 노출하면 **35개 스키마가 항상 떠 있게** 되어 토큰을 먹고, 툴 선택 노이즈(비슷한 툴 사이
-오판)도 커집니다.
+tossctl 의 API 표면은 **40여 개 오퍼레이션**(공식 조회 16 + 주문 3 + WTS 전용 조회 20여 + 시스템 1,
+계속 증가) — 이걸 개별 툴로 노출하면 **그만큼의 스키마가 항상 떠 있게** 되어 토큰을 먹고, 툴 선택
+노이즈(비슷한 툴 사이 오판)도 커집니다.
 
 tossctl 은 KIS_MCP_Server 의 catalog 모드를 참조해, 앞단에 **고정 3개 툴만** 노출하고 나머지
-35개 오퍼레이션은 **필요할 때만 스키마를 꺼내오는** 구조로 뒤에 둡니다:
+오퍼레이션 전부는 **필요할 때만 스키마를 꺼내오는** 구조로 뒤에 둡니다:
 
 - `list_operations` — 사용 가능한 오퍼레이션 목록(id·요약·write 여부) 조회, `query` 로 필터
 - `describe_operation` — 특정 오퍼레이션의 파라미터 스키마를 **그 순간에만** 조회
 - `call_operation` — id + 파라미터로 실제 호출
 
-결과: 상시 컨텍스트 = **딱 3개 툴 스키마**. 오퍼레이션이 20개든 100개든 상주 비용은 3으로
+결과: 상시 컨텍스트 = **딱 3개 툴 스키마**. 오퍼레이션이 40개든 100개든 상주 비용은 3으로
 고정됩니다. 에이전트는 필요한 오퍼레이션을 `list_operations` 로 찾고 → `describe_operation` 으로
 그때 스키마를 읽고 → `call_operation` 으로 호출하므로, 안 쓰는 오퍼레이션의 스키마가 컨텍스트를
 차지하지 않습니다. (이 README 를 읽는 Claude Code 세션에서도 `tossctl` MCP 는 딱 이 3개 툴로

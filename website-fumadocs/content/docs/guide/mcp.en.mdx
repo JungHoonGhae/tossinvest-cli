@@ -1,0 +1,127 @@
+---
+title: MCP Server
+description: Expose tossctl as an MCP (Model Context Protocol) server — official reads/orders plus WTS-only features, driven by agents in natural language
+---
+
+`tossctl mcp` runs tossctl as an **MCP (Model Context Protocol) server**. Register it with an MCP
+host (Claude Code, Claude Desktop, Codex, …) and an agent can drive accounts, balances, quotes,
+order books, trades, candles (official) plus **popularity rankings, investor flows, AI signals,
+screeners, sectors, earnings, briefings, dividends and other WTS-only reads** in natural language —
+and also place orders (buy/sell, cancel, amend). It speaks JSON-RPC 2.0 over stdin/stdout; no
+separate server or port.
+
+## Quick start — 3 steps
+
+MCP is a mode of the `tossctl` binary, so **install the CLI first**, connect at least one auth
+(official key or web session), then register it with your host.
+
+```bash
+# 1) Install tossctl
+curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.sh | sh
+
+# 2) Auth — one is enough to start (only operations for the missing auth are disabled)
+tossctl openapi login    # Official Open API: official reads + orders
+tossctl auth login       # WTS web session: WTS-only reads (rankings, flows, AI signals, …)
+
+# 3) Register with the host + verify (Claude Code example)
+claude mcp add tossctl tossctl mcp
+claude mcp list   # → "tossctl: tossctl mcp - ✔ Connected"
+```
+
+For JSON-config hosts (Claude Desktop, Codex, …) see [JSON config](#mcp-host-json-config).
+
+## Why a catalog — pin the always-on context to 3
+
+MCP's chronic cost is that **tool schemas live in the model's context at all times.** Register one
+tool per API and every tool's name, description and parameter schema occupies context for the whole
+conversation. tossctl's API surface is **40+ operations** (and growing) — exposed as individual
+tools, that many schemas are always resident, burning tokens and adding tool-selection noise.
+
+Following [KIS_MCP_Server](https://github.com/pineconedata/kis-mcp-server)'s catalog mode, tossctl
+exposes **just 3 fixed tools** up front and keeps every operation behind them, fetching a schema
+**only when needed**.
+
+| Tool | Role |
+|---|---|
+| `list_operations` | List available operations (id, summary, `backend`, write flag); filter with `query` |
+| `describe_operation` | Fetch one operation's parameter schema **on demand** |
+| `call_operation` | Invoke by id + params |
+
+Result: always-on context = **exactly 3 tool schemas**. Whether there are 40 operations or 100, the
+resident cost stays 3. The agent finds an operation via `list_operations` → reads its schema via
+`describe_operation` → calls it via `call_operation`, so unused operations never occupy context.
+
+<Callout type="info" title="Updates are automatic">
+The host stores the **command** `tossctl mcp` and re-runs it each session, so upgrading just the
+binary (`brew upgrade tossinvest-cli` or `tossctl update`) surfaces new operations **without
+re-registering** on the next session/host restart (the catalog is built from the binary at server
+start). `list_operations` is always the source of truth for what's currently exposed.
+</Callout>
+
+## Scope — reads from official + WTS, writes official-only
+
+MCP exposes **reads from both the official Open API and WTS-only features**, and routes **orders
+(writes) through the official API path only**. Each operation is tagged in `list_operations` with
+`backend` (`"wts"` or official).
+
+- **Reads** — the official API (accounts, quotes, order book, trades, candles, …) plus **WTS-only**
+  (rankings, flows, AI signals, screeners, sectors, earnings, briefings, dividends, realized P&L,
+  transactions, watchlist, … — see
+  [what the official API can't, tossctl can](/docs/guide/hybrid-openapi)).
+  WTS reads need a web session; without one, that operation returns a `tossctl auth login` hint.
+- **Writes** — create/cancel/amend always use the **official API path only** (never WTS). If you let
+  an agent place orders, the submission path should be the API Toss officially sanctions.
+- **Separate auth** — official reads/orders use the official key (`openapi login`), WTS reads use the
+  web session (`auth login`). The server starts with **either one**, and each operation checks the
+  auth it needs. Use the `auth_status` operation to see which backends are connected and when they
+  expire.
+
+## Order safety gate
+
+Order execution is **gated exactly like the CLI** (`tossctl order`). See [Safety](/docs/guide/safety).
+
+- Enabled by `trading.*` + `allow_live_order_actions` toggles in config (all off by default)
+- A plain call returns a **dry-run preview** (`confirm_token` + warnings)
+- Real submission requires `execute: true` + `confirm: <token>`
+- Orders use the **official API path only** (never WTS)
+
+<Callout type="warn" title="Reads-only recommended for autonomous agents">
+With `trading.*` off (the default), MCP can only read; order operations are blocked at the gate even
+if called. Opening trading requires a human to flip config explicitly, and each real submission still
+needs `execute:true` + a valid `confirm` token.
+</Callout>
+
+## MCP host JSON config
+
+Claude Code is one line — `claude mcp add` above. JSON-config hosts (Claude Desktop, Codex, …) take
+this in their config file (`tossctl` must be on `PATH`):
+
+```json
+{
+  "mcpServers": {
+    "tossinvest": { "command": "tossctl", "args": ["mcp"] }
+  }
+}
+```
+
+## CLI vs MCP — when to use which (complementary)
+
+Two entrances to the same `tossctl` binary; **both work well with AI agents.** Not a competition —
+just different ways to connect.
+
+| | **CLI** (`tossctl ...`) | **MCP** (`tossctl mcp`) |
+|---|---|---|
+| How it runs | Shell command | Structured MCP tools (JSON-RPC, no shell) |
+| Where | Anywhere there's a shell — terminal, scripts, cron, and shell-using agents | MCP-native hosts — operations as tools (3-tool catalog minimizes context) |
+| How the agent knows | Must be told via prompt / skill / `AGENTS.md`/`CLAUDE.md` | **Auto-surfaced in the tool list on registration** |
+| Auth | Works with the web session alone (auto-routes if an official key is connected) | Official key for official reads/orders, web session for WTS reads — at least one |
+| Coverage | **Everything** — official + WTS (reads, orders, live streaming, watchlist writes) | Reads official+WTS, orders official path. No live streaming / WTS writes |
+
+- **Scripts, cron, pipes, reproducible automation** fit the CLI (same command = same result).
+- **MCP-native agents** call it as a tool with no extra instruction once registered.
+- Either way, **read data and order safety gates are identical**.
+
+---
+
+For the full command/operation list see the [Command reference](/docs/reference/commands); for
+official vs WTS routing see the [Auto-routing guide](/docs/guide/hybrid-openapi).

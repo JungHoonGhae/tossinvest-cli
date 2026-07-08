@@ -28,6 +28,50 @@ In short — **the official API is stable but narrow; WTS covers everything but 
 its session expires more often.** tossctl combines them: officially-covered requests go through
 the official path (stability), the rest through WTS (coverage), routed automatically.
 
+### Real scenarios — what the official API can't, and tossctl can
+
+What "broader scope" actually means. **Official-only ❌ → tossctl (incl. WTS) ✅**:
+
+#### Taxes & P&L (your account ledger)
+
+| What you want | Official | tossctl |
+|---|:---:|---|
+| How much you've actually made/lost on a stock (realized P&L) | ❌ no execution price | ✅ `completed_orders` aggregates all-time fills |
+| Yearly dividends & withholding → comprehensive-tax threshold check | ❌ | ✅ `dividends` (gross/net, monthly) |
+| Overseas capital-gains tax / loss-offset filing data | ❌ | ✅ `transactions` + `completed_orders` |
+| Monthly dividend cash flow (received + scheduled) | ❌ | ✅ `dividends` monthly |
+
+#### Market flows & indices
+
+| What you want | Official | tossctl |
+|---|:---:|---|
+| Per-stock investor net-buy flows (retail/foreign/institution) | ❌ trades only | ✅ `trading_flows` |
+| KOSPI / KOSDAQ / VIX indices | ❌ single stocks only | ✅ `market_indices` / `index_detail` |
+| Top stocks foreigners/institutions bought today | ❌ | ✅ `investor_rankings` |
+| Sector / theme movers | ❌ | ✅ `sectors` / `theme_rankings` |
+
+#### Research & account dashboard
+
+| What you want | Official | tossctl |
+|---|:---:|---|
+| Screeners (high-dividend / low-PBR / growth) | ❌ | ✅ `screener_presets` |
+| Earnings-call schedule | ❌ | ✅ `earning_calls` / `earnings_major` |
+| Total assets & P&L in one view | △ combine `holdings`+`buying_power` | ✅ `account_summary` |
+| Holdings / pending orders without an official key | ❌ key required | ✅ `positions` / `pending_orders` |
+
+#### Combined (the real value)
+
+| What you want | Official | tossctl |
+|---|:---:|---|
+| True total return of a covered-call ETF (dividends − NAV loss) | ❌ | ✅ `completed_orders` + `dividends` |
+| Post-mortem of flows after you bought a stock | ❌ | ✅ `completed_orders` + `trading_flows` |
+
+<Callout type="info" title="In one line">
+The official API stops at *"query a stock you already know and place orders."* tossctl adds
+**realized-P&L / dividend / tax review of your own account + market-flow & index context +
+discovery/screening**, turning a plain query/trade tool into a full analysis tool.
+</Callout>
+
 ### The official API lags by structure, not neglect
 
 On any platform, the first-party app is where the core experience lives. It is also the best
