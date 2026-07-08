@@ -25,11 +25,20 @@ const protocolVersion = "2025-06-18"
 // to avoid a new dependency for three tools; swap in an MCP SDK if the surface
 // grows materially.
 type Server struct {
-	catalog *Catalog
-	deps    *Deps
-	name    string
-	version string
+	catalog      *Catalog
+	deps         *Deps
+	name         string
+	version      string
+	instructions string
 }
+
+// baseInstructions is returned in the initialize response so the host/model
+// knows how to drive the 3-tool catalog and which auth each backend needs.
+const baseInstructions = "Toss Securities via a 3-tool catalog. Call list_operations first " +
+	"(optionally with a query) to find an operation id, then describe_operation for its parameter " +
+	"schema, then call_operation to run it. Operations with backend \"wts\" need a Toss web session " +
+	"(`tossctl auth login`); the rest need official Open API credentials (`tossctl openapi login`). " +
+	"Order writes are gated: config opt-in plus execute + confirm token (a plain call returns a dry-run preview)."
 
 // NewServer constructs a Server over the given backends. official serves the
 // official Open API operations (and, via tradingSvc, gated order mutations);
@@ -40,11 +49,21 @@ type Server struct {
 // never touch a WTS session.
 func NewServer(official *official.Client, wts *tossclient.Client, tradingSvc *trading.Service, name, version string) *Server {
 	return &Server{
-		catalog: NewCatalog(),
-		deps:    &Deps{Client: official, WTS: wts, Trading: tradingSvc},
-		name:    name,
-		version: version,
+		catalog:      NewCatalog(),
+		deps:         &Deps{Client: official, WTS: wts, Trading: tradingSvc},
+		name:         name,
+		version:      version,
+		instructions: baseInstructions,
 	}
+}
+
+// AppendInstructions adds a line to the initialize `instructions` text (e.g. an
+// "update available" notice). No-op for empty text.
+func (s *Server) AppendInstructions(text string) {
+	if text == "" {
+		return
+	}
+	s.instructions += "\n\n" + text
 }
 
 // --- JSON-RPC 2.0 wire types ------------------------------------------------
@@ -149,11 +168,15 @@ func (s *Server) handleInitialize(params json.RawMessage) any {
 	if len(params) > 0 && json.Unmarshal(params, &p) == nil && p.ProtocolVersion != "" {
 		version = p.ProtocolVersion
 	}
-	return map[string]any{
+	res := map[string]any{
 		"protocolVersion": version,
 		"capabilities":    map[string]any{"tools": map[string]any{}},
 		"serverInfo":      map[string]any{"name": s.name, "version": s.version},
 	}
+	if s.instructions != "" {
+		res["instructions"] = s.instructions
+	}
+	return res
 }
 
 // --- tools ------------------------------------------------------------------

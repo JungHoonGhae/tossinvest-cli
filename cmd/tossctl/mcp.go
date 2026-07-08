@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/mcp"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/updatecheck"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/version"
 	"github.com/spf13/cobra"
 )
@@ -79,6 +81,22 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 			}
 
 			server := mcp.NewServer(officialClient, wtsClient, tradingSvc, "tossinvest-cli", version.Current().Version)
+
+			// MCP-only users never see the CLI's stderr update notices, so surface
+			// "update available" through the initialize `instructions` (the agent can
+			// relay it). Bounded + cached; a network failure is silent.
+			if cachePath, perr := resolveUpdateCachePath(opts); perr == nil {
+				checkCtx, cancel := context.WithTimeout(cmd.Context(), 2*time.Second)
+				latest := updatecheck.New(cachePath).LatestStable(checkCtx)
+				cancel()
+				cur := version.Current().Version
+				if updatecheck.IsNewer(latest, cur) {
+					server.AppendInstructions(fmt.Sprintf(
+						"Update available: tossctl v%s (this server runs v%s). Tell the user they can update with `brew upgrade tossctl-cli` or `tossctl update`, then restart this MCP server to pick it up.",
+						latest, cur))
+				}
+			}
+
 			// Serve blocks until stdin reaches EOF (host closed the pipe).
 			return server.Serve(cmd.Context(), cmd.InOrStdin(), cmd.OutOrStdout())
 		},
