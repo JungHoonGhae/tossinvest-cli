@@ -4,6 +4,10 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 
 ## [Unreleased]
 
+### 새 기능
+- **`tossctl mcp` 가 WTS 전용 조회까지 노출** — 기존 공식 Open API 오퍼레이션(조회 19)에 더해, 공식엔 없는 WTS 전용 조회 16종(실시간 인기 순위·수급·시장지수·AI 시그널·스크리너·투자자별 순매수·테마·업종·어닝콜·뉴스 브리핑·커뮤니티 랭킹·배당·Prime·계좌 요약·거래내역)을 MCP 카탈로그에 추가했습니다. WTS 조회는 웹 세션(`tossctl auth login`)이, 공식 조회·주문은 공식 키(`tossctl openapi login`)가 필요하며 **둘 중 하나만 있어도 서버가 뜹니다**. 주문(생성·취소·정정)은 여전히 공식 API 경로만 사용합니다. **catalog 방식은 그대로** — 오퍼레이션이 19→35 로 늘어도 상시 노출 툴은 여전히 3개(`list_operations`/`describe_operation`/`call_operation`)입니다.
+- **MCP `initialize` 안내(instructions)** — 3툴 카탈로그 사용법과 백엔드별 인증을 담고, 새 버전이 있으면 "Update available" 알림을 실어 **MCP 만 쓰는 사용자도** 에이전트를 통해 업데이트를 인지할 수 있습니다.
+
 ## [0.19.0] - 2026-07-08
 
 ### 새 기능

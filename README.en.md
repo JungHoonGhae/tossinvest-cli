@@ -61,12 +61,12 @@
 
 ## Quick Start
 
-**The CLI does more** — the **full feature set** (official API + 21 WTS-only features), works **without an official key**, deterministic, scriptable, pipeable, and human-usable. **MCP's edge is one thing** — the agent **auto-discovers** it once registered (at the cost of official-API scope, an official key, and an MCP-native host). So: **wire it into an agent hands-off → MCP; almost everything else → CLI.**
+**The CLI is the broadest** — reads, orders, **real-time streaming, watchlist and other WTS writes**, all of it; starts **without an official key**; deterministic, scriptable, human-usable. **MCP now exposes reads from both official + WTS** too (orders on the official path); its edge is that the agent **auto-discovers** it once registered (cost: real-time and WTS writes not exposed, needs an MCP-native host). So: **wire it into an agent hands-off → MCP; almost everything else → CLI.**
 
 | Mode | Strengths | Cost | Start |
 |---|---|---|---|
 | **CLI** (`tossctl …`) | **Full feature set** (official + WTS) · **start without an official key** · deterministic, scriptable, pipeable · human-usable | The agent must be told it exists (prompt, or a skill / `AGENTS.md`) | Right below ↓ |
-| **MCP** (`tossctl mcp`) | Agent **auto-discovers** it once registered · catalog keeps context tiny | Official-API scope · needs an official key · needs an MCP-native host | [MCP quick start →](#mcp-quick-start--3-steps) |
+| **MCP** (`tossctl mcp`) | Agent **auto-discovers** it once registered · reads: official + WTS · catalog keeps context tiny | Real-time & WTS writes not exposed · needs an MCP-native host | [MCP quick start →](#mcp-quick-start--3-steps) |
 
 Full comparison: [CLI vs MCP — when to use which](#cli-vs-mcp--when-to-use-which-complementary).
 
@@ -279,12 +279,12 @@ flowchart TD
 
 ## MCP server (`tossctl mcp`) <!--since:2026-07-08-->
 
-`tossctl` can expose the official Toss Open API as an **MCP (Model Context Protocol) server**.
-Register it in an MCP host (Claude Code, Claude Desktop, Codex, …) and an agent can query
-accounts, holdings, prices, order book, trades, candles, and market hours — and **place,
-cancel, or modify orders** — in natural language, covering 100% of the official Open API's
-read and trade endpoints. It speaks JSON-RPC 2.0 over stdin/stdout — no separate server or
-port.
+`tossctl` exposes both the official Toss Open API **and WTS-only features** as an **MCP
+(Model Context Protocol) server**. Register it in an MCP host (Claude Code, Claude Desktop,
+Codex, …) and an agent can query accounts, prices, order book, candles (official) plus
+**rankings, investor flows, AI signals, screener, sectors, earnings, briefing, dividends and
+more (WTS-only)** in natural language — and **place, cancel, or modify orders**. It speaks
+JSON-RPC 2.0 over stdin/stdout — no separate server or port.
 
 ### MCP quick start — 3 steps
 
@@ -295,8 +295,9 @@ official key, then register it with your host:
 # 1) Install tossctl (macOS/Linux — see the "Install" section for Windows/Homebrew/source)
 curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.sh | sh
 
-# 2) Connect an official Open API key (MCP uses the official API only — get one at https://corp.tossinvest.com/ko/open-api)
-tossctl openapi login
+# 2) Authenticate — at least one is enough (only ops for the missing auth are disabled)
+tossctl openapi login    # Official Open API: official reads + orders (get a key: https://corp.tossinvest.com/ko/open-api)
+tossctl auth login       # WTS web session: WTS-only reads (rankings, flows, AI signals, …)
 
 # 3) Register with your MCP host + verify (Claude Code example)
 claude mcp add tossctl tossctl mcp
@@ -312,12 +313,12 @@ session) for the full feature set — see [Quick Start](#quick-start). Both path
 
 MCP's inherent cost is that **tool schemas stay resident in the model's context**. Register one
 tool per API and every tool's name, description, and parameter schema occupies context for the
-whole conversation. tossctl's official-API surface is **19 operations** (16 reads + 3 orders) —
-exposing them as individual tools would keep **19 schemas always loaded**, burning tokens and
-adding tool-choice noise (mis-picks between similar tools).
+whole conversation. tossctl's surface is **35 operations** (16 official reads + 3 orders + 16
+WTS-only reads) — exposing them as individual tools would keep **35 schemas always loaded**,
+burning tokens and adding tool-choice noise (mis-picks between similar tools).
 
 Following KIS_MCP_Server's catalog mode, tossctl fronts everything with **just three fixed
-tools** and keeps the 19 operations behind an **on-demand schema fetch**:
+tools** and keeps the 35 operations behind an **on-demand schema fetch**:
 
 - `list_operations` — list available operations (id, summary, write flag), filter with `query`
 - `describe_operation` — fetch one operation's parameter schema **only at that moment**
@@ -329,25 +330,30 @@ reads its schema via `describe_operation` → calls it via `call_operation`, so 
 never sit in context. (The very Claude Code session reading this README sees `tossctl` as just
 those three tools.)
 
-### Why MCP exposes the official Open API only
+### What MCP exposes — reads: official + WTS; writes: official only
 
-tossctl's CLI uses both paths — the official Open API and WTS (web session). But the **MCP
-surface is deliberately limited to the official Open API**.
+MCP exposes **reads from both the official Open API and WTS-only features**, and keeps
+**order writes on the official API path only**. Each operation is tagged with a `backend`
+(`"wts"` or official) in `list_operations`.
 
-- **Contract stability.** The official Open API is a **documented, versioned contract** (spec-
-  tracked, OAuth-authenticated). The WTS path reuses Toss's internal web APIs — an unofficial
-  surface that **can change without notice**. A human running the CLI notices a break immediately;
-  an **autonomous agent holding that surface** can silently drift into wrong behavior.
-- **Trust boundary for writes.** If an agent can place orders, the submission path should be an
-  API **Toss officially sanctions** — safer and more honest. MCP orders always use the official
-  path (never WTS).
-- **Auth model fit.** MCP targets programs/agents, and the official API's OAuth key fits that
-  cleanly. WTS is bound to a browser session (cookies) — more fragile, more environment-dependent.
+- **Reads.** Official (accounts, quotes, orderbook, candles…) plus **WTS-only** (rankings,
+  flows, AI signals, screener, sectors, earnings, briefing, dividends — the
+  [Toss-unique features](#why-tossctl--the-official-api-is-a-fraction-of-toss)). WTS reads need
+  a web session; without one, those operations return a `tossctl auth login` hint. A failed read
+  is at worst a stale read, so exposing it to an agent is low-risk.
+- **Writes.** Place / cancel / modify always use the **official API path** (never WTS): if an
+  agent can submit orders, the path should be one **Toss officially sanctions** — safer and more honest.
+- **Split auth.** Official reads/orders use the official key (`openapi login`); WTS reads use the
+  web session (`auth login`). **Either alone starts the server**, and each operation checks the
+  auth it needs.
 
-So the WTS-only features (realtime popularity ranking, AI briefing, screener, investor flows —
-the [Toss-unique features](#why-tossctl--the-official-api-is-a-fraction-of-toss)) stay
-**intentionally CLI-only**. The split: agents get the stable official contract; humans get
-everything.
+So the **WTS-only features that used to be CLI-only are now reachable from an agent via MCP too.**
+
+> **Updates are automatic.** The host stores the *command* `tossctl mcp` and respawns it each
+> session, so `brew upgrade tossctl-cli` (or `tossctl update`) makes new operations appear with
+> **no re-registration** (the catalog is built from the binary at startup). When a newer version
+> exists, the server also surfaces an "update available" note in its initialize `instructions`
+> so MCP-only users (who never see the CLI's stderr) learn about it through their agent.
 
 Order mutations are **gated exactly like the `tossctl order` CLI**: enable them in config
 (`trading.*` + `allow_live_order_actions`); a plain call returns a dry-run preview with a
@@ -377,11 +383,11 @@ Two entry points to the same `tossctl` binary, and **both work well with AI agen
 | Mechanism | Shell commands (`tossctl …`) | Structured MCP tools (JSON-RPC, no shell) |
 | Where | Anywhere a shell exists — terminal, scripts, cron, **and AI agents that shell out** (Claude Code, Codex, Cursor…) | **MCP-native hosts** — the agent calls operations as tools (catalog keeps 3 tools resident) |
 | How the agent finds it | Must be mentioned in the prompt, or registered via a skill / `AGENTS.md` / `CLAUDE.md` | **Auto-listed as tools once registered** → called without extra prompting |
-| Official key | **Not required** — runs on the web session alone (auto-routes when connected) | **Required** — official-API only, so `openapi login` is needed |
-| Coverage | **Everything** — official API + WTS-only features (popularity ranking, briefing, screener, investor flows) | **Official-API scope** (reads + official orders). WTS-only features not exposed |
+| Auth | Runs on the **web session alone** (auto-routes when an official key is connected) | Official reads/orders need the official key (`openapi login`); WTS reads need the web session (`auth login`) — **at least one** |
+| Coverage | **Everything** — official + WTS (reads, orders, real-time streaming, watchlist, …) | **Reads: official + WTS**; orders: official path. Real-time streaming and WTS writes not exposed |
 | Natural language | Agent turns NL → `tossctl` commands | Agent turns NL → MCP tool calls |
 
-- **AI agents use both — the difference is discovery.** MCP is auto-listed as tools once registered, so it's called with no extra prompting (official-API scope). The CLI runs fine from a shell-capable agent (Claude Code, Codex, Cursor), but the agent only knows it exists if you **mention it in the prompt or register it via a skill / `AGENTS.md` / `CLAUDE.md`** — in return you get the **full feature set** (official + WTS), deterministic and pipeable.
+- **AI agents use both — the difference is discovery.** MCP is auto-listed as tools once registered, so it's called with no extra prompting (reads: official + WTS; orders: official). The CLI runs fine from a shell-capable agent (Claude Code, Codex, Cursor), but the agent only knows it exists if you **mention it in the prompt or register it via a skill / `AGENTS.md` / `CLAUDE.md`** — in return you get the **full feature set** (incl. real-time and WTS writes), deterministic and pipeable.
 - **Scripts, cron, pipes, reproducible automation** → CLI (same command = same result).
 - Either way the **read data and order safety gate are identical**: config opt-in + dry-run preview + `execute`/`confirm` token.
 
