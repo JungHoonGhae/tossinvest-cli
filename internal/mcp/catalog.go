@@ -27,17 +27,22 @@ import (
 	"fmt"
 	"strings"
 
+	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
 
-// Deps carries the backends a handler may need. Read operations use Client;
-// write (order-mutation) operations go through Trading, which applies the
-// config gate, dry-run preview, and confirm-token flow — the same policy the
-// `tossctl order` CLI enforces. Trading routes to an official-only broker, so
-// no WTS web session is involved.
+// Deps carries the backends a handler may need. Official read operations use
+// Client; WTS-only read operations (Backend "wts") use WTS (the web-session
+// client); write (order-mutation) operations go through Trading, which applies
+// the config gate, dry-run preview, and confirm-token flow — the same policy
+// the `tossctl order` CLI enforces. Trading routes to an official-only broker,
+// so order writes never touch a WTS session. Client and WTS are each optional
+// (nil when that credential/session is absent); Catalog.Call checks the one an
+// operation needs and returns a clear "run login" error when it is missing.
 type Deps struct {
 	Client  *official.Client
+	WTS     *tossclient.Client
 	Trading *trading.Service
 }
 
@@ -58,8 +63,12 @@ type Operation struct {
 	Summary  string `json:"summary"`
 	// Write marks state-changing operations (order place/cancel/modify). They
 	// are gated by config and require an explicit execute + confirm token.
-	Write  bool    `json:"write"`
-	Params []Param `json:"params"`
+	Write bool `json:"write"`
+	// Backend selects which authenticated client the operation needs: "" (default)
+	// = the official Open API client; "wts" = the web-session client. Catalog.Call
+	// verifies the matching client is present before dispatching.
+	Backend string  `json:"backend,omitempty"`
+	Params  []Param `json:"params"`
 	// handler executes the operation against the given backends.
 	handler func(ctx context.Context, d *Deps, args map[string]any) (any, error)
 }
@@ -85,6 +94,7 @@ type Catalog struct {
 // gated order-mutation writes).
 func NewCatalog() *Catalog {
 	ops := append(readOperations(), writeOperations()...)
+	ops = append(ops, wtsOperations()...)
 	byID := make(map[string]Operation, len(ops))
 	for _, o := range ops {
 		byID[o.ID] = o
@@ -143,6 +153,14 @@ func (c *Catalog) Call(ctx context.Context, deps *Deps, id string, args map[stri
 	}
 	if len(missing) > 0 {
 		return nil, fmt.Errorf("operation %q is missing required parameter(s): %s", id, strings.Join(missing, ", "))
+	}
+	// Verify the operation's backend is authenticated before dispatching.
+	if op.Backend == "wts" {
+		if deps.WTS == nil {
+			return nil, fmt.Errorf("operation %q needs a Toss web session; run `tossctl auth login`", id)
+		}
+	} else if deps.Client == nil {
+		return nil, fmt.Errorf("operation %q needs official Open API credentials; run `tossctl openapi login`", id)
 	}
 	return op.handler(ctx, deps, args)
 }

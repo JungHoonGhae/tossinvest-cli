@@ -29,7 +29,7 @@ func runServerPolicy(t *testing.T, client *official.Client, policy config.Tradin
 	in := strings.NewReader(strings.Join(lines, "\n") + "\n")
 	var out bytes.Buffer
 	tradingSvc := trading.NewService(policy, OfficialBroker{Client: client})
-	s := NewServer(client, tradingSvc, "test", "0.0.0")
+	s := NewServer(client, nil, tradingSvc, "test", "0.0.0")
 	if err := s.Serve(context.Background(), in, &out); err != nil {
 		t.Fatalf("Serve: %v", err)
 	}

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 
+	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
@@ -30,13 +31,17 @@ type Server struct {
 	version string
 }
 
-// NewServer constructs a Server over the given authenticated client and trading
-// service. tradingSvc drives gated order-mutation operations; pass one built on
-// an OfficialBroker so writes never touch a WTS session.
-func NewServer(client *official.Client, tradingSvc *trading.Service, name, version string) *Server {
+// NewServer constructs a Server over the given backends. official serves the
+// official Open API operations (and, via tradingSvc, gated order mutations);
+// wts serves the WTS-only read operations (rankings, flows, signals, etc.).
+// Either may be nil when its credential/session is absent — operations that
+// need the missing one return a clear "run login" error. tradingSvc drives
+// gated order-mutation operations; pass one built on an OfficialBroker so writes
+// never touch a WTS session.
+func NewServer(official *official.Client, wts *tossclient.Client, tradingSvc *trading.Service, name, version string) *Server {
 	return &Server{
 		catalog: NewCatalog(),
-		deps:    &Deps{Client: client, Trading: tradingSvc},
+		deps:    &Deps{Client: official, WTS: wts, Trading: tradingSvc},
 		name:    name,
 		version: version,
 	}
@@ -267,6 +272,7 @@ type listItem struct {
 	Category string   `json:"category"`
 	Summary  string   `json:"summary"`
 	Write    bool     `json:"write,omitempty"`
+	Backend  string   `json:"backend,omitempty"` // "wts" for web-session ops; empty = official
 	Required []string `json:"required,omitempty"`
 }
 
@@ -276,7 +282,7 @@ func (s *Server) listOperationsPayload(query string, limit int) any {
 	for _, o := range ops {
 		items = append(items, listItem{
 			ID: o.ID, Method: o.Method, Path: o.Path,
-			Category: o.Category, Summary: o.Summary, Write: o.Write, Required: o.requiredNames(),
+			Category: o.Category, Summary: o.Summary, Write: o.Write, Backend: o.Backend, Required: o.requiredNames(),
 		})
 	}
 	return map[string]any{"count": len(items), "operations": items}
