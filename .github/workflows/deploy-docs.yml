@@ -34,6 +34,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Enable pnpm (project uses pnpm@10 via packageManager)
+        run: corepack enable
       - name: Install Vercel CLI
         run: npm i -g vercel@latest
       - name: Pull Vercel env (production)
