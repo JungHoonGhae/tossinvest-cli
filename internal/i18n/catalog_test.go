@@ -74,3 +74,23 @@ func TestTFallback(t *testing.T) {
 		t.Errorf("missing key should return key itself")
 	}
 }
+
+func TestTf(t *testing.T) {
+	orig := Lang()
+	SetLang("en")
+	t.Cleanup(func() { SetLang(orig) })
+
+	// Present format key: args expand through the template.
+	if got := Tf("doctor.check.pathExists", "/tmp/x"); got != "/tmp/x exists" {
+		t.Errorf("Tf(pathExists) = %q, want %q", got, "/tmp/x exists")
+	}
+	// Missing key with args must NOT emit fmt's %!(EXTRA ...) noise: the bare
+	// key carries no verbs, so Tf appends the args readably instead.
+	got := Tf("no.such.format.key", "/tmp/x")
+	if strings.Contains(got, "%!") {
+		t.Errorf("Tf on missing key leaked a format error: %q", got)
+	}
+	if !strings.Contains(got, "no.such.format.key") || !strings.Contains(got, "/tmp/x") {
+		t.Errorf("Tf on missing key = %q, want key and arg present", got)
+	}
+}

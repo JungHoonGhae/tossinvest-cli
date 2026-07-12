@@ -62,8 +62,9 @@ func hasHangul(s string) bool {
 // English again: under `ko`, both a static summary and a `%s`-formatted summary
 // must resolve through the i18n catalog (i.e. contain Hangul).
 func TestCheckMessagesLocalized(t *testing.T) {
+	orig := i18n.Lang()
 	i18n.SetLang("ko")
-	t.Cleanup(func() { i18n.SetLang("en") })
+	t.Cleanup(func() { i18n.SetLang(orig) })
 
 	live := checkLiveOrderActions(config.Status{})
 	if !hasHangul(live.Summary) {

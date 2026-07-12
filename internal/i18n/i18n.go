@@ -6,6 +6,7 @@ package i18n
 import (
 	_ "embed"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"sync"
 )
@@ -84,16 +85,36 @@ func Lang() string {
 	return active
 }
 
-// T returns the localized string for key; falls back to en, then the key.
-// A present key is honored even if its value is empty — an empty value is
-// an intentional "render nothing here," not a miss.
-func T(key string) string {
+// lookup resolves key against the active language, then en. The bool reports
+// whether the key was found in either catalog. A present key is honored even
+// if its value is empty — an empty value is an intentional "render nothing
+// here," not a miss.
+func lookup(key string) (string, bool) {
 	lang := Lang()
 	if v, ok := loadCatalog(lang)[key]; ok {
-		return v
+		return v, true
 	}
 	if v, ok := loadCatalog("en")[key]; ok {
-		return v
+		return v, true
 	}
-	return key
+	return key, false
+}
+
+// T returns the localized string for key; falls back to en, then the key.
+func T(key string) string {
+	v, _ := lookup(key)
+	return v
+}
+
+// Tf returns the localized format string for key expanded with a. Use this
+// instead of fmt.Sprintf(T(key), a...): when key is missing from every catalog
+// the template is the bare key (which carries no format verbs), so feeding it
+// to fmt.Sprintf would emit "key%!(EXTRA ...)" noise. Tf detects the miss and
+// appends the args readably instead, keeping the degraded output legible.
+func Tf(key string, a ...any) string {
+	format, ok := lookup(key)
+	if !ok && len(a) > 0 {
+		return fmt.Sprintf("%s %v", format, a)
+	}
+	return fmt.Sprintf(format, a...)
 }

@@ -299,13 +299,13 @@ func checkPath(name, path string) Check {
 	info, err := os.Stat(path)
 	switch {
 	case err == nil && info.IsDir():
-		return Check{Name: name, Status: CheckOK, Summary: fmt.Sprintf(i18n.T("doctor.check.pathExists"), path)}
+		return Check{Name: name, Status: CheckOK, Summary: i18n.Tf("doctor.check.pathExists", path)}
 	case err == nil:
-		return Check{Name: name, Status: CheckWarn, Summary: fmt.Sprintf(i18n.T("doctor.check.pathNotDir"), path)}
+		return Check{Name: name, Status: CheckWarn, Summary: i18n.Tf("doctor.check.pathNotDir", path)}
 	case errors.Is(err, os.ErrNotExist):
-		return Check{Name: name, Status: CheckWarn, Summary: fmt.Sprintf(i18n.T("doctor.check.pathMissing"), path)}
+		return Check{Name: name, Status: CheckWarn, Summary: i18n.Tf("doctor.check.pathMissing", path)}
 	default:
-		return Check{Name: name, Status: CheckWarn, Summary: fmt.Sprintf(i18n.T("doctor.check.pathInspectError"), path), Detail: err.Error()}
+		return Check{Name: name, Status: CheckWarn, Summary: i18n.Tf("doctor.check.pathInspectError", path), Detail: err.Error()}
 	}
 }
 
@@ -313,13 +313,13 @@ func checkFile(name, path string) Check {
 	info, err := os.Stat(path)
 	switch {
 	case err == nil && !info.IsDir():
-		return Check{Name: name, Status: CheckOK, Summary: fmt.Sprintf(i18n.T("doctor.check.pathExists"), path)}
+		return Check{Name: name, Status: CheckOK, Summary: i18n.Tf("doctor.check.pathExists", path)}
 	case err == nil:
-		return Check{Name: name, Status: CheckWarn, Summary: fmt.Sprintf(i18n.T("doctor.check.pathIsDir"), path)}
+		return Check{Name: name, Status: CheckWarn, Summary: i18n.Tf("doctor.check.pathIsDir", path)}
 	case errors.Is(err, os.ErrNotExist):
-		return Check{Name: name, Status: CheckInfo, Summary: fmt.Sprintf(i18n.T("doctor.check.pathMissing"), path)}
+		return Check{Name: name, Status: CheckInfo, Summary: i18n.Tf("doctor.check.pathMissing", path)}
 	default:
-		return Check{Name: name, Status: CheckWarn, Summary: fmt.Sprintf(i18n.T("doctor.check.pathInspectError"), path), Detail: err.Error()}
+		return Check{Name: name, Status: CheckWarn, Summary: i18n.Tf("doctor.check.pathInspectError", path), Detail: err.Error()}
 	}
 }
 
@@ -329,7 +329,7 @@ func checkPythonBinary(pythonBin string) Check {
 		return Check{
 			Name:    "python_binary",
 			Status:  CheckFail,
-			Summary: fmt.Sprintf(i18n.T("doctor.check.pythonNotFound"), pythonBin),
+			Summary: i18n.Tf("doctor.check.pythonNotFound", pythonBin),
 			Detail:  i18n.T("doctor.check.pythonNotFound.detail"),
 		}
 	}
@@ -337,7 +337,7 @@ func checkPythonBinary(pythonBin string) Check {
 	return Check{
 		Name:    "python_binary",
 		Status:  CheckOK,
-		Summary: fmt.Sprintf(i18n.T("doctor.check.pythonUsing"), path),
+		Summary: i18n.Tf("doctor.check.pythonUsing", path),
 	}
 }
 
