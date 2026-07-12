@@ -1,10 +1,13 @@
 package doctor
 
 import (
+	"path/filepath"
 	"strings"
 	"testing"
+	"unicode"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 func TestCheckLiveOrderActionsDisabled(t *testing.T) {
@@ -43,5 +46,35 @@ func TestCheckLegacyConfig(t *testing.T) {
 	}
 	if check.Name != "legacy_config" {
 		t.Fatalf("unexpected check name: %s", check.Name)
+	}
+}
+
+func hasHangul(s string) bool {
+	for _, r := range s {
+		if unicode.In(r, unicode.Hangul) {
+			return true
+		}
+	}
+	return false
+}
+
+// TestCheckMessagesLocalized guards against check messages being hardcoded in
+// English again: under `ko`, both a static summary and a `%s`-formatted summary
+// must resolve through the i18n catalog (i.e. contain Hangul).
+func TestCheckMessagesLocalized(t *testing.T) {
+	i18n.SetLang("ko")
+	t.Cleanup(func() { i18n.SetLang("en") })
+
+	live := checkLiveOrderActions(config.Status{})
+	if !hasHangul(live.Summary) {
+		t.Errorf("live_order_actions summary not localized under ko: %q", live.Summary)
+	}
+	if !hasHangul(live.Detail) {
+		t.Errorf("live_order_actions detail not localized under ko: %q", live.Detail)
+	}
+
+	missing := checkPath("config_dir", filepath.Join(t.TempDir(), "does-not-exist"))
+	if !hasHangul(missing.Summary) {
+		t.Errorf("path summary not localized under ko: %q", missing.Summary)
 	}
 }

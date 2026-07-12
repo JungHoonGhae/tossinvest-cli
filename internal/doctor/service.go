@@ -13,6 +13,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/auth"
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/version"
 )
 
@@ -119,8 +120,8 @@ func (s *Service) Run(ctx context.Context) (Report, error) {
 		{
 			Name:    "trading_scope",
 			Status:  CheckInfo,
-			Summary: "trading support is intentionally narrow and still beta",
-			Detail:  "Currently validated for US/KR buy/sell limit + US fractional (market) orders in KRW, plus same-day pending cancel. US and KR are treated symmetrically (only `trading.place` is needed). Sell requires `trading.sell=true`, fractional requires `trading.fractional=true`. Amend still needs more live verification.",
+			Summary: i18n.T("doctor.check.tradingScope"),
+			Detail:  i18n.T("doctor.check.tradingScope.detail"),
 		},
 	}
 
@@ -280,8 +281,8 @@ func (s *Service) RunAuth(ctx context.Context) (AuthReport, error) {
 	checks := []Check{
 		checkPythonBinary(s.loginConfig.PythonBin),
 		checkPath("auth_helper_dir", s.loginConfig.HelperDir),
-		checkPythonModule(s.loginConfig, "tossctl_auth_helper", "auth helper module is importable", "auth helper module is not importable"),
-		checkPythonModule(s.loginConfig, "playwright", "python playwright package is installed", "python playwright package is not installed"),
+		checkPythonModule(s.loginConfig, "tossctl_auth_helper", i18n.T("doctor.check.authHelperOk"), i18n.T("doctor.check.authHelperFail")),
+		checkPythonModule(s.loginConfig, "playwright", i18n.T("doctor.check.playwrightOk"), i18n.T("doctor.check.playwrightFail")),
 		checkChrome(s.loginConfig),
 		checkSession(sessionStatus),
 	}
@@ -298,13 +299,13 @@ func checkPath(name, path string) Check {
 	info, err := os.Stat(path)
 	switch {
 	case err == nil && info.IsDir():
-		return Check{Name: name, Status: CheckOK, Summary: fmt.Sprintf("%s exists", path)}
+		return Check{Name: name, Status: CheckOK, Summary: fmt.Sprintf(i18n.T("doctor.check.pathExists"), path)}
 	case err == nil:
-		return Check{Name: name, Status: CheckWarn, Summary: fmt.Sprintf("%s exists but is not a directory", path)}
+		return Check{Name: name, Status: CheckWarn, Summary: fmt.Sprintf(i18n.T("doctor.check.pathNotDir"), path)}
 	case errors.Is(err, os.ErrNotExist):
-		return Check{Name: name, Status: CheckWarn, Summary: fmt.Sprintf("%s does not exist yet", path)}
+		return Check{Name: name, Status: CheckWarn, Summary: fmt.Sprintf(i18n.T("doctor.check.pathMissing"), path)}
 	default:
-		return Check{Name: name, Status: CheckWarn, Summary: fmt.Sprintf("could not inspect %s", path), Detail: err.Error()}
+		return Check{Name: name, Status: CheckWarn, Summary: fmt.Sprintf(i18n.T("doctor.check.pathInspectError"), path), Detail: err.Error()}
 	}
 }
 
@@ -312,13 +313,13 @@ func checkFile(name, path string) Check {
 	info, err := os.Stat(path)
 	switch {
 	case err == nil && !info.IsDir():
-		return Check{Name: name, Status: CheckOK, Summary: fmt.Sprintf("%s exists", path)}
+		return Check{Name: name, Status: CheckOK, Summary: fmt.Sprintf(i18n.T("doctor.check.pathExists"), path)}
 	case err == nil:
-		return Check{Name: name, Status: CheckWarn, Summary: fmt.Sprintf("%s exists but is a directory", path)}
+		return Check{Name: name, Status: CheckWarn, Summary: fmt.Sprintf(i18n.T("doctor.check.pathIsDir"), path)}
 	case errors.Is(err, os.ErrNotExist):
-		return Check{Name: name, Status: CheckInfo, Summary: fmt.Sprintf("%s does not exist yet", path)}
+		return Check{Name: name, Status: CheckInfo, Summary: fmt.Sprintf(i18n.T("doctor.check.pathMissing"), path)}
 	default:
-		return Check{Name: name, Status: CheckWarn, Summary: fmt.Sprintf("could not inspect %s", path), Detail: err.Error()}
+		return Check{Name: name, Status: CheckWarn, Summary: fmt.Sprintf(i18n.T("doctor.check.pathInspectError"), path), Detail: err.Error()}
 	}
 }
 
@@ -328,15 +329,15 @@ func checkPythonBinary(pythonBin string) Check {
 		return Check{
 			Name:    "python_binary",
 			Status:  CheckFail,
-			Summary: fmt.Sprintf("%s was not found in PATH", pythonBin),
-			Detail:  "Install Python 3.11+ or set TOSSCTL_AUTH_HELPER_PYTHON.",
+			Summary: fmt.Sprintf(i18n.T("doctor.check.pythonNotFound"), pythonBin),
+			Detail:  i18n.T("doctor.check.pythonNotFound.detail"),
 		}
 	}
 
 	return Check{
 		Name:    "python_binary",
 		Status:  CheckOK,
-		Summary: fmt.Sprintf("using %s", path),
+		Summary: fmt.Sprintf(i18n.T("doctor.check.pythonUsing"), path),
 	}
 }
 
@@ -347,7 +348,7 @@ func checkPythonModule(cfg auth.LoginConfig, module, successSummary, failSummary
 			Name:    module,
 			Status:  CheckFail,
 			Summary: failSummary,
-			Detail:  "Python is not available.",
+			Detail:  i18n.T("doctor.check.pythonUnavailable"),
 		}
 	}
 
@@ -376,7 +377,7 @@ func checkChrome(cfg auth.LoginConfig) Check {
 		return Check{
 			Name:    "chrome",
 			Status:  CheckFail,
-			Summary: "chrome check skipped because python is unavailable",
+			Summary: i18n.T("doctor.check.chromeSkipped"),
 		}
 	}
 
@@ -400,12 +401,12 @@ finally:
 	if err != nil {
 		detail := strings.TrimSpace(string(output))
 		if strings.Contains(detail, "Executable doesn't exist") || strings.Contains(detail, "channel") {
-			detail = "Google Chrome is not installed. Install from https://www.google.com/chrome/"
+			detail = i18n.T("doctor.check.chromeNotInstalled")
 		}
 		return Check{
 			Name:    "chrome",
 			Status:  CheckWarn,
-			Summary: "Google Chrome is not available via Playwright",
+			Summary: i18n.T("doctor.check.chromeUnavailable"),
 			Detail:  firstLine(detail),
 		}
 	}
@@ -414,7 +415,7 @@ finally:
 	return Check{
 		Name:    "chrome",
 		Status:  CheckOK,
-		Summary: "Google Chrome is available",
+		Summary: i18n.T("doctor.check.chromeAvailable"),
 		Detail:  ua,
 	}
 }
@@ -432,33 +433,33 @@ func checkSession(status auth.Status) Check {
 		return Check{
 			Name:    "session",
 			Status:  CheckInfo,
-			Summary: "no stored session",
-			Detail:  "Run `tossctl auth login` after your local auth environment is ready.",
+			Summary: i18n.T("doctor.check.sessionNone"),
+			Detail:  i18n.T("doctor.check.sessionNone.detail"),
 		}
 	case status.Validated && status.Valid:
 		return Check{
 			Name:    "session",
 			Status:  CheckOK,
-			Summary: "stored session is valid",
+			Summary: i18n.T("doctor.check.sessionValid"),
 		}
 	case status.Validated && !status.Valid:
 		return Check{
 			Name:    "session",
 			Status:  CheckWarn,
-			Summary: "stored session is no longer valid",
+			Summary: i18n.T("doctor.check.sessionInvalid"),
 			Detail:  status.ValidationError,
 		}
 	case status.Expired:
 		return Check{
 			Name:    "session",
 			Status:  CheckWarn,
-			Summary: "stored session looks expired",
+			Summary: i18n.T("doctor.check.sessionExpired"),
 		}
 	default:
 		return Check{
 			Name:    "session",
 			Status:  CheckOK,
-			Summary: "stored session exists",
+			Summary: i18n.T("doctor.check.sessionExists"),
 		}
 	}
 }
@@ -468,8 +469,8 @@ func checkTradingConfig(status config.Status) Check {
 		return Check{
 			Name:    "trading_config",
 			Status:  CheckInfo,
-			Summary: "config file does not exist yet; trading actions default to disabled",
-			Detail:  "Run `tossctl config init` to create config.json and enable only the actions you want.",
+			Summary: i18n.T("doctor.check.tradingConfigMissing"),
+			Detail:  i18n.T("doctor.check.tradingConfigMissing.detail"),
 		}
 	}
 
@@ -478,15 +479,15 @@ func checkTradingConfig(status config.Status) Check {
 		return Check{
 			Name:    "trading_config",
 			Status:  CheckInfo,
-			Summary: "config file exists, but all trading actions are disabled",
-			Detail:  "Edit config.json to explicitly allow the actions you want to use.",
+			Summary: i18n.T("doctor.check.tradingAllDisabled"),
+			Detail:  i18n.T("doctor.check.tradingAllDisabled.detail"),
 		}
 	}
 
 	return Check{
 		Name:    "trading_config",
 		Status:  CheckOK,
-		Summary: "one or more trading actions are enabled in config",
+		Summary: i18n.T("doctor.check.tradingSomeEnabled"),
 		Detail:  strings.Join(enabled, ", "),
 	}
 }
@@ -496,16 +497,16 @@ func checkLiveOrderActions(status config.Status) Check {
 		return Check{
 			Name:    "live_order_actions",
 			Status:  CheckInfo,
-			Summary: "real account-changing order actions are blocked",
-			Detail:  "Set `trading.allow_live_order_actions=true` only if you intend to let `place`, `cancel`, or `amend` reach the broker.",
+			Summary: i18n.T("doctor.check.liveBlocked"),
+			Detail:  i18n.T("doctor.check.liveBlocked.detail"),
 		}
 	}
 
 	return Check{
 		Name:    "live_order_actions",
 		Status:  CheckWarn,
-		Summary: "real account-changing order actions are enabled",
-		Detail:  "Live `place`, `cancel`, and `amend` can execute after --execute + confirm token gates pass.",
+		Summary: i18n.T("doctor.check.liveEnabled"),
+		Detail:  i18n.T("doctor.check.liveEnabled.detail"),
 	}
 }
 
@@ -515,15 +516,15 @@ func checkDangerousAutomation(status config.Status) Check {
 		return Check{
 			Name:    "dangerous_automation",
 			Status:  CheckInfo,
-			Summary: "no risky broker branches will be auto-continued",
+			Summary: i18n.T("doctor.check.dangerNone"),
 		}
 	}
 
 	return Check{
 		Name:    "dangerous_automation",
 		Status:  CheckWarn,
-		Summary: "risky broker branch automation is enabled",
-		Detail:  strings.Join(enabled, ", ") + " (only has effect when matching branch handlers exist in the current build)",
+		Summary: i18n.T("doctor.check.dangerEnabled"),
+		Detail:  strings.Join(enabled, ", ") + i18n.T("doctor.check.dangerEnabled.detailSuffix"),
 	}
 }
 
@@ -532,7 +533,7 @@ func checkLegacyConfig(status config.Status) Check {
 		return Check{
 			Name:    "legacy_config",
 			Status:  CheckInfo,
-			Summary: "no config file is present, so no legacy translation is needed",
+			Summary: i18n.T("doctor.check.legacyNoConfig"),
 		}
 	}
 
@@ -540,14 +541,14 @@ func checkLegacyConfig(status config.Status) Check {
 		return Check{
 			Name:    "legacy_config",
 			Status:  CheckInfo,
-			Summary: "config is already using the current trading policy keys",
+			Summary: i18n.T("doctor.check.legacyCurrent"),
 		}
 	}
 
 	return Check{
 		Name:    "legacy_config",
 		Status:  CheckWarn,
-		Summary: "legacy trading config keys detected (values ignored, safe to remove from config.json)",
+		Summary: i18n.T("doctor.check.legacyDetected"),
 		Detail:  strings.Join(status.LegacyFields, ", "),
 	}
 }
