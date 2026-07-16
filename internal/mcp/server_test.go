@@ -10,8 +10,10 @@ import (
 	"strings"
 	"testing"
 
+	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
 
@@ -326,5 +328,80 @@ func TestUnknownMethodReturnsRPCError(t *testing.T) {
 	code := resps[0]["error"].(map[string]any)["code"].(float64)
 	if int(code) != codeMethodNotFound {
 		t.Errorf("code = %v, want %d", code, codeMethodNotFound)
+	}
+}
+
+// TestToolResultCapsOversizedPayload verifies an oversized read (a synthetic
+// dummy news briefing, well past maxResultBytes) comes back under the cap, still
+// as valid JSON, and says out loud that items were dropped — a silent truncation
+// would let the model read a partial list as complete.
+func TestToolResultCapsOversizedPayload(t *testing.T) {
+	items := make([]map[string]any, 0, 40)
+	for i := 0; i < 40; i++ {
+		news := make([]map[string]any, 0, 40)
+		for j := 0; j < 40; j++ {
+			news = append(news, map[string]any{
+				"title":      strings.Repeat("더미 헤드라인 ", 6),
+				"agencyName": "더미통신",
+				"source":     "https://example.invalid/dummy",
+				"createdAt":  "2026-01-01T00:00:00",
+			})
+		}
+		items = append(items, map[string]any{
+			"category": map[string]any{"type": "DUMMY_THEME", "keywords": []string{"더미", "합성"}},
+			"news":     news,
+		})
+	}
+	body, err := json.Marshal(map[string]any{"result": map[string]any{"createdAt": "2026-01-01T00:00:00", "items": items}})
+	if err != nil {
+		t.Fatalf("marshal fixture: %v", err)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(body)
+	}))
+	defer srv.Close()
+
+	wts := tossclient.New(tossclient.Config{
+		InfoBaseURL: srv.URL,
+		Session:     &session.Session{Cookies: map[string]string{"SESSION": "s"}},
+	})
+	resps := driveWTS(t, wts,
+		initLine,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"call_operation","arguments":{"operation":"news_briefing"}}}`,
+	)
+	res, _ := resps[1]["result"].(map[string]any)
+	if isErr, _ := res["isError"].(bool); isErr {
+		t.Fatalf("unexpected tool error: %v", res)
+	}
+	content, _ := res["content"].([]any)
+	text, _ := content[0].(map[string]any)["text"].(string)
+
+	if len(text) > maxResultBytes {
+		t.Errorf("result is %d bytes, want <= %d", len(text), maxResultBytes)
+	}
+	var decoded any
+	if err := json.Unmarshal([]byte(text), &decoded); err != nil {
+		t.Fatalf("capped result is not valid JSON: %v", err)
+	}
+	if !strings.Contains(text, omittedKey) || !strings.Contains(text, "items omitted") {
+		t.Errorf("capped result must state that items were dropped, got %q", text[:200])
+	}
+}
+
+// TestToolResultKeepsSmallPayload verifies a payload under the cap is passed
+// through byte-for-byte (no placeholder, no reordering).
+func TestToolResultKeepsSmallPayload(t *testing.T) {
+	payload := map[string]any{"items": []any{map[string]any{"symbol": "005930"}, map[string]any{"symbol": "000660"}}}
+	want, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	res, rerr := toolResult(payload, false)
+	if rerr != nil {
+		t.Fatalf("toolResult: %v", rerr)
+	}
+	got := res.(map[string]any)["content"].([]map[string]any)[0]["text"].(string)
+	if got != string(want) {
+		t.Errorf("small payload was modified:\n got %s\nwant %s", got, want)
 	}
 }

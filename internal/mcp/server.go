@@ -229,16 +229,132 @@ func (s *Server) handleToolsList() any {
 	return map[string]any{"tools": tools}
 }
 
+// maxResultBytes caps the JSON text a single tools/call result may carry. Some
+// reads (news_briefing, sectors) return tens of thousands of characters, which
+// blows the MCP client's token budget — the client then drops the whole result,
+// so the model gets nothing. Trimming to a cap beats returning nothing.
+const maxResultBytes = 30000
+
 // toolResult builds an MCP tools/call result carrying JSON-encoded text content.
+//
+// ponytail: the size cap lives here because every tool (list/describe/call)
+// routes through this one function; per-operation limits would repeat the guard
+// once per handler. Bump maxResultBytes or add per-op paging if a caller needs
+// the full payload.
 func toolResult(payload any, isError bool) (any, *rpcError) {
 	text, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {
 		return nil, &rpcError{Code: codeInvalidParams, Message: "encoding result: " + err.Error()}
 	}
+	if len(text) > maxResultBytes {
+		var v any
+		if json.Unmarshal(text, &v) == nil {
+			if trimmed, terr := json.MarshalIndent(shrinkToCap(v), "", "  "); terr == nil {
+				text = trimmed
+			}
+		}
+	}
 	return map[string]any{
 		"content": []map[string]any{{"type": "text", "text": string(text)}},
 		"isError": isError,
 	}, nil
+}
+
+// --- result size cap ---------------------------------------------------------
+
+// omittedKey marks the placeholder element shrinkToCap appends to a trimmed
+// array, so a truncated list can never be mistaken for a complete one.
+const omittedKey = "_omitted_items"
+
+// shrinkToCap repeatedly trims the largest array in a decoded JSON value until
+// the re-encoded value fits maxResultBytes, appending an explicit placeholder to
+// every array it trims. Returns the value unchanged when it already fits or when
+// there is nothing left to trim (e.g. one huge string).
+func shrinkToCap(v any) any {
+	holder := map[string]any{"v": v} // gives the root a setter
+	for {
+		text, err := json.MarshalIndent(holder["v"], "", "  ")
+		if err != nil || len(text) <= maxResultBytes {
+			return holder["v"]
+		}
+		var (
+			best     []any
+			bestSet  func(any)
+			bestSize int
+		)
+		walkSlices(holder, nil, func(s []any, set func(any)) {
+			if keepable(s) == 0 {
+				return
+			}
+			enc, err := json.MarshalIndent(s, "", "  ")
+			if err != nil || len(enc) <= bestSize {
+				return
+			}
+			best, bestSet, bestSize = s, set, len(enc)
+		})
+		if bestSet == nil {
+			return holder["v"]
+		}
+		bestSet(trim(best, bestSize, len(text)-maxResultBytes))
+	}
+}
+
+// keepable reports how many real (non-placeholder) elements an array holds.
+func keepable(s []any) int {
+	if n := len(s); n > 0 {
+		if m, ok := s[n-1].(map[string]any); ok {
+			if _, ok := m[omittedKey]; ok {
+				return n - 1
+			}
+		}
+	}
+	return len(s)
+}
+
+// trim drops elements from the tail of s — roughly enough to shed `excess` bytes
+// given the array encodes to `size` bytes — and records the total number dropped
+// so far in a trailing placeholder. It always drops at least one element, so
+// shrinkToCap's loop terminates; overshooting the cap only costs another pass.
+func trim(s []any, size, excess int) []any {
+	n, dropped := keepable(s), 0
+	if n < len(s) {
+		if c, ok := s[len(s)-1].(map[string]any)[omittedKey].(float64); ok {
+			dropped = int(c)
+		}
+	}
+	keep := n * (size - excess) / size
+	if keep >= n {
+		keep = n - 1
+	}
+	if keep < 0 {
+		keep = 0
+	}
+	dropped += n - keep
+	out := make([]any, 0, keep+1)
+	out = append(out, s[:keep]...)
+	return append(out, map[string]any{
+		omittedKey: dropped,
+		"_note":    fmt.Sprintf("%d items omitted: result exceeded the %d-byte MCP limit. Narrow the request (see describe_operation params) or use the CLI for the full list.", dropped, maxResultBytes),
+	})
+}
+
+// walkSlices visits every array in a decoded JSON value, passing a setter that
+// replaces it in its parent.
+func walkSlices(v any, set func(any), visit func([]any, func(any))) {
+	switch t := v.(type) {
+	case []any:
+		if set != nil {
+			visit(t, set)
+		}
+		for i := range t {
+			walkSlices(t[i], func(nv any) { t[i] = nv }, visit)
+		}
+	case map[string]any:
+		for k := range t {
+			k := k
+			walkSlices(t[k], func(nv any) { t[k] = nv }, visit)
+		}
+	}
 }
 
 // toolError builds an isError result with a plain message so the model sees it.
