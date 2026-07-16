@@ -427,7 +427,7 @@ func (s *Server) listOperationsPayload(query string, limit int) any {
 	for _, o := range ops {
 		items = append(items, listItem{
 			ID: o.ID, Method: o.Method, Path: o.Path,
-			Category: o.Category, Summary: o.Summary, Write: o.Write, Backend: o.Backend, Required: o.requiredNames(),
+			Category: o.Category, Summary: o.Summary, Write: o.Write, Backend: o.Backend, Required: o.RequiredNames(),
 		})
 	}
 	return map[string]any{"count": len(items), "operations": items}

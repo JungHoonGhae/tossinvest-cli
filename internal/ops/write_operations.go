@@ -1,4 +1,4 @@
-package mcp
+package ops
 
 import (
 	"context"
