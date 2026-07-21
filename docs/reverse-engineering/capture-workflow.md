@@ -173,3 +173,90 @@ These observations are enough to start a read-only catalog. Authenticated captur
 - first sanitized HAR captures
 - small JSON fixtures for stock detail and quotes
 
+---
+
+## 신규 기능 발굴 실전 플레이북 (2026-07 정립)
+
+accumulate·profit·tax 기능을 붙이며 정립한, **웹 세션으로 호출 가능한 기능을
+발굴→검증→구현**하는 반복 절차. `/browse` 스킬(헤드리스 Chromium)만으로 대부분 된다.
+
+### 0. 세션 주입 (매 세션 시작)
+
+`tossctl` 이 저장한 세션 쿠키를 브라우저에 심는다. `session.json` 의 `cookies` 는
+평면 dict(`{name: value}`)라, 도메인·httpOnly·secure 를 채워 `cookie-import` 로 넣어야
+`.tossinvest.com` 하위 API 가 인증된다 (정확 호스트 `www.` 로만 넣으면 `.tossinvest.com`
+스코프 쿠키가 안 붙어 401).
+
+```
+session.json cookies → [{name,value,domain:'.tossinvest.com',path:'/',
+  httpOnly: name in {BTK,FTK,LTK,SESSION,UTK}, secure:true, sameSite:'Lax'}]
+→ $B cookie-import  → $B goto /account (리다이렉트 없으면 인증 성공)
+```
+
+### 1. 후보 발굴: 카탈로그가 아니라 JS 번들에서
+
+`wts-endpoints.json` 의 candidate 경로는 `{id}` 로 정규화돼 있어 **그대로 호출하면
+404 난다.** 정확한 경로·메서드는 프로덕션 번들에서 뽑는다:
+
+```
+GET / → buildId 추출 → _buildManifest.js → 청크 URL 수집 → 전부 fetch 후 concat
+번들에서: path:"/api/vN/..." + 근처 method:"GET|POST" 정규식으로 정확한 정의 추출
+```
+
+주의: minified 변수명(eP, o, c…)은 청크마다 재사용돼 **호출부(요청 바디) 정적 추적은
+신뢰도 낮다.** 경로·메서드까지만 번들로 얻고, 바디는 라이브로 확인.
+
+### 2. 라이브 프로브 (Promise.all + 타임아웃)
+
+`$B eval` 은 top-level await 결과를 문자열로 못 뽑으니, `window.__x` 전역에 담고
+폴링하거나 `(async()=>{...window.__r=...})()` 로 감싼다. 순차 18개는 hang 위험 →
+`Promise.all` + `Promise.race(fetch, timeout(8000))`.
+
+- **404** = 경로 추측 틀림 (번들에서 정확 경로 재확인)
+- **400 MissingServletRequestParameter** = 파라미터만 넣으면 됨 (거의 되는 것)
+- **200 + 빈약한 데이터** = 탈락 후보 (margin=전부 false, news/count=숫자 하나 등)
+
+### 3. POST 바디 알아내기
+
+profit 계열처럼 POST 이고 파라미터가 필요하면:
+
+1. **메타 엔드포인트 먼저** — `readable-tab` 처럼 "어떤 값이 가능한지" 주는 것을 찾는다.
+2. **GA 로그 URL이 힌트** — `$B network` 에 찍힌 google-analytics `collect?...&dl=`
+   URL에 페이지 쿼리스트링(`?productType=us&profitType=sales`)이 들어 있어 **필드명
+   단서**가 된다 (단, 쿼리 파라미터명 ≠ POST 바디 필드명일 수 있음 — 확인 필요).
+3. **빈 바디 `{}` 부터** — overview 류는 빈 바디로 전체를 주는 경우가 많다.
+4. 안 되면 **실제 웹 요청 바디를 봐야 한다** (아래 "막힌 방법" 참고).
+
+### 4. 웹 UI 유무 판정 = "모바일 전용" 분류의 유일한 기준
+
+**카탈로그 candidate ≠ 모바일 전용.** 반드시 라이브로 웹 라우트를 열어 판정:
+
+```
+$B goto /account/<feature> → 리다이렉트 없이 실제 화면이 뜨고 관련 텍스트가 보이면
+→ 웹 UI 있음 (일반 조회) / 뜨면 안 뜨거나 signin 리다이렉트면 → 웹 UI 없음 (모바일 전용)
+```
+
+실측: accumulate=웹UI 없음(진짜 모바일 전용), profit·transfer-income=웹UI 있음.
+README 의 "📱 모바일 앱 전용" 서브섹션엔 **웹UI 없는 것만.** 토스가 UI 추가하면 일반
+표로 옮긴다 (판정을 주간 모니터가 추적하도록 하는 게 이상적 — TODO).
+
+### 5. 구현 = 기존 RE 흐름 그대로
+
+domain → client(`getJSON`/`postJSON`, 페이징은 aggregate) → output(테이블/JSON/CSV)
+→ cmd → `internal/ops` 등록(+probe) → 계약테스트(httptest, **더미 데이터**) →
+`wts_endpoints.py` IMPLEMENTED 패턴 + 카탈로그 재생성 → README(+🆕)/CHANGELOG.
+**실계좌로 라이브 검증하되 그 값은 커밋 금지** (테스트는 합성 더미로).
+
+### 막힌 방법 (다음에 시간 낭비 말 것)
+
+- **안드로이드 앱 트래픽 캡처**: 갤럭시(루팅X)에 mitmproxy 인증서까지 설치 성공해도,
+  **토스 앱은 인증서 핀닝**으로 통신 거부 (삼성 인터넷은 됨 = 프록시는 정상, 앱만 막힘).
+  루팅 없이는 APK 재패키징이 유일한데 Play Integrity 로 로그인 거부됨. **불가.**
+- **iOS 앱 캡처**: 인증서 신뢰가 안드로이드보다 쉽고 핀닝도 앱마다 달라 **성공 가능성
+  있음** — 필요하면 iOS 기기로 시도.
+- **`/browse` addInitScript 로 SPA 첫 요청 바디 잡기**: `Page.addScriptToEvaluate
+  OnNewDocument` 를 CDP allowlist 에 추가했으나(로컬 빌드), browse 의 goto 가 세션을
+  재생성해 심은 스크립트가 안 따라감 → 이 흐름엔 안 통함. 순수 CDP 세션이면 될 수 있음.
+- **React Query 캐시**: 탭 클릭·pushState 로는 재요청이 안 걸린다(캐시). fresh POST
+  바디를 잡으려면 첫 로드를 가로채야 하는데 위 addInitScript 한계와 맞물림.
+
