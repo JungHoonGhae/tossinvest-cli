@@ -8,7 +8,7 @@
   <h1>tossinvest-cli</h1>
   <p><strong>The most flexible way to connect Toss Securities. Via CLI, via MCP server, from any AI agent — 100% of the official API, plus the features only the web app had.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — any AI agent drives Toss Securities accounts, quotes, and trades through one <code>tossctl</code>. <strong>Attach it as an MCP server (<code>tossctl mcp</code>) or run it by hand</strong>, <strong>with no key at all — or auto-routed through the official path when you connect one.</strong></p>
-  <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — 21 WTS-only features, and <strong>100% of the official Open API's coverage, included too.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
+  <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — 24 WTS-only features, and <strong>100% of the official Open API's coverage, included too.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
   <p><sub><em>An unofficial Toss Securities CLI for AI agents. Auto-routes through the official OAuth path when you connect an official key.</em></sub></p>
 </div>
 
@@ -134,7 +134,7 @@ Waiting for approval in the Toss app on your phone...
 ## Support Scope
 
 > **tossctl covers 100% of the official Toss Open API's read & trade coverage — and goes beyond.**
-> It maps to every endpoint in the official [Open API docs](https://developers.tossinvest.com/docs) (accounts, holdings, quotes, orderbook, ticks, candles, price limits, sellable quantity, commissions, orders, …), and adds investor flows, market indices, AI signals, screener, watchlist management, transaction ledger, real-time push, fractional orders, dry-run preview, and more — **21 features that aren't in the official API are tossctl-only.**
+> It maps to every endpoint in the official [Open API docs](https://developers.tossinvest.com/docs) (accounts, holdings, quotes, orderbook, ticks, candles, price limits, sellable quantity, commissions, orders, …), and adds investor flows, market indices, AI signals, screener, watchlist management, transaction ledger, real-time push, fractional orders, dry-run preview, and more — **24 features that aren't in the official API are tossctl-only.**
 
 <p align="center">
   <img src="docs/assets/api-comparison.en.svg" alt="tossctl vs official Open API (upcoming) coverage — tossctl is a superset" width="900" />
@@ -177,8 +177,9 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **Net-buy ranking by investor** | `market investors` (foreign · institution · retail top net-buy) | ❌ | ✅ |
 | **Earnings calendar** | `market earnings` (`--major` for curated majors) | ❌ | ✅ |
 | **Dividend report** | `portfolio dividends` (annual total · region · monthly, `--by-payment-date` tax) | ❌ | ✅ |
+| **🆕 Cumulative realized profit** | `profit` (trading gains · dividends · lending · maturity · deposit interest, KRW/USD — a cumulative view distinct from account summary) | ❌ | ✅ |
+| **🆕 Overseas transfer income (tax)** | `tax overseas --year YYYY` (capital-gains filing: rate · deduction · per-stock P/L) | ❌ | ✅ |
 | **Expected lending income** | `lending expected` (projected share-lending income: monthly/yearly USD + per-stock) | ❌ | ✅ |
-| **🆕 Stock accumulation plans** | `accumulate list`, `accumulate status <symbol>` (recurring auto-buy settings: Active/Paused, amount/frequency, completed rounds) | ❌ | ✅ |
 | **Community rankings** | `community rankings --type influencer\|profit\|followers` | ❌ | ✅ |
 | **Sector movements** | `market sectors [id]` (industry tree, 1d·1m·1y returns) | ❌ | ✅ |
 | **🆕 Theme fluctuation ranking** | `market themes` (today's top-moving themes, rising-stock counts) | ❌ | ✅ |
@@ -190,6 +191,19 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **Cash overview** | `transactions overview --market us\|kr` (orderable · withdrawable · incoming) | ❌ | ✅ |
 | **CSV export** | `export positions\|orders --market`, `transactions list --output csv` | ❌ | ✅ |
 | **Real-time push** | `push listen` (SSE stream — order/price change events) | ❌ *(official API is REST only)* | ✅ |
+
+#### 📱 Mobile-app-only features (no web UI either)
+
+Most rows above have a screen in the Toss web app (WTS). The features below go one
+step further — they exist **only in the Toss mobile app, with no web UI at all**.
+tossctl opens even these up, via backend APIs callable with a web session.
+
+| Feature | Command | Mobile app | Web (WTS) | tossctl |
+|---------|---------|:--:|:--:|:--:|
+| **🆕 Stock accumulation plans** | `accumulate list`, `accumulate status <symbol>` (recurring auto-buy: Active/Paused · amount/frequency · rounds) | ✅ (settings UI) | ❌ (no UI) | ✅ (read) |
+
+> This list moves rows into the general table above once Toss ships a web UI for them.
+> (Criterion: whether a real screen renders at the web route — tracked by the weekly monitor.)
 
 ### Trading
 
@@ -539,6 +553,9 @@ tossctl account summary
 tossctl portfolio positions
 tossctl portfolio allocation
 tossctl portfolio dividends [--year YYYY] [--by-payment-date]
+tossctl profit                                   # cumulative realized profit (by category)
+tossctl tax overseas [--year YYYY]               # overseas transfer income (tax)
+tossctl accumulate list|status <symbol>          # stock accumulation (mobile-app-only)
 tossctl market investors|earnings|briefing|sectors|themes|index|ranking|signals
 tossctl community rankings --type influencer|profit|followers
 tossctl orders list

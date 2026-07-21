@@ -227,6 +227,37 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "profit_overview", Method: "POST", Path: "wts:profit/overview", Backend: "wts",
+			Category: "portfolio", Summary: "Cumulative realized profit across every category — trading gains, dividends, share-lending, maturity, deposit interest — each in KRW and USD. A cumulative view distinct from account summary (current valuation). WTS-only.",
+			Probe: &ProbeSpec{Name: "profit-overview", Method: "POST",
+				URL:  probeCert + "/api/v1/profit/overview",
+				Body: `{}`,
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.totalAssetAmount", "object")
+				}},
+			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
+				return d.WTS.GetProfitOverview(ctx)
+			},
+		},
+		{
+			ID: "tax_overseas", Method: "GET", Path: "wts:tax/transfer-income/overseas", Backend: "wts",
+			Category: "portfolio", Summary: "Overseas-stock transfer income (해외주식 양도소득) for a tax year — tax summary (rate, deduction, tax due) plus per-stock profit/loss. For capital-gains tax filing (KRW). WTS-only.",
+			Params: []Param{{Name: "year", Type: "integer", Desc: "tax year (0 = current)"}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				year, err := argInt(args, "year")
+				if err != nil {
+					return nil, err
+				}
+				if year == 0 {
+					year = time.Now().Year()
+				}
+				return d.WTS.GetOverseasTransferIncome(ctx, year)
+			},
+		},
+		{
 			ID: "dividends", Method: "GET", Path: "wts:portfolio/dividends", Backend: "wts",
 			Category: "portfolio", Summary: "Annual dividend history (received/scheduled, by region, monthly). WTS-only.",
 			Params: []Param{

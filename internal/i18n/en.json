@@ -420,5 +420,10 @@
   "accumulate.list.short": "List every accumulation plan on the account (all stocks, all statuses)",
   "accumulate.list.long": "Show every stock-accumulation (주식모으기) plan on the account — recurring automatic buys — including which are Active vs Paused, the amount/quantity and frequency, and how many rounds have completed. WTS-only.",
   "accumulate.status.short": "Show the accumulation plan(s) for one stock",
-  "accumulate.status.long": "Show the stock-accumulation (주식모으기) plan(s) for a single stock, including whether it's Active or Paused. Accepts a ticker (e.g. 005930, AAPL) or a Toss product code. WTS-only."
+  "accumulate.status.long": "Show the stock-accumulation (주식모으기) plan(s) for a single stock, including whether it's Active or Paused. Accepts a ticker (e.g. 005930, AAPL) or a Toss product code. WTS-only.",
+  "profit.short": "Cumulative profit breakdown (realized, by category)",
+  "profit.long": "Show the account's cumulative realized profit across every category — trading gains, dividends, share-lending, maturity, and deposit interest — each in KRW and USD. This is a cumulative view distinct from `account summary` (current holdings valuation). WTS-only.",
+  "tax.short": "Tax-related queries",
+  "tax.overseas.short": "Overseas-stock transfer income (capital gains) for a tax year",
+  "tax.overseas.long": "Show the overseas-stock transfer-income (양도소득) report for a tax year: tax summary (rate, deduction, tax due) plus every sold stock's profit/loss line. For capital-gains tax filing. Amounts in KRW. Use --year to pick the tax year. WTS-only."
 }

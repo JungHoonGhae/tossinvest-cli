@@ -833,3 +833,63 @@ type AccumulationPlans struct {
 	Plans     []AccumulationPlan `json:"plans"`
 	FetchedAt time.Time          `json:"fetched_at"`
 }
+
+// DualCurrency holds a KRW and USD amount for the same figure. USD is a
+// pointer because some fields (e.g. account-interest) have no USD value.
+type DualCurrency struct {
+	KRW float64  `json:"krw"`
+	USD *float64 `json:"usd,omitempty"`
+}
+
+// ProfitByType is one profit category's realized figures: the earned amount,
+// its rate (%), and the purchase basis — each in both currencies.
+type ProfitByType struct {
+	Amount         DualCurrency `json:"amount"`
+	EarningRate    DualCurrency `json:"earning_rate"`
+	PurchaseAmount DualCurrency `json:"purchase_amount"`
+}
+
+// ProfitOverview is the account's cumulative profit breakdown across every
+// category (매매손익·대여료·배당·만기·예탁금이자). This is a separate,
+// cumulative view from `account summary` (which reports current valuation).
+type ProfitOverview struct {
+	TotalAssetAmount DualCurrency `json:"total_asset_amount"`
+	EarningAmount    DualCurrency `json:"earning_amount"`
+	Sales            ProfitByType `json:"sales"`    // 매매손익
+	Lending          ProfitByType `json:"lending"`  // 대여료
+	Dividend         ProfitByType `json:"dividend"` // 배당
+	Maturity         ProfitByType `json:"maturity"` // 만기
+	Interest         float64      `json:"interest"` // 예탁금이자 (KRW only)
+	FetchedAt        time.Time    `json:"fetched_at"`
+}
+
+// TransferIncomeStock is one stock's overseas transfer-income (양도소득) line
+// for a tax year: quantities, sell/buy amounts, and realized profit/loss.
+type TransferIncomeStock struct {
+	Symbol         string  `json:"symbol"`
+	Name           string  `json:"name"`
+	StockCode      string  `json:"stock_code"`
+	SellQuantity   float64 `json:"sell_quantity"`
+	SellAmount     float64 `json:"sell_amount"`
+	BuyAmount      float64 `json:"buy_amount"`
+	Expense        float64 `json:"expense"`
+	ProfitLoss     float64 `json:"profit_loss"`
+	SettlementDate string  `json:"settlement_date"`
+	Settled        bool    `json:"settled"`
+}
+
+// OverseasTransferIncome is the account's overseas-stock transfer-income (해외
+// 주식 양도소득) report for a tax year: a tax summary plus per-stock lines.
+// Used for capital-gains tax filing. All amounts are in KRW.
+type OverseasTransferIncome struct {
+	Year              int                   `json:"year"`
+	TaxRate           float64               `json:"tax_rate"`
+	LocalTaxRate      float64               `json:"local_tax_rate"`
+	BaseDeduction     float64               `json:"base_deduction"`
+	TotalProfitLoss   float64               `json:"total_profit_loss"`
+	TransferIncomeTax float64               `json:"transfer_income_tax"`
+	LocalIncomeTax    float64               `json:"local_income_tax"`
+	TotalTax          float64               `json:"total_tax"`
+	Stocks            []TransferIncomeStock `json:"stocks"`
+	FetchedAt         time.Time             `json:"fetched_at"`
+}

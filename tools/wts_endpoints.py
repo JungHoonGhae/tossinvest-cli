@@ -73,6 +73,9 @@ IMPLEMENTED = [
     r"^/api/v1/index-prices$",                                    # market index <code> (지수 상세)
     r"^/api/v2/autotrade/plan/find$",                             # accumulate list
     r"^/api/v1/growth/autotrade/plan/stock$",                     # accumulate status
+    r"^/api/v1/profit/overview$",                                 # profit
+    r"^/api/v3/profit/readable-tab$",                             # profit (tab meta)
+    r"^/api/v1/my-assets/transfer-income/overseas$",              # tax overseas
 ]
 
 # recommended: candidates worth implementing next (data/discovery features that

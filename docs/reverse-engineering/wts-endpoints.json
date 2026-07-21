@@ -4,8 +4,8 @@
   "chunk_count": 25,
   "total": 935,
   "counts": {
-    "implemented": 72,
-    "candidate": 366,
+    "implemented": 74,
+    "candidate": 364,
     "excluded": 497,
     "candidate_next": 20,
     "meaningful": 438
@@ -1660,7 +1660,7 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/my-assets/transfer-income/overseas": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/my-assets/transfer-income/overseas/summary": {
@@ -1967,7 +1967,7 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/profit/overview": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/profit/type/overview": {
@@ -4290,5 +4290,5 @@
       "first_seen": "2026-06-19"
     }
   },
-  "updated_at": "2026-07-21"
+  "updated_at": "2026-07-22"
 }
