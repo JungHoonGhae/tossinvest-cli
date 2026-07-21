@@ -4,6 +4,9 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 
 ## [Unreleased]
 
+### 새 기능
+- **`accumulate list`, `accumulate status <symbol>`** — 주식모으기(정기 자동매수) 설정을 조회합니다. 계좌에 설정된 전체 플랜 또는 특정 종목의 플랜을 보여주며, Active/Paused 상태, 매수 금액·수량, 주기, 완료 회차를 포함합니다. 웹앱(WTS) 전용이라 웹 세션(`tossctl auth login`)이 필요합니다. MCP 에서도 `accumulation_plans`·`accumulation_status` 오퍼레이션으로 노출됩니다. (#101)
+
 ## [0.24.1] - 2026-07-17
 
 ### Fixed

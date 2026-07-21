@@ -415,5 +415,10 @@
   "watchlist.short": "Read and manage the watchlist",
   "lending.short": "Securities lending queries",
   "lending.expected.short": "Projected share-lending income (per stock, monthly/yearly USD)",
-  "lending.expected.long": "Show projected income from lending out your holdings (대주): monthly and yearly estimates in USD plus a per-stock breakdown. Works even for accounts without an active lending agreement (shows zeros). WTS-only."
+  "lending.expected.long": "Show projected income from lending out your holdings (대주): monthly and yearly estimates in USD plus a per-stock breakdown. Works even for accounts without an active lending agreement (shows zeros). WTS-only.",
+  "accumulate.short": "Stock accumulation recurring-buy plan queries",
+  "accumulate.list.short": "List every accumulation plan on the account (all stocks, all statuses)",
+  "accumulate.list.long": "Show every stock-accumulation (주식모으기) plan on the account — recurring automatic buys — including which are Active vs Paused, the amount/quantity and frequency, and how many rounds have completed. WTS-only.",
+  "accumulate.status.short": "Show the accumulation plan(s) for one stock",
+  "accumulate.status.long": "Show the stock-accumulation (주식모으기) plan(s) for a single stock, including whether it's Active or Paused. Accepts a ticker (e.g. 005930, AAPL) or a Toss product code. WTS-only."
 }

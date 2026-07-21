@@ -415,5 +415,10 @@
   "watchlist.short": "관심종목 조회 및 관리",
   "lending.short": "Securities lending queries",
   "lending.expected.short": "Projected share-lending income (per stock, monthly/yearly USD)",
-  "lending.expected.long": "보유 종목의 주식대여(대주)로 예상되는 수익을 조회합니다. 월간·연간 예상액(USD)과 종목별 내역을 보여주며, 대차 약정이 없는 계좌에서도 조회할 수 있습니다(0으로 표시). 웹앱(WTS) 전용 기능입니다."
+  "lending.expected.long": "보유 종목의 주식대여(대주)로 예상되는 수익을 조회합니다. 월간·연간 예상액(USD)과 종목별 내역을 보여주며, 대차 약정이 없는 계좌에서도 조회할 수 있습니다(0으로 표시). 웹앱(WTS) 전용 기능입니다.",
+  "accumulate.short": "주식모으기(정기 자동매수) 조회",
+  "accumulate.list.short": "계좌의 모든 모으기 설정 조회 (전 종목·전 상태)",
+  "accumulate.list.long": "계좌에 설정된 모든 주식모으기(정기 자동매수) 플랜을 보여줍니다 — Active/Paused 상태, 매수 금액·수량, 주기, 완료 회차를 포함합니다. 웹앱(WTS) 전용 기능입니다.",
+  "accumulate.status.short": "특정 종목의 모으기 설정 조회",
+  "accumulate.status.long": "특정 종목의 주식모으기(정기 자동매수) 플랜과 Active/Paused 상태를 보여줍니다. 티커(예: 005930, AAPL) 또는 토스 상품코드를 입력할 수 있습니다. 웹앱(WTS) 전용 기능입니다."
 }

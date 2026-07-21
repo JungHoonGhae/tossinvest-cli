@@ -71,6 +71,8 @@ IMPLEMENTED = [
     r"^/api/v1/tics/all$",                                        # market sectors
     r"^/api/v1/tics/rankings$",                                   # market themes
     r"^/api/v1/index-prices$",                                    # market index <code> (지수 상세)
+    r"^/api/v2/autotrade/plan/find$",                             # accumulate list
+    r"^/api/v1/growth/autotrade/plan/stock$",                     # accumulate status
 ]
 
 # recommended: candidates worth implementing next (data/discovery features that

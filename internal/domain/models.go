@@ -800,3 +800,36 @@ type ConditionalOrderRef struct {
 	ID            string `json:"id"`
 	ClientOrderID string `json:"client_order_id,omitempty"`
 }
+
+// AccumulationPlan is one "stock accumulation" (주식모으기) recurring-buy
+// plan — a scheduled automatic purchase of a fixed amount or quantity.
+// IsPaused is the plan's active/disabled state. WTS-only.
+type AccumulationPlan struct {
+	ID                    int64   `json:"id"`
+	Symbol                string  `json:"symbol"`
+	StockCode             string  `json:"stock_code"`
+	StockName             string  `json:"stock_name"`
+	CountryCode           string  `json:"country_code"`
+	Currency              string  `json:"currency"`
+	PlanType              string  `json:"plan_type"` // AMOUNT | QUANTITY
+	Iteration             string  `json:"iteration"` // e.g. DAILY, WEEKLY, MONTHLY
+	IterateTarget         int     `json:"iterate_target"`
+	InvestAmount          float64 `json:"invest_amount"`
+	InvestQuantity        float64 `json:"invest_quantity"`
+	TradeStatus           string  `json:"trade_status"` // e.g. PROGRESS
+	IsPaused              bool    `json:"is_paused"`
+	InvestStartDate       string  `json:"invest_start_date"`
+	InvestEndDate         string  `json:"invest_end_date"`
+	ProceededRound        int     `json:"proceeded_round"`
+	SucceededRound        int     `json:"succeeded_round"`
+	TotalExecutedAmount   float64 `json:"total_executed_amount"`
+	TotalExecutedQuantity float64 `json:"total_executed_quantity"`
+	CreatedAt             string  `json:"created_at"`
+	UpdatedAt             string  `json:"updated_at"`
+}
+
+// AccumulationPlans is the account's full list of accumulation plans.
+type AccumulationPlans struct {
+	Plans     []AccumulationPlan `json:"plans"`
+	FetchedAt time.Time          `json:"fetched_at"`
+}

@@ -1,11 +1,11 @@
 {
   "source": "tossinvest.com web bundles",
-  "build_id": "3_fXC776dOZp_ZZKhp6qR",
+  "build_id": "gMdbJqLz1CzePoxetm-D2",
   "chunk_count": 25,
   "total": 935,
   "counts": {
-    "implemented": 70,
-    "candidate": 368,
+    "implemented": 72,
+    "candidate": 366,
     "excluded": 497,
     "candidate_next": 20,
     "meaningful": 438
@@ -1041,7 +1041,7 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/growth/autotrade/plan/stock": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/growth/autotrade/schedule": {
@@ -1168,7 +1168,7 @@
     },
     "/api/v1/lending/revenue/account/expected": {
       "status": "implemented",
-      "first_seen": "2026-07-20"
+      "first_seen": "2026-07-21"
     },
     "/api/v1/lending/revenue/account/payment": {
       "status": "candidate",
@@ -3244,7 +3244,7 @@
       "first_seen": "2026-06-19"
     },
     "/api/v2/autotrade/plan/find": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v2/comments": {
@@ -4290,5 +4290,5 @@
       "first_seen": "2026-06-19"
     }
   },
-  "updated_at": "2026-07-20"
+  "updated_at": "2026-07-21"
 }

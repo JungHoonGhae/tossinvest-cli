@@ -205,6 +205,28 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "accumulation_plans", Method: "GET", Path: "wts:autotrade/plan/find", Backend: "wts",
+			Category: "portfolio", Summary: "All stock-accumulation (주식모으기) recurring-buy plans on the account — which stocks, Active vs Paused, amount/quantity, frequency, rounds completed. WTS-only.",
+			Probe: &ProbeSpec{Name: "accumulation-plans", Method: "GET",
+				URL:   probeAPI + "/api/v2/autotrade/plan/find",
+				Check: statusAndPath("result", "array")},
+			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
+				return d.WTS.ListAccumulationPlans(ctx)
+			},
+		},
+		{
+			ID: "accumulation_status", Method: "GET", Path: "wts:autotrade/plan/stock", Backend: "wts",
+			Category: "portfolio", Summary: "Stock-accumulation (주식모으기) plan(s) for one stock — Active vs Paused, amount/quantity, frequency. WTS-only.",
+			Params: []Param{{Name: "symbol", Type: "string", Required: true, Desc: "ticker (e.g. 005930, AAPL) or Toss product code"}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				symbol, err := argString(args, "symbol")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetAccumulationPlansByStock(ctx, symbol)
+			},
+		},
+		{
 			ID: "dividends", Method: "GET", Path: "wts:portfolio/dividends", Backend: "wts",
 			Category: "portfolio", Summary: "Annual dividend history (received/scheduled, by region, monthly). WTS-only.",
 			Params: []Param{
