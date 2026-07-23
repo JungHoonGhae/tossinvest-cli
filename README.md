@@ -13,6 +13,14 @@
 </div>
 
 <p align="center">
+  <img src="docs/assets/demo/install.gif" alt="설치 한 줄 → QR 로그인 → 조회. curl 한 줄로 시작합니다." width="760" />
+</p>
+
+<p align="center">
+  <sub>설치 한 줄 → QR 로그인 → 바로 조회. <a href="#빠른-시작"><strong>지금 시작 ↓</strong></a></sub>
+</p>
+
+<p align="center">
   <a href="LICENSE"><img src="docs/assets/badges/license.svg" height="44" alt="License: MIT" /></a>&nbsp;
   <a href="https://go.dev/"><img src="docs/assets/badges/go.svg" height="44" alt="Built with Go 1.25+" /></a>&nbsp;
   <img src="docs/assets/badges/agents.svg" height="44" alt="Works with Claude · Codex · Cursor" />
@@ -413,6 +421,10 @@ tossctl auth login       # WTS 웹 세션: WTS 전용 조회(인기순위·수�
 claude mcp add tossctl tossctl mcp
 claude mcp list   # → "tossctl: tossctl mcp - ✔ Connected"
 ```
+
+<p align="center">
+  <img src="docs/assets/demo/mcp.gif" alt="claude mcp add 한 줄로 등록 → 조회·거래 오퍼레이션이 에이전트에 바로 붙습니다." width="760" />
+</p>
 
 Claude Desktop·Codex 등 **JSON 설정 방식** 호스트는 아래 [설정 예시](#mcp-호스트-json-설정)를 쓰세요.
 터미널에서 **사람이 CLI 로 직접** 쓰려면 MCP 등록 없이 `tossctl auth login`(웹 세션)만으로 전체

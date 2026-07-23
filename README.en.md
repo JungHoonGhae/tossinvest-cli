@@ -13,6 +13,14 @@
 </div>
 
 <p align="center">
+  <img src="docs/assets/demo/install.gif" alt="One-line install → QR login → query. Start with a single curl." width="760" />
+</p>
+
+<p align="center">
+  <sub>One-line install → QR login → query right away. <a href="#quick-start"><strong>Get started ↓</strong></a></sub>
+</p>
+
+<p align="center">
   <a href="LICENSE"><img src="docs/assets/badges/license.svg" height="44" alt="License: MIT" /></a>&nbsp;
   <a href="https://go.dev/"><img src="docs/assets/badges/go.svg" height="44" alt="Built with Go 1.25+" /></a>&nbsp;
   <img src="docs/assets/badges/agents.svg" height="44" alt="Works with Claude · Codex · Cursor" />
@@ -319,6 +327,10 @@ tossctl auth login       # WTS web session: WTS-only reads (rankings, flows, AI 
 claude mcp add tossctl tossctl mcp
 claude mcp list   # → "tossctl: tossctl mcp - ✔ Connected"
 ```
+
+<p align="center">
+  <img src="docs/assets/demo/mcp.gif" alt="One line — claude mcp add — registers tossctl; query & trade operations attach to the agent instantly." width="760" />
+</p>
 
 For JSON-config hosts (Claude Desktop, Codex, …) use the [config example](#mcp-host-json-config)
 below. To use the CLI **by hand** in a terminal, skip MCP and just run `tossctl auth login` (web

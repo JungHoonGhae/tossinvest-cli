@@ -1,0 +1,11 @@
+#!/bin/bash
+# 데모용 스텁 — 실제 claude CLI 아님.
+case "$1 $2" in
+  "mcp add")
+    printf '  \033[38;5;114m✔\033[0m Added MCP server \033[1m%s\033[0m\n' "$3" ;;
+  "mcp list")
+    printf '  tossctl  \033[38;5;114m✔ connected\033[0m\n'
+    printf '    ├ list_operations      44개 조회·거래 오퍼레이션\n'
+    printf '    ├ describe_operation   파라미터 스키마\n'
+    printf '    └ call_operation       실행 (조회는 바로, 주문은 게이트)\n' ;;
+esac
