@@ -6,7 +6,7 @@ import "github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 
 // State represents the current authentication state of the user.
 type State struct {
-	HasSession      bool
+	HasSession       bool
 	HasOfficialCreds bool
 }
 

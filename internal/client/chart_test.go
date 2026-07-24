@@ -40,14 +40,14 @@ func TestDeriveSecurityType(t *testing.T) {
 		productCode string
 		want        string
 	}{
-		{"A005930", "kr-s"},   // 삼성전자 — A + 6 digits
-		{"A294400", "kr-s"},   // KODEX 인버스
-		{"AAPL", "us-s"},      // 미국 티커 — A 로 시작하지만 영문 포함
-		{"TSLA", "us-s"},      // A 로 시작 안 함
-		{"MSFT", "us-s"},      // A 로 시작 안 함
-		{"A", "us-s"},         // 너무 짧음 → kr 휴리스틱 실패 → us
-		{"A12345", "us-s"},    // A + 5 digits — 너무 짧음 (>=7 요구)
-		{"A1234567", "kr-s"},  // A + 7 digits → kr
+		{"A005930", "kr-s"},  // 삼성전자 — A + 6 digits
+		{"A294400", "kr-s"},  // KODEX 인버스
+		{"AAPL", "us-s"},     // 미국 티커 — A 로 시작하지만 영문 포함
+		{"TSLA", "us-s"},     // A 로 시작 안 함
+		{"MSFT", "us-s"},     // A 로 시작 안 함
+		{"A", "us-s"},        // 너무 짧음 → kr 휴리스틱 실패 → us
+		{"A12345", "us-s"},   // A + 5 digits — 너무 짧음 (>=7 요구)
+		{"A1234567", "kr-s"}, // A + 7 digits → kr
 		{"US00000000000", "us-s"},
 	}
 	for _, c := range cases {

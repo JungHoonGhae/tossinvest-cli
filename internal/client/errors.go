@@ -17,8 +17,6 @@ func (e *StatusError) Error() string {
 	return fmt.Sprintf("unexpected status %d for %s", e.StatusCode, e.Endpoint)
 }
 
-
-
 // AuthError intentionally does not carry the response body: 401/403 bodies
 // from wts-api / wts-cert-api can echo CSRF diagnostics or session-identifying
 // fragments, and no caller reads it — only status + endpoint are surfaced to

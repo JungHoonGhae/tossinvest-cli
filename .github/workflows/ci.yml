@@ -27,8 +27,9 @@ jobs:
       - name: Run Go tests
         run: go test ./...
 
-      - name: go vet
-        run: go vet ./...
+      # gofmt + go vet, same target contributors run locally.
+      - name: Lint
+        run: make lint
 
       - name: Build CLI
         run: make build

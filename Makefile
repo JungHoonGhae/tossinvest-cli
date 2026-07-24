@@ -6,7 +6,7 @@ LDFLAGS := -X github.com/JungHoonGhae/tossinvest-cli/internal/version.Version=$(
 	-X github.com/JungHoonGhae/tossinvest-cli/internal/version.Commit=$(COMMIT) \
 	-X github.com/JungHoonGhae/tossinvest-cli/internal/version.Date=$(DATE)
 
-.PHONY: build run test fmt tidy clean
+.PHONY: build run test lint fmt tidy clean
 
 build:
 	mkdir -p bin
@@ -17,6 +17,18 @@ run:
 
 test:
 	go test ./...
+
+# lint is gofmt + vet only — no extra tooling to install. `gofmt -l` lists
+# unformatted files without changing them, so the check fails loudly instead of
+# silently reformatting; run `make fmt` to fix.
+lint:
+	@unformatted=$$(gofmt -l ./cmd ./internal); \
+	if [ -n "$$unformatted" ]; then \
+		echo "gofmt: 아래 파일이 포맷되지 않았습니다 — \`make fmt\` 를 실행하세요:"; \
+		echo "$$unformatted" | sed 's/^/  /'; \
+		exit 1; \
+	fi
+	go vet ./...
 
 fmt:
 	gofmt -w ./cmd ./internal

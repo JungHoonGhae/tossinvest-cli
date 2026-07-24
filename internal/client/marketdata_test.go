@@ -11,10 +11,10 @@ func TestInvestModeFor(t *testing.T) {
 		code             string
 		wantView, wantIM string
 	}{
-		{"A005930", "krx_all", "krx"},   // KR stock
-		{"A114800", "krx_all", "krx"},   // KR ETF
+		{"A005930", "krx_all", "krx"},           // KR stock
+		{"A114800", "krx_all", "krx"},           // KR ETF
 		{"US20220809012", "unified", "unified"}, // US stock code
-		{"AAPL", "unified", "unified"},  // US ticker
+		{"AAPL", "unified", "unified"},          // US ticker
 	}
 	for _, c := range cases {
 		gv, gi := investModeFor(c.code)

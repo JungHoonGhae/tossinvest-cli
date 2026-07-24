@@ -74,7 +74,7 @@ type UpdateCheck struct {
 // Credential secrets are stored in a separate file (see paths.CredentialsFile).
 type OpenAPI struct {
 	Enabled  bool   `json:"enabled"`
-	Prefer   string `json:"prefer"`   // auto | wts | openapi
+	Prefer   string `json:"prefer"` // auto | wts | openapi
 	Fallback bool   `json:"fallback"`
 }
 

@@ -11,9 +11,9 @@ import (
 // ProbeResult captures a single endpoint-family health probe. Meant for
 // diagnostics (e.g. `tossctl doctor --report`) — not for production code paths.
 type ProbeResult struct {
-	Family     string        `json:"family"`               // wts-api | wts-cert-api | wts-info-api
-	Endpoint   string        `json:"endpoint"`             // URL path only (no host)
-	StatusCode int           `json:"status_code"`          // 0 if transport error
+	Family     string        `json:"family"`      // wts-api | wts-cert-api | wts-info-api
+	Endpoint   string        `json:"endpoint"`    // URL path only (no host)
+	StatusCode int           `json:"status_code"` // 0 if transport error
 	Duration   time.Duration `json:"duration_ns"`
 	Error      string        `json:"error,omitempty"`      // transport error only
 	AuthError  bool          `json:"auth_error,omitempty"` // 401/403 — session/UA problems
