@@ -2,7 +2,6 @@ package output
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -16,9 +15,7 @@ import (
 func WriteOverseasTransferIncome(w io.Writer, format Format, t domain.OverseasTransferIncome) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(t)
+		return writeJSON(w, t)
 	case FormatCSV:
 		writer := csv.NewWriter(w)
 		header := []string{"symbol", "name", "sell_quantity", "sell_amount", "buy_amount", "expense", "profit_loss", "settlement_date", "settled"}

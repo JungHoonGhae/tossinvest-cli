@@ -1,7 +1,6 @@
 package output
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 
@@ -12,9 +11,7 @@ import (
 func WriteDoctorReport(w io.Writer, format Format, report doctor.Report) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(report)
+		return writeJSON(w, report)
 	case FormatCSV:
 		return fmt.Errorf("csv output is not supported for doctor")
 	case FormatTable:
@@ -65,9 +62,7 @@ func WriteDoctorReport(w io.Writer, format Format, report doctor.Report) error {
 func WriteAuthDoctorReport(w io.Writer, format Format, report doctor.AuthReport) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(report)
+		return writeJSON(w, report)
 	case FormatCSV:
 		return fmt.Errorf("csv output is not supported for auth doctor")
 	case FormatTable:

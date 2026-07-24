@@ -1,7 +1,6 @@
 package output
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 
@@ -13,9 +12,7 @@ import (
 func WriteProfitOverview(w io.Writer, format Format, p domain.ProfitOverview) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(p)
+		return writeJSON(w, p)
 	default: // table (CSV would be awkward for this nested shape; table only)
 		usd := func(d domain.DualCurrency) string {
 			if d.USD == nil {

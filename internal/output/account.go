@@ -2,7 +2,6 @@ package output
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io"
 	"sort"
@@ -16,9 +15,7 @@ import (
 func WriteAccounts(w io.Writer, format Format, accounts []domain.Account, primaryKey string) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(map[string]any{
+		return writeJSON(w, map[string]any{
 			"primary_key": primaryKey,
 			"accounts":    accounts,
 		})
@@ -67,9 +64,7 @@ func WriteAccounts(w io.Writer, format Format, accounts []domain.Account, primar
 func WriteAccountSummary(w io.Writer, format Format, summary domain.AccountSummary) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(summary)
+		return writeJSON(w, summary)
 	case FormatCSV:
 		writer := csv.NewWriter(w)
 		if err := writer.Write([]string{"metric", "value"}); err != nil {
@@ -137,9 +132,7 @@ func WriteAccountSummary(w io.Writer, format Format, summary domain.AccountSumma
 func WriteAccountPrime(w io.Writer, format Format, p domain.PrimeStatus) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(p)
+		return writeJSON(w, p)
 	case FormatCSV:
 		writer := csv.NewWriter(w)
 		if err := writer.Write([]string{"metric", "non_prime", "prime", "benefit"}); err != nil {

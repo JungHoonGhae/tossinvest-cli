@@ -2,7 +2,6 @@ package output
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io"
 	"math"
@@ -49,9 +48,7 @@ func WriteChart(w io.Writer, format Format, chart domain.Chart) error {
 }
 
 func writeChartJSON(w io.Writer, chart domain.Chart) error {
-	encoder := json.NewEncoder(w)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(chart)
+	return writeJSON(w, chart)
 }
 
 func writeChartCSV(w io.Writer, chart domain.Chart) error {

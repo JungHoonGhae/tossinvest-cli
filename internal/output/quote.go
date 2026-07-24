@@ -2,7 +2,6 @@ package output
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -26,9 +25,7 @@ func WriteQuote(w io.Writer, format Format, quote domain.Quote) error {
 }
 
 func writeQuoteJSON(w io.Writer, quote domain.Quote) error {
-	encoder := json.NewEncoder(w)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(quote)
+	return writeJSON(w, quote)
 }
 
 func writeQuoteCSV(w io.Writer, quote domain.Quote) error {
@@ -145,9 +142,7 @@ func WriteQuotes(w io.Writer, format Format, quotes []domain.Quote) error {
 func WriteQuotesWithCharts(w io.Writer, format Format, quotes []domain.Quote, charts []domain.Chart) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(quotes)
+		return writeJSON(w, quotes)
 	case FormatCSV:
 		writer := csv.NewWriter(w)
 		if err := writer.Write([]string{

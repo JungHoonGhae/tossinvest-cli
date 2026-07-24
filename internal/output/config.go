@@ -2,7 +2,6 @@ package output
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -15,9 +14,7 @@ import (
 func WriteConfigStatus(w io.Writer, format Format, status config.Status) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(status)
+		return writeJSON(w, status)
 	case FormatCSV:
 		writer := csv.NewWriter(w)
 		if err := writer.Write([]string{

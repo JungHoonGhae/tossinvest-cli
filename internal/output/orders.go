@@ -2,7 +2,6 @@ package output
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -22,9 +21,7 @@ func WriteCompletedOrders(w io.Writer, format Format, orders []domain.Order) err
 func WriteOrder(w io.Writer, format Format, order domain.Order) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(order)
+		return writeJSON(w, order)
 	case FormatCSV:
 		writer := csv.NewWriter(w)
 		if err := writer.Write([]string{"id", "resolved_from_id", "symbol", "name", "market", "side", "status", "quantity", "filled_quantity", "price", "average_execution_price", "order_date", "submitted_at"}); err != nil {
@@ -113,9 +110,7 @@ func WriteOrder(w io.Writer, format Format, order domain.Order) error {
 func writeOrderList(w io.Writer, format Format, title, emptyMessage string, orders []domain.Order) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(orders)
+		return writeJSON(w, orders)
 	case FormatCSV:
 		writer := csv.NewWriter(w)
 		if err := writer.Write([]string{"id", "symbol", "name", "market", "side", "status", "quantity", "filled_quantity", "price", "average_execution_price", "order_date", "submitted_at"}); err != nil {

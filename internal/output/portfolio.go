@@ -2,7 +2,6 @@ package output
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io"
 	"sort"
@@ -14,9 +13,7 @@ import (
 func WritePositions(w io.Writer, format Format, positions []domain.Position) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(positions)
+		return writeJSON(w, positions)
 	case FormatCSV:
 		writer := csv.NewWriter(w)
 		if err := writer.Write([]string{"product_code", "symbol", "name", "market_type", "market_code", "quantity", "average_price", "current_price", "market_value", "unrealized_pnl", "profit_rate", "daily_profit_loss", "daily_profit_rate", "average_price_usd", "current_price_usd", "market_value_usd", "unrealized_pnl_usd", "profit_rate_usd", "daily_profit_loss_usd", "daily_profit_rate_usd"}); err != nil {
@@ -61,9 +58,7 @@ func WritePositions(w io.Writer, format Format, positions []domain.Position) err
 func WriteAllocation(w io.Writer, format Format, markets map[string]domain.AccountMarketSummary) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(markets)
+		return writeJSON(w, markets)
 	case FormatCSV:
 		writer := csv.NewWriter(w)
 		if err := writer.Write([]string{"market", "total_asset_amount", "principal_amount", "evaluated_profit_amount", "profit_rate"}); err != nil {

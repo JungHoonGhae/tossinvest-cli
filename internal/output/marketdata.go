@@ -2,7 +2,6 @@ package output
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -15,9 +14,7 @@ import (
 func WriteTrades(w io.Writer, format Format, list domain.TradeList) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(list)
+		return writeJSON(w, list)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"time", "price", "volume", "trade_type", "cumulative_volume"}); err != nil {
@@ -60,9 +57,7 @@ func WriteTrades(w io.Writer, format Format, list domain.TradeList) error {
 func WritePriceLimits(w io.Writer, format Format, pl domain.PriceLimits) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(pl)
+		return writeJSON(w, pl)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"date", "upper_limit", "lower_limit"}); err != nil {
@@ -92,9 +87,7 @@ func WritePriceLimits(w io.Writer, format Format, pl domain.PriceLimits) error {
 func WriteStockWarnings(w io.Writer, format Format, sw domain.StockWarnings) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(sw)
+		return writeJSON(w, sw)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"type", "title", "text", "level"}); err != nil {
@@ -141,9 +134,7 @@ func WriteStockWarnings(w io.Writer, format Format, sw domain.StockWarnings) err
 func WriteTradingHours(w io.Writer, format Format, th domain.TradingHours) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(th)
+		return writeJSON(w, th)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"market", "session", "date", "start_time", "end_time"}); err != nil {
@@ -191,9 +182,7 @@ func WriteTradingHours(w io.Writer, format Format, th domain.TradingHours) error
 func WriteExchangeRates(w io.Writer, format Format, er domain.ExchangeRates) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(er)
+		return writeJSON(w, er)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"code", "name", "base", "close"}); err != nil {
@@ -225,9 +214,7 @@ func WriteExchangeRates(w io.Writer, format Format, er domain.ExchangeRates) err
 func WriteScreenerPresets(w io.Writer, format Format, sp domain.ScreenerPresets) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(sp)
+		return writeJSON(w, sp)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"id", "name", "description"}); err != nil {
@@ -263,9 +250,7 @@ func WriteScreenerPresets(w io.Writer, format Format, sp domain.ScreenerPresets)
 func WriteScreenerResult(w io.Writer, format Format, sr domain.ScreenerResult) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(sr)
+		return writeJSON(w, sr)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"product_code", "name", "close", "change", "change_rate"}); err != nil {
@@ -304,9 +289,7 @@ func WriteScreenerResult(w io.Writer, format Format, sr domain.ScreenerResult) e
 func WriteAISignals(w io.Writer, format Format, sg domain.AISignals) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(sg)
+		return writeJSON(w, sg)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"asset_name", "title", "keyword", "fluctuation", "stock_code"}); err != nil {
@@ -346,9 +329,7 @@ func WriteAISignals(w io.Writer, format Format, sg domain.AISignals) error {
 func WriteTradingFlows(w io.Writer, format Format, tf domain.TradingFlows) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(tf)
+		return writeJSON(w, tf)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"date", "net_individuals", "net_foreigner", "net_institution"}); err != nil {
@@ -401,9 +382,7 @@ func signedInt(v float64) string {
 func WriteMarketIndices(w io.Writer, format Format, mi domain.MarketIndices) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(mi)
+		return writeJSON(w, mi)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"code", "name", "nation", "latest", "base", "change", "change_rate"}); err != nil {
@@ -451,9 +430,7 @@ func WriteMarketIndices(w io.Writer, format Format, mi domain.MarketIndices) err
 func WriteIndexQuote(w io.Writer, format Format, q domain.IndexQuote) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(q)
+		return writeJSON(w, q)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"code", "name", "open", "high", "low", "close", "change", "change_rate", "high_52w", "low_52w"}); err != nil {
@@ -490,9 +467,7 @@ func WriteIndexQuote(w io.Writer, format Format, q domain.IndexQuote) error {
 func WriteStockRanking(w io.Writer, format Format, sr domain.StockRanking) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(sr)
+		return writeJSON(w, sr)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"rank", "symbol", "name", "market", "product_code"}); err != nil {
@@ -542,9 +517,7 @@ func sessionTime(s string) string {
 func WriteOrderBook(w io.Writer, format Format, ob domain.OrderBook) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(ob)
+		return writeJSON(w, ob)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"side", "level", "price", "volume"}); err != nil {
@@ -600,9 +573,7 @@ func WriteOrderBook(w io.Writer, format Format, ob domain.OrderBook) error {
 func WriteSellableQuantity(w io.Writer, format Format, sq domain.SellableQuantity) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(sq)
+		return writeJSON(w, sq)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"product_code", "symbol", "sellable_quantity"}); err != nil {
@@ -629,9 +600,7 @@ func WriteSellableQuantity(w io.Writer, format Format, sq domain.SellableQuantit
 func WriteCommission(w io.Writer, format Format, c domain.Commission) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(c)
+		return writeJSON(w, c)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"product_code", "symbol", "commission_rate", "tax_rate"}); err != nil {
@@ -664,9 +633,7 @@ func formatPercent(rate float64) string {
 func WriteInvestorRankings(w io.Writer, format Format, ir domain.InvestorRankings) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(ir)
+		return writeJSON(w, ir)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"investor_type", "rank", "product_code", "name", "net_buy_amount", "close"}); err != nil {
@@ -702,9 +669,7 @@ func WriteInvestorRankings(w io.Writer, format Format, ir domain.InvestorRanking
 func WriteEarningCalls(w io.Writer, format Format, ec domain.EarningCalls) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(ec)
+		return writeJSON(w, ec)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"live_at", "company_name", "company_code", "title", "status", "category"}); err != nil {
@@ -753,9 +718,7 @@ func divAmt(a domain.DividendAmount) string {
 func WriteDividends(w io.Writer, format Format, d domain.Dividends) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(d)
+		return writeJSON(w, d)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"month", "total_krw", "total_usd"}); err != nil {
@@ -807,9 +770,7 @@ func WriteDividends(w io.Writer, format Format, d domain.Dividends) error {
 func WriteCommunityRanking(w io.Writer, format Format, r domain.CommunityRanking) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(r)
+		return writeJSON(w, r)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"rank", "nickname", "user_profile_id", "description", "profit_amount_krw", "profit_rate", "following_count", "following_increase"}); err != nil {
@@ -865,9 +826,7 @@ func WriteCommunityRanking(w io.Writer, format Format, r domain.CommunityRanking
 func WriteThemeRankings(w io.Writer, format Format, r domain.ThemeRankings) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(r)
+		return writeJSON(w, r)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"ranking", "tics_id", "title", "change_rate", "rise_company_count", "total_count"}); err != nil {
@@ -913,9 +872,7 @@ func WriteSectors(w io.Writer, format Format, sectors domain.Sectors) error {
 	list := sectors.Items
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(sectors)
+		return writeJSON(w, sectors)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"id", "title", "company_count", "one_day_rate", "one_month_rate", "one_year_rate"}); err != nil {
@@ -955,9 +912,7 @@ func WriteSectors(w io.Writer, format Format, sectors domain.Sectors) error {
 func WriteNewsBriefing(w io.Writer, format Format, b domain.NewsBriefing) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(b)
+		return writeJSON(w, b)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"category", "title", "agency", "created_at"}); err != nil {
@@ -1001,9 +956,7 @@ func WriteNewsBriefing(w io.Writer, format Format, b domain.NewsBriefing) error 
 func WriteRanking(w io.Writer, format Format, r domain.Ranking) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(r)
+		return writeJSON(w, r)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"rank", "symbol", "currency", "last_price", "base_price", "change_rate", "trading_volume", "trading_amount"}); err != nil {
@@ -1051,9 +1004,7 @@ func WriteRanking(w io.Writer, format Format, r domain.Ranking) error {
 func WriteMarketIndicatorPrices(w io.Writer, format Format, p domain.MarketIndicatorPrices) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(p)
+		return writeJSON(w, p)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"symbol", "last_price", "timestamp"}); err != nil {
@@ -1086,9 +1037,7 @@ func WriteMarketIndicatorPrices(w io.Writer, format Format, p domain.MarketIndic
 func WriteMarketIndicatorCandles(w io.Writer, format Format, c domain.MarketIndicatorCandles) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(c)
+		return writeJSON(w, c)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"timestamp", "open", "high", "low", "close", "volume"}); err != nil {
@@ -1138,9 +1087,7 @@ func WriteMarketIndicatorCandles(w io.Writer, format Format, c domain.MarketIndi
 func WriteInvestorTrading(w io.Writer, format Format, it domain.InvestorTrading) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(it)
+		return writeJSON(w, it)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"date", "individual_net", "foreigner_net", "institution_net", "other_net"}); err != nil {

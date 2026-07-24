@@ -2,7 +2,6 @@ package output
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -14,9 +13,7 @@ import (
 func WriteTradingPreview(w io.Writer, format Format, preview trading.Preview) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(preview)
+		return writeJSON(w, preview)
 	case FormatCSV:
 		writer := csv.NewWriter(w)
 		if err := writer.Write([]string{"kind", "confirm_token", "canonical", "warnings"}); err != nil {
@@ -64,9 +61,7 @@ func WriteTradingPreview(w io.Writer, format Format, preview trading.Preview) er
 func WriteMutationResult(w io.Writer, format Format, result trading.MutationResult) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(result)
+		return writeJSON(w, result)
 	case FormatCSV:
 		writer := csv.NewWriter(w)
 		if err := writer.Write([]string{"kind", "status", "order_id", "original_order_id", "current_order_id", "symbol", "market", "quantity", "filled_quantity", "price", "average_execution_price", "order_date"}); err != nil {

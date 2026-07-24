@@ -2,7 +2,6 @@ package output
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -16,9 +15,7 @@ import (
 func WriteConditionalOrders(w io.Writer, format Format, l domain.ConditionalOrderList) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(l)
+		return writeJSON(w, l)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"id", "type", "status", "symbol", "quantity", "order_type", "expire_date"}); err != nil {
@@ -56,9 +53,7 @@ func WriteConditionalOrders(w io.Writer, format Format, l domain.ConditionalOrde
 func WriteConditionalOrder(w io.Writer, format Format, o domain.ConditionalOrder) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(o)
+		return writeJSON(w, o)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"leg", "cond_type", "status", "trigger_price", "order_price", "target_profit_rate"}); err != nil {

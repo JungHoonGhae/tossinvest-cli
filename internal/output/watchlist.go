@@ -2,7 +2,6 @@ package output
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io"
 
@@ -13,9 +12,7 @@ import (
 func WriteWatchlist(w io.Writer, format Format, items []domain.WatchlistItem) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(items)
+		return writeJSON(w, items)
 	case FormatCSV:
 		writer := csv.NewWriter(w)
 		if err := writer.Write([]string{"group", "symbol", "name", "currency", "base", "last"}); err != nil {
@@ -91,9 +88,7 @@ func WriteWatchlist(w io.Writer, format Format, items []domain.WatchlistItem) er
 func WriteWatchlistGroups(w io.Writer, format Format, groups []domain.WatchlistGroup) error {
 	switch format {
 	case FormatJSON:
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(groups)
+		return writeJSON(w, groups)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"id", "name", "type", "item_count"}); err != nil {

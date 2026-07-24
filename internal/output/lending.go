@@ -2,7 +2,6 @@ package output
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -15,9 +14,7 @@ import (
 func WriteLendingExpected(w io.Writer, format Format, l domain.LendingExpected) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(l)
+		return writeJSON(w, l)
 	case FormatCSV:
 		writer := csv.NewWriter(w)
 		if err := writer.Write([]string{"product_code", "name", "amount_usd"}); err != nil {

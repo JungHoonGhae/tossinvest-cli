@@ -2,7 +2,6 @@ package output
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -15,9 +14,7 @@ import (
 func WriteTransactions(w io.Writer, format Format, items []domain.Transaction) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(items)
+		return writeJSON(w, items)
 	case FormatCSV:
 		writer := csv.NewWriter(w)
 		if err := writer.Write([]string{
@@ -116,9 +113,7 @@ func WriteTransactions(w io.Writer, format Format, items []domain.Transaction) e
 func WriteTransactionsOverview(w io.Writer, format Format, overview domain.TransactionOverview) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(overview)
+		return writeJSON(w, overview)
 	case FormatCSV:
 		writer := csv.NewWriter(w)
 		if err := writer.Write([]string{"section", "date", "krw", "usd", "note"}); err != nil {

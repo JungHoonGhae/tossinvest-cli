@@ -2,7 +2,6 @@ package output
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -16,9 +15,7 @@ import (
 func WriteAccumulationPlans(w io.Writer, format Format, p domain.AccumulationPlans) error {
 	switch format {
 	case FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(p)
+		return writeJSON(w, p)
 	case FormatCSV:
 		writer := csv.NewWriter(w)
 		header := []string{
