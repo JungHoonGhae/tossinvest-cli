@@ -163,15 +163,15 @@ func readOperations() []Operation {
 			},
 		},
 		{
-			ID: "sellable_quantity", Method: "GET", Path: "/api/v1/sellable-quantity",
-			Category: "order", Summary: "Sellable quantity for a symbol.",
+			ID: "sellable_quantity", Method: "GET", Path: "/api/v1/sellable-quantity", Backend: "auto",
+			Category: "order", Summary: "Sellable quantity for a symbol. Served by either backend (official first, web-session fallback).",
 			Params: []Param{{Name: "symbol", Type: "string", Required: true}},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbol, err := argString(args, "symbol")
 				if err != nil {
 					return nil, err
 				}
-				return d.Client.SellableQuantity(ctx, symbol)
+				return d.WTS.GetSellableQuantity(ctx, symbol)
 			},
 		},
 		{
@@ -199,20 +199,20 @@ func readOperations() []Operation {
 			},
 		},
 		{
-			ID: "orderbook", Method: "GET", Path: "/api/v1/orderbook",
-			Category: "market", Summary: "Order book (bids/asks) for a symbol.",
+			ID: "orderbook", Method: "GET", Path: "/api/v1/orderbook", Backend: "auto",
+			Category: "market", Summary: "Order book (bids/asks) for a symbol. Served by either backend (official first, web-session fallback).",
 			Params: []Param{{Name: "symbol", Type: "string", Required: true}},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbol, err := argString(args, "symbol")
 				if err != nil {
 					return nil, err
 				}
-				return d.Client.Orderbook(ctx, symbol)
+				return d.WTS.GetOrderBook(ctx, symbol)
 			},
 		},
 		{
-			ID: "trades", Method: "GET", Path: "/api/v1/trades",
-			Category: "market", Summary: "Recent trades for a symbol.",
+			ID: "trades", Method: "GET", Path: "/api/v1/trades", Backend: "auto",
+			Category: "market", Summary: "Recent trades for a symbol. Served by either backend (official first, web-session fallback).",
 			Params: []Param{
 				{Name: "symbol", Type: "string", Required: true},
 				{Name: "count", Type: "integer", Desc: "number of trades (0 = API default)"},
@@ -226,7 +226,7 @@ func readOperations() []Operation {
 				if err != nil {
 					return nil, err
 				}
-				return d.Client.Trades(ctx, symbol, count)
+				return d.WTS.GetTrades(ctx, symbol, count)
 			},
 		},
 		{
@@ -264,27 +264,27 @@ func readOperations() []Operation {
 			},
 		},
 		{
-			ID: "price_limits", Method: "GET", Path: "/api/v1/price-limits",
-			Category: "market", Summary: "Upper/lower price limits for a symbol.",
+			ID: "price_limits", Method: "GET", Path: "/api/v1/price-limits", Backend: "auto",
+			Category: "market", Summary: "Upper/lower price limits for a symbol. Served by either backend (official first, web-session fallback).",
 			Params: []Param{{Name: "symbol", Type: "string", Required: true}},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbol, err := argString(args, "symbol")
 				if err != nil {
 					return nil, err
 				}
-				return d.Client.PriceLimits(ctx, symbol)
+				return d.WTS.GetPriceLimits(ctx, symbol)
 			},
 		},
 		{
-			ID: "warnings", Method: "GET", Path: "/api/v1/stocks/{symbol}/warnings",
-			Category: "market", Summary: "Trading warnings/designations for a symbol.",
+			ID: "warnings", Method: "GET", Path: "/api/v1/stocks/{symbol}/warnings", Backend: "auto",
+			Category: "market", Summary: "Trading warnings/designations for a symbol. Served by either backend (official first, web-session fallback).",
 			Params: []Param{{Name: "symbol", Type: "string", Required: true}},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbol, err := argString(args, "symbol")
 				if err != nil {
 					return nil, err
 				}
-				return d.Client.Warnings(ctx, symbol)
+				return d.WTS.GetStockWarnings(ctx, symbol)
 			},
 		},
 		{
@@ -307,15 +307,15 @@ func readOperations() []Operation {
 			},
 		},
 		{
-			ID: "commissions", Method: "GET", Path: "/api/v1/commissions",
-			Category: "market", Summary: "Commission/fee schedule for a symbol.",
+			ID: "commissions", Method: "GET", Path: "/api/v1/commissions", Backend: "auto",
+			Category: "market", Summary: "Commission/fee schedule for a symbol. Served by either backend (official first, web-session fallback).",
 			Params: []Param{{Name: "symbol", Type: "string", Required: true}},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbol, err := argString(args, "symbol")
 				if err != nil {
 					return nil, err
 				}
-				return d.Client.Commissions(ctx, symbol)
+				return d.WTS.GetCommission(ctx, symbol)
 			},
 		},
 		{

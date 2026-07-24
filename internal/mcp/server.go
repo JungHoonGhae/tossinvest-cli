@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 
-	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
@@ -37,20 +37,26 @@ type Server struct {
 const baseInstructions = "Toss Securities via a 3-tool catalog. Call list_operations first " +
 	"(optionally with a query) to find an operation id, then describe_operation for its parameter " +
 	"schema, then call_operation to run it. Operations with backend \"wts\" need a Toss web session " +
-	"(`tossctl auth login`); the rest need official Open API credentials (`tossctl openapi login`). " +
+	"(`tossctl auth login`); those with backend \"auto\" work with either credential (official first, " +
+	"web-session fallback); the rest need official Open API credentials (`tossctl openapi login`). " +
 	"Order writes are gated: config opt-in plus execute + confirm token (a plain call returns a dry-run preview)."
 
 // NewServer constructs a Server over the given backends. official serves the
-// official Open API operations (and, via tradingSvc, gated order mutations);
-// wts serves the WTS-only read operations (rankings, flows, signals, etc.).
-// Either may be nil when its credential/session is absent — operations that
-// need the missing one return a clear "run login" error. tradingSvc drives
-// gated order-mutation operations; pass one built on an OfficialBroker so writes
-// never touch a WTS session.
-func NewServer(official *official.Client, wts *tossclient.Client, tradingSvc *trading.Service, name, version string) *Server {
+// official-only Open API operations (and, via tradingSvc, gated order
+// mutations); routed is the hybrid router that serves the WTS reads and the
+// "auto" reads, giving agents the same official→WTS fallback the CLI has.
+//
+// official may be nil when its credentials are absent. routed is expected to
+// be non-nil whenever any credential is present; because it is built even
+// without a web session, Catalog.Call gates WTS operations on the auth
+// snapshot (see SetAuthStatus) rather than on nilness. Operations whose
+// backend is unavailable return a clear "run login" error. tradingSvc drives
+// gated order-mutation operations; pass one built on an OfficialBroker so
+// writes never touch a WTS session.
+func NewServer(official *official.Client, routed *hybrid.Client, tradingSvc *trading.Service, name, version string) *Server {
 	return &Server{
 		catalog:      NewCatalog(),
-		deps:         &Deps{Client: official, WTS: wts, Trading: tradingSvc},
+		deps:         &Deps{Client: official, WTS: routed, Trading: tradingSvc},
 		name:         name,
 		version:      version,
 		instructions: baseInstructions,

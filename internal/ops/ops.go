@@ -26,22 +26,27 @@ import (
 	"strings"
 	"time"
 
-	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
 
-// Deps carries the backends a handler may need. Official read operations use
-// Client; WTS-only read operations (Backend "wts") use WTS (the web-session
-// client); write (order-mutation) operations go through Trading, which applies
-// the config gate, dry-run preview, and confirm-token flow — the same policy
-// the `tossctl order` CLI enforces. Trading routes to an official-only broker,
-// so order writes never touch a WTS session. Client and WTS are each optional
-// (nil when that credential/session is absent); Catalog.Call checks the one an
-// operation needs and returns a clear "run login" error when it is missing.
+// Deps carries the backends a handler may need. Official-only read operations
+// use Client; WTS reads and "auto" reads use WTS; write (order-mutation)
+// operations go through Trading, which applies the config gate, dry-run
+// preview, and confirm-token flow — the same policy the `tossctl order` CLI
+// enforces. Trading routes to an official-only broker, so order writes never
+// touch a WTS session. Client and WTS are each optional (nil when that
+// credential/session is absent); Catalog.Call checks the one an operation
+// needs and returns a clear "run login" error when it is missing.
+//
+// WTS is the hybrid router rather than the bare web-session client, so agents
+// get the same official→WTS fallback the CLI has always had (see
+// internal/hybrid). With no official credentials the router degrades to a pure
+// WTS passthrough, which is exactly the pre-hybrid behaviour.
 type Deps struct {
 	Client  *official.Client
-	WTS     *tossclient.Client
+	WTS     *hybrid.Client
 	Trading *trading.Service
 	Auth    AuthStatus
 }
@@ -92,8 +97,10 @@ type Operation struct {
 	// are gated by config and require an explicit execute + confirm token.
 	Write bool `json:"write"`
 	// Backend selects which authenticated client the operation needs: "" (default)
-	// = the official Open API client; "wts" = the web-session client. Catalog.Call
-	// verifies the matching client is present before dispatching.
+	// = the official Open API client; "wts" = the web-session client; "auto" =
+	// either one, because the hybrid router serves it (tries official, falls back
+	// to WTS). Catalog.Call verifies the matching client is present before
+	// dispatching.
 	Backend string  `json:"backend,omitempty"`
 	Params  []Param `json:"params"`
 	// Probe, when set, is the monitoring spec derived by internal/monitor.
@@ -189,8 +196,20 @@ func (c *Catalog) Call(ctx context.Context, deps *Deps, id string, args map[stri
 	case "none":
 		// No auth required (e.g. auth_status) — always callable.
 	case "wts":
-		if deps.WTS == nil {
+		// WTS is the hybrid router, which is built whenever any credential is
+		// present — so presence alone does not imply a web session. Auth is the
+		// authoritative signal.
+		if deps.WTS == nil || !deps.Auth.WTS.Connected {
 			return nil, fmt.Errorf("operation %q needs a Toss web session; run `tossctl auth login`", id)
+		}
+	case "auto":
+		// Served by the hybrid router (official first, WTS fallback), so either
+		// credential is enough.
+		if !deps.Auth.WTS.Connected && !deps.Auth.Official.Connected {
+			return nil, fmt.Errorf("operation %q needs either official Open API credentials (`tossctl openapi login`) or a Toss web session (`tossctl auth login`)", id)
+		}
+		if deps.WTS == nil {
+			return nil, fmt.Errorf("operation %q cannot run: no routed client was wired", id)
 		}
 	default: // official
 		if deps.Client == nil {

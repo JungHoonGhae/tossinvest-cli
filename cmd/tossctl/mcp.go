@@ -8,6 +8,7 @@ import (
 	"time"
 
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/mcp"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
@@ -80,7 +81,23 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 				return fmt.Errorf("no credentials found; run `tossctl openapi login` (official API) and/or `tossctl auth login` (WTS web session) first")
 			}
 
-			server := mcp.NewServer(officialClient, wtsClient, tradingSvc, "tossinvest-cli", version.Current().Version)
+			// Hybrid router — the same official→WTS fallback the CLI applies, so
+			// agents and humans resolve a read the same way. hybrid embeds the WTS
+			// client, so it needs a non-nil one even when no session exists; the
+			// sessionless client is never reached, because Catalog.Call gates WTS
+			// operations on the auth snapshot set below.
+			routedWTS := wtsClient
+			if routedWTS == nil {
+				routedWTS = tossclient.New(tossclient.Config{TradingPolicy: cfg.Trading})
+			}
+			prefer, err := resolveBackend(cfg.OpenAPI, opts.backend)
+			if err != nil {
+				return err
+			}
+			routed := hybrid.New(routedWTS, officialClient,
+				hybrid.Policy{Prefer: prefer, Fallback: cfg.OpenAPI.Fallback}, os.Stderr)
+
+			server := mcp.NewServer(officialClient, routed, tradingSvc, "tossinvest-cli", version.Current().Version)
 
 			// Read-only auth snapshot for the auth_status operation (no secrets —
 			// only connected flags + expiry timestamps).

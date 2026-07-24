@@ -26,7 +26,7 @@ func TestRegistryInvariants(t *testing.T) {
 		seenID[o.ID] = true
 
 		switch o.Backend {
-		case "", "wts", "none":
+		case "", "wts", "none", "auto":
 		default:
 			t.Errorf("%s: unknown backend %q", o.ID, o.Backend)
 		}

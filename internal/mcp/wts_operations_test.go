@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 )
 
@@ -19,7 +21,17 @@ func driveWTS(t *testing.T, wts *tossclient.Client, lines ...string) []map[strin
 	t.Helper()
 	in := strings.NewReader(strings.Join(lines, "\n") + "\n")
 	var out bytes.Buffer
-	s := NewServer(nil, wts, nil, "test", "0.0.0")
+	// Mirror cmd/tossctl/mcp.go: the router is always built (with a sessionless
+	// client when there is no session) and the auth snapshot — not nilness — is
+	// what tells Catalog.Call whether a web session exists. With no official
+	// client the router degrades to a pure WTS passthrough.
+	routedWTS := wts
+	if routedWTS == nil {
+		routedWTS = tossclient.New(tossclient.Config{})
+	}
+	routed := hybrid.New(routedWTS, nil, hybrid.Policy{Prefer: "wts"}, io.Discard)
+	s := NewServer(nil, routed, nil, "test", "0.0.0")
+	s.SetAuthStatus(AuthStatus{WTS: BackendStatus{Connected: wts != nil}})
 	if err := s.Serve(context.Background(), in, &out); err != nil {
 		t.Fatalf("Serve: %v", err)
 	}

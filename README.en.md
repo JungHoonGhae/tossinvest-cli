@@ -362,7 +362,8 @@ those three tools.)
 
 MCP exposes **reads from both the official Open API and WTS-only features**, and keeps
 **order writes on the official API path only**. Each operation is tagged with a `backend`
-(`"wts"` or official) in `list_operations`.
+in `list_operations`: `"wts"` (needs a web session), `"auto"` (**either credential works** —
+official first, web-session fallback), or official-only otherwise.
 
 - **Reads.** Official (accounts, quotes, orderbook, candles…) plus **WTS-only** (rankings,
   flows, AI signals, screener, sectors, earnings, briefing, dividends — the
