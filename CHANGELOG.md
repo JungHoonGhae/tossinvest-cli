@@ -4,6 +4,14 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 
 ## [Unreleased]
 
+### 새 기능
+- **`profit summary`, `profit daily`** — 실현손익을 **기간별·종목별로** 볼 수 있습니다. 기존 `profit` 은 누적 총액만 보여줬습니다.
+  - `profit summary --type sales|dividend|lending|account-interest [--from --to]` — 카테고리 하나의 수익금·수익률·매입금액 (KRW/USD). 날짜를 생략하면 전체 기간입니다.
+  - `profit daily [--from --to] [--currency KRW|USD]` — 종목별·일자별 실현손익(수량·손익·수익률·매도/매수 금액)을 페이지 전체를 모아 보여줍니다. `--output csv` 로 해외주식 양도소득 신고 준비에 바로 쓸 수 있습니다.
+  - `--currency` 는 **필터가 아니라 수익률 기준 통화** 입니다. 같은 종목이라도 원화 기준 수익률에는 환율 변동이 섞이고, 달러 기준에는 섞이지 않습니다.
+  - 잘못된 카테고리·통화나 미래 날짜는 네트워크 호출 없이 즉시 알려줍니다.
+  - MCP 에서도 `profit_period`·`profit_daily` 오퍼레이션으로 노출됩니다. 웹앱(WTS) 전용.
+
 ## [0.27.0] - 2026-07-25
 
 ### 개선

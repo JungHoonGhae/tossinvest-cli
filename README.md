@@ -233,6 +233,8 @@ Waiting for approval in the Toss app on your phone...
 | **실적(어닝콜) 일정** | `market earnings` (`--major` 주요 기업 큐레이션) | ❌ | ✅ |
 | **배당 내역** | `portfolio dividends` (연간 총액·지역·월별, `--by-payment-date` 세금) | ❌ | ✅ |
 | **🆕 누적 실현손익** | `profit` (매매손익·배당·대여·만기·예탁금이자, KRW/USD — account summary 와 다른 누적 관점) | ❌ | ✅ |
+| **🆕 기간별 실현손익** | `profit summary --type sales\|dividend\|lending\|account-interest [--from --to]` (카테고리 하나의 수익금·수익률·매입금액, KRW/USD) | ❌ | ✅ |
+| **🆕 종목별 일자별 실현손익** | `profit daily [--from --to] [--currency KRW\|USD]` (종목·수량·손익·수익률·매도/매수 금액, 전체 페이지 병합 — 세금 준비용 CSV) | ❌ | ✅ |
 | **🆕 해외 양도소득(세금)** | `tax overseas --year YYYY` (양도소득세 신고용: 세율·공제·종목별 손익) | ❌ | ✅ |
 | **예상 대여수익** | `lending expected` (주식대여 예상 수익: 월/연 USD + 종목별) | ❌ | ✅ |
 | **Prime 구독 상태·혜택** | `account prime` (수수료·이자 3단 비교: 일반/Prime/내 적용) | ❌ | ✅ |
@@ -669,6 +671,8 @@ tossctl portfolio positions
 tossctl portfolio allocation
 tossctl portfolio dividends [--year YYYY] [--by-payment-date]
 tossctl profit                                   # 누적 실현손익 (카테고리별)
+tossctl profit summary --type sales --from 2026-01-01 --to 2026-07-25   # 기간별
+tossctl profit daily --from 2026-01-01 --to 2026-07-25 --output csv      # 종목별 (세금용)
 tossctl tax overseas [--year YYYY]               # 해외주식 양도소득 (세금)
 tossctl accumulate list|status <symbol>          # 주식모으기 (모바일 앱 전용)
 tossctl market investors|earnings|briefing|sectors|themes|index|ranking|signals

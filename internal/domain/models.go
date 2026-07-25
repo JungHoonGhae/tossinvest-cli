@@ -863,6 +863,48 @@ type ProfitOverview struct {
 	FetchedAt        time.Time    `json:"fetched_at"`
 }
 
+// PeriodProfit is realized profit for ONE profit type over a date range —
+// the period-scoped counterpart to ProfitOverview (which is all-time and covers
+// every type at once). Range is "all" when no dates were given.
+type PeriodProfit struct {
+	Type           string       `json:"type"` // sales | dividend | lending | account-interest
+	From           string       `json:"from,omitempty"`
+	To             string       `json:"to,omitempty"`
+	EarningAmount  DualCurrency `json:"earning_amount"`
+	EarningRate    DualCurrency `json:"earning_rate"`
+	PurchaseAmount DualCurrency `json:"purchase_amount"`
+	FetchedAt      time.Time    `json:"fetched_at"`
+}
+
+// DailyProfitStock is one stock's realized profit on one date, as reported by
+// the daily market breakdown.
+type DailyProfitStock struct {
+	Date        string       `json:"date"` // YYYY-MM-DD
+	MarketType  string       `json:"market_type"`
+	Symbol      string       `json:"symbol"`
+	Name        string       `json:"name"`
+	ProductCode string       `json:"product_code"`
+	Quantity    float64      `json:"quantity"`
+	ProfitLoss  DualCurrency `json:"profit_loss"`
+	ProfitRate  float64      `json:"profit_rate"`
+	SellAmount  DualCurrency `json:"sell_amount"`
+	BuyAmount   DualCurrency `json:"buy_amount"`
+}
+
+// DailyProfit is the per-stock realized-profit breakdown over a date range,
+// aggregated across every page the API returns.
+//
+// Currency is the BASIS the rates were computed against, not a filter: the same
+// rows come back either way, but ProfitRate for a foreign holding differs
+// because the KRW basis folds in FX movement and the USD basis does not.
+type DailyProfit struct {
+	From      string             `json:"from,omitempty"`
+	To        string             `json:"to,omitempty"`
+	Currency  string             `json:"currency"`
+	Stocks    []DailyProfitStock `json:"stocks"`
+	FetchedAt time.Time          `json:"fetched_at"`
+}
+
 // TransferIncomeStock is one stock's overseas transfer-income (양도소득) line
 // for a tax year: quantities, sell/buy amounts, and realized profit/loss.
 type TransferIncomeStock struct {

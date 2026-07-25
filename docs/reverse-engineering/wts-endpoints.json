@@ -1,11 +1,11 @@
 {
   "source": "tossinvest.com web bundles",
-  "build_id": "gMdbJqLz1CzePoxetm-D2",
+  "build_id": "xkQNNf2H_FwrnlhjqBSW_",
   "chunk_count": 25,
   "total": 935,
   "counts": {
-    "implemented": 74,
-    "candidate": 364,
+    "implemented": 76,
+    "candidate": 362,
     "excluded": 497,
     "candidate_next": 20,
     "meaningful": 438
@@ -1971,11 +1971,11 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/profit/type/overview": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/profit/wts/daily/market": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/promotion/account-open-quiz": {
@@ -4290,5 +4290,5 @@
       "first_seen": "2026-06-19"
     }
   },
-  "updated_at": "2026-07-22"
+  "updated_at": "2026-07-25"
 }

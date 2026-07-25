@@ -60,3 +60,33 @@ CLI 와 MCP 는 **같은 라우터를 공유한다** — 사람이 부르든 에
 hybrid 라우터는 세션이 없어도 구성되므로(임베드된 WTS 클라이언트가 non-nil 이어야 함),
 **"웹 세션이 있는가" 의 판정 기준은 포인터의 nil 여부가 아니라 이 스냅샷이다.**
 `Catalog.Call` 의 게이팅이 이 값을 본다.
+
+## 실현손익 (realized profit)
+
+**cumulative vs period-scoped** — 두 가지를 구분한다. `profit`(=`profit/overview`)은
+**누적 전체**로 모든 카테고리를 한 번에 준다. `profit summary`(=`profit/type/overview`)는
+**기간 지정**으로 카테고리 하나를 준다. 같은 낱말을 쓰지만 축이 다르므로 섞어 쓰지 않는다.
+
+**profitType** — 실현손익 카테고리. `sales`(매매손익) · `dividend`(배당) ·
+`lending`(주식대여) · `account-interest`(예탁금이자). 서버는 이 외의 값에 400 을 준다.
+로컬에서 검증하므로 토스가 5번째를 추가하면 우리가 먼저 거부한다 — 주간 모니터는
+카탈로그 변화는 잡지만 **enum 값 변화는 못 잡는다**는 점을 감수한 선택이다.
+
+**rangeType** — 실질적으로 **2상태 플래그**다. `all` 이면 날짜를 무시하고 전체 기간을,
+그 외 값이면 `startDate`~`endDate` 를 쓴다. 라이브 측정: 동일 날짜에서
+`day`/`week`/`month`/`year` 의 응답이 **바이트 단위로 같고** `all` 만 다르다.
+사용자에게 노출하지 않는다 — 의미 없는 축인데다 **인식 못 하는 값에 서버가 500 을
+반환**하기 때문이다. 날짜 유무로 우리가 결정한다.
+
+**rate basis (수익률 기준 통화)** — `profit daily` 의 `currency` 는 **필터가 아니다.**
+`KRW`/`USD` 어느 쪽이든 **같은 행 집합**이 오고 `profitRate` 만 달라진다. 해외 종목의
+원화 수익률에는 환율 변동이 섞이고 달러 기준에는 섞이지 않기 때문이다. 따라서 두 통화를
+합쳐 조회하면 **모든 행이 중복된다** — 호출은 한 번만 한다.
+
+**날짜 표기** — 요청은 `YYYYMMDD`. 응답의 `baseDate` 는 이를 되돌려주지 않고 표시용
+`YY.M.D`(월·일 패딩 없음)로 온다. `formatBaseDate` 가 `YYYY-MM-DD` 로 정규화한다.
+**미래 endDate 는 400** 이므로 로컬에서 먼저 막는다.
+
+**호스트** — profit 계열은 전부 `wts-cert-api` 다(`CertBaseURL`). 같은 화면의
+`dashboard/intelligences/all` 은 `wts-info-api` 로, 화면 하나가 여러 호스트를 섞어 쓴다.
+새 엔드포인트를 붙일 때 **경로만 보고 호스트를 짐작하지 말 것.**

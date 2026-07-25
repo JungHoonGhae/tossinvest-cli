@@ -5,7 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
+
+	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 )
 
 // Probe hosts — raw URLs on purpose (probes bypass the typed client so a
@@ -240,6 +244,58 @@ func wtsOperations() []Operation {
 				}},
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.GetProfitOverview(ctx)
+			},
+		},
+		{
+			ID: "profit_period", Method: "POST", Path: "wts:profit/type/overview", Backend: "wts",
+			Category: "portfolio", Summary: "Realized profit for ONE category over a date range — earned amount, return rate, and purchase basis in KRW and USD. Omit from/to for the whole history. The period-scoped counterpart to profit_overview (all-time, every category). WTS-only.",
+			Params: []Param{
+				{Name: "type", Type: "string", Desc: "category: sales | dividend | lending | account-interest (default sales)"},
+				{Name: "from", Type: "string", Desc: "start date YYYY-MM-DD; omit for all time (must be paired with to)"},
+				{Name: "to", Type: "string", Desc: "end date YYYY-MM-DD, not in the future; omit for all time"},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				profitType, err := argString(args, "type")
+				if err != nil {
+					return nil, err
+				}
+				if profitType == "" {
+					profitType = "sales"
+				}
+				if !slices.Contains(tossclient.ProfitTypes, profitType) {
+					return nil, fmt.Errorf("type must be one of %s", strings.Join(tossclient.ProfitTypes, ", "))
+				}
+				from, to, err := profitRangeArgs(args)
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetPeriodProfit(ctx, profitType, from, to)
+			},
+		},
+		{
+			ID: "profit_daily", Method: "POST", Path: "wts:profit/wts/daily/market", Backend: "wts",
+			Category: "portfolio", Summary: "Per-stock realized profit day by day — symbol, quantity, profit/loss, return rate, and the sell/buy amounts behind it, every page combined. Answers \"what did this position actually make?\" and feeds tax prep. currency selects the RATE BASIS (KRW folds in FX for foreign holdings, USD does not); it is not a filter — the same rows come back either way. WTS-only.",
+			Params: []Param{
+				{Name: "from", Type: "string", Desc: "start date YYYY-MM-DD; omit for all time (must be paired with to)"},
+				{Name: "to", Type: "string", Desc: "end date YYYY-MM-DD, not in the future; omit for all time"},
+				{Name: "currency", Type: "string", Desc: "rate basis: KRW (default) | USD — not a filter"},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				currency, err := argString(args, "currency")
+				if err != nil {
+					return nil, err
+				}
+				if currency != "" {
+					currency = strings.ToUpper(currency)
+					if !slices.Contains(tossclient.ProfitCurrencies, currency) {
+						return nil, fmt.Errorf("currency must be one of %s", strings.Join(tossclient.ProfitCurrencies, ", "))
+					}
+				}
+				from, to, err := profitRangeArgs(args)
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetDailyProfit(ctx, from, to, currency)
 			},
 		},
 		{
@@ -540,4 +596,18 @@ func wtsOperations() []Operation {
 			},
 		},
 	}
+}
+
+// profitRangeArgs reads the shared from/to pair and validates it through the
+// same helper the CLI uses, so both surfaces reject the same inputs.
+func profitRangeArgs(args map[string]any) (string, string, error) {
+	from, err := argString(args, "from")
+	if err != nil {
+		return "", "", err
+	}
+	to, err := argString(args, "to")
+	if err != nil {
+		return "", "", err
+	}
+	return tossclient.ParseProfitRange(from, to)
 }
