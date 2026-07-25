@@ -161,3 +161,57 @@ func TestGetNon2xxReturnsClassifiedError(t *testing.T) {
 		t.Fatalf("expected ShouldFallback=true for server error, got false; err=%v", err)
 	}
 }
+
+// TestDeleteAcctRetriesOn401 locks the DELETE leg of the shared send() flow.
+// Before send() existed each verb hand-rolled its own token/401-retry loop and
+// only the GET one was covered, so a divergence in the DELETE loop would have
+// gone unnoticed. It also asserts the account header still rides along, since
+// that is the part deleteAcct adds on top of send().
+func TestDeleteAcctRetriesOn401(t *testing.T) {
+	var calls int
+	var gotAccount string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/accounts":
+			_, _ = w.Write([]byte(`{"result":{"accounts":[{"accountNo":"1","accountSeq":7}]}}`))
+		case "/api/v1/orders/abc":
+			if r.Method != http.MethodDelete {
+				t.Errorf("method = %q, want DELETE", r.Method)
+			}
+			calls++
+			if calls == 1 {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			gotAccount = r.Header.Get("X-Tossinvest-Account")
+			if r.Header.Get("Authorization") != "Bearer AT" {
+				t.Errorf("Authorization = %q", r.Header.Get("Authorization"))
+			}
+			_, _ = w.Write([]byte(`{"result":{"cancelled":true}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(Credentials{APIKey: "k", SecretKey: "s"}, filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL), WithHTTPClient(srv.Client()), WithAccountSeq(7))
+
+	var out struct {
+		Cancelled bool `json:"cancelled"`
+	}
+	if err := c.deleteAcct(context.Background(), "/api/v1/orders/abc", &out); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 2 {
+		t.Fatalf("expected one retry after 401, calls=%d", calls)
+	}
+	if !out.Cancelled {
+		t.Fatal("envelope not unwrapped")
+	}
+	if gotAccount != "7" {
+		t.Fatalf("X-Tossinvest-Account = %q, want 7", gotAccount)
+	}
+}

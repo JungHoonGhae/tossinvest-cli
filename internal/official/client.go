@@ -173,22 +173,18 @@ func (c *Client) postAcct(ctx context.Context, path string, body any, out any) e
 }
 
 // deleteAcct performs an authenticated DELETE with the account header, mirroring
-// getWithHeaders' token/401-retry/unwrap flow (there is no generic doWithHeaders).
-func (c *Client) deleteAcct(ctx context.Context, path string, out any) error {
-	seq, err := c.ensureAccountSeq(ctx)
-	if err != nil {
-		return err
-	}
-	rawURL := c.base + path
-	makeReq := func(tok string) (*http.Request, error) {
-		req, err := http.NewRequestWithContext(ctx, http.MethodDelete, rawURL, nil)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %s", ErrTransport, err)
-		}
-		req.Header.Set("Authorization", "Bearer "+tok)
-		req.Header.Set("X-Tossinvest-Account", strconv.Itoa(seq))
-		return req, nil
-	}
+// send runs the authenticated-request flow every verb shares: acquire a token,
+// build the request, retry ONCE with a refreshed token on 401, classify non-2xx,
+// and unwrap the `result` envelope into out (out may be nil).
+//
+// Callers supply makeReq because that is the only part that differs between
+// verbs — method, body, query, and per-request headers. Keeping the retry here
+// means the auth policy is decided in one place; it used to be hand-repeated in
+// getWithHeaders, postWithHeaders and deleteAcct, where it could silently drift.
+//
+// makeReq must be callable twice: the retry rebuilds the request so the new
+// token is applied (and so a consumed body reader is not reused).
+func (c *Client) send(ctx context.Context, makeReq func(tok string) (*http.Request, error), out any) error {
 	tok, err := c.tm.token(ctx)
 	if err != nil {
 		return err
@@ -202,6 +198,7 @@ func (c *Client) deleteAcct(ctx context.Context, path string, out any) error {
 		return err
 	}
 	if code == http.StatusUnauthorized {
+		// Force-refresh the token and retry once.
 		tok, err = c.tm.refresh(ctx)
 		if err != nil {
 			return err
@@ -219,6 +216,25 @@ func (c *Client) deleteAcct(ctx context.Context, path string, out any) error {
 		return classifyStatus(code, body)
 	}
 	return unwrapAndDecode(body, out)
+}
+
+// getWithHeaders' token/401-retry/unwrap flow.
+func (c *Client) deleteAcct(ctx context.Context, path string, out any) error {
+	seq, err := c.ensureAccountSeq(ctx)
+	if err != nil {
+		return err
+	}
+	rawURL := c.base + path
+	makeReq := func(tok string) (*http.Request, error) {
+		req, err := http.NewRequestWithContext(ctx, http.MethodDelete, rawURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s", ErrTransport, err)
+		}
+		req.Header.Set("Authorization", "Bearer "+tok)
+		req.Header.Set("X-Tossinvest-Account", strconv.Itoa(seq))
+		return req, nil
+	}
+	return c.send(ctx, makeReq, out)
 }
 
 // getWithHeaders performs an authenticated GET request to path (relative to
@@ -244,42 +260,7 @@ func (c *Client) getWithHeaders(ctx context.Context, path string, q url.Values, 
 		return req, nil
 	}
 
-	tok, err := c.tm.token(ctx)
-	if err != nil {
-		return err
-	}
-
-	req, err := makeReq(tok)
-	if err != nil {
-		return err
-	}
-
-	code, body, err := c.doRequest(req)
-	if err != nil {
-		return err
-	}
-
-	if code == http.StatusUnauthorized {
-		// Force-refresh the token and retry once.
-		tok, err = c.tm.refresh(ctx)
-		if err != nil {
-			return err
-		}
-		req, err = makeReq(tok)
-		if err != nil {
-			return err
-		}
-		code, body, err = c.doRequest(req)
-		if err != nil {
-			return err
-		}
-	}
-
-	if code < 200 || code >= 300 {
-		return classifyStatus(code, body)
-	}
-
-	return unwrapAndDecode(body, out)
+	return c.send(ctx, makeReq, out)
 }
 
 // post performs an authenticated POST request to path (relative to BaseURL).
@@ -317,39 +298,5 @@ func (c *Client) postWithHeaders(ctx context.Context, path string, body any, ext
 		return req, nil
 	}
 
-	tok, err := c.tm.token(ctx)
-	if err != nil {
-		return err
-	}
-
-	req, err := makeReq(tok)
-	if err != nil {
-		return err
-	}
-
-	code, respBody, doErr := c.doRequest(req)
-	if doErr != nil {
-		return doErr
-	}
-
-	if code == http.StatusUnauthorized {
-		tok, err = c.tm.refresh(ctx)
-		if err != nil {
-			return err
-		}
-		req, err = makeReq(tok)
-		if err != nil {
-			return err
-		}
-		code, respBody, doErr = c.doRequest(req)
-		if doErr != nil {
-			return doErr
-		}
-	}
-
-	if code < 200 || code >= 300 {
-		return classifyStatus(code, respBody)
-	}
-
-	return unwrapAndDecode(respBody, out)
+	return c.send(ctx, makeReq, out)
 }
