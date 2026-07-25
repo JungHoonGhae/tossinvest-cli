@@ -17,6 +17,7 @@
 //   node tools/capture_post_bodies.mjs <path>            # 예: /account/profit
 //   node tools/capture_post_bodies.mjs <path> --raw      # 값까지 (주의)
 //   node tools/capture_post_bodies.mjs <path> --wait 8   # 대기 초
+//   node tools/capture_post_bodies.mjs <path> --all      # 텔레메트리까지 포함
 //
 // 선행조건: `tossctl auth status` 의 Live Check 가 valid 여야 한다.
 
@@ -29,6 +30,10 @@ const args = process.argv.slice(2);
 const target = args.find((a) => !a.startsWith("--")) ?? "/";
 const raw = args.includes("--raw");
 const waitSec = Number(args[args.indexOf("--wait") + 1]) || 6;
+const keepNoise = args.includes("--all");
+
+// 텔레메트리·로깅 엔드포인트. 기능 발굴에 쓸모없고 출력의 절반을 차지한다.
+const NOISE = /\/(log|perf-log)\/bulk|\/tuba\/|\/wts-login-device/;
 
 const ORIGIN = "https://www.tossinvest.com";
 const PORT = 9333;
@@ -129,9 +134,19 @@ ws.onmessage = (e) => {
   if (m.id && pending.has(m.id)) { pending.get(m.id)(m.result); pending.delete(m.id); return; }
   if (m.method === "Network.requestWillBeSent") {
     const r = m.params.request;
-    if (r.method !== "GET" && r.url.includes("/api/")) {
-      seen.push({ method: r.method, url: r.url, postData: r.postData });
-    }
+    // OPTIONS 는 CORS 프리플라이트라 바디가 없다 — 노이즈.
+    if (r.method === "GET" || r.method === "OPTIONS") return;
+    if (!r.url.includes("/api/")) return;
+    if (!keepNoise && NOISE.test(r.url)) return;   // 텔레메트리 — --all 로 포함
+    // postData 는 바디가 작을 때만 인라인으로 온다. 그 외에는 hasPostData 만 서고
+    // Network.getRequestPostData 로 따로 받아야 한다 (라이브에서 대부분 이쪽).
+    seen.push({
+      method: r.method,
+      url: r.url,
+      postData: r.postData,
+      requestId: m.params.requestId,
+      hasPostData: r.hasPostData,
+    });
   }
 };
 
@@ -144,10 +159,24 @@ await send("Page.enable", {}, sessionId);
 await send("Page.navigate", { url: ORIGIN + target }, sessionId);
 await sleep(waitSec * 1000);
 
+// 인라인으로 안 온 바디를 requestId 로 회수한다.
+for (const r of seen) {
+  if (r.postData || !r.hasPostData) continue;
+  const res = await send("Network.getRequestPostData", { requestId: r.requestId }, sessionId);
+  r.postData = res?.postData;
+}
+
 console.log(`\n대상: ${ORIGIN}${target}`);
 console.log(`캡처된 non-GET /api/ 요청: ${seen.length}개` + (raw ? "  [--raw: 값 노출됨]" : "  [값 마스킹됨]"));
+// 같은 엔드포인트가 여러 번 불리면 한 번만 (로그 수집 등)
+const byKey = new Map();
 for (const r of seen) {
-  console.log(`\n── ${r.method} ${r.url.replace(/^https?:\/\/[^/]+/, "")}`);
+  const k = `${r.method} ${r.url.replace(/^https?:\/\/[^/]+/, "")}`;
+  if (!byKey.has(k)) byKey.set(k, { ...r, count: 1 });
+  else byKey.get(k).count++;
+}
+for (const [k, r] of byKey) {
+  console.log(`\n── ${k}${r.count > 1 ? `  (×${r.count})` : ""}`);
   console.log(show(r.postData));
 }
 if (!seen.length) {

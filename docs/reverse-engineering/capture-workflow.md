@@ -275,14 +275,26 @@ JS 주입(addInitScript)도, fetch 몽키패치도 필요 없다.
 tossctl auth status          # Live Check: valid 여야 함. 아니면 tossctl auth login
 node tools/capture_post_bodies.mjs /account/profit
 node tools/capture_post_bodies.mjs /account/profit --wait 10   # 느린 화면
+node tools/capture_post_bodies.mjs /account/profit --all       # 텔레메트리까지
 ```
 
-출력은 **값이 마스킹된 형태**다 — 구현에 필요한 건 키와 타입이지 실계좌 값이 아니다:
+출력은 **값이 마스킹된 형태**다 — 구현에 필요한 건 키와 타입이지 실계좌 값이 아니다.
+`/account/profit` 실측(2026-07-25), 텔레메트리 제외 14건 중 일부:
 
 ```
-── POST /api/v3/orders/search
-{ "accountNo": "<string>", "page": "<number>", "size": "<number>" }
+── POST /api/v3/profit/readable-tab
+{ "rangeType": "<string>", "startDate": "<string>", "endDate": "<string>" }
+
+── POST /api/v1/profit/wts/daily/market
+{ "currency": "<string>", "startDate": "<string>", "endDate": "<string>",
+  "page": "<number>", "size": "<number>" }
+
+── POST /api/v1/dashboard/intelligences/all  (×2)
+{ "types": ["<string>", "…(1개)"], "variable": { "isBrowserPushEnabled": "<boolean>" } }
 ```
+
+`log/bulk`·`perf-log`·`tuba/*`·`wts-login-device` 는 텔레메트리라 기본 제외된다
+(출력의 절반을 차지한다). 필요하면 `--all`.
 
 원본이 꼭 필요하면 `--raw` 를 쓰되 **그 출력은 커밋·PR·이슈에 남기지 말 것**
 (CLAUDE.md "공개 출력·테스트·문서에 실제 계좌 데이터 금지").
