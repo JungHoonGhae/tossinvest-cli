@@ -95,6 +95,10 @@ func TestLeafCommandsHaveSourceAnnotation(t *testing.T) {
 
 func TestMutatingAnnotationOnTradeCommands(t *testing.T) {
 	wantMutating := map[string]bool{
+		// `ops call` reaches the same write operations `order` does — it dispatches
+		// through the same trading.Service gate — so it must declare itself too.
+		// Everything else here is a typed trade action.
+		"tossctl ops call":                 true,
 		"tossctl order place":              true,
 		"tossctl order cancel":             true,
 		"tossctl order amend":              true,

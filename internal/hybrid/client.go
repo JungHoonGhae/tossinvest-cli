@@ -52,6 +52,13 @@ func New(wts *client.Client, off *official.Client, pol Policy, stderr io.Writer)
 	return &Client{Client: wts, off: off, pol: pol, stderr: stderr}
 }
 
+// Official exposes the routed official client (nil when no credentials are
+// configured, or when policy pins this run to WTS). The operation registry
+// needs it directly: official-backend operations call typed official methods
+// the hybrid router does not front. Nil is meaningful — Catalog.Call turns it
+// into "run `tossctl openapi login`".
+func (c *Client) Official() *official.Client { return c.off }
+
 // route is the single decision point. It is intentionally backend-agnostic
 // (takes two closures, never touches c.off itself beyond the nil check) so the
 // routing logic is unit-testable without any real client.

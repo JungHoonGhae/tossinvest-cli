@@ -17,6 +17,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/onboarding"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/ops"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderlineage"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/selfupdate"
@@ -44,6 +45,7 @@ type appContext struct {
 	authService    *auth.Service
 	client         *hybrid.Client
 	session        *session.Session
+	tokenFile      string
 	lineageService *orderlineage.Service
 	tradingService *trading.Service
 }
@@ -155,6 +157,7 @@ func newRootCmd() *cobra.Command {
 		newPushCmd(opts),
 		newMonitorCmd(opts),
 		newMCPCmd(opts),
+		newOpsCmd(opts),
 	)
 
 	return cmd
@@ -175,6 +178,33 @@ func resolveSessionFile(opts *rootOptions) string {
 		return ""
 	}
 	return paths.SessionFile
+}
+
+// authSnapshot builds the read-only auth status the operation registry gates
+// on: which backends are usable and when they expire. It carries no secrets —
+// a bool and a timestamp — so it is safe to hand to an agent, which is why the
+// auth_status operation returns it verbatim.
+//
+// Shared by the two surfaces that build a registry Deps (`tossctl mcp` and
+// `tossctl ops`) so they cannot drift into disagreeing about what "connected"
+// means.
+func authSnapshot(sess *session.Session, off *official.Client, tokenFile string) ops.AuthStatus {
+	var status ops.AuthStatus
+	if sess != nil {
+		status.WTS.Connected = true
+		// The server-side expiry is authoritative when Toss told us one; the
+		// cookie's own expiry is the fallback.
+		if sess.ServerExpiresAt != nil {
+			status.WTS.ExpiresAt = sess.ServerExpiresAt
+		} else {
+			status.WTS.ExpiresAt = sess.ExpiresAt
+		}
+	}
+	if off != nil {
+		status.Official.Connected = true
+		status.Official.ExpiresAt = readTokenExpiry(tokenFile)
+	}
+	return status
 }
 
 // resolveLineageFile does the same for the lineage cache: the MCP server needs
@@ -522,6 +552,7 @@ func newAppContext(opts *rootOptions) (*appContext, error) {
 		}),
 		client:         h,
 		session:        sess,
+		tokenFile:      tokenFile,
 		lineageService: lineage,
 		// The trading service records lineage itself, so every surface that
 		// mutates through it (cobra, MCP, `ops call`) leaves the same trail.

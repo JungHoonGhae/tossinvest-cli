@@ -503,7 +503,7 @@ Desktop·Codex 등 JSON 설정 방식 호스트는 다음을 설정 파일에 �
 |---|---|---|
 | 실행 방식 | 셸 명령 (`tossctl …`) | 구조화된 MCP 툴 (JSON-RPC, 셸 불필요) |
 | 어디서 | 셸이 있는 어디서든 — 터미널·스크립트·cron, **그리고 셸을 쓰는 AI 에이전트**(Claude Code·Codex·Cursor…) | **MCP 네이티브 호스트** — 에이전트가 오퍼레이션을 툴로 호출 (catalog 3툴로 컨텍스트 최소화) |
-| 에이전트가 아는 법 | 프롬프트에 언급하거나 스킬·`AGENTS.md`/`CLAUDE.md` 로 등록해 존재를 알려줘야 함 | **등록 시 툴 목록에 자동 노출** → 별도 안내 없이 호출 |
+| 에이전트가 아는 법 | 프롬프트에 언급하거나 스킬·`AGENTS.md`/`CLAUDE.md` 로 등록해 존재를 알려줘야 함 — 알고 나면 [`tossctl ops list`](#에이전트가-cli-로-카탈로그를-쓰는-법--tossctl-ops) 로 전체 오퍼레이션을 스스로 탐색 | **등록 시 툴 목록에 자동 노출** → 별도 안내 없이 호출 |
 | 인증 | **웹 세션만으로** 전부 동작(공식 키 연결 시 자동 라우팅) | 공식 조회·주문엔 공식 키(`openapi login`), WTS 조회엔 웹 세션(`auth login`) — **최소 하나** |
 | 커버 범위 | **전부** — 공식 + WTS(조회·주문·실시간 스트리밍·관심종목 등) | **조회는 공식+WTS**, 주문은 공식 경로. 실시간 스트리밍·WTS 쓰기는 미포함 |
 | 자연어 | 에이전트가 자연어 → `tossctl` 명령으로 실행 | 에이전트가 자연어 → MCP 툴 호출 |
@@ -513,6 +513,25 @@ Desktop·Codex 등 JSON 설정 방식 호스트는 다음을 설정 파일에 �
 - 무엇을 쓰든 **조회 데이터·주문 안전 게이트는 동일**합니다: config opt-in + dry-run preview + `execute`/`confirm` 토큰.
 
 > **자율 에이전트에 붙일 땐 조회 전용을 권장.** config 에서 `trading.*` 를 끈 상태(기본값)면 MCP 는 조회만 가능하고, 주문 오퍼레이션은 호출돼도 게이트에서 막힙니다. 거래까지 열려면 사람이 명시적으로 config 를 켜야 하며, 실제 제출은 매번 `execute:true` + 유효한 `confirm` 토큰이 필요합니다.
+
+#### 에이전트가 CLI 로 카탈로그를 쓰는 법 — `tossctl ops` <!--since:2026-07-25-->
+
+MCP 의 3툴 카탈로그와 **같은 오퍼레이션 레지스트리**를 터미널에서도 엽니다. 타입 있는 커맨드
+(`tossctl account`, `tossctl order` …)는 스스로를 열거하지 못해서, 셸로 tossctl 을 쓰는 에이전트는
+`--help` 에 없는 기능을 알 방법이 없었습니다.
+
+```bash
+tossctl ops list --query dividend   # 오퍼레이션 찾기 (인증 불필요)
+tossctl ops describe cancel_order   # 파라미터 스키마 보기 (인증 불필요)
+tossctl ops call market_news --params '{"scope":"watchlist"}'
+```
+
+MCP 툴과 **1:1로 대응**합니다 — 같은 id, 같은 JSON 파라미터, 같은 JSON 출력. 한쪽에서 배운 게
+그대로 다른 쪽에서 통합니다.
+
+> **출력은 원시 데이터입니다 — 계좌번호·실명이 가려지지 않습니다.** `--output` 과 무관하게 항상
+> JSON 이고 마스킹이 없습니다(기계용 표면이므로). 사람이 읽을 거라면 타입 있는 커맨드를 쓰세요.
+> 주문 게이트는 동일합니다: config opt-in + `execute`/`confirm` 토큰, 없으면 dry-run preview.
 
 ## 설정
 
