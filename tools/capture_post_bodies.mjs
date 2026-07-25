@@ -10,6 +10,7 @@
 // 안전:
 //   - 값은 기본적으로 마스킹된다. 구현에 필요한 건 키와 타입이지 실계좌 값이 아니다.
 //     원본이 꼭 필요하면 --raw 를 쓰되 그 출력은 커밋·PR·이슈에 남기지 말 것.
+//     --raw 에서도 token/secret/csrf 류 키는 계속 가려진다(재사용 가능한 자격증명).
 //   - Playwright 캐시의 "Chrome for Testing" 을 임시 프로필로 띄운다. 사용자의 실제
 //     Chrome 프로필/기본 브라우저를 건드리지 않는다.
 //
@@ -69,7 +70,13 @@ function findChrome() {
 // ── 값 마스킹: 구조는 남기고 내용만 지운다 ───────────────────────────────────
 function redact(v) {
   if (v === null) return null;
-  if (Array.isArray(v)) return v.length ? [redact(v[0]), `…(${v.length}개)`] : [];
+  // 라벨은 "총 N개" 로 쓴다. 예전엔 "…(N개)" 였는데 앞에 표본이 하나 찍히니
+  // "N개 더" 로 읽혀 실제로 개수를 잘못 세는 일이 있었다.
+  if (Array.isArray(v)) {
+    if (v.length === 0) return [];
+    if (v.length === 1) return [redact(v[0])];
+    return [redact(v[0]), `…총 ${v.length}개`];
+  }
   if (typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, redact(x)]));
   if (typeof v === "number") return "<number>";
   if (typeof v === "boolean") return "<boolean>";
@@ -77,9 +84,29 @@ function redact(v) {
   return s.length > 12 ? `<string:${s.length}>` : "<string>";
 }
 
+// SECRET_KEY 는 --raw 에서도 절대 원본을 내보내지 않는 필드다. 마스킹이 값을
+// 지우는 건 계좌 데이터를 가리기 위함이고, 이쪽은 재사용 가능한 자격증명이라
+// 성격이 다르다 — 조사 중 XSRF 토큰을 콘솔에 흘린 적이 있어 방어를 넣는다.
+const SECRET_KEY = /token|secret|password|passwd|authorization|cookie|csrf|xsrf/i;
+
+function stripSecrets(v) {
+  if (v === null || typeof v !== "object") return v;
+  if (Array.isArray(v)) return v.map(stripSecrets);
+  return Object.fromEntries(
+    Object.entries(v).map(([k, x]) => [k, SECRET_KEY.test(k) ? "<secret 제거됨>" : stripSecrets(x)]),
+  );
+}
+
 function show(body) {
   if (!body) return "(바디 없음)";
-  if (raw) return body;
+  if (raw) {
+    // --raw 여도 자격증명은 거른다.
+    try {
+      return JSON.stringify(stripSecrets(JSON.parse(body)), null, 2);
+    } catch {
+      return body;
+    }
+  }
   try {
     return JSON.stringify(redact(JSON.parse(body)), null, 2);
   } catch {
@@ -171,7 +198,9 @@ console.log(`캡처된 non-GET /api/ 요청: ${seen.length}개` + (raw ? "  [--r
 // 같은 엔드포인트가 여러 번 불리면 한 번만 (로그 수집 등)
 const byKey = new Map();
 for (const r of seen) {
-  const k = `${r.method} ${r.url.replace(/^https?:\/\/[^/]+/, "")}`;
+  // 호스트를 남긴다. 토스는 wts-api / wts-info-api / wts-cert-api 를 섞어 쓰고
+  // client 도 셋을 따로 설정하므로, 경로만 보면 어느 BaseURL 에 붙일지 알 수 없다.
+  const k = `${r.method} ${r.url.replace(/\?.*$/, "")}`;
   if (!byKey.has(k)) byKey.set(k, { ...r, count: 1 });
   else byKey.get(k).count++;
 }

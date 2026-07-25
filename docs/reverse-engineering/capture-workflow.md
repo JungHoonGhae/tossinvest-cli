@@ -282,16 +282,20 @@ node tools/capture_post_bodies.mjs /account/profit --all       # 텔레메트리
 `/account/profit` 실측(2026-07-25), 텔레메트리 제외 14건 중 일부:
 
 ```
-── POST /api/v3/profit/readable-tab
+── POST https://wts-cert-api.tossinvest.com/api/v3/profit/readable-tab
 { "rangeType": "<string>", "startDate": "<string>", "endDate": "<string>" }
 
-── POST /api/v1/profit/wts/daily/market
+── POST https://wts-cert-api.tossinvest.com/api/v1/profit/wts/daily/market
 { "currency": "<string>", "startDate": "<string>", "endDate": "<string>",
   "page": "<number>", "size": "<number>" }
 
-── POST /api/v1/dashboard/intelligences/all  (×2)
-{ "types": ["<string>", "…(1개)"], "variable": { "isBrowserPushEnabled": "<boolean>" } }
+── POST https://wts-info-api.tossinvest.com/api/v1/dashboard/intelligences/all  (×2)
+{ "types": ["<string>"], "variable": { "isBrowserPushEnabled": "<boolean>" } }
 ```
+
+**호스트를 그대로 보여준다.** 토스는 `wts-api` / `wts-info-api` / `wts-cert-api` 를
+섞어 쓰고 `client.Config` 도 셋을 따로 받으므로, 경로만 보면 어느 BaseURL 에 붙일지
+알 수 없다. 위 예시에서도 profit 은 cert, intelligences 는 info 다.
 
 `log/bulk`·`perf-log`·`tuba/*`·`wts-login-device` 는 텔레메트리라 기본 제외된다
 (출력의 절반을 차지한다). 필요하면 `--all`.
