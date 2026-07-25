@@ -276,7 +276,12 @@ tossctl auth status          # Live Check: valid 여야 함. 아니면 tossctl a
 node tools/capture_post_bodies.mjs /account/profit
 node tools/capture_post_bodies.mjs /account/profit --wait 10   # 느린 화면
 node tools/capture_post_bodies.mjs /account/profit --all       # 텔레메트리까지
+node tools/capture_post_bodies.mjs /feed/news --get            # GET 도 (조회 발굴)
 ```
+
+기본은 non-GET 만 잡는다(POST 바디가 원래 목적). **조회 기능을 발굴할 땐 `--get`** 을
+써야 한다 — 뉴스·랭킹처럼 GET 으로만 오는 표면이 많고, 그런 건 기본 출력에 안 나온다.
+실제로 `/feed/news` 의 `dashboard/wts/news` 는 `--get` 을 붙이기 전까지 보이지 않았다.
 
 출력은 **값이 마스킹된 형태**다 — 구현에 필요한 건 키와 타입이지 실계좌 값이 아니다.
 `/account/profit` 실측(2026-07-25), 텔레메트리 제외 14건 중 일부:

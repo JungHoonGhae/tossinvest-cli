@@ -19,6 +19,7 @@
 //   node tools/capture_post_bodies.mjs <path> --raw      # 값까지 (주의)
 //   node tools/capture_post_bodies.mjs <path> --wait 8   # 대기 초
 //   node tools/capture_post_bodies.mjs <path> --all      # 텔레메트리까지 포함
+//   node tools/capture_post_bodies.mjs <path> --get      # GET 도 (조회 기능 발굴용)
 //
 // 선행조건: `tossctl auth status` 의 Live Check 가 valid 여야 한다.
 
@@ -32,6 +33,8 @@ const target = args.find((a) => !a.startsWith("--")) ?? "/";
 const raw = args.includes("--raw");
 const waitSec = Number(args[args.indexOf("--wait") + 1]) || 6;
 const keepNoise = args.includes("--all");
+// 기본은 non-GET(바디가 있는 것)만. 조회 기능을 발굴할 땐 GET 도 봐야 한다.
+const withGet = args.includes("--get");
 
 // 텔레메트리·로깅 엔드포인트. 기능 발굴에 쓸모없고 출력의 절반을 차지한다.
 const NOISE = /\/(log|perf-log)\/bulk|\/tuba\/|\/wts-login-device/;
@@ -162,7 +165,8 @@ ws.onmessage = (e) => {
   if (m.method === "Network.requestWillBeSent") {
     const r = m.params.request;
     // OPTIONS 는 CORS 프리플라이트라 바디가 없다 — 노이즈.
-    if (r.method === "GET" || r.method === "OPTIONS") return;
+    if (r.method === "OPTIONS") return;              // CORS 프리플라이트
+    if (r.method === "GET" && !withGet) return;
     if (!r.url.includes("/api/")) return;
     if (!keepNoise && NOISE.test(r.url)) return;   // 텔레메트리 — --all 로 포함
     // postData 는 바디가 작을 때만 인라인으로 온다. 그 외에는 hasPostData 만 서고
@@ -194,7 +198,7 @@ for (const r of seen) {
 }
 
 console.log(`\n대상: ${ORIGIN}${target}`);
-console.log(`캡처된 non-GET /api/ 요청: ${seen.length}개` + (raw ? "  [--raw: 값 노출됨]" : "  [값 마스킹됨]"));
+console.log(`캡처된 ${withGet ? "" : "non-GET "}/api/ 요청: ${seen.length}개` + (raw ? "  [--raw: 값 노출됨]" : "  [값 마스킹됨]"));
 // 같은 엔드포인트가 여러 번 불리면 한 번만 (로그 수집 등)
 const byKey = new Map();
 for (const r of seen) {
