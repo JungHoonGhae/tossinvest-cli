@@ -247,6 +247,29 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "market_news", Method: "POST", Path: "wts:dashboard/wts/news", Backend: "wts",
+			Category: "market", Summary: "Market news with each article's RELATED STOCKS and how they are moving right now — the part a plain headline list lacks. Scopes: all (widest, general market news, no stock linkage), watchlist / holdings (news about the user's own stocks, with moves), soaring (stocks spiking), recommended, latest. Server caps at 50 items; there is no pagination and no keyword search. WTS-only.",
+			Params: []Param{
+				{Name: "scope", Type: "string", Desc: "all (default) | recommended | watchlist | holdings | latest | soaring; a raw server enum also works"},
+				{Name: "limit", Type: "integer", Desc: "max items, server caps at 50; 0 = server default"},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				alias, err := argString(args, "scope")
+				if err != nil {
+					return nil, err
+				}
+				scope, err := tossclient.NewsScope(alias)
+				if err != nil {
+					return nil, err
+				}
+				limit, err := argInt(args, "limit")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetMarketNews(ctx, scope, limit)
+			},
+		},
+		{
 			ID: "profit_period", Method: "POST", Path: "wts:profit/type/overview", Backend: "wts",
 			Category: "portfolio", Summary: "Realized profit for ONE category over a date range — earned amount, return rate, and purchase basis in KRW and USD. Omit from/to for the whole history. The period-scoped counterpart to profit_overview (all-time, every category). WTS-only.",
 			Params: []Param{

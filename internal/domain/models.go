@@ -911,6 +911,37 @@ type DailyProfit struct {
 	FetchedAt time.Time          `json:"fetched_at"`
 }
 
+// NewsRelatedStock is a stock a news item is about, with how it is moving —
+// the reason this feed is more useful than a bare headline list.
+type NewsRelatedStock struct {
+	Code        string  `json:"code"`
+	Name        string  `json:"name"`
+	Market      string  `json:"market,omitempty"`
+	Fluctuation float64 `json:"fluctuation"` // percent
+}
+
+// NewsItem is one article in the market news feed.
+type NewsItem struct {
+	ID        string             `json:"id"`
+	Title     string             `json:"title"`
+	Summary   string             `json:"summary,omitempty"`
+	Source    string             `json:"source,omitempty"`
+	Type      string             `json:"type,omitempty"`
+	Nation    string             `json:"nation,omitempty"`
+	CreatedAt string             `json:"created_at,omitempty"`
+	Stocks    []NewsRelatedStock `json:"stocks,omitempty"`
+}
+
+// MarketNews is one scope of the news feed. Title is the server's own label for
+// the scope (e.g. "모든 주요 뉴스"), carried through rather than hardcoded so a
+// rename upstream shows up instead of silently diverging.
+type MarketNews struct {
+	Type      string     `json:"type"`
+	Title     string     `json:"title,omitempty"`
+	Items     []NewsItem `json:"items"`
+	FetchedAt time.Time  `json:"fetched_at"`
+}
+
 // TransferIncomeStock is one stock's overseas transfer-income (양도소득) line
 // for a tax year: quantities, sell/buy amounts, and realized profit/loss.
 type TransferIncomeStock struct {

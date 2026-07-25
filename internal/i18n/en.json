@@ -102,6 +102,8 @@
   "market.investorTrading.long": "Fetch market-wide investor trading (individual/foreigner/institution/other) via the official Toss Open API. Requires a connected official key. --interval 1d|1w|1mo|1y, --count up to 100.",
   "market.investorTrading.short": "Market investor trading (KOSPI/KOSDAQ, official API key required)",
   "market.investors.short": "Net-buy ranking by investor type (foreign, institutional, retail)",
+  "market.news.long": "Market news with each article's related stocks and how they are moving — the part a plain headline list does not give you.\n\nScopes (--type): all (default, widest), recommended, watchlist, holdings, latest, soaring. A raw server enum also works, so a scope Toss adds later needs no release.\n\nThe server caps results at 50 and offers no pagination or search. Summaries are omitted by default (50 of them is a wall) — pass --full to include them. WTS-only.",
+  "market.news.short": "Market news feed (headlines with related-stock moves)",
   "market.ranking.short": "Realtime popularity ranking",
   "market.rankings.long": "Fetch the official Toss Open API stock ranking. Requires a connected official key (`tossctl openapi login`). --type selects the ranking metric; --market and --duration scope it.",
   "market.rankings.short": "Official stock ranking (trading value/price change leaders, official API key required)",

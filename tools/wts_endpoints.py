@@ -75,6 +75,7 @@ IMPLEMENTED = [
     r"^/api/v1/growth/autotrade/plan/stock$",                     # accumulate status
     r"^/api/v1/profit/overview$",                                 # profit
     r"^/api/v3/profit/readable-tab$",                             # profit (tab meta)
+    r"^/api/v1/dashboard/wts/news$",                             # market news
     r"^/api/v1/profit/type/overview$",                            # profit summary
     r"^/api/v1/profit/wts/daily/market$",                         # profit daily
     r"^/api/v1/my-assets/transfer-income/overseas$",              # tax overseas

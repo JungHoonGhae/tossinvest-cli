@@ -90,3 +90,34 @@ hybrid 라우터는 세션이 없어도 구성되므로(임베드된 WTS 클라�
 **호스트** — profit 계열은 전부 `wts-cert-api` 다(`CertBaseURL`). 같은 화면의
 `dashboard/intelligences/all` 은 `wts-info-api` 로, 화면 하나가 여러 호스트를 섞어 쓴다.
 새 엔드포인트를 붙일 때 **경로만 보고 호스트를 짐작하지 말 것.**
+
+## 뉴스 (market news)
+
+**briefing vs news** — 둘 다 뉴스지만 다른 것이다. `market briefing`
+(`ai-signals/personalized`)은 **AI 가 테마별로 묶어 준 요약**이고, `market news`
+(`dashboard/wts/news`)는 **원문 목록 + 종목 연결**이다. 후자만 각 기사의 관련 종목과
+현재 등락률을 준다.
+
+**news scope** — 뉴스 범위. 서버 enum 이 CLI 어휘로 나쁘고 하나는 오해를 부른다:
+`HOT` 은 급상승이 아니라 **"최신 뉴스"** 이고, 급상승은 `SOARING_STOCK` 이다.
+그래서 별칭을 둔다 (`communityRankingTypes` 선례와 동일, raw enum 통과 허용):
+
+| 별칭 | 서버 enum | 서버가 주는 title |
+|---|---|---|
+| `all`(기본) | `ALL_HIGHLIGHT` | 모든 주요 뉴스 |
+| `recommended` | `PERSONALIZED` | 추천 뉴스 |
+| `watchlist` | `PERSONALIZE_WATCH` | 관심 뉴스 |
+| `holdings` | `PERSONALIZE_HOLD` | 보유 뉴스 |
+| `latest` | `HOT` | 최신 뉴스 |
+| `soaring` | `SOARING_STOCK` | 급상승 주식 뉴스 |
+
+**관련 종목은 범위에 따라 붙는다** — `all` 은 일반 시장 뉴스라 종목 연결이 없고,
+`watchlist`·`soaring`·`recommended` 처럼 종목 기준 범위에만 붙는다. 비어 있다고
+버그가 아니다.
+
+**서버가 title 을 준다** — 범위 라벨("모든 주요 뉴스")을 응답에 담아 주므로 한글
+라벨을 코드에 박지 않는다. 토스가 이름을 바꾸면 자동으로 따라간다.
+
+**페이지네이션·검색 없음** — `size` 는 먹지만 **50 이 상한**이고 `page`·
+`pagingParam`·`after` 는 무시된다(첫 항목이 그대로다). `query`/`keyword`/`q`/
+`searchWord` 도 전부 무시된다. 즉 **최신 ≤50건만** 닿을 수 있다.

@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
@@ -200,6 +201,41 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
+	var newsScope string
+	var newsLimit int
+	var newsFull bool
+	newsCmd := &cobra.Command{
+		Use:         "news",
+		Short:       i18n.T("market.news.short"),
+		Long:        i18n.T("market.news.long"),
+		Annotations: map[string]string{"source": "wts"},
+		Args:        cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			scope, err := tossclient.NewsScope(newsScope)
+			if err != nil {
+				return err
+			}
+			if newsLimit < 0 {
+				return fmt.Errorf("--limit 은 0 보다 커야 합니다")
+			}
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			n, err := app.client.GetMarketNews(cmd.Context(), scope, newsLimit)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteMarketNews(cmd.OutOrStdout(), app.format, n, newsFull)
+		},
+	}
+	newsCmd.Flags().StringVar(&newsScope, "type", "",
+		"news scope: "+strings.Join(tossclient.NewsScopeAliases(), " | ")+
+			" (default "+tossclient.DefaultNewsScope+"); a raw server enum also works")
+	newsCmd.Flags().IntVar(&newsLimit, "limit", 0,
+		fmt.Sprintf("max items (server caps at %d); 0 = server default", tossclient.MaxNewsLimit))
+	newsCmd.Flags().BoolVar(&newsFull, "full", false, "include each article's summary")
+
 	briefingCmd := &cobra.Command{
 		Use:         "briefing",
 		Short:       i18n.T("market.briefing.short"),
@@ -380,6 +416,6 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	investorTradingCmd.Flags().IntVar(&investorTradingCount, "count", 0, "number of records (max 100; 0 = API default)")
 	investorTradingCmd.Flags().StringVar(&investorTradingUntil, "until", "", "inclusive upper-bound date (YYYY-MM-DD)")
 
-	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, sectorsCmd, themesCmd, screenerCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd)
+	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd)
 	return cmd
 }
