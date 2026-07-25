@@ -225,7 +225,8 @@ profit 계열처럼 POST 이고 파라미터가 필요하면:
    URL에 페이지 쿼리스트링(`?productType=us&profitType=sales`)이 들어 있어 **필드명
    단서**가 된다 (단, 쿼리 파라미터명 ≠ POST 바디 필드명일 수 있음 — 확인 필요).
 3. **빈 바디 `{}` 부터** — overview 류는 빈 바디로 전체를 주는 경우가 많다.
-4. 안 되면 **실제 웹 요청 바디를 봐야 한다** (아래 "막힌 방법" 참고).
+4. 안 되면 **실제 웹 요청 바디를 잡는다** — `node tools/capture_post_bodies.mjs <경로>`.
+   아래 "첫 로드 POST 바디 캡처" 참고. (예전엔 여기가 막혀 있었다.)
 
 ### 4. 웹 UI 유무 판정 = "모바일 전용" 분류의 유일한 기준
 
@@ -254,9 +255,47 @@ domain → client(`getJSON`/`postJSON`, 페이징은 aggregate) → output(테�
   루팅 없이는 APK 재패키징이 유일한데 Play Integrity 로 로그인 거부됨. **불가.**
 - **iOS 앱 캡처**: 인증서 신뢰가 안드로이드보다 쉽고 핀닝도 앱마다 달라 **성공 가능성
   있음** — 필요하면 iOS 기기로 시도.
-- **`/browse` addInitScript 로 SPA 첫 요청 바디 잡기**: `Page.addScriptToEvaluate
-  OnNewDocument` 를 CDP allowlist 에 추가했으나(로컬 빌드), browse 의 goto 가 세션을
-  재생성해 심은 스크립트가 안 따라감 → 이 흐름엔 안 통함. 순수 CDP 세션이면 될 수 있음.
-- **React Query 캐시**: 탭 클릭·pushState 로는 재요청이 안 걸린다(캐시). fresh POST
-  바디를 잡으려면 첫 로드를 가로채야 하는데 위 addInitScript 한계와 맞물림.
+- ~~**`/browse` addInitScript 로 SPA 첫 요청 바디 잡기**~~ / ~~**React Query 캐시**~~
+  → **해결됨 (2026-07-25).** 아래 "첫 로드 POST 바디 캡처" 참고.
 
+  기록용 경위: `Page.addScriptToEvaluateOnNewDocument` 를 CDP allowlist 에 추가했으나
+  (로컬 빌드) browse 의 goto 가 세션을 재생성해 심은 스크립트가 안 따라갔고, React Query
+  캐시 탓에 탭 클릭·pushState 로는 재요청도 안 걸렸다. **두 막힘의 원인은 하나였다 —
+  브라우저를 우리가 소유하지 않았다는 것.** 컨텍스트를 직접 만들면 JS 주입 자체가
+  불필요하고(Network 도메인이 postData 를 그대로 준다), 신선한 프로필이라 캐시도 없다.
+
+
+### 첫 로드 POST 바디 캡처 (`tools/capture_post_bodies.mjs`)
+
+웹 UI 에만 있는 기능의 POST 바디는 라이브 요청을 봐야 안다. 브라우저 컨텍스트를 직접
+소유하고 **내비게이션 전에** `Network.enable` 을 켜면 첫 로드 요청이 통째로 잡힌다.
+JS 주입(addInitScript)도, fetch 몽키패치도 필요 없다.
+
+```bash
+tossctl auth status          # Live Check: valid 여야 함. 아니면 tossctl auth login
+node tools/capture_post_bodies.mjs /account/profit
+node tools/capture_post_bodies.mjs /account/profit --wait 10   # 느린 화면
+```
+
+출력은 **값이 마스킹된 형태**다 — 구현에 필요한 건 키와 타입이지 실계좌 값이 아니다:
+
+```
+── POST /api/v3/orders/search
+{ "accountNo": "<string>", "page": "<number>", "size": "<number>" }
+```
+
+원본이 꼭 필요하면 `--raw` 를 쓰되 **그 출력은 커밋·PR·이슈에 남기지 말 것**
+(CLAUDE.md "공개 출력·테스트·문서에 실제 계좌 데이터 금지").
+
+동작 요약 — 스크립트가 하는 일:
+
+1. Playwright 캐시의 **Chrome for Testing** 을 임시 프로필로 기동
+   (사용자의 실제 Chrome 프로필/기본 브라우저를 건드리지 않는다)
+2. `Network.enable` → `Network.setCookies`(session.json 의 쿠키) → `Page.navigate` 순서
+3. `Network.requestWillBeSent` 에서 non-GET `/api/` 요청의 `postData` 수집
+4. 종료 시 브라우저·임시 프로필 정리
+
+**아무것도 안 잡히면**: 세션 만료(가장 흔함), 해당 라우트에 웹 UI 가 없음(= 모바일 전용),
+또는 화면이 느려서 `--wait` 을 늘려야 하는 경우다.
+
+전제: Node 18+ (내장 `WebSocket` 사용, npm 설치 불필요) 와 Playwright 브라우저 캐시.
