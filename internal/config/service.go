@@ -48,6 +48,9 @@ func (t Trading) EnabledActions() []string {
 	if t.Amend {
 		enabled = append(enabled, "amend")
 	}
+	if t.Conditional {
+		enabled = append(enabled, "conditional")
+	}
 	return enabled
 }
 
@@ -62,8 +65,12 @@ func (d DangerousAutomation) EnabledActions() []string {
 // AnyMutationEnabled reports whether any order-mutation toggle is on.
 // Used to decide whether trading-mutation commands are useful
 // (vs. being a no-op because no action gate is open).
+//
+// Conditional counts: it gates live conditional-order place/cancel/modify
+// (cmd/tossctl/conditional_gate.go), so a config with only Conditional on still
+// has a live mutation path open.
 func (t Trading) AnyMutationEnabled() bool {
-	return t.Place || t.Cancel || t.Amend
+	return t.Place || t.Cancel || t.Amend || t.Conditional
 }
 
 type UpdateCheck struct {

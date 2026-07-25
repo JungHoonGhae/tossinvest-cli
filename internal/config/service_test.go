@@ -176,6 +176,48 @@ func TestEnabledActionsExcludesSellWhenFalse(t *testing.T) {
 	}
 }
 
+// trading.conditional gates live conditional-order place/cancel/modify
+// (cmd/tossctl/conditional_gate.go). It must be reported like any other
+// mutation toggle: `tossctl doctor` and `tossctl config show` both derive their
+// "is trading locked down?" answer from these two helpers, so omitting
+// Conditional made them claim everything was disabled while conditional orders
+// could execute live.
+func TestEnabledActionsIncludesConditional(t *testing.T) {
+	trading := Trading{Conditional: true}
+	enabled := trading.EnabledActions()
+	found := false
+	for _, action := range enabled {
+		if action == "conditional" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected EnabledActions to include 'conditional', got %v", enabled)
+	}
+}
+
+func TestEnabledActionsExcludesConditionalWhenFalse(t *testing.T) {
+	trading := Trading{Place: true, Conditional: false}
+	for _, action := range trading.EnabledActions() {
+		if action == "conditional" {
+			t.Fatalf("expected EnabledActions to exclude 'conditional' when false, got %v", trading.EnabledActions())
+		}
+	}
+}
+
+func TestAnyMutationEnabledCountsConditional(t *testing.T) {
+	// Conditional alone is enough to mean "a mutation path is open".
+	trading := Trading{Conditional: true}
+	if !trading.AnyMutationEnabled() {
+		t.Fatal("expected AnyMutationEnabled to be true when only conditional is on")
+	}
+
+	if (Trading{}).AnyMutationEnabled() {
+		t.Fatal("expected AnyMutationEnabled to be false when every toggle is off")
+	}
+}
+
 func TestLoadFlagsKRAsLegacyField(t *testing.T) {
 	// trading.kr was removed in v0.5.2 — a config that still carries it must
 	// load fine (the value is ignored) and surface "trading.kr" as a legacy
