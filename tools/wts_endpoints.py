@@ -76,6 +76,11 @@ IMPLEMENTED = [
     r"^/api/v1/profit/overview$",                                 # profit
     r"^/api/v3/profit/readable-tab$",                             # profit (tab meta)
     r"^/api/v1/dashboard/wts/news$",                             # market news
+    r"^/api/v1/account/detail$",                                  # account detail
+    r"^/api/v1/transfer/withdrawable-status$",                    # account detail
+    r"^/api/v1/dashboard/wts/overview/margin$",                   # account detail
+    r"^/api/v1/margin/cert/differential-margin/enabled$",         # account detail
+    r"^/api/v1/trade-purpose-verification/transfer-limit-restricted$",  # account detail
     r"^/api/v1/profit/type/overview$",                            # profit summary
     r"^/api/v1/profit/wts/daily/market$",                         # profit daily
     r"^/api/v1/my-assets/transfer-income/overseas$",              # tax overseas

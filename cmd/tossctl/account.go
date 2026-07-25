@@ -13,6 +13,7 @@ func newAccountCmd(opts *rootOptions) *cobra.Command {
 	}
 
 	cmd.AddCommand(
+		newAccountDetailCmd(opts),
 		&cobra.Command{
 			Use:         "list",
 			Short:       i18n.T("account.list.short"),
@@ -70,5 +71,29 @@ func newAccountCmd(opts *rootOptions) *cobra.Command {
 		},
 	)
 
+	return cmd
+}
+
+func newAccountDetailCmd(opts *rootOptions) *cobra.Command {
+	var full bool
+	cmd := &cobra.Command{
+		Use:         "detail",
+		Short:       i18n.T("account.detail.short"),
+		Long:        i18n.T("account.detail.long"),
+		Annotations: map[string]string{"source": "wts"},
+		Args:        cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			d, err := app.client.GetAccountDetail(cmd.Context())
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteAccountDetail(cmd.OutOrStdout(), app.format, d, full)
+		},
+	}
+	cmd.Flags().BoolVar(&full, "full", false, "show the account number in full (default masks it)")
 	return cmd
 }

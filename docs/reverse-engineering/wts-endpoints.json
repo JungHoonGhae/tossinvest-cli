@@ -4,11 +4,11 @@
   "chunk_count": 25,
   "total": 935,
   "counts": {
-    "implemented": 76,
-    "candidate": 362,
-    "excluded": 497,
+    "implemented": 81,
+    "candidate": 358,
+    "excluded": 496,
     "candidate_next": 20,
-    "meaningful": 438
+    "meaningful": 439
   },
   "overrides": {},
   "endpoints": {
@@ -207,8 +207,7 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/account/detail": {
-      "status": "excluded",
-      "note": "account admin / tax / KYC",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/account/fatca": {
@@ -917,7 +916,7 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/dashboard/wts/overview/margin": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/dashboard/wts/overview/signals": {
@@ -1239,7 +1238,7 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/margin/cert/differential-margin/enabled": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/margin/cert/frozen-account": {
@@ -2731,7 +2730,7 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/trade-purpose-verification/transfer-limit-restricted": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/trade/executions": {
@@ -2914,7 +2913,7 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/transfer/withdrawable-status": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/tuba/guest": {

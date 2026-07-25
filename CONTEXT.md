@@ -121,3 +121,25 @@ hybrid 라우터는 세션이 없어도 구성되므로(임베드된 WTS 클라�
 **페이지네이션·검색 없음** — `size` 는 먹지만 **50 이 상한**이고 `page`·
 `pagingParam`·`after` 는 무시된다(첫 항목이 그대로다). `query`/`keyword`/`q`/
 `searchWord` 도 전부 무시된다. 즉 **최신 ≤50건만** 닿을 수 있다.
+
+## 계좌관리 (account management)
+
+웹의 계좌관리 화면(`/account/settings`)은 **조회와 변경이 섞여 있다.** CLI 는 조회만
+가져간다:
+
+- **조회 (구현됨, `account detail`)** — 계좌 신원(`account/detail`), 출금 가능액·한도
+  (`transfer/withdrawable-status`), 미수거래 상태(`dashboard/wts/overview/margin`,
+  `margin/cert/differential-margin/enabled`), 송금한도 제한 여부.
+- **변경 (의도적 제외)** — 계좌 해지, 계좌 비밀번호 변경, 달러 가져오기/보내기.
+  자금 이동과 계좌 해지는 주문보다 되돌리기 어렵다. 거래를 config 옵트인 +
+  confirm 토큰으로 막아 둔 것보다 더 강한 근거가 있기 전에는 노출하지 않는다.
+
+**마스킹** — `account detail` 은 계좌번호와 **예금주명**(API 의 `accountName` 은 실명이다)
+을 기본으로 가린다. `--full` 이 명시적 해제다. CLI 출력은 이슈·채팅에 붙여넣어지므로
+"공개 출력에 실계좌 데이터 금지" 원칙이 화면에도 적용된다.
+
+**부분 실패** — 이 화면은 엔드포인트 다섯 개를 합친 것이라, 신원 조회만 필수로 두고
+나머지는 실패해도 경고만 남기고 진행한다. 조용히 삼키지는 않는다.
+
+**상태 코드** — `account/detail` 의 `status` 는 의미를 모르는 코드다(관측값 `"00"`).
+사람이 읽는 출력에는 넣지 않고 JSON 에만 남긴다.

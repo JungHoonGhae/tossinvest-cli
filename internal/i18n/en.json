@@ -1,5 +1,7 @@
 {
   "_meta.lang": "en",
+  "account.detail.long": "The read-only half of the web's 계좌관리 screen: what the account is (number, name, status, open date, last trade), what can be withdrawn today and as settlement completes (with per-transaction and daily caps), and whether 미수거래 (buying on receivable credit) is open per market.\n\nThe account number is masked by default because this output gets pasted into issues and chat — pass --full to show it. Sections that fail to load are reported as warnings rather than failing the command. Account-changing actions from that screen (closing the account, changing the PIN, moving money) are deliberately not exposed. WTS-only.",
+  "account.detail.short": "Account identity, withdrawal limits, and credit-trading status",
   "account.list.short": "List available accounts",
   "account.prime.long": "Shows Toss Prime membership status and this month's fee/interest benefit comparison (non-member vs Prime vs your actual applied rate). Works for non-members too.",
   "account.prime.short": "Show Prime membership status and fee/interest benefits",

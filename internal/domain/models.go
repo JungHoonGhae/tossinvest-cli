@@ -942,6 +942,55 @@ type MarketNews struct {
 	FetchedAt time.Time  `json:"fetched_at"`
 }
 
+// WithdrawableByDay is cash available now (D+0) and as settlement completes.
+type WithdrawableByDay struct {
+	Day0 float64 `json:"day0"`
+	Day1 float64 `json:"day1"`
+	Day2 float64 `json:"day2"`
+}
+
+// WithdrawalLimits are the caps Toss applies to outgoing transfers.
+type WithdrawalLimits struct {
+	PerTransaction float64 `json:"per_transaction"`
+	PerDay         float64 `json:"per_day"`
+	UsedToday      float64 `json:"used_today"`
+}
+
+// MarginStatus reports whether 미수거래 (buying on receivable credit) is open,
+// per market. Message carries the server's explanation when it is not.
+type MarginStatus struct {
+	Receivable bool   `json:"receivable"`
+	Message    string `json:"message,omitempty"`
+}
+
+// AccountDetail mirrors the web's 계좌관리 screen: what the account is, what can
+// be withdrawn, and whether credit trading is open. Read-only — the screen's
+// other half (closing the account, changing the PIN, moving money) is
+// deliberately out of scope.
+//
+// Warnings records sections that could not be fetched. Only the identity part
+// is required; the rest degrades rather than failing the whole command, since a
+// missing margin endpoint should not hide the account number.
+type AccountDetail struct {
+	Number       string `json:"number"`
+	Name         string `json:"name,omitempty"`
+	Status       string `json:"status,omitempty"`
+	OpenedAt     string `json:"opened_at,omitempty"`
+	LastTradedAt string `json:"last_traded_at,omitempty"`
+
+	Withdrawable       *WithdrawableByDay `json:"withdrawable,omitempty"`
+	WithdrawalLimits   *WithdrawalLimits  `json:"withdrawal_limits,omitempty"`
+	FullWithdrawalOn   string             `json:"full_withdrawal_on,omitempty"`
+	TransferRestricted *bool              `json:"transfer_restricted,omitempty"`
+
+	MarginKR           *MarginStatus `json:"margin_kr,omitempty"`
+	MarginUS           *MarginStatus `json:"margin_us,omitempty"`
+	DifferentialMargin *bool         `json:"differential_margin,omitempty"`
+
+	Warnings  []string  `json:"warnings,omitempty"`
+	FetchedAt time.Time `json:"fetched_at"`
+}
+
 // TransferIncomeStock is one stock's overseas transfer-income (양도소득) line
 // for a tax year: quantities, sell/buy amounts, and realized profit/loss.
 type TransferIncomeStock struct {

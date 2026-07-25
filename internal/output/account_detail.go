@@ -1,0 +1,142 @@
+package output
+
+import (
+	"fmt"
+	"io"
+	"strings"
+
+	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+)
+
+// WriteAccountDetail renders the read-only 계좌관리 view. full reveals the
+// account number; by default it is masked, because this output routinely gets
+// pasted into issues and chat.
+//
+// CSV is not offered: the payload is three unrelated sections, not rows.
+func WriteAccountDetail(w io.Writer, format Format, d domain.AccountDetail, full bool) error {
+	number := d.Number
+	name := d.Name
+	if !full {
+		number = tossclient.MaskAccountNumber(number)
+		// accountName is the holder's real name — more sensitive than the number.
+		name = maskName(name)
+	}
+
+	if format == FormatJSON {
+		// JSON is for machines, but the same masking applies — opting into the
+		// real number should be one explicit flag, not one format switch.
+		out := d
+		out.Number = number
+		out.Name = name
+		return writeJSON(w, out)
+	}
+
+	head := number
+	var meta []string
+	if name != "" {
+		meta = append(meta, name)
+	}
+	// d.Status is an opaque server code ("00"); it stays in JSON rather than
+	// being printed as if it were a human-readable state.
+	if len(meta) > 0 {
+		head += "  (" + strings.Join(meta, " · ") + ")"
+	}
+	if _, err := fmt.Fprintf(w, "계좌 %s\n", head); err != nil {
+		return err
+	}
+	if d.OpenedAt != "" {
+		if _, err := fmt.Fprintf(w, "  개설일        %s\n", d.OpenedAt); err != nil {
+			return err
+		}
+	}
+	if d.LastTradedAt != "" {
+		if _, err := fmt.Fprintf(w, "  최종거래일    %s\n", d.LastTradedAt); err != nil {
+			return err
+		}
+	}
+
+	if d.Withdrawable != nil || d.WithdrawalLimits != nil {
+		if _, err := fmt.Fprint(w, "\n출금\n"); err != nil {
+			return err
+		}
+		if a := d.Withdrawable; a != nil {
+			if _, err := fmt.Fprintf(w, "  가능액        D+0 %.0f   D+1 %.0f   D+2 %.0f\n",
+				a.Day0, a.Day1, a.Day2); err != nil {
+				return err
+			}
+		}
+		if l := d.WithdrawalLimits; l != nil {
+			if _, err := fmt.Fprintf(w, "  한도          1회 %.0f   1일 %.0f   (오늘 사용 %.0f)\n",
+				l.PerTransaction, l.PerDay, l.UsedToday); err != nil {
+				return err
+			}
+		}
+		if d.FullWithdrawalOn != "" {
+			if _, err := fmt.Fprintf(w, "  전액출금 가능 %s\n", d.FullWithdrawalOn); err != nil {
+				return err
+			}
+		}
+		if d.TransferRestricted != nil && *d.TransferRestricted {
+			if _, err := fmt.Fprint(w, "  ⚠ 거래목적 미확인으로 송금 한도가 제한된 상태입니다\n"); err != nil {
+				return err
+			}
+		}
+	}
+
+	if d.MarginKR != nil || d.MarginUS != nil || d.DifferentialMargin != nil {
+		if _, err := fmt.Fprint(w, "\n미수거래\n"); err != nil {
+			return err
+		}
+		row := func(label string, m *domain.MarginStatus) error {
+			if m == nil {
+				return nil
+			}
+			state := "불가"
+			if m.Receivable {
+				state = "가능"
+			}
+			line := fmt.Sprintf("  %-12s %s", label, state)
+			if m.Message != "" {
+				line += "  — " + m.Message
+			}
+			_, err := fmt.Fprintln(w, line)
+			return err
+		}
+		if err := row("국내", d.MarginKR); err != nil {
+			return err
+		}
+		if err := row("해외", d.MarginUS); err != nil {
+			return err
+		}
+		if d.DifferentialMargin != nil {
+			state := "미적용"
+			if *d.DifferentialMargin {
+				state = "적용"
+			}
+			if _, err := fmt.Fprintf(w, "  %-12s %s\n", "차등증거금", state); err != nil {
+				return err
+			}
+		}
+	}
+
+	for _, warn := range d.Warnings {
+		if _, err := fmt.Fprintf(w, "\n⚠ %s\n", warn); err != nil {
+			return err
+		}
+	}
+	if !full {
+		_, err := fmt.Fprint(w, "\n(계좌번호 전체를 보려면 --full)\n")
+		return err
+	}
+	return nil
+}
+
+// maskName keeps the first character of the holder's name and hides the rest.
+func maskName(n string) string {
+	r := []rune(n)
+	if len(r) <= 1 {
+		return n
+	}
+	return string(r[0]) + strings.Repeat("*", len(r)-1)
+}

@@ -247,6 +247,13 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "account_detail", Method: "GET", Path: "wts:account/detail", Backend: "wts",
+			Category: "account", Summary: "Account identity plus withdrawal capacity and credit-trading status — the read-only half of the web's 계좌관리 screen. Number, name, status, open date, last trade date; withdrawable cash by settlement day (D+0/1/2) with per-transaction and daily caps and today's usage; whether 미수거래 is open per market. The account number and holder name are returned in full here (an agent needs them to act) — do not echo them into shared output. WTS-only.",
+			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
+				return d.WTS.GetAccountDetail(ctx)
+			},
+		},
+		{
 			ID: "market_news", Method: "POST", Path: "wts:dashboard/wts/news", Backend: "wts",
 			Category: "market", Summary: "Market news with each article's RELATED STOCKS and how they are moving right now — the part a plain headline list lacks. Scopes: all (widest, general market news, no stock linkage), watchlist / holdings (news about the user's own stocks, with moves), soaring (stocks spiking), recommended, latest. Server caps at 50 items; there is no pagination and no keyword search. WTS-only.",
 			Params: []Param{
