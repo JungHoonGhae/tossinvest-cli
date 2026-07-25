@@ -11,6 +11,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/mcp"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/orderlineage"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/updatecheck"
@@ -63,7 +64,10 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 				// Order place/cancel/modify: gated by config exactly as the CLI's
 				// `tossctl order` is, routed through an official-only broker so
 				// writes never touch a WTS session.
-				tradingSvc = trading.NewService(cfg.Trading, mcp.OfficialBroker{Client: officialClient})
+				// Same lineage recorder as the CLI: an agent-placed order must leave the
+				// same trail, or a later cancel from the terminal cannot find it.
+				tradingSvc = trading.NewService(cfg.Trading, mcp.OfficialBroker{Client: officialClient}).
+					WithLineage(orderlineage.NewService(resolveLineageFile(opts)))
 			}
 
 			// WTS web-session client (optional): serves the WTS-only reads.

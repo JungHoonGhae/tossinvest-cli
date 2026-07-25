@@ -4,9 +4,11 @@ import (
 	"context"
 	"crypto/subtle"
 	"fmt"
+	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/orderlineage"
 )
 
 type Broker interface {
@@ -30,9 +32,23 @@ type ExecuteOptions struct {
 	Confirm string
 }
 
+// LineageRecorder remembers that an order was replaced by another, so a later
+// cancel/amend can find the live order from the id the user originally used.
+//
+// It lives behind an interface here rather than in each surface because every
+// caller of Place/Cancel/Amend needs it: the CLI used to record lineage itself
+// while the MCP path silently did not, which meant agent-placed orders lost
+// their trail. Recording alongside the guard keeps write policy and its
+// bookkeeping in one module (see issue #111 for the same lesson applied to the
+// conditional-order gate).
+type LineageRecorder interface {
+	Record(originalOrderID string, entry orderlineage.Entry) error
+}
+
 type Service struct {
-	policy config.Trading
-	broker Broker
+	policy  config.Trading
+	broker  Broker
+	lineage LineageRecorder // optional; nil disables recording
 }
 
 func NewService(policy config.Trading, broker Broker) *Service {
@@ -40,6 +56,49 @@ func NewService(policy config.Trading, broker Broker) *Service {
 		policy: policy,
 		broker: broker,
 	}
+}
+
+// WithLineage attaches the recorder. Optional: a Service without one behaves
+// exactly as before, which keeps the many tests that construct a bare Service
+// working and lets read-only callers skip the dependency.
+func (s *Service) WithLineage(r LineageRecorder) *Service {
+	s.lineage = r
+	return s
+}
+
+// recordLineage is called after a successful mutation. A recording failure is
+// reported on the result rather than failing the mutation — the order already
+// went through, and losing the local trail must not look like a failed order.
+func (s *Service) recordLineage(res MutationResult) MutationResult {
+	if s.lineage == nil {
+		return res
+	}
+	original := strings.TrimSpace(res.OriginalOrderID)
+	if original == "" {
+		return res
+	}
+	entry := orderlineage.Entry{
+		CurrentOrderID: strings.TrimSpace(res.CurrentOrderID),
+		Kind:           strings.TrimSpace(res.Kind),
+		Symbol:         strings.TrimSpace(res.Symbol),
+		Market:         strings.TrimSpace(res.Market),
+		Quantity:       res.Quantity,
+		Price:          res.Price,
+		OrderDate:      strings.TrimSpace(res.OrderDate),
+	}
+	if err := s.lineage.Record(original, entry); err != nil {
+		res.Warnings = append(res.Warnings,
+			fmt.Sprintf("Could not update the local order-lineage cache: %v", err))
+	}
+	return res
+}
+
+// withLineage wraps a broker call so every mutation path records identically.
+func (s *Service) withLineage(res MutationResult, err error) (MutationResult, error) {
+	if err != nil {
+		return res, err
+	}
+	return s.recordLineage(res), nil
 }
 
 func (s *Service) PreviewPlace(intent orderintent.PlaceIntent) Preview {
@@ -140,7 +199,7 @@ func (s *Service) Place(ctx context.Context, intent orderintent.PlaceIntent, opt
 	if s.broker == nil {
 		return MutationResult{}, ErrLiveMutationPending
 	}
-	return s.broker.PlacePendingOrder(ctx, intent)
+	return s.withLineage(s.broker.PlacePendingOrder(ctx, intent))
 }
 
 func (s *Service) Cancel(ctx context.Context, intent orderintent.CancelIntent, opts ExecuteOptions) (MutationResult, error) {
@@ -154,7 +213,7 @@ func (s *Service) Cancel(ctx context.Context, intent orderintent.CancelIntent, o
 	if _, err := s.broker.GetOrderAvailableActions(ctx, intent.OrderID); err != nil {
 		return MutationResult{}, err
 	}
-	return s.broker.CancelPendingOrder(ctx, intent)
+	return s.withLineage(s.broker.CancelPendingOrder(ctx, intent))
 }
 
 func (s *Service) Amend(ctx context.Context, intent orderintent.AmendIntent, opts ExecuteOptions) (MutationResult, error) {
@@ -167,7 +226,7 @@ func (s *Service) Amend(ctx context.Context, intent orderintent.AmendIntent, opt
 	if _, err := s.broker.GetOrderAvailableActions(ctx, intent.OrderID); err != nil {
 		return MutationResult{}, err
 	}
-	return s.broker.AmendPendingOrder(ctx, intent)
+	return s.withLineage(s.broker.AmendPendingOrder(ctx, intent))
 }
 
 func (s *Service) guard(ctx context.Context, action Action, preview Preview, opts ExecuteOptions) error {

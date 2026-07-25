@@ -177,6 +177,20 @@ func resolveSessionFile(opts *rootOptions) string {
 	return paths.SessionFile
 }
 
+// resolveLineageFile does the same for the lineage cache: the MCP server needs
+// the one the CLI uses, or an order placed by an agent cannot be found by a
+// later cancel from the terminal.
+func resolveLineageFile(opts *rootOptions) string {
+	if opts.configDir != "" {
+		return filepath.Join(opts.configDir, "trading-lineage.json")
+	}
+	paths, err := config.DefaultPaths()
+	if err != nil {
+		return ""
+	}
+	return paths.LineageFile
+}
+
 var expiryWarningSkipCommands = map[string]struct{}{
 	"extend":                  {},
 	"login":                   {},
@@ -494,6 +508,7 @@ func newAppContext(opts *rootOptions) (*appContext, error) {
 
 	h := hybrid.New(wtsClient, off, hybrid.Policy{Prefer: prefer, Fallback: cfg.OpenAPI.Fallback}, os.Stderr)
 
+	lineage := orderlineage.NewService(paths.LineageFile)
 	return &appContext{
 		format:        format,
 		paths:         paths,
@@ -507,7 +522,9 @@ func newAppContext(opts *rootOptions) (*appContext, error) {
 		}),
 		client:         h,
 		session:        sess,
-		lineageService: orderlineage.NewService(paths.LineageFile),
-		tradingService: trading.NewService(cfg.Trading, h.Broker()),
+		lineageService: lineage,
+		// The trading service records lineage itself, so every surface that
+		// mutates through it (cobra, MCP, `ops call`) leaves the same trail.
+		tradingService: trading.NewService(cfg.Trading, h.Broker()).WithLineage(lineage),
 	}, nil
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
@@ -233,7 +232,6 @@ func newOrderPlaceCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return userFacingPlaceError(app.paths, err, &intent)
 			}
-			recordMutationLineage(app, &result)
 
 			return output.WriteMutationResult(cmd.OutOrStdout(), app.format, result)
 		},
@@ -300,7 +298,6 @@ func newOrderCancelCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return userFacingTradingError(app.paths, err)
 			}
-			recordMutationLineage(app, &result)
 
 			return output.WriteMutationResult(cmd.OutOrStdout(), app.format, result)
 		},
@@ -361,7 +358,6 @@ func newOrderAmendCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return userFacingTradingError(app.paths, err)
 			}
-			recordMutationLineage(app, &result)
 			return output.WriteMutationResult(cmd.OutOrStdout(), app.format, result)
 		},
 	}
@@ -454,30 +450,6 @@ func optionalFloat64(cmd *cobra.Command, name string, value float64) *float64 {
 		return nil
 	}
 	return &value
-}
-
-func recordMutationLineage(app *appContext, result *trading.MutationResult) {
-	if app == nil || app.lineageService == nil || result == nil {
-		return
-	}
-
-	originalOrderID := strings.TrimSpace(result.OriginalOrderID)
-	if originalOrderID == "" {
-		return
-	}
-
-	entry := orderlineage.Entry{
-		CurrentOrderID: strings.TrimSpace(result.CurrentOrderID),
-		Kind:           strings.TrimSpace(result.Kind),
-		Symbol:         strings.TrimSpace(result.Symbol),
-		Market:         strings.TrimSpace(result.Market),
-		Quantity:       result.Quantity,
-		Price:          result.Price,
-		OrderDate:      strings.TrimSpace(result.OrderDate),
-	}
-	if err := app.lineageService.Record(originalOrderID, entry); err != nil {
-		result.Warnings = append(result.Warnings, fmt.Sprintf("Could not update local lineage cache at %s: %v", app.paths.LineageFile, err))
-	}
 }
 
 func newOrderConditionalCmd(opts *rootOptions) *cobra.Command {
