@@ -222,7 +222,7 @@ func (c *Client) GetScreenerPresets(ctx context.Context) (domain.ScreenerPresets
 	}
 	out := domain.ScreenerPresets{FetchedAt: time.Now().UTC()}
 	for _, p := range envelope.Result {
-		out.Presets = append(out.Presets, domain.ScreenerPreset{ID: p.ID, Name: p.Name, Description: p.Description})
+		out.Presets = append(out.Presets, domain.ScreenerPreset{ID: p.ID, Name: p.Name, Description: p.Description, Filters: p.Filters})
 	}
 	return out, nil
 }

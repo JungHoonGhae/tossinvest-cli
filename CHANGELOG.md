@@ -4,6 +4,14 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 
 ## [Unreleased]
 
+### 개선
+- **스크리너 커스텀 필터를 실제로 쓸 수 있게 됐습니다** — `market screener --output json` 이 각 프리셋의 `filters` 배열을 함께 보여줍니다. 필터 어휘(`배당_수익률` 같은 한글 id)는 토스 web 번들에만 있어 공개돼 있지 않은데, 지금까지는 그 배열이 출력에서 빠져 있어 `--filter` 를 조립할 방법이 사실상 없었습니다(도움말은 프리셋 출력을 참고하라고 안내했지만 거기에 필터가 없었습니다). 이제 프리셋을 복사해 임계값만 바꿔 되먹일 수 있습니다:
+
+  ```
+  tossctl market screener --output json | jq '.presets[] | select(.id=="14") | .filters'
+  tossctl market screener --filter '<복사한 배열>' --nation us
+  ```
+
 ## [0.28.0] - 2026-07-25
 
 ### 새 기능

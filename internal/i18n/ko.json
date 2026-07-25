@@ -105,7 +105,7 @@
   "market.ranking.short": "실시간 인기 종목 랭킹",
   "market.rankings.long": "토스 공식 Open API 주식 랭킹을 조회합니다. 공식 키 연결(`tossctl openapi login`)이 필요합니다. --type 으로 랭킹 기준을, --market·--duration 으로 범위를 지정합니다.",
   "market.rankings.short": "공식 주식 랭킹 (거래대금/등락률 상위, 공식 API 키 필요)",
-  "market.screener.long": "종목 스크리너. 인자가 없으면 사용 가능한 프리셋 목록을 표시하며, 프리셋 id를 전달하면 실행합니다.\n\n커스텀 조건은 --filter로 원시 JSON 배열을 전달합니다 (토스 웹의 필터 스키마):\n  tossctl market screener --filter '[{\"id\":\"marketCap\",\"conditions\":[...]}]' --nation kr\n\n필터 ID/조건 구조를 파악하려면 프리셋 출력(--output json)을 참고하세요.",
+  "market.screener.long": "조건검색(스크리너). 인자 없이 실행하면 프리셋 목록을, 프리셋 id 를 주면 실행합니다.\n\n커스텀 조건은 --filter 에 raw JSON 배열로 넘깁니다 (토스 web 의 필터 스키마):\n  tossctl market screener --filter '[{\"id\":\"marketCap\",\"conditions\":[...]}]' --nation kr\n\n필터 어휘는 토스 web 번들에 들어 있고 공개돼 있지 않습니다. 그래서 실전에서는\n프리셋을 출발점으로 삼아 고치는 방식이 현실적입니다:\n  tossctl market screener --output json | jq '.presets[] | select(.id==\"14\") | .filters'\n이 배열을 복사해 임계값만 바꿔 --filter 로 다시 넘기면 됩니다.",
   "market.screener.short": "종목 스크리너 (가치주, 배당주, 성장주 등)",
   "market.sectors.long": "업종(TICS) 섹터 등락 현황. 인자가 없으면 최상위 섹터를 표시하며, id를 전달하면 하위 업종으로 들어갑니다.\n\n참고: WTS 내부 엔드포인트를 사용하며 공식 Open API로는 제공되지 않고 예고 없이 변경될 수 있습니다.",
   "market.sectors.short": "업종(TICS) 섹터 등락 현황",

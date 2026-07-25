@@ -153,6 +153,12 @@ type ScreenerPreset struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
+	// Filters is the preset's raw condition array, exactly as the screener API
+	// accepts it. It is carried through so a caller can copy a preset, adjust a
+	// threshold, and feed it back via `market screener --filter` — the filter
+	// vocabulary itself lives in Toss's JS bundle (Korean ids) and is not
+	// otherwise discoverable.
+	Filters json.RawMessage `json:"filters,omitempty"`
 }
 
 type ScreenerPresets struct {
