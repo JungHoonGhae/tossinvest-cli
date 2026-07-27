@@ -2452,7 +2452,7 @@
         "type": "object"
       },
       "PaginatedOrderResponse": {
-        "description": "주문 목록 페이징 응답.\n- `status=OPEN`: 모든 대기 중 주문을 반환합니다. `nextCursor`는 항상 `null`, `hasNext`는 항상 `false`.\n- `status=CLOSED`: 현재 호출 시 `400 closed-not-supported` 를 반환합니다.\n",
+        "description": "주문 목록 페이징 응답.\n- `status=OPEN`: 모든 대기 중 주문을 반환합니다. `nextCursor`는 항상 `null`, `hasNext`는 항상 `false`.\n- `status=CLOSED`: `limit` 단위로 페이징합니다. 다음 페이지가 있으면 `nextCursor`에 커서가, `hasNext`에 `true`가 내려옵니다.\n",
         "properties": {
           "hasNext": {
             "description": "다음 페이지 존재 여부",
@@ -3199,7 +3199,7 @@
   },
   "info": {
     "title": "토스증권 Open API",
-    "version": "1.2.4"
+    "version": "1.2.5"
   },
   "openapi": "3.1.0",
   "paths": {
