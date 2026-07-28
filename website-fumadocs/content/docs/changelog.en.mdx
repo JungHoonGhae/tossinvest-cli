@@ -9,6 +9,20 @@ Version history below (source: the Korean-language [CHANGELOG.md](https://github
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-07-28
+
+### 고침
+- **주문 목록이 "다음 페이지가 있다"는 사실을 더 이상 삼키지 않습니다** — `orders` 오퍼레이션(MCP·`tossctl ops call orders`)이 첫 페이지만 돌려주면서 그게 전부인 것처럼 보였습니다. 응답의 `nextCursor`/`hasNext` 를 읽어놓고 버리고 있었습니다. 토스 공식 spec v1.2.5 에서 `status=CLOSED` 가 에러 대신 페이징 응답을 주기 시작해 이 경로가 실제로 쓰이게 되면서 드러났습니다.
+
+  ⚠️ **응답 형태가 바뀝니다.** `orders` 결과가 배열에서 객체로 바뀌므로, 이 오퍼레이션 출력을 파싱하는 스크립트·에이전트는 수정이 필요합니다:
+
+  ```
+  이전: [ {주문}, {주문} ]
+  이후: { "orders": [ {주문}, {주문} ], "next_cursor": "...", "has_next": true }
+  ```
+
+  조건주문 목록(`conditional_orders`)이 원래부터 쓰던 형태와 같아졌습니다. 타입 있는 커맨드(`tossctl orders` 등)는 웹 세션 경로를 쓰므로 영향받지 않습니다.
+
 ## [0.30.0] - 2026-07-25
 
 ### 새 기능
