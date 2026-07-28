@@ -79,10 +79,13 @@ type OrdersFilter struct {
 	Limit int
 }
 
-// Orders fetches the order history for the authenticated account.
+// Orders fetches a page of order history for the authenticated account.
 // filter may be a zero-value OrdersFilter to use API defaults.
 // Requires the X-Tossinvest-Account header; configure via WithAccountSeq.
-func (c *Client) Orders(ctx context.Context, filter OrdersFilter) ([]domain.Order, error) {
+//
+// Returns a page, not a bare slice: NextCursor/HasNext have to reach the caller
+// or a truncated result is indistinguishable from a complete one.
+func (c *Client) Orders(ctx context.Context, filter OrdersFilter) (domain.OrderList, error) {
 	q := url.Values{}
 	if filter.Status != "" {
 		q.Set("status", filter.Status)
@@ -105,9 +108,14 @@ func (c *Client) Orders(ctx context.Context, filter OrdersFilter) ([]domain.Orde
 
 	var raw apiOrderPage
 	if err := c.getAcct(ctx, "/api/v1/orders", q, &raw); err != nil {
-		return nil, err
+		return domain.OrderList{}, err
 	}
-	return adaptOrders(raw.Orders), nil
+	return domain.OrderList{
+		Orders:     adaptOrders(raw.Orders),
+		NextCursor: raw.NextCursor,
+		HasNext:    raw.HasNext,
+		FetchedAt:  time.Now().UTC(),
+	}, nil
 }
 
 // OrderByID fetches a single order by its unique ID.
