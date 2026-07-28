@@ -793,6 +793,17 @@ type ConditionalOrder struct {
 	CreatedAt  string                     `json:"created_at"`
 }
 
+// OrderList is a page of orders. Mirrors ConditionalOrderList: the cursor and
+// HasNext must reach the caller, or a multi-page result looks like the whole
+// result. `GET /api/v1/orders` began paginating status=CLOSED in official spec
+// v1.2.5 (it used to reject that filter outright), so this is now a live path.
+type OrderList struct {
+	Orders     []Order   `json:"orders"`
+	NextCursor string    `json:"next_cursor,omitempty"`
+	HasNext    bool      `json:"has_next"`
+	FetchedAt  time.Time `json:"fetched_at"`
+}
+
 // ConditionalOrderList is a page of conditional orders.
 type ConditionalOrderList struct {
 	Orders     []ConditionalOrder `json:"orders"`

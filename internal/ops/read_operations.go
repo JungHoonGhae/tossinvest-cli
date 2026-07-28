@@ -117,14 +117,17 @@ func readOperations() []Operation {
 		},
 		{
 			ID: "orders", Method: "GET", Path: "/api/v1/orders",
-			Category: "order", Summary: "List orders with optional filters.",
+			Category: "order",
+			Summary: "List orders with optional filters. Returns one PAGE: check has_next, " +
+				"and pass next_cursor back as cursor to get the rest — the first call is not " +
+				"necessarily the whole history.",
 			Params: []Param{
 				{Name: "status", Type: "string", Desc: `"OPEN" or "CLOSED"`},
 				{Name: "symbol", Type: "string"},
 				{Name: "from", Type: "string", Desc: "start date YYYY-MM-DD"},
 				{Name: "to", Type: "string", Desc: "end date YYYY-MM-DD"},
-				{Name: "cursor", Type: "string", Desc: "pagination cursor"},
-				{Name: "limit", Type: "integer"},
+				{Name: "cursor", Type: "string", Desc: "next_cursor from a previous call's response"},
+				{Name: "limit", Type: "integer", Desc: "orders per page (0 = API default)"},
 			},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				var f official.OrdersFilter

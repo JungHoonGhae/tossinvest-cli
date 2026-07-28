@@ -169,17 +169,96 @@ func TestOrdersIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 1 {
-		t.Fatalf("want 1 order, got %d", len(got))
+	if len(got.Orders) != 1 {
+		t.Fatalf("want 1 order, got %d", len(got.Orders))
 	}
-	if got[0].ID != "abc123" {
-		t.Fatalf("ID: want abc123, got %q", got[0].ID)
+	if got.Orders[0].ID != "abc123" {
+		t.Fatalf("ID: want abc123, got %q", got.Orders[0].ID)
 	}
-	if got[0].Quantity != 10 {
-		t.Fatalf("Quantity: want 10, got %v", got[0].Quantity)
+	if got.Orders[0].Quantity != 10 {
+		t.Fatalf("Quantity: want 10, got %v", got.Orders[0].Quantity)
 	}
 	if gotHeader != "3" {
 		t.Fatalf("X-Tossinvest-Account: want 3, got %q", gotHeader)
+	}
+}
+
+// 서버가 다음 페이지가 있다고 말하면 그 사실이 호출자에게 도달해야 한다.
+// 예전에는 Orders() 가 nextCursor/hasNext 를 파싱해놓고 버려서, 다건 조회가
+// 첫 페이지만 조용히 반환됐다 — 에이전트는 그게 전부인 줄 안다.
+// spec v1.2.5 에서 status=CLOSED 가 400 대신 페이징 응답을 주기 시작하며
+// 이 경로가 처음 실사용된다.
+func TestOrdersSurfacesPaginationMetadata(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/orders":
+			q := r.URL.Query()
+			if q.Get("status") != "CLOSED" {
+				t.Errorf("status: want CLOSED, got %q", q.Get("status"))
+			}
+			if q.Get("limit") != "1" {
+				t.Errorf("limit: want 1, got %q", q.Get("limit"))
+			}
+			_, _ = w.Write([]byte(`{"result":{"orders":[{"orderId":"abc123","symbol":"005930","side":"BUY","orderType":"LIMIT","timeInForce":"DAY","status":"CLOSED","quantity":"10","price":"70000","currency":"KRW","orderedAt":"2026-03-29T09:30:00+09:00","canceledAt":null,"orderAmount":null,"execution":{"filledQuantity":"10","averageFilledPrice":"70000","filledAmount":"700000","commission":null,"tax":null,"filledAt":null,"settlementDate":null}}],"nextCursor":"CURSOR-2","hasNext":true}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+		WithAccountSeq(1),
+	)
+
+	got, err := c.Orders(context.Background(), OrdersFilter{Status: "CLOSED", Limit: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Orders) != 1 {
+		t.Fatalf("want 1 order, got %d", len(got.Orders))
+	}
+	if !got.HasNext {
+		t.Error("HasNext 가 false — 다음 페이지가 있다는 사실이 사라졌다")
+	}
+	if got.NextCursor != "CURSOR-2" {
+		t.Errorf("NextCursor: want CURSOR-2, got %q", got.NextCursor)
+	}
+}
+
+// 마지막 페이지는 커서가 비어야 한다. 커서가 남으면 호출자가 무한 루프에 빠진다.
+func TestOrdersLastPageHasNoCursor(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/orders":
+			_, _ = w.Write([]byte(`{"result":{"orders":[],"nextCursor":null,"hasNext":false}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+		WithAccountSeq(1),
+	)
+
+	got, err := c.Orders(context.Background(), OrdersFilter{Status: "CLOSED"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.HasNext || got.NextCursor != "" {
+		t.Errorf("마지막 페이지인데 다음 페이지가 있다고 한다: HasNext=%v NextCursor=%q", got.HasNext, got.NextCursor)
 	}
 }
 
@@ -215,8 +294,8 @@ func TestOrdersFilterEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 0 {
-		t.Fatalf("want 0 orders, got %d", len(got))
+	if len(got.Orders) != 0 {
+		t.Fatalf("want 0 orders, got %d", len(got.Orders))
 	}
 }
 
