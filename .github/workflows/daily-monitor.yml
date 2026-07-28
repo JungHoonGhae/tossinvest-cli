@@ -281,7 +281,11 @@ jobs:
             echo "이미 오늘자 PR 존재 — 생략"; exit 0
           fi
           TITLE_PREFIX=""
-          grep -qi "breaking-risk" "$FILE" && TITLE_PREFIX="[breaking-risk] "
+          # 마커는 위 프롬프트가 지정한 `> breaking-risk` **한 줄** 이다. 파일 전체를
+          # substring 으로 훑으면 "breaking-risk 로 표시하지는 않되" 같은 부정문에도
+          # 걸려 제목이 거짓 경보가 된다 (2026-07-27 분석에서 실제로 발생). 줄 전체를
+          # 앵커링해 산문 언급과 마커를 구분한다.
+          grep -qiE '^> *breaking-risk *$' "$FILE" && TITLE_PREFIX="[breaking-risk] "
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -b "$BR"
