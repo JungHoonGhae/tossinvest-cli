@@ -242,7 +242,7 @@ Waiting for approval in the Toss app on your phone...
 | **Prime 구독 상태·혜택** | `account prime` (수수료·이자 3단 비교: 일반/Prime/내 적용) | ❌ | ✅ |
 | **커뮤니티 랭킹** | `community rankings --type influencer\|profit\|followers` | ❌ | ✅ |
 | **업종별 등락** | `market sectors [id]` (대분류·하위 업종, 1일·1개월·1년) | ❌ | ✅ |
-| **🆕 테마 등락 랭킹** | `market themes` (오늘 가장 많이 오른 테마, 상승종목 수) | ❌ | ✅ |
+| **테마 등락 랭킹** | `market themes` (오늘 가장 많이 오른 테마, 상승종목 수) | ❌ | ✅ |
 | **개인화 뉴스 브리핑** | `market briefing` (테마별 뉴스 묶음) | ❌ | ✅ |
 | **토스 AI 시그널** | `market signals` (종목별 AI 시그널·키워드·등락) | ❌ | ✅ |
 | **조건 검색 (스크리너)** | `market screener [id]` (프리셋) · `--filter '<json>'` (커스텀 조건) `--nation kr\|us` | ❌ | ✅ |

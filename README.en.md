@@ -194,7 +194,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **Expected lending income** | `lending expected` (projected share-lending income: monthly/yearly USD + per-stock) | ❌ | ✅ |
 | **Community rankings** | `community rankings --type influencer\|profit\|followers` | ❌ | ✅ |
 | **Sector movements** | `market sectors [id]` (industry tree, 1d·1m·1y returns) | ❌ | ✅ |
-| **🆕 Theme fluctuation ranking** | `market themes` (today's top-moving themes, rising-stock counts) | ❌ | ✅ |
+| **Theme fluctuation ranking** | `market themes` (today's top-moving themes, rising-stock counts) | ❌ | ✅ |
 | **Personalized news briefing** | `market briefing` (headlines grouped by theme) | ❌ | ✅ |
 | **Toss AI signals** | `market signals` (per-symbol AI signal · keywords · move) | ❌ | ✅ |
 | **Stock screener** | `market screener [id]` (preset) · `--filter '<json>'` (custom) `--nation kr\|us` | ❌ | ✅ |
