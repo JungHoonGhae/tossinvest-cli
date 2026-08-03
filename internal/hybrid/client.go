@@ -297,6 +297,11 @@ func officialLeg(l orderintent.ConditionLeg) official.ConditionLegBody {
 //     is a single base/quote pair, so it cannot satisfy the plural signature.
 //   - Order reads (ListPendingOrders / ListCompletedOrders / FindOrder): the
 //     official status-enum mapping is still uncertain, so routing them risks
-//     silently wrong statuses.
+//     silently wrong statuses. Measured 2026-08-03: the official API answers
+//     status=CLOSED with FILLED and CANCELED. The WTS side could not be
+//     compared — the account had no completed orders in the current month, and
+//     WTS passes its own server string through unmapped. Until both sides are
+//     observed together, routing here could report a filled order as canceled,
+//     which is worse than making the user pick a backend. See issue tracker.
 //   - Order writes (PlacePendingOrder / CancelPendingOrder / AmendPendingOrder):
 //     these are the Broker's concern and are handled in Task 10 — not here.
