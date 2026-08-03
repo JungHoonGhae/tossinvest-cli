@@ -91,6 +91,8 @@
   "lending.short": "Securities lending queries",
   "market.briefing.long": "맞춤형 AI 뉴스 브리핑.\n\n참고: WTS 내부 엔드포인트를 사용하며 공식 Open API로는 제공되지 않고 예고 없이 변경될 수 있습니다.",
   "market.briefing.short": "맞춤형 AI 뉴스 브리핑",
+  "market.calendar.long": "미국 지표 발표 등 다가오는 경제 일정을 날짜별로 봅니다. 토스의 AI 한 줄 요약이 함께 나옵니다.\n\n서버가 기간 파라미터를 받지 않아 항상 앞으로 약 10일치를 돌려줍니다 — 조회 범위를 바꿀 방법이 없습니다. 지난 일정도 제공되지 않습니다.\n\n시각이 '종일'인 항목은 서버가 발표 시각을 주지 않는 경우입니다. 웹앱(WTS) 전용.",
+  "market.calendar.short": "다가오는 경제 일정 (지표 발표 캘린더)",
   "market.earnings.long": "예정된 실적 발표 캘린더. --major 플래그로 주요 기업만 표시할 수 있습니다.",
   "market.earnings.short": "예정된 실적 발표 캘린더",
   "market.fx.short": "달러/원 환율 및 달러 인덱스 시세",

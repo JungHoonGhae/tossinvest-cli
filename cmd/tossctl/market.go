@@ -236,6 +236,27 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		fmt.Sprintf("max items (server caps at %d); 0 = server default", tossclient.MaxNewsLimit))
 	newsCmd.Flags().BoolVar(&newsFull, "full", false, "include each article's summary")
 
+	calendarCmd := &cobra.Command{
+		Use:   "calendar",
+		Short: i18n.T("market.calendar.short"),
+		Long:  i18n.T("market.calendar.long"),
+		// The endpoint takes no parameters — from/to/date/month/size are all
+		// accepted and all ignored — so there is nothing to expose as a flag.
+		Annotations: map[string]string{"source": "wts"},
+		Args:        cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			c, err := app.client.GetEconomicCalendar(cmd.Context())
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteEconomicCalendar(cmd.OutOrStdout(), app.format, c)
+		},
+	}
+
 	briefingCmd := &cobra.Command{
 		Use:         "briefing",
 		Short:       i18n.T("market.briefing.short"),
@@ -416,6 +437,6 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	investorTradingCmd.Flags().IntVar(&investorTradingCount, "count", 0, "number of records (max 100; 0 = API default)")
 	investorTradingCmd.Flags().StringVar(&investorTradingUntil, "until", "", "inclusive upper-bound date (YYYY-MM-DD)")
 
-	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd)
+	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd)
 	return cmd
 }

@@ -254,6 +254,25 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "economic_calendar", Method: "GET", Path: "wts:dashboard/wts/overview/calendar/economic-events", Backend: "wts",
+			Category: "market",
+			Summary:  "Upcoming scheduled economic releases (US indicators and the like) with dates and, when the server gives one, a clock time — plus Toss's one-line AI framing of the window. Takes no parameters: the server ignores from/to/date/month/size and always answers with roughly the next ten days. Past events are not available. WTS-only.",
+			// Probe asserts the events array specifically: an empty window is
+			// normal in a quiet week, but the key vanishing means the shape
+			// changed, which is the contract break worth alerting on.
+			Probe: &ProbeSpec{Name: "economic-calendar", Method: "GET",
+				URL: probeInfo + "/api/v2/dashboard/wts/overview/calendar/economic-events",
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.events", "array")
+				}},
+			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
+				return d.WTS.GetEconomicCalendar(ctx)
+			},
+		},
+		{
 			ID: "market_news", Method: "POST", Path: "wts:dashboard/wts/news", Backend: "wts",
 			Category: "market", Summary: "Market news with each article's RELATED STOCKS and how they are moving right now — the part a plain headline list lacks. Scopes: all (widest, general market news, no stock linkage), watchlist / holdings (news about the user's own stocks, with moves), soaring (stocks spiking), recommended, latest. Server caps at 50 items; there is no pagination and no keyword search. WTS-only.",
 			Params: []Param{
