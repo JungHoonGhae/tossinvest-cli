@@ -329,6 +329,45 @@ jq -r '.endpoints["/api/v3/stock-prices"].observed' docs/reverse-engineering/wts
 부르는 것과 전용 페이지가 부르는 것은 다르다. 번들에서 `href:"/..."` 로 링크된 화면을 찾아
 그쪽 네트워크를 본다.
 
+### 스크리너 필터 어휘 — 번들 스크랩은 실패했다 (2026-08-04)
+
+README 는 필터 어휘(`배당_수익률` 같은 한글 id)가 "토스 번들에만 있어 공개돼 있지
+않다" 고 적어뒀다. 번들에서 뽑아 카탈로그로 내보내려 했고 **실패했다. 재시도하지 말 것.**
+
+필터는 번들에 `new C({id:VAR, nation:[...], name, description, conditionMap})` 로
+선언돼 있고 한글 id 는 변수에 담겨 있다. 변수를 해석해 뽑아봤다:
+
+| 시도 | 프리셋 실제 id 와 일치 |
+|---|---|
+| 한글 문자열 변수만 매핑 | 14/17 (82%) — 미해결 변수 6개 |
+| ASCII 식별자까지 매핑 확대 | **10/17 (58%)** — 변수는 풀렸는데 **틀린 문자열**에 붙음 |
+
+넓힐수록 나빠진 이유는 이 문서가 위에서 이미 경고한 것이다 — **minified 변수명은
+청크마다 재사용된다.** 같은 `ea` 가 다른 청크에서 다른 문자열이라, 정적 해석은
+구조적으로 신뢰할 수 없다.
+
+**신뢰할 수 있는 출처는 프리셋이다.** `market screener --output json` 이 각 프리셋의
+`filters` 배열을 그대로 내보낸다(v0.29.0). 거기 든 id 는 서버가 준 것이라 확실하다.
+
+#### 대신 확실히 알아낸 호출 시그니처
+
+번들의 **호출부**(변수가 아니라 리터럴 경로)는 신뢰할 수 있다. 호스트는 전부 CERT:
+
+```
+POST /api/v1/screener/filters/base   {filterId, nation}   → basedAt
+POST /api/v1/screener/filters/range  {filterId, nation}   (400 — 바디 미확정)
+POST /api/v1/screener/screen/count   []                   (400 — 바디 미확정)
+GET  /api/v1/screener/presets/user?useCustom=true         → 사용자 저장 프리셋
+GET  /api/v2/screener/presets/common?useCustom=true       (구현됨)
+POST /api/v2/screener/screen                              (구현됨)
+```
+
+`filters/base` 는 `{filterId:"배당_수익률", nation:"kr"}` 로 보내면 파싱을 통과해
+도메인 에러(`screener.bad-request.based-at`)가 난다 — **바디 형식은 맞다.**
+
+`presets/user` 는 이 계정에서 빈 배열이라 항목 구조를 못 봤다. 저장된 프리셋이 생기면
+그때 구현할 것.
+
 ### 막힌 방법 (다음에 시간 낭비 말 것)
 
 - **안드로이드 앱 트래픽 캡처**: 갤럭시(루팅X)에 mitmproxy 인증서까지 설치 성공해도,
