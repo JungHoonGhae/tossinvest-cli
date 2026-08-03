@@ -4,8 +4,8 @@
   "chunk_count": 81,
   "total": 988,
   "counts": {
-    "implemented": 92,
-    "candidate": 386,
+    "implemented": 93,
+    "candidate": 385,
     "excluded": 510,
     "candidate_next": 20,
     "meaningful": 478
@@ -2158,7 +2158,7 @@
       }
     },
     "/api/v1/lens/issues": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",

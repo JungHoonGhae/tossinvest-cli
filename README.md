@@ -236,6 +236,7 @@ Waiting for approval in the Toss app on your phone...
 | **🆕 계좌 상세** | `account detail [--full]` (계좌번호·개설일 + **출금 가능액/한도** + 미수거래 상태 + **미국 배당 수령 방식** — 번호·이름은 기본 마스킹) | ❌ | ✅ |
 | **🆕 자동매매 조회** | `order autotrade` (스탑로스·목표수익·OCO·OTO 설정과 감시가/주문가 — 조회 전용) | ❌ | ✅ |
 | **🆕 시장 뉴스** | `market news [--type all\|watchlist\|holdings\|soaring\|latest\|recommended] [--limit N] [--full]` (기사별 **관련 종목 등락률** 포함 — 헤드라인 목록에 없는 부분) | ❌ | ✅ |
+| **🆕 시장 이슈 랭킹** | `market issues [--full]` (지금 가장 많이 이야기되는 토픽 순위 + 등락 ▲▼ + 관련 기사) | ❌ | ✅ |
 | **🆕 증시 캘린더** | `market calendar [--month YYYY-MM]` (경제지표 **예상치·실제치·직전값** + 국내·미국 **실적 발표**(종목/시각) + 휴장일, 월 단위) | ❌ | ✅ |
 | **🆕 기간별 실현손익** | `profit summary --type sales\|dividend\|lending\|account-interest [--from --to]` (카테고리 하나의 수익금·수익률·매입금액, KRW/USD) | ❌ | ✅ |
 | **🆕 종목별 일자별 실현손익** | `profit daily [--from --to] [--currency KRW\|USD]` (종목·수량·손익·수익률·매도/매수 금액, 전체 페이지 병합 — 세금 준비용 CSV) | ❌ | ✅ |

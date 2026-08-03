@@ -189,6 +189,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **🆕 Account detail** | `account detail [--full]` (number · open date + **withdrawable cash and caps** + credit-trading status + **US dividend payout mode** — number and name masked by default) | ❌ | ✅ |
 | **🆕 Automated trading** | `order autotrade` (stop-loss / target-profit / OCO / OTO rules with trigger and order prices — read-only) | ❌ | ✅ |
 | **🆕 Market news** | `market news [--type all\|watchlist\|holdings\|soaring\|latest\|recommended] [--limit N] [--full]` (each article's **related stocks and their moves** — what a headline list lacks) | ❌ | ✅ |
+| **🆕 Market issue board** | `market issues [--full]` (topics ranked by attention, with rank movement ▲▼ and backing articles) | ❌ | ✅ |
 | **🆕 Market calendar** | `market calendar [--month YYYY-MM]` (releases with **forecast / actual / prior**, KR+US **earnings** with symbol and call time, holidays — by month) | ❌ | ✅ |
 | **🆕 Realized profit by period** | `profit summary --type sales\|dividend\|lending\|account-interest [--from --to]` (one category's earned amount, return rate, purchase basis in KRW/USD) | ❌ | ✅ |
 | **🆕 Per-stock daily realized profit** | `profit daily [--from --to] [--currency KRW\|USD]` (symbol · quantity · P/L · rate · sell/buy amounts, every page merged — CSV for tax prep) | ❌ | ✅ |

@@ -76,6 +76,7 @@ IMPLEMENTED = [
     r"^/api/v1/profit/overview$",                                 # profit
     r"^/api/v3/profit/readable-tab$",                             # profit (tab meta)
     r"^/api/v1/dashboard/wts/news$",                             # market news
+    r"^/api/v1/lens/issues$",                                    # market issues
     r"^/api/v3/trading/auto-trading/histories$",                  # order autotrade
     r"^/api/v4/calendar/monthly$",                                # market calendar
     r"^/api/v1/nova-calendar/ai/summary/weekly$",                 # market calendar (AI 요약)
