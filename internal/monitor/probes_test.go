@@ -35,6 +35,7 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"screener-presets":         true,
 		"watchlist-groups":         true,
 		"market-calendar":          true,
+		"auto-trades":              true,
 	}
 	got := map[string]bool{}
 	for _, p := range Probes() {

@@ -1003,6 +1003,42 @@ type MarketCalendar struct {
 	FetchedAt     time.Time `json:"fetched_at"`
 }
 
+// AutoTrade is one automated-trading rule the user set in the Toss app or web
+// (stop-loss, target-profit, OCO, OTO). tossctl cannot create or change them —
+// this is the read that lets you see what is armed on your account, which was
+// otherwise only visible inside Toss's own UI.
+type AutoTrade struct {
+	ID   int64  `json:"id"`
+	Type string `json:"type"`
+	// Status is the server's lifecycle code translated to its own enum name
+	// (READY, ORDERED, EXPIRED, COMPLETED, …). The wire value is a bare number
+	// ("6"), meaningless on its own; the mapping was read out of Toss's web
+	// bundle rather than guessed. StatusCode keeps the raw value so a code Toss
+	// adds later is still reportable.
+	Status     string `json:"status"`
+	StatusCode string `json:"status_code,omitempty"`
+	Symbol     string `json:"symbol,omitempty"`
+	Name       string `json:"name,omitempty"`
+	Market     string `json:"market,omitempty"`
+	CreatedAt  string `json:"created_at,omitempty"`
+	// Quantity is how much the rule trades; AllQuantity means "everything held".
+	Quantity    float64 `json:"quantity,omitempty"`
+	AllQuantity bool    `json:"all_quantity,omitempty"`
+	// TriggerPrice is the watch price that arms the rule, OrderPrice the price
+	// it then orders at. Currency says which unit both are in.
+	TriggerPrice float64 `json:"trigger_price,omitempty"`
+	OrderPrice   float64 `json:"order_price,omitempty"`
+	Currency     string  `json:"currency,omitempty"`
+	TradeType    string  `json:"trade_type,omitempty"`
+}
+
+// AutoTradeList is a page of automated-trading rules.
+type AutoTradeList struct {
+	Items     []AutoTrade `json:"items"`
+	HasNext   bool        `json:"has_next"`
+	FetchedAt time.Time   `json:"fetched_at"`
+}
+
 // WithdrawableByDay is cash available now (D+0) and as settlement completes.
 type WithdrawableByDay struct {
 	Day0 float64 `json:"day0"`

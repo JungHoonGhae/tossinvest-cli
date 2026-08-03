@@ -254,6 +254,22 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "auto_trades", Method: "GET", Path: "wts:trading/auto-trading/histories", Backend: "wts",
+			Category: "order",
+			Summary:  "Automated-trading rules armed on the account (STOP_LOSS, PROFIT_RATE, OCO, OTO) with their trigger and order prices. Read-only: arming and cancelling happen in the Toss app only. status is the server's numeric code translated to its enum name (6 = EXPIRED); status_code keeps the raw value. WTS-only.",
+			Probe: &ProbeSpec{Name: "auto-trades", Method: "GET",
+				URL: probeInfo + "/api/v3/trading/auto-trading/histories",
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.body", "array")
+				}},
+			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
+				return d.WTS.ListAutoTrades(ctx)
+			},
+		},
+		{
 			// 공식 API 에 이미 market_calendar 가 있다(국가별 거래일 캘린더,
 			// read_operations.go). 이쪽은 지표·실적·휴장 **이벤트** 캘린더라
 			// 다른 기능이므로 id 를 나눈다.

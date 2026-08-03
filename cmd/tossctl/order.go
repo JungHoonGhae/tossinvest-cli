@@ -78,6 +78,7 @@ func newOrderCmd(opts *rootOptions) *cobra.Command {
 		newOrderCancelCmd(opts),
 		newOrderAmendCmd(opts),
 		newOrderConditionalCmd(opts),
+		newOrderAutoTradeCmd(opts),
 	)
 
 	return cmd
@@ -450,6 +451,29 @@ func optionalFloat64(cmd *cobra.Command, name string, value float64) *float64 {
 		return nil
 	}
 	return &value
+}
+
+// newOrderAutoTradeCmd exposes the automated-trading rules the user armed in
+// Toss's own UI. Read-only: tossctl does not arm or cancel them.
+func newOrderAutoTradeCmd(opts *rootOptions) *cobra.Command {
+	return &cobra.Command{
+		Use:         "autotrade",
+		Short:       i18n.T("order.autotrade.short"),
+		Long:        i18n.T("order.autotrade.long"),
+		Annotations: map[string]string{"source": "wts"},
+		Args:        cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			list, err := app.client.ListAutoTrades(cmd.Context())
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteAutoTrades(cmd.OutOrStdout(), app.format, list)
+		},
+	}
 }
 
 func newOrderConditionalCmd(opts *rootOptions) *cobra.Command {
