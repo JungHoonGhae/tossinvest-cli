@@ -237,6 +237,8 @@ The official API also offers order create/amend/cancel, but tossctl's trading UX
 
 All trades also require `allow_live_order_actions=true`. Fractional orders auto-convert to market orders and are amount-based (`--currency-mode KRW` default or `USD`).
 
+> ⏰ **Fractional order cutoff** — amount orders and fractional-quantity orders are accepted only until **1 hour before the US regular session closes**, not until the close itself. After that the server rejects them with `422`. This window was narrowed in Toss's official Open API 1.2.9.
+
 US limit prices choose interpretation via `--currency-mode`: `KRW` (default, converted to USD at the server rate) or `USD` (sent as-is). e.g. `order place --symbol MRVL --side buy --qty 1 --price 158.01 --currency-mode USD`.
 
 ### Why tossctl — the official API is a fraction of Toss

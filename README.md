@@ -287,6 +287,8 @@ Waiting for approval in the Toss app on your phone...
 
 모든 거래는 `allow_live_order_actions=true`도 필요합니다. 소수점 주문은 시장가(market order)로 자동 전환되며, 금액 기반입니다 (`--currency-mode KRW` 기본 또는 `USD`).
 
+> ⏰ **소수점 주문 접수 시간** — 금액 주문과 소수점 수량 주문은 **정규장 종료 1시간 전까지만** 접수됩니다(정규장 종료 시각이 아닙니다). 그 뒤에는 서버가 `422` 로 거절합니다. 토스 공식 Open API 1.2.9 에서 좁혀진 규칙입니다.
+
 US 지정가는 `--currency-mode`로 가격 해석을 선택합니다: `KRW` (기본, 서버 환율로 USD 변환) 또는 `USD` (입력을 USD 가격 그대로 전송). 예: `order place --symbol MRVL --side buy --qty 1 --price 158.01 --currency-mode USD`.
 
 ### 왜 tossctl 인가 — 공식 API 는 토스 기능의 일부일 뿐
