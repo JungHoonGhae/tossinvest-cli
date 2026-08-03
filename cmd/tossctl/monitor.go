@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
@@ -65,10 +66,26 @@ func printResults(stdout, stderr io.Writer, results []monitor.Result, quiet bool
 			}
 		}
 	}
+	authFailures := 0
 	for _, r := range results {
 		if !r.OK {
 			fmt.Fprintf(stderr, "  ✗ %s — status=%d: %s\n", r.Probe.Name, r.Status, r.Detail)
+			if r.Status == http.StatusUnauthorized || r.Status == http.StatusForbidden {
+				authFailures++
+			}
 		}
 	}
 	fmt.Fprintf(stdout, "\n%d passed, %d failed\n", pass, fail)
+
+	// One expired session knocks out every account-scoped probe at once. Without
+	// this line the output is N separate 401s, which reads as "Toss broke N
+	// endpoints" — the opposite of the truth, and an expensive thing to chase.
+	// The typed clients say this via internal/client's auth-error mapping, but
+	// probes deliberately bypass the typed client, so nothing else says it here.
+	if authFailures > 0 {
+		fmt.Fprintf(stderr,
+			"\n⚠ %d of %d failures are 401/403 — likely one expired session, not %d broken endpoints.\n"+
+				"  Check with `tossctl auth status`; renew with `tossctl auth extend` or `tossctl auth login`.\n",
+			authFailures, fail, authFailures)
+	}
 }
