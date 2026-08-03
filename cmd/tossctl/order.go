@@ -420,7 +420,10 @@ func bindPlaceFlags(cmd *cobra.Command, flags *placeFlags) {
 	cmd.Flags().Float64Var(&flags.price, "price", 0, "Order price for limit orders")
 	cmd.Flags().Float64Var(&flags.amount, "amount", 0, "Order amount in KRW for fractional orders")
 	cmd.Flags().StringVar(&flags.currencyMode, "currency-mode", flags.currencyMode, "Currency mode")
-	cmd.Flags().BoolVar(&flags.fractional, "fractional", false, "Fractional US market order — buy is amount-based (--amount); sell is a decimal share count (--qty, ≤6 places)")
+	// 접수 마감은 정규장 종료가 아니라 그 1시간 전이다 (공식 spec 1.2.9, 2026-08-04).
+	// 서버는 422 amount-order-outside-regular-hours /
+	// fractional-quantity-outside-regular-hours 로 거절한다.
+	cmd.Flags().BoolVar(&flags.fractional, "fractional", false, "Fractional US market order — buy is amount-based (--amount); sell is a decimal share count (--qty, ≤6 places). Accepted only until 1 hour before the US regular session closes")
 	if err := cmd.MarkFlagRequired("symbol"); err != nil {
 		panic(err)
 	}
