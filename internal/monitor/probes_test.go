@@ -34,7 +34,7 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"ai-signals":               true,
 		"screener-presets":         true,
 		"watchlist-groups":         true,
-		"economic-calendar":        true,
+		"market-calendar":          true,
 	}
 	got := map[string]bool{}
 	for _, p := range Probes() {

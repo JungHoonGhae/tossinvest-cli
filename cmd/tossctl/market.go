@@ -236,12 +236,11 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		fmt.Sprintf("max items (server caps at %d); 0 = server default", tossclient.MaxNewsLimit))
 	newsCmd.Flags().BoolVar(&newsFull, "full", false, "include each article's summary")
 
+	var calendarMonth string
 	calendarCmd := &cobra.Command{
-		Use:   "calendar",
-		Short: i18n.T("market.calendar.short"),
-		Long:  i18n.T("market.calendar.long"),
-		// The endpoint takes no parameters — from/to/date/month/size are all
-		// accepted and all ignored — so there is nothing to expose as a flag.
+		Use:         "calendar",
+		Short:       i18n.T("market.calendar.short"),
+		Long:        i18n.T("market.calendar.long"),
 		Annotations: map[string]string{"source": "wts"},
 		Args:        cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -249,13 +248,15 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			c, err := app.client.GetEconomicCalendar(cmd.Context())
+			c, err := app.client.GetMarketCalendar(cmd.Context(), calendarMonth)
 			if err != nil {
 				return userFacingCommandError(err)
 			}
-			return output.WriteEconomicCalendar(cmd.OutOrStdout(), app.format, c)
+			return output.WriteMarketCalendar(cmd.OutOrStdout(), app.format, c)
 		},
 	}
+	calendarCmd.Flags().StringVar(&calendarMonth, "month", "",
+		"month to show as YYYY-MM (default: current month)")
 
 	briefingCmd := &cobra.Command{
 		Use:         "briefing",

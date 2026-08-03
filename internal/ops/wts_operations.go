@@ -254,22 +254,32 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
-			ID: "economic_calendar", Method: "GET", Path: "wts:dashboard/wts/overview/calendar/economic-events", Backend: "wts",
+			// 공식 API 에 이미 market_calendar 가 있다(국가별 거래일 캘린더,
+			// read_operations.go). 이쪽은 지표·실적·휴장 **이벤트** 캘린더라
+			// 다른 기능이므로 id 를 나눈다.
+			ID: "market_events", Method: "POST", Path: "wts:calendar/monthly/{month}", Backend: "wts",
 			Category: "market",
-			Summary:  "Upcoming scheduled economic releases (US indicators and the like) with dates and, when the server gives one, a clock time — plus Toss's one-line AI framing of the window. Takes no parameters: the server ignores from/to/date/month/size and always answers with roughly the next ten days. Past events are not available. WTS-only.",
-			// Probe asserts the events array specifically: an empty window is
-			// normal in a quiet week, but the key vanishing means the shape
-			// changed, which is the contract break worth alerting on.
-			Probe: &ProbeSpec{Name: "economic-calendar", Method: "GET",
-				URL: probeInfo + "/api/v2/dashboard/wts/overview/calendar/economic-events",
+			Summary:  "One month of scheduled market events: economic releases (with the street's forecast, the actual print once published, and the prior value), Korean and US earnings announcements with their stock symbol and earnings-call time, and market holidays. month is a YYYY-MM path segment; omit it for the current month. The weekly AI summary is attached only for the present month. WTS-only.",
+			Params: []Param{
+				{Name: "month", Type: "string", Desc: "YYYY-MM; empty = current month"},
+			},
+			// Probe asserts the events array: an empty month is possible, but
+			// the key vanishing means the shape changed.
+			Probe: &ProbeSpec{Name: "market-calendar", Method: "POST",
+				URL:  probeInfo + "/api/v4/calendar/monthly/" + time.Now().Format("2006-01"),
+				Body: `{}`,
 				Check: func(status int, body []byte) error {
 					if err := ExpectStatus(status, 200); err != nil {
 						return err
 					}
 					return ExpectPath(body, "result.events", "array")
 				}},
-			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
-				return d.WTS.GetEconomicCalendar(ctx)
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				month, err := argString(args, "month")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetMarketCalendar(ctx, month)
 			},
 		},
 		{

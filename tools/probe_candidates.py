@@ -16,7 +16,12 @@
 
 안전
 ----
-- **GET 만 보낸다.** 쓰기는 절대 하지 않는다.
+- **GET 을 먼저 보내고, 405 일 때만 POST `{}` 로 재시도한다.** 토스는 조회에도 POST 를
+  자주 쓴다(`profit/overview`, `dashboard/wts/news`, `calendar/monthly` 가 그렇다).
+  GET 만 보내면 그 조회들이 통째로 `http-405` 로 사장된다 — 2026-08-03 첫 스윕에서
+  34개가 그렇게 묻혔고 그중 하나가 월간 증시 캘린더였다.
+  **POST 는 `{}` 빈 바디로만, 405 를 받은 경로에만 보낸다.** 쓰기를 유발하지 않기
+  위해서다: 쓰기 엔드포인트는 GET 에 405 가 아니라 보통 401/403 이나 400 을 준다.
 - **응답 본문을 저장하지 않는다.** 실계좌 데이터가 카탈로그에 새는 걸 막기 위해
   상태코드와 본문 크기 구간만 남긴다.
 - 동시 요청을 제한하고 사이에 쉰다 — 남의 서비스다.
@@ -95,33 +100,50 @@ def classify(status: int, size: int) -> str:
     return f"http-{status}"
 
 
+def _request(url: str, cookie: str, method: str) -> tuple[int, int]:
+    """(status, body_size) 를 돌려준다. 예외는 호출부가 처리한다."""
+    headers = {"User-Agent": UA, "Cookie": cookie, "Accept": "application/json"}
+    data = None
+    if method == "POST":
+        data = b"{}"
+        headers["Content-Type"] = "application/json"
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return resp.status, len(resp.read(4096))
+    except urllib.error.HTTPError as err:
+        try:
+            return err.code, len(err.read(4096))
+        except Exception:
+            return err.code, 0
+
+
 def probe_one(path: str, cookie: str) -> dict:
     if TEMPLATED.search(path):
         return {"verdict": "templated", "note": "경로에 자리표시자가 있어 그대로 호출 불가"}
 
     last = None
     for host in HOSTS:
-        req = urllib.request.Request(
-            host + path,
-            headers={"User-Agent": UA, "Cookie": cookie, "Accept": "application/json"},
-        )
         try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                body = resp.read(4096)
-                status, size = resp.status, len(body)
-        except urllib.error.HTTPError as err:
-            try:
-                size = len(err.read(4096))
-            except Exception:
-                size = 0
-            status = err.code
+            status, size = _request(host + path, cookie, "GET")
+            method = "GET"
         except Exception as exc:  # 네트워크 실패는 판정이 아니다
             last = {"verdict": "error", "note": type(exc).__name__}
             continue
 
+        # 405 = "이 경로는 있는데 GET 이 아니다". 토스는 조회에도 POST 를 쓰므로
+        # 여기서 멈추면 멀쩡한 조회를 놓친다. 빈 바디로만 재시도한다.
+        if status == 405:
+            try:
+                status, size = _request(host + path, cookie, "POST")
+                method = "POST"
+            except Exception:
+                pass
+
         last = {
             "verdict": classify(status, size),
             "status": status,
+            "method": method,
             "host": host.split("//")[1].split(".")[0],
         }
         # 404 면 호스트를 잘못 골랐을 수 있으니 다음 호스트로. 그 외는 확정.
