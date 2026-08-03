@@ -248,6 +248,44 @@ domain → client(`getJSON`/`postJSON`, 페이징은 aggregate) → output(테�
 `wts_endpoints.py` IMPLEMENTED 패턴 + 카탈로그 재생성 → README(+🆕)/CHANGELOG.
 **실계좌로 라이브 검증하되 그 값은 커밋 금지** (테스트는 합성 더미로).
 
+### 캡처 3단 구성 (2026-08-03 정립)
+
+발굴은 **세 도구가 서로 다른 층**을 덮는다. 하나만 쓰면 그 층만큼만 보인다.
+
+| 도구 | 무엇을 알아내나 | 세션 |
+|---|---|---|
+| `tools/wts_endpoints.py` | **어떤 경로가 존재하나** — 번들+라우트에서 경로 수집 | 불필요 |
+| `tools/probe_candidates.py` | **살아있나** — GET/POST 로 찔러 200/400/403/404 등급화 | 필요 |
+| `tools/capture_post_bodies.mjs --sweep` | **어떻게 부르나** — 실제 요청의 파라미터 키와 **호스트** | 필요 |
+
+```bash
+python3 tools/wts_endpoints.py                          # 경로 수집·분류
+python3 tools/probe_candidates.py                       # 살아있는지 등급화
+node tools/capture_post_bodies.mjs --sweep --get        # 파라미터·호스트 관측
+```
+
+세 결과는 카탈로그의 `status` / `probe` / `observed` 로 각각 남고, **재생성해도 보존된다**
+(`probe`·`observed` 는 추출기가 다시 만들 수 없는 관측값이다 — 보존을 빼먹으면 주간
+모니터가 매주 월요일 지운다).
+
+#### `observed` 가 호스트 문제를 없앤다
+
+토스는 `wts-api`/`wts-info-api`/`wts-cert-api` 를 섞어 쓰고 경로만 보고는 알 수 없다.
+스윕이 실제 요청에서 본 호스트를 기록하므로, 구현 전에 카탈로그만 보면 된다:
+
+```bash
+jq -r '.endpoints["/api/v3/stock-prices"].observed' docs/reverse-engineering/wts-endpoints.json
+# {"method":"GET","host":"wts-info-api","query":["meta","productCodes"], ...}
+```
+
+#### 스윕이 못 덮는 것
+
+페이지 **로드 시점**의 요청만 잡는다. 탭 클릭·스크롤로 발생하는 요청은 안 잡히므로,
+`needs-params` 가 전부 해소되지는 않는다(첫 실행: 154개 중 7개). 나머지는 해당 화면을
+직접 열어 `capture_post_bodies.mjs <path>` 를 단건으로 돌리는 편이 빠르다.
+
+**값은 어떤 모드에서도 카탈로그에 들어가지 않는다** — 키 이름과 호스트만 기록한다.
+
 ### 놓치기 쉬운 방식 (2026-08-03 에 넷 다 밟았다)
 
 증시 캘린더를 발굴하며 **같은 날 네 번 틀렸다.** 각각이 별개의 방법론 결함이라 적어둔다.
