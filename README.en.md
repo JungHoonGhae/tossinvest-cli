@@ -186,7 +186,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **Earnings calendar** | `market earnings` (`--major` for curated majors) | ❌ | ✅ |
 | **Dividend report** | `portfolio dividends` (annual total · region · monthly, `--by-payment-date` tax) | ❌ | ✅ |
 | **🆕 Cumulative realized profit** | `profit` (trading gains · dividends · lending · maturity · deposit interest, KRW/USD — a cumulative view distinct from account summary) | ❌ | ✅ |
-| **🆕 Account detail** | `account detail [--full]` (number · open date + **withdrawable cash and caps** + credit-trading status — number and name masked by default) | ❌ | ✅ |
+| **🆕 Account detail** | `account detail [--full]` (number · open date + **withdrawable cash and caps** + credit-trading status + **US dividend payout mode** — number and name masked by default) | ❌ | ✅ |
 | **🆕 Market news** | `market news [--type all\|watchlist\|holdings\|soaring\|latest\|recommended] [--limit N] [--full]` (each article's **related stocks and their moves** — what a headline list lacks) | ❌ | ✅ |
 | **🆕 Realized profit by period** | `profit summary --type sales\|dividend\|lending\|account-interest [--from --to]` (one category's earned amount, return rate, purchase basis in KRW/USD) | ❌ | ✅ |
 | **🆕 Per-stock daily realized profit** | `profit daily [--from --to] [--currency KRW\|USD]` (symbol · quantity · P/L · rate · sell/buy amounts, every page merged — CSV for tax prep) | ❌ | ✅ |
@@ -213,6 +213,7 @@ tossctl opens even these up, via backend APIs callable with a web session.
 | Feature | Command | Mobile app | Web (WTS) | tossctl |
 |---------|---------|:--:|:--:|:--:|
 | **🆕 Stock accumulation plans** | `accumulate list`, `accumulate status <symbol>` (recurring auto-buy: Active/Paused · amount/frequency · rounds) | ✅ (settings UI) | ❌ (no UI) | ✅ (read) |
+| **🆕 US dividend payout mode** | the «미국 배당» block in `account detail` (`CASH` paid out / `STOCK` reinvested + last change date) | ✅ (settings UI) | ❌ (no UI) | ✅ (read) |
 
 > This list moves rows into the general table above once Toss ships a web UI for them.
 > (Criterion: whether a real screen renders at the web route — tracked by the weekly monitor.)

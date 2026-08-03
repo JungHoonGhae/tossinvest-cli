@@ -120,6 +120,32 @@ func WriteAccountDetail(w io.Writer, format Format, d domain.AccountDetail, full
 		}
 	}
 
+	if d.USDividendOption != nil {
+		if _, err := fmt.Fprint(w, "\n미국 배당\n"); err != nil {
+			return err
+		}
+		// The server enum is shown alongside the Korean gloss rather than
+		// replaced by it: this setting decides whether a dividend is a taxable
+		// cash event or more shares, and a reader checking it against the Toss
+		// app should see the same token the app sends.
+		gloss := map[string]string{"CASH": "현금 수령", "STOCK": "주식 재투자"}[d.USDividendOption.GiveType]
+		line := fmt.Sprintf("  %-12s %s", "수령 방식", d.USDividendOption.GiveType)
+		if gloss != "" {
+			line += "  — " + gloss
+		}
+		if _, err := fmt.Fprintln(w, line); err != nil {
+			return err
+		}
+		if d.USDividendOption.UpdatedAt != "" {
+			if _, err := fmt.Fprintf(w, "  %-12s %s\n", "변경일", d.USDividendOption.UpdatedAt); err != nil {
+				return err
+			}
+		}
+		if _, err := fmt.Fprint(w, "  (변경은 토스 앱에서만 됩니다 — 웹·CLI 에 변경 경로가 없습니다)\n"); err != nil {
+			return err
+		}
+	}
+
 	for _, warn := range d.Warnings {
 		if _, err := fmt.Fprintf(w, "\n⚠ %s\n", warn); err != nil {
 			return err

@@ -4,11 +4,11 @@
   "chunk_count": 26,
   "total": 949,
   "counts": {
-    "implemented": 81,
-    "candidate": 361,
-    "excluded": 507,
+    "implemented": 82,
+    "candidate": 358,
+    "excluded": 509,
     "candidate_next": 20,
-    "meaningful": 442
+    "meaningful": 440
   },
   "overrides": {},
   "endpoints": {
@@ -2534,15 +2534,17 @@
       "first_seen": "2026-08-03"
     },
     "/api/v1/rights/us/dividend-option/account-give-type": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-08-03"
     },
     "/api/v1/rights/us/exercises/categories/dividend-option/account-default-give-type": {
-      "status": "candidate",
+      "status": "excluded",
+      "note": "account-setting write (권리 행사)",
       "first_seen": "2026-08-03"
     },
     "/api/v1/rights/us/exercises/categories/dividend-option/account-give-type": {
-      "status": "candidate",
+      "status": "excluded",
+      "note": "account-setting write (권리 행사)",
       "first_seen": "2026-08-03"
     },
     "/api/v1/search-all/auto-complete": {

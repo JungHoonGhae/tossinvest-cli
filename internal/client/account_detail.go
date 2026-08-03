@@ -36,6 +36,15 @@ type withdrawableRaw struct {
 	PossibleDateOfFullWithdrawal string `json:"possibleDateOfFullWithdrawal"`
 }
 
+// usDividendOptionRaw mirrors the mobile-only 배당 수령 방식 endpoint. accountNo
+// is echoed back by the server but deliberately not carried into the domain
+// type — AccountDetail already has the number, and duplicating it would give
+// the masking layer a second place to miss.
+type usDividendOptionRaw struct {
+	GiveType   string `json:"giveType"`
+	UpdateDate string `json:"updateDate"`
+}
+
 type marginOverviewRaw struct {
 	KR struct {
 		Receivable bool    `json:"receivable"`
@@ -78,7 +87,7 @@ func (c *Client) GetAccountDetail(ctx context.Context) (domain.AccountDetail, er
 		}
 	)
 
-	wg.Add(4)
+	wg.Add(5)
 
 	go func() {
 		defer wg.Done()
@@ -146,6 +155,21 @@ func (c *Client) GetAccountDetail(ctx context.Context) (domain.AccountDetail, er
 		mu.Lock()
 		defer mu.Unlock()
 		out.TransferRestricted = &v
+	}()
+
+	go func() {
+		defer wg.Done()
+		var env quoteEnvelope[usDividendOptionRaw]
+		if err := c.getJSON(ctx, c.apiBaseURL+"/api/v1/rights/us/dividend-option/account-give-type", &env); err != nil {
+			warn("미국 배당 수령 방식", err)
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		out.USDividendOption = &domain.USDividendOption{
+			GiveType:  env.Result.GiveType,
+			UpdatedAt: env.Result.UpdateDate,
+		}
 	}()
 
 	wg.Wait()

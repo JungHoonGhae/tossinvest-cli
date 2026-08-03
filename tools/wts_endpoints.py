@@ -81,6 +81,7 @@ IMPLEMENTED = [
     r"^/api/v1/dashboard/wts/overview/margin$",                   # account detail
     r"^/api/v1/margin/cert/differential-margin/enabled$",         # account detail
     r"^/api/v1/trade-purpose-verification/transfer-limit-restricted$",  # account detail
+    r"^/api/v1/rights/us/dividend-option/account-give-type$",     # account detail (US dividend option)
     r"^/api/v1/profit/type/overview$",                            # profit summary
     r"^/api/v1/profit/wts/daily/market$",                         # profit daily
     r"^/api/v1/my-assets/transfer-income/overseas$",              # tax overseas
@@ -109,6 +110,10 @@ EXCLUDED = [
     (r"^/api/v\d+/account/additional-account-open", "account opening flow"),
     (r"^/api/v\d+/account/frontend/(terms|product-eligibility|opening|pension|ria|minor|mip|contracts|test|is-test)", "onboarding/eligibility UI"),
     (r"^/api/v\d+/account/(fatca|investment-propensity|report|product-detail|locked-status|change-account|detail)", "account admin / tax / KYC"),
+    # 권리 행사(exercises) = 배당 수령 방식 변경 같은 계좌 설정 쓰기. 라이브에서
+    # POST 403 이고, `account detail` 이 계좌 변경 동작을 노출하지 않는 것과 같은
+    # 기준으로 제외한다. 조회 쪽(dividend-option/account-give-type)만 구현.
+    (r"^/api/v\d+/rights/[^/]+/exercises/", "account-setting write (권리 행사)"),
     (r"^/api/v\d+/kyc", "KYC"),
     (r"^/api/v\d+/promotion", "marketing/promotion"),
     (r"^/api/v\d+/minor", "minor-account flow"),
