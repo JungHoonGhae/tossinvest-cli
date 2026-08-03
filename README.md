@@ -233,7 +233,7 @@ Waiting for approval in the Toss app on your phone...
 | **실적(어닝콜) 일정** | `market earnings` (`--major` 주요 기업 큐레이션) | ❌ | ✅ |
 | **배당 내역** | `portfolio dividends` (연간 총액·지역·월별, `--by-payment-date` 세금) | ❌ | ✅ |
 | **🆕 누적 실현손익** | `profit` (매매손익·배당·대여·만기·예탁금이자, KRW/USD — account summary 와 다른 누적 관점) | ❌ | ✅ |
-| **🆕 계좌 상세** | `account detail [--full]` (계좌번호·개설일 + **출금 가능액/한도** + 미수거래 상태 — 번호·이름은 기본 마스킹) | ❌ | ✅ |
+| **🆕 계좌 상세** | `account detail [--full]` (계좌번호·개설일 + **출금 가능액/한도** + 미수거래 상태 + **미국 배당 수령 방식** — 번호·이름은 기본 마스킹) | ❌ | ✅ |
 | **🆕 시장 뉴스** | `market news [--type all\|watchlist\|holdings\|soaring\|latest\|recommended] [--limit N] [--full]` (기사별 **관련 종목 등락률** 포함 — 헤드라인 목록에 없는 부분) | ❌ | ✅ |
 | **🆕 기간별 실현손익** | `profit summary --type sales\|dividend\|lending\|account-interest [--from --to]` (카테고리 하나의 수익금·수익률·매입금액, KRW/USD) | ❌ | ✅ |
 | **🆕 종목별 일자별 실현손익** | `profit daily [--from --to] [--currency KRW\|USD]` (종목·수량·손익·수익률·매도/매수 금액, 전체 페이지 병합 — 세금 준비용 CSV) | ❌ | ✅ |
@@ -261,6 +261,7 @@ Waiting for approval in the Toss app on your phone...
 | 기능 | 커맨드 | 모바일 앱 | 웹(WTS) | tossctl |
 |------|--------|:--:|:--:|:--:|
 | **🆕 주식모으기 조회** | `accumulate list`, `accumulate status <symbol>` (정기 자동매수: Active/Paused·금액·주기·완료 회차) | ✅ (설정 화면) | ❌ (UI 없음) | ✅ (조회) |
+| **🆕 미국 배당 수령 방식** | `account detail` 의 «미국 배당» 항목 (`CASH` 현금 수령 / `STOCK` 주식 재투자 + 변경일) | ✅ (설정 화면) | ❌ (UI 없음) | ✅ (조회) |
 
 > 이 목록은 토스가 웹에 UI 를 추가하면 위 일반 조회표로 옮겨집니다.
 > (판정 기준: 웹 라우트에 실제 화면이 뜨는지 — 주간 모니터가 추적)

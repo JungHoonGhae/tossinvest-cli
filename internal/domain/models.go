@@ -998,8 +998,24 @@ type AccountDetail struct {
 	MarginUS           *MarginStatus `json:"margin_us,omitempty"`
 	DifferentialMargin *bool         `json:"differential_margin,omitempty"`
 
+	USDividendOption *USDividendOption `json:"us_dividend_option,omitempty"`
+
 	Warnings  []string  `json:"warnings,omitempty"`
 	FetchedAt time.Time `json:"fetched_at"`
+}
+
+// USDividendOption is how US dividends land in this account: as cash, or
+// reinvested into more shares. It is an account-level setting with no web
+// screen (the Toss app is the only place to change it), which is exactly why
+// reading it here is worth something — the choice changes both the tax event
+// and the share count, and there is otherwise no way to see it from a desktop.
+type USDividendOption struct {
+	// GiveType is the server enum: "CASH" (paid out) or "STOCK" (reinvested).
+	// Passed through rather than translated — Toss may add values, and a
+	// mistranslated money setting is worse than a raw one.
+	GiveType string `json:"give_type"`
+	// UpdatedAt is when the setting last changed ("" if never).
+	UpdatedAt string `json:"updated_at,omitempty"`
 }
 
 // TransferIncomeStock is one stock's overseas transfer-income (양도소득) line
