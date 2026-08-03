@@ -424,6 +424,26 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "account_commission", Method: "GET", Path: "wts:account/commission", Backend: "wts",
+			Category: "account", Summary: "Commission schedule this account is charged, per market (KR equities, US equities, US options). Distinct from quote_commission, which is per-symbol. WTS-only.",
+			Probe: &ProbeSpec{Name: "account-commission-info", Method: "GET",
+				URL: probeAPI + "/api/v2/trading/commission-info",
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					// v2 is what makes the US-options tier non-null; if this
+					// path starts behaving like v1 the tier check catches it.
+					if err := ExpectPath(body, "result.commissionInfoKr.commissionRate", "number"); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.commissionInfoUsOpt", "object")
+				}},
+			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
+				return d.WTS.GetCommissionSchedule(ctx)
+			},
+		},
+		{
 			ID: "prime_status", Method: "GET", Path: "wts:account/prime", Backend: "wts",
 			Category: "account", Summary: "Toss Prime subscription status and this month's fee/interest benefits. WTS-only.",
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {

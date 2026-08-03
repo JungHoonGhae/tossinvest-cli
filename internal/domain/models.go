@@ -684,6 +684,27 @@ type PrimeStatus struct {
 	FetchedAt       time.Time         `json:"fetched_at"`
 }
 
+// CommissionTier is the commission schedule for one trading surface. Korean
+// and US equities charge a rate on notional (RatePercent); US options charge a
+// flat fee per contract (PerContract) and leave the rate at zero.
+type CommissionTier struct {
+	RatePercent    float64 `json:"rate_percent,omitempty"`
+	PerContract    float64 `json:"per_contract,omitempty"`
+	HasReduction   bool    `json:"has_reduction"`
+	ReductionEndAt string  `json:"reduction_end_at,omitempty"`
+}
+
+// CommissionSchedule is the account's own commission rates per surface —
+// distinct from `quote commission`, which reports the rate and tax for a
+// single symbol. Sourced from the v2 endpoint: v1 returns a null US-options
+// tier even on accounts that have one.
+type CommissionSchedule struct {
+	Korea     CommissionTier  `json:"korea"`
+	US        CommissionTier  `json:"us"`
+	USOptions *CommissionTier `json:"us_options,omitempty"`
+	FetchedAt time.Time       `json:"fetched_at"`
+}
+
 // RankingItem is one row of the official /rankings response.
 type RankingItem struct {
 	Rank          int     `json:"rank"`
