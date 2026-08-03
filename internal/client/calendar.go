@@ -2,77 +2,152 @@ package client
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 )
 
-// Economic calendar (다가오는 경제 일정). One endpoint, no parameters.
+// Market calendar (증시 캘린더).
 //
-// Measured against the live service: from/to, date, month and size are all
-// accepted and all ignored — the response is always the same forward window of
-// roughly ten days. So there is nothing to expose as a flag, and a caller who
-// wants history has to keep its own record.
+// Two endpoints, both discovered from the /calendar page's own chunks:
+//
+//   - POST /api/v4/calendar/monthly/{YYYY-MM} — the month's events. POST with an
+//     empty body; a GET returns 405. The month is a PATH segment, not a query
+//     parameter, which is why probing query strings suggested "no range
+//     support" (see docs/reverse-engineering/capture-workflow.md).
+//   - GET /api/v1/nova-calendar/ai/summary/weekly — the AI note for the current
+//     week. Not month-scoped, so it is only meaningful for the present month.
+//
+// The dashboard widget endpoint (…/overview/calendar/economic-events) returns a
+// fixed ~10-day slice of the same data with no earnings and no forecasts. It is
+// a teaser for the real page, not a smaller version of it.
 
-type economicEventRaw struct {
-	ID struct {
-		UniqueName string `json:"uniqueName"`
-		Group      string `json:"group"`
-	} `json:"id"`
-	Date  string `json:"date"`
-	Time  string `json:"time"`
-	Title string `json:"title"`
+var monthRE = regexp.MustCompile(`^\d{4}-\d{2}$`)
+
+// stockURLRE lifts the symbol out of an earnings entry's landing URL
+// ("/stocks/A377300" → "A377300").
+var stockURLRE = regexp.MustCompile(`/stocks/([A-Za-z0-9]+)`)
+
+// calendarKinds maps Toss's group enum to a stable alias. An unmapped group
+// becomes "other" rather than being dropped, so a new category Toss ships is
+// still visible (with its raw name preserved on the event).
+var calendarKinds = map[string]string{
+	"ECONOMIC":                  "economic",
+	"KRX_EARNINGS_ANNOUNCEMENT": "earnings_kr",
+	"USD_EARNINGS_ANNOUNCEMENT": "earnings_us",
+	"HOLIDAY":                   "holiday",
 }
 
-type economicCalendarRaw struct {
-	Events    []economicEventRaw `json:"events"`
-	AISummary *struct {
-		Title string `json:"title"`
-	} `json:"aiSummary"`
+// CalendarKinds lists the aliases for help text and validation.
+func CalendarKinds() []string {
+	return []string{"economic", "earnings_kr", "earnings_us", "holiday"}
 }
 
-// GetEconomicCalendar returns the upcoming scheduled releases the web
-// dashboard shows, plus Toss's one-line AI framing of the window. WTS-only.
-func (c *Client) GetEconomicCalendar(ctx context.Context) (domain.EconomicCalendar, error) {
+type calendarMonthlyRaw struct {
+	Events []struct {
+		ID struct {
+			Group string `json:"group"`
+		} `json:"id"`
+		Date string `json:"date"`
+		View struct {
+			Title    string `json:"title"`
+			Subtitle *struct {
+				Text string `json:"text"`
+			} `json:"subtitle"`
+			LandingOption *struct {
+				URL string `json:"url"`
+			} `json:"landingOption"`
+			UpcomingLive *struct {
+				LiveAt string `json:"liveAt"`
+			} `json:"upcomingLive"`
+			EconomicIndicatorValue *struct {
+				Unit       string   `json:"unit"`
+				Actual     *float64 `json:"actual"`
+				Forecast   *float64 `json:"forecast"`
+				Historical *float64 `json:"historical"`
+			} `json:"economicIndicatorValue"`
+		} `json:"view"`
+	} `json:"events"`
+}
+
+type novaSummaryRaw struct {
+	Title    string `json:"title"`
+	Contents string `json:"contents"`
+}
+
+// GetMarketCalendar returns one month of scheduled market events. month is
+// "YYYY-MM"; an empty month means the current one. WTS-only.
+func (c *Client) GetMarketCalendar(ctx context.Context, month string) (domain.MarketCalendar, error) {
 	if err := c.requireSession(); err != nil {
-		return domain.EconomicCalendar{}, err
+		return domain.MarketCalendar{}, err
+	}
+	month = strings.TrimSpace(month)
+	if month == "" {
+		month = time.Now().Format("2006-01")
+	}
+	if !monthRE.MatchString(month) {
+		return domain.MarketCalendar{}, fmt.Errorf("month must look like YYYY-MM, got %q", month)
 	}
 
-	var env quoteEnvelope[economicCalendarRaw]
-	url := c.infoBaseURL + "/api/v2/dashboard/wts/overview/calendar/economic-events"
-	if err := c.getJSON(ctx, url, &env); err != nil {
-		return domain.EconomicCalendar{}, err
+	var env quoteEnvelope[calendarMonthlyRaw]
+	url := c.infoBaseURL + "/api/v4/calendar/monthly/" + month
+	if err := c.postJSON(ctx, url, json.RawMessage(`{}`), &env); err != nil {
+		return domain.MarketCalendar{}, err
 	}
 
-	out := domain.EconomicCalendar{
-		Events:    make([]domain.EconomicEvent, 0, len(env.Result.Events)),
+	out := domain.MarketCalendar{
+		Month:     month,
+		Events:    make([]domain.CalendarEvent, 0, len(env.Result.Events)),
 		FetchedAt: time.Now(),
 	}
 	for _, e := range env.Result.Events {
-		out.Events = append(out.Events, domain.EconomicEvent{
+		kind, ok := calendarKinds[e.ID.Group]
+		if !ok {
+			kind = "other"
+		}
+		ev := domain.CalendarEvent{
 			Date:  e.Date,
-			Time:  normalizeEventTime(e.Time),
-			Title: e.Title,
+			Title: e.View.Title,
+			Kind:  kind,
 			Group: e.ID.Group,
-			ID:    e.ID.UniqueName,
-		})
+		}
+		if e.View.Subtitle != nil {
+			ev.Note = e.View.Subtitle.Text
+		}
+		if lo := e.View.LandingOption; lo != nil {
+			if m := stockURLRE.FindStringSubmatch(lo.URL); m != nil {
+				ev.Symbol = m[1]
+			}
+		}
+		if ul := e.View.UpcomingLive; ul != nil {
+			ev.LiveAt = ul.LiveAt
+		}
+		if iv := e.View.EconomicIndicatorValue; iv != nil {
+			ev.Indicator = &domain.CalendarIndicator{
+				Unit:       iv.Unit,
+				Forecast:   iv.Forecast,
+				Actual:     iv.Actual,
+				Historical: iv.Historical,
+			}
+		}
+		out.Events = append(out.Events, ev)
 	}
-	if env.Result.AISummary != nil {
-		out.Summary = env.Result.AISummary.Title
+
+	// The AI note covers the current week, so attaching it to a month the user
+	// navigated away from would misdate it. Its absence is not an error —
+	// the calendar itself is the answer.
+	if month == time.Now().Format("2006-01") {
+		var sum quoteEnvelope[novaSummaryRaw]
+		if err := c.getJSON(ctx, c.infoBaseURL+"/api/v1/nova-calendar/ai/summary/weekly", &sum); err != nil {
+			out.Warnings = append(out.Warnings, "주간 AI 요약: "+err.Error())
+		} else {
+			out.Summary = sum.Result.Title
+			out.SummaryDetail = sum.Result.Contents
+		}
 	}
 	return out, nil
-}
-
-// normalizeEventTime trims the server's nanosecond precision to HH:MM. The
-// feed uses 23:59:59.999999999 to mean "sometime that day", which as a clock
-// time is noise; callers that want the raw value can read the API directly.
-func normalizeEventTime(t string) string {
-	if len(t) < 5 {
-		return ""
-	}
-	hhmm := t[:5]
-	if hhmm == "23:59" {
-		return "" // "종일" — no useful clock time
-	}
-	return hhmm
 }

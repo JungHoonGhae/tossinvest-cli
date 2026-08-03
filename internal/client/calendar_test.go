@@ -4,80 +4,146 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 )
 
-// 전부 합성 더미. 경제 일정은 시장 데이터라 계좌 정보가 없지만, 테스트 픽스처
-// 규칙은 그대로 지킨다.
+// 전부 합성 더미.
 
-func TestGetEconomicCalendar(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v2/dashboard/wts/overview/calendar/economic-events" {
+const dummyMonthly = `{"result":{"events":[
+ {"id":{"group":"ECONOMIC"},"date":"2026-01-05","view":{
+   "title":"더미 지표 발표",
+   "subtitle":{"text":"더미 설명"},
+   "economicIndicatorValue":{"unit":"Index Point","actual":null,"forecast":54.0,"historical":53.3}}},
+ {"id":{"group":"USD_EARNINGS_ANNOUNCEMENT"},"date":"2026-01-06","view":{
+   "title":"더미상사 실적발표","subtitle":null,
+   "landingOption":{"type":"NAVIGATE","url":"/stocks/US00000000001"},
+   "upcomingLive":{"liveAt":"2026-01-06T21:30:00+09:00"}}},
+ {"id":{"group":"HOLIDAY"},"date":"2026-01-07","view":{"title":"국내 휴장일","subtitle":{"text":"더미 공휴일"}}},
+ {"id":{"group":"BRAND_NEW_GROUP"},"date":"2026-01-08","view":{"title":"모르는 종류"}}
+]}}`
+
+func calendarServer(t *testing.T, withSummary bool) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasPrefix(r.URL.Path, "/api/v4/calendar/monthly/"):
+			if r.Method != http.MethodPost {
+				// GET 은 실제 서버가 405 를 준다. 우리가 POST 를 보내는지 고정한다.
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			_, _ = w.Write([]byte(dummyMonthly))
+		case r.URL.Path == "/api/v1/nova-calendar/ai/summary/weekly":
+			if !withSummary {
+				http.Error(w, "boom", http.StatusInternalServerError)
+				return
+			}
+			_, _ = w.Write([]byte(`{"result":{"title":"더미 주간 요약","contents":"더미 본문"}}`))
+		default:
 			http.NotFound(w, r)
-			return
 		}
-		_, _ = w.Write([]byte(`{"result":{"events":[
-			{"id":{"uniqueName":"20260101_더미지표_ECONOMIC","group":"ECONOMIC"},
-			 "date":"2026-01-01","time":"23:59:59.999999999","title":"더미 지표 발표"},
-			{"id":{"uniqueName":"20260102_더미고용_ECONOMIC","group":"ECONOMIC"},
-			 "date":"2026-01-02","time":"12:00:00","title":"더미 고용 발표"}],
-			"aiSummary":{"title":"더미 요약 문장"}}}`))
 	}))
+}
+
+func newCalendarClient(srv *httptest.Server) *Client {
+	return New(Config{HTTPClient: srv.Client(), InfoBaseURL: srv.URL,
+		Session: &session.Session{Cookies: map[string]string{"SESSION": "s"}}})
+}
+
+func TestGetMarketCalendar(t *testing.T) {
+	srv := calendarServer(t, true)
 	defer srv.Close()
 
-	c := New(Config{HTTPClient: srv.Client(), InfoBaseURL: srv.URL,
-		Session: &session.Session{Cookies: map[string]string{"SESSION": "s"}}})
-
-	got, err := c.GetEconomicCalendar(context.Background())
+	got, err := newCalendarClient(srv).GetMarketCalendar(context.Background(), "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Events) != 2 {
-		t.Fatalf("이벤트 2건이어야 한다: %d", len(got.Events))
+	if len(got.Events) != 4 {
+		t.Fatalf("이벤트 4건이어야 한다: %d", len(got.Events))
 	}
-	if got.Events[0].Title != "더미 지표 발표" || got.Events[0].Date != "2026-01-01" {
-		t.Errorf("첫 이벤트가 틀렸다: %+v", got.Events[0])
+
+	ind := got.Events[0]
+	if ind.Kind != "economic" || ind.Note != "더미 설명" {
+		t.Errorf("지표 이벤트가 틀렸다: %+v", ind)
 	}
-	if got.Events[0].Group != "ECONOMIC" {
-		t.Errorf("group 이 유실됐다: %+v", got.Events[0])
+	// 예상치·직전값이 캘린더의 값이다. 날짜만 있는 캘린더는 흔하다.
+	if ind.Indicator == nil || ind.Indicator.Forecast == nil || *ind.Indicator.Forecast != 54.0 {
+		t.Errorf("forecast 가 유실됐다: %+v", ind.Indicator)
 	}
-	if got.Events[0].ID != "20260101_더미지표_ECONOMIC" {
-		t.Errorf("id 가 유실됐다: %q", got.Events[0].ID)
+	// 아직 발표 전이면 actual 은 nil 이어야 한다 — 0.0 으로 접으면 "0 으로 나왔다"
+	// 로 오독된다.
+	if ind.Indicator.Actual != nil {
+		t.Errorf("미발표 actual 이 nil 이 아니다: %v", *ind.Indicator.Actual)
 	}
-	// 23:59:59.999999999 는 시각이 아니라 "그날 중"이라는 뜻이라 비워야 한다.
-	// 그대로 두면 표에 23:59 가 줄줄이 찍혀 진짜 발표 시각을 가린다.
-	if got.Events[0].Time != "" {
-		t.Errorf("종일 이벤트에 시각이 남았다: %q", got.Events[0].Time)
+
+	earn := got.Events[1]
+	if earn.Kind != "earnings_us" || earn.Symbol != "US00000000001" {
+		t.Errorf("실적 이벤트의 종목이 안 붙었다: %+v", earn)
 	}
-	if got.Events[1].Time != "12:00" {
-		t.Errorf("시각이 HH:MM 으로 안 줄었다: %q", got.Events[1].Time)
+	if earn.LiveAt == "" {
+		t.Error("실적발표 라이브 시각이 유실됐다")
 	}
-	if got.Summary != "더미 요약 문장" {
-		t.Errorf("aiSummary: want 더미 요약 문장, got %q", got.Summary)
+
+	if got.Events[2].Kind != "holiday" {
+		t.Errorf("휴장일 분류가 틀렸다: %+v", got.Events[2])
 	}
-	if got.FetchedAt.IsZero() {
-		t.Error("FetchedAt 이 비었다")
+
+	// 모르는 group 은 버리지 않고 other 로 넘긴다 — 토스가 종류를 추가해도
+	// 조용히 사라지면 안 된다.
+	unknown := got.Events[3]
+	if unknown.Kind != "other" || unknown.Group != "BRAND_NEW_GROUP" {
+		t.Errorf("모르는 group 처리가 틀렸다: %+v", unknown)
+	}
+
+	if got.Summary != "더미 주간 요약" || got.SummaryDetail != "더미 본문" {
+		t.Errorf("주간 요약이 유실됐다: %q / %q", got.Summary, got.SummaryDetail)
 	}
 }
 
-// 서버가 요약을 빼거나 일정이 없을 때 커맨드가 죽으면 안 된다. 장이 조용한
-// 주간에는 실제로 빈 응답이 온다.
-func TestGetEconomicCalendarEmpty(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = w.Write([]byte(`{"result":{"events":[],"aiSummary":null}}`))
-	}))
+// 요약은 곁가지다. 그것 때문에 캘린더 전체가 죽으면 안 되고, 조용히 삼켜도 안 된다.
+func TestGetMarketCalendarSurvivesSummaryFailure(t *testing.T) {
+	srv := calendarServer(t, false)
 	defer srv.Close()
 
-	c := New(Config{HTTPClient: srv.Client(), InfoBaseURL: srv.URL,
-		Session: &session.Session{Cookies: map[string]string{"SESSION": "s"}}})
-
-	got, err := c.GetEconomicCalendar(context.Background())
+	got, err := newCalendarClient(srv).GetMarketCalendar(context.Background(), "")
 	if err != nil {
-		t.Fatalf("빈 일정이 에러가 되면 안 된다: %v", err)
+		t.Fatalf("요약 실패가 캘린더를 죽였다: %v", err)
 	}
-	if len(got.Events) != 0 || got.Summary != "" {
-		t.Errorf("빈 응답을 잘못 읽었다: %+v", got)
+	if len(got.Events) != 4 {
+		t.Errorf("이벤트가 유실됐다: %d", len(got.Events))
+	}
+	if len(got.Warnings) == 0 {
+		t.Error("요약 실패를 조용히 삼켰다")
+	}
+}
+
+// 요약은 이번 주 이야기라 다른 달에 붙이면 날짜가 어긋난다.
+func TestGetMarketCalendarSkipsSummaryForOtherMonths(t *testing.T) {
+	srv := calendarServer(t, true)
+	defer srv.Close()
+
+	got, err := newCalendarClient(srv).GetMarketCalendar(context.Background(), "2020-03")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Month != "2020-03" {
+		t.Errorf("Month: want 2020-03, got %q", got.Month)
+	}
+	if got.Summary != "" {
+		t.Errorf("과거 달에 이번 주 요약이 붙었다: %q", got.Summary)
+	}
+}
+
+func TestGetMarketCalendarRejectsBadMonth(t *testing.T) {
+	srv := calendarServer(t, true)
+	defer srv.Close()
+
+	for _, bad := range []string{"2026-1", "202608", "8월", "2026-08-01"} {
+		if _, err := newCalendarClient(srv).GetMarketCalendar(context.Background(), bad); err == nil {
+			t.Errorf("%q 가 통과했다", bad)
+		}
 	}
 }

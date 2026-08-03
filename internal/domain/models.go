@@ -953,29 +953,54 @@ type MarketNews struct {
 	FetchedAt time.Time  `json:"fetched_at"`
 }
 
-// EconomicEvent is one scheduled market-moving release (CPI, NFP, an ISM
-// print). Date and title are what a human plans around; Group is the server's
-// bucket, passed through so a new bucket Toss adds shows up rather than being
-// silently dropped.
-type EconomicEvent struct {
+// CalendarEvent is one dated entry on the market calendar: an economic
+// release, an earnings announcement, or a market holiday.
+type CalendarEvent struct {
 	Date  string `json:"date"`
-	Time  string `json:"time,omitempty"`
 	Title string `json:"title"`
+	// Kind is a stable alias for the server's group, so callers can filter
+	// without hardcoding Toss's enum: economic | earnings_kr | earnings_us |
+	// holiday | other. Group keeps the raw value — a new group Toss adds shows
+	// up as "other" here but is still identifiable there.
+	Kind  string `json:"kind"`
 	Group string `json:"group,omitempty"`
-	// ID is the server's stable key for the event, useful for de-duping across
-	// runs (the same release appears in every window until it passes).
-	ID string `json:"id,omitempty"`
+	// Note is the server's one-line gloss ("미국 제조업 경기 상황을 빠르게
+	// 파악할 수 있어요", or the holiday's actual name).
+	Note string `json:"note,omitempty"`
+	// Symbol is the stock an earnings entry belongs to, lifted from the
+	// event's landing URL. Empty for economic releases and holidays.
+	Symbol string `json:"symbol,omitempty"`
+	// LiveAt is when an earnings call streams (RFC3339), when Toss has one.
+	LiveAt string `json:"live_at,omitempty"`
+	// Indicator carries the forecast/actual numbers for economic releases.
+	// This is the part a bare calendar lacks: knowing CPI prints tomorrow is
+	// less useful than knowing the street expects 54.0 against 53.3 last time.
+	Indicator *CalendarIndicator `json:"indicator,omitempty"`
 }
 
-// EconomicCalendar is the upcoming-releases window the web dashboard shows.
-// The endpoint takes no parameters — it always answers with roughly the next
-// ten days — so there is nothing to filter on at request time.
-type EconomicCalendar struct {
-	Events []EconomicEvent `json:"events"`
-	// Summary is Toss's one-line AI framing of the window ("미국 고용지표와
-	// 주요 기업 실적 발표가 이어져요"). Empty when the server omits it.
-	Summary   string    `json:"summary,omitempty"`
-	FetchedAt time.Time `json:"fetched_at"`
+// CalendarIndicator is an economic release's expected and realised values.
+// All three are pointers because "not published yet" and "zero" are different
+// facts, and collapsing them would misreport a print of 0.0.
+type CalendarIndicator struct {
+	Unit       string   `json:"unit,omitempty"`
+	Forecast   *float64 `json:"forecast,omitempty"`
+	Actual     *float64 `json:"actual,omitempty"`
+	Historical *float64 `json:"historical,omitempty"`
+}
+
+// MarketCalendar is one month of scheduled market events plus Toss's AI take
+// on the current week.
+type MarketCalendar struct {
+	// Month is the requested YYYY-MM.
+	Month  string          `json:"month"`
+	Events []CalendarEvent `json:"events"`
+	// Summary/SummaryDetail are the weekly AI note. They describe the current
+	// week regardless of which month was asked for, so they are omitted when
+	// the caller navigates away from the present.
+	Summary       string    `json:"summary,omitempty"`
+	SummaryDetail string    `json:"summary_detail,omitempty"`
+	Warnings      []string  `json:"warnings,omitempty"`
+	FetchedAt     time.Time `json:"fetched_at"`
 }
 
 // WithdrawableByDay is cash available now (D+0) and as settlement completes.

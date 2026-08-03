@@ -76,7 +76,8 @@ IMPLEMENTED = [
     r"^/api/v1/profit/overview$",                                 # profit
     r"^/api/v3/profit/readable-tab$",                             # profit (tab meta)
     r"^/api/v1/dashboard/wts/news$",                             # market news
-    r"^/api/v2/dashboard/wts/overview/calendar/economic-events$",  # market calendar
+    r"^/api/v4/calendar/monthly$",                                # market calendar
+    r"^/api/v1/nova-calendar/ai/summary/weekly$",                 # market calendar (AI 요약)
     r"^/api/v1/account/detail$",                                  # account detail
     r"^/api/v1/transfer/withdrawable-status$",                    # account detail
     r"^/api/v1/dashboard/wts/overview/margin$",                   # account detail
@@ -140,19 +141,62 @@ def fetch(path):
         return ""
 
 
+# 앱 라우트별로 청크가 갈린다. `/` 와 `_buildManifest.js` 만 보면 **초기·공유 청크만**
+# 잡히고, 지연 로딩되는 페이지 전용 청크는 통째로 안 보인다.
+#
+# 2026-08-03 에 이걸로 월간 증시 캘린더(`/api/v4/calendar/monthly/{month}`,
+# `/api/v1/nova-calendar/ai/summary/weekly`)를 놓쳤다 — 카탈로그 949개 어디에도 없었고,
+# `/calendar` HTML 을 받아보니 루트에 없는 청크가 10개 더 딸려 나왔다.
+#
+# 라우트 목록을 손으로 적으면 같은 실수가 규모만 줄어든 채 반복된다(처음 9개를 적었을
+# 때 실제로는 43개를 더 놓치고 있었다). 그래서 **번들에서 라우트를 뽑아** 훑는다 —
+# 토스가 화면을 추가하면 모니터가 알아서 따라간다.
+#
+# 각 라우트의 SSR HTML 에 그 라우트의 <script> 가 박혀 있으므로 브라우저 없이
+# 순수 HTTP 로 수집된다(CI 에서 그대로 동작).
+
+CHUNK_RE = r"/assets/v2/_next/static/chunks/[^\"']+\.js"
+
+# 라우트가 아닌 것들: 에러 페이지, 자리표시자가 든 동적 세그먼트(그대로 받을 수 없다),
+# 정적 자산.
+_ROUTE_SKIP = re.compile(r"^/(?:\d{3}|_|api/|assets/|static/)|[\[\]]|\.(?:js|css|png|svg|json|webp|ico)$")
+
+
+def discover_routes(blob):
+    """번들 문자열에서 앱 라우트 후보를 뽑는다."""
+    routes = {"/"}
+    for m in re.finditer(r'href:"(/[^"?#]{1,40})"', blob):
+        routes.add(m.group(1))
+    for m in re.finditer(r'"(/[a-z0-9][a-z0-9\-]{1,25}(?:/[a-z0-9\-]{1,25}){0,3})"', blob):
+        routes.add(m.group(1))
+    return sorted(r for r in routes if not _ROUTE_SKIP.search(r))
+
+
 def collect_paths():
     idx = fetch("/")
     m = re.search(r'"buildId":"([^"]+)"', idx)
     build_id = m.group(1) if m else ""
-    chunks = set(re.findall(r"/assets/v2/_next/static/chunks/[^\"']+\.js", idx))
+    chunks = set(re.findall(CHUNK_RE, idx))
     if build_id:
         bm = fetch(f"/assets/v2/_next/static/{build_id}/_buildManifest.js")
         for f in re.findall(r'"(chunks/[^"]+\.js)"', bm):
             chunks.add("/assets/v2/_next/static/" + f)
-        for f in re.findall(r"/assets/v2/_next/static/chunks/[^\"']+\.js", bm):
+        for f in re.findall(CHUNK_RE, bm):
             chunks.add(f)
+
+    # 1차: 초기 청크를 읽어 라우트 목록을 알아낸다.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as ex:
+        seed = "\n".join(ex.map(fetch, chunks))
+    routes = discover_routes(seed)
+
+    # 2차: 각 라우트 HTML 에서 그 페이지 전용 청크를 걷는다.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+        for html in ex.map(fetch, [r for r in routes if r != "/"]):
+            chunks.update(re.findall(CHUNK_RE, html))
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=12) as ex:
         blob = "\n".join(ex.map(fetch, chunks))
+    globals()["_ROUTE_COUNT"] = len(routes)
     raw = set(re.findall(r"/api/v[0-9]+/[a-zA-Z0-9/_.\-]+", blob))
     norm = set()
     for p in raw:
