@@ -188,6 +188,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **🆕 Cumulative realized profit** | `profit` (trading gains · dividends · lending · maturity · deposit interest, KRW/USD — a cumulative view distinct from account summary) | ❌ | ✅ |
 | **🆕 Account detail** | `account detail [--full]` (number · open date + **withdrawable cash and caps** + credit-trading status + **US dividend payout mode** — number and name masked by default) | ❌ | ✅ |
 | **🆕 Market news** | `market news [--type all\|watchlist\|holdings\|soaring\|latest\|recommended] [--limit N] [--full]` (each article's **related stocks and their moves** — what a headline list lacks) | ❌ | ✅ |
+| **🆕 Economic calendar** | `market calendar` (upcoming scheduled releases + one-line AI summary, grouped by date) | ❌ | ✅ |
 | **🆕 Realized profit by period** | `profit summary --type sales\|dividend\|lending\|account-interest [--from --to]` (one category's earned amount, return rate, purchase basis in KRW/USD) | ❌ | ✅ |
 | **🆕 Per-stock daily realized profit** | `profit daily [--from --to] [--currency KRW\|USD]` (symbol · quantity · P/L · rate · sell/buy amounts, every page merged — CSV for tax prep) | ❌ | ✅ |
 | **🆕 Overseas transfer income (tax)** | `tax overseas --year YYYY` (capital-gains filing: rate · deduction · per-stock P/L) | ❌ | ✅ |

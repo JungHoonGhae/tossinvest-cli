@@ -953,6 +953,31 @@ type MarketNews struct {
 	FetchedAt time.Time  `json:"fetched_at"`
 }
 
+// EconomicEvent is one scheduled market-moving release (CPI, NFP, an ISM
+// print). Date and title are what a human plans around; Group is the server's
+// bucket, passed through so a new bucket Toss adds shows up rather than being
+// silently dropped.
+type EconomicEvent struct {
+	Date  string `json:"date"`
+	Time  string `json:"time,omitempty"`
+	Title string `json:"title"`
+	Group string `json:"group,omitempty"`
+	// ID is the server's stable key for the event, useful for de-duping across
+	// runs (the same release appears in every window until it passes).
+	ID string `json:"id,omitempty"`
+}
+
+// EconomicCalendar is the upcoming-releases window the web dashboard shows.
+// The endpoint takes no parameters — it always answers with roughly the next
+// ten days — so there is nothing to filter on at request time.
+type EconomicCalendar struct {
+	Events []EconomicEvent `json:"events"`
+	// Summary is Toss's one-line AI framing of the window ("미국 고용지표와
+	// 주요 기업 실적 발표가 이어져요"). Empty when the server omits it.
+	Summary   string    `json:"summary,omitempty"`
+	FetchedAt time.Time `json:"fetched_at"`
+}
+
 // WithdrawableByDay is cash available now (D+0) and as settlement completes.
 type WithdrawableByDay struct {
 	Day0 float64 `json:"day0"`

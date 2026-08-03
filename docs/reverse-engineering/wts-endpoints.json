@@ -4,8 +4,8 @@
   "chunk_count": 26,
   "total": 949,
   "counts": {
-    "implemented": 82,
-    "candidate": 358,
+    "implemented": 83,
+    "candidate": 357,
     "excluded": 509,
     "candidate_next": 20,
     "meaningful": 440
@@ -14,7 +14,13 @@
   "endpoints": {
     "/api/v1/account": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/account-open/face-pay/registration": {
       "status": "excluded",
@@ -481,103 +487,253 @@
     },
     "/api/v1/account/unlock/locked-status": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/accounts": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/accounts/auto-trade/auth/sign/token": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/accounts/auto-trade/event/auth/sign": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/accounts/contracts/high-risk-trading": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/accounts/detail": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/accounts/differential-margin/accept/wts": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/accounts/differential-margin/withdraw/wts": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/accounts/fatca": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/accounts/fatca/countries": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/accounts/fatca/is-target": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/accounts/investment-propensity": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/accounts/investment-propensity/eligible/find": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 500,
+        "verdict": "http-500"
+      }
     },
     "/api/v1/accounts/investment-propensity/eligible/with-contract": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 500,
+        "verdict": "http-500"
+      }
     },
     "/api/v1/accounts/investment-propensity/related-info": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/accounts/password/error-status": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/additional-account-open/guard/auth/ci-verification": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/additional-account-open/guard/auth/sign": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/additional-account-open/guard/auth/sign/token": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/additional-account-open/guard/auth/ssn-verification/ssn-head": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/ai-issue/sns-release/alimy": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/asset-snapshot/chart": {
       "status": "candidate",
-      "first_seen": "2026-07-13"
+      "first_seen": "2026-07-13",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/asset-snapshot/detail-by-date": {
       "status": "candidate",
-      "first_seen": "2026-07-13"
+      "first_seen": "2026-07-13",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/asset-snapshot/page": {
       "status": "candidate",
-      "first_seen": "2026-07-13"
+      "first_seen": "2026-07-13",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/auth/sms/simple/verify": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/auto-transfer/cancel/sign": {
       "status": "excluded",
@@ -631,75 +787,183 @@
     },
     "/api/v1/autotrade/draw/free-stock": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/autotrade/open-banking": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/autotrade/open-banking/creatable": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/autotrade/open-banking/info/find": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/autotrade/open-banking/need-registration": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/autotrade/open-banking/register": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/autotrade/open-banking/register/signs/document": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/autotrade/open-banking/signs/document": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/autotrade/plan": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/autotrade/plan/find/bizday": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/autotrade/plan/modify": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/autotrade/plan/stock": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/badges": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/badges/major": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/badges/represent": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/boards": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/boards/popular-follower": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/c-chart": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/comments": {
       "status": "excluded",
@@ -723,123 +987,303 @@
     },
     "/api/v1/common/auth/account/deposit": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 500,
+        "verdict": "http-500"
+      }
     },
     "/api/v1/common/auth/account/verification-code": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/common/auth/ca/family-document/validate": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/common/auth/ca/input": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 500,
+        "verdict": "http-500"
+      }
     },
     "/api/v1/common/auth/ca/minor-name": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 500,
+        "verdict": "http-500"
+      }
     },
     "/api/v1/common/auth/ca/terms": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/common/auth/ca/terms-agreement": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/common/auth/id-card/bridge/encryption-key": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 403,
+        "verdict": "forbidden"
+      }
     },
     "/api/v1/common/auth/id-card/bridge/session/new": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/common/auth/id-card/bridge/token/init": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/common/auth/id-card/bridge/validation": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 403,
+        "verdict": "forbidden"
+      }
     },
     "/api/v1/common/auth/id-card/encryption-key": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/common/auth/id-card/mip/validation": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/common/auth/id-card/mip/vp": {
       "status": "candidate",
-      "first_seen": "2026-06-29"
+      "first_seen": "2026-06-29",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/common/auth/id-card/validation": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 500,
+        "verdict": "http-500"
+      }
     },
     "/api/v1/common/auth/init": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/common/auth/password/base-account": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/common/auth/password/verify": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/common/auth/password/wts/verify": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/common/auth/sms/issue": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/common/auth/sms/simple/issue/basic": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/common/auth/sms/simple/issue/compact": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/common/auth/sms/simple/verify": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/common/auth/sms/status": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/common/auth/sms/verify": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/community/board": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/community/contains-blocked-keyword": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v1/community/guidelines": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/community/profile/top-ranking": {
       "status": "candidate",
-      "first_seen": "2026-07-13"
+      "first_seen": "2026-07-13",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/community/terms-agreement": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/community/top-rankings/INFLUENCER": {
       "status": "implemented",
@@ -855,17 +1299,35 @@
     },
     "/api/v1/company-events": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/crypto-prices": {
       "status": "candidate",
       "priority": "next",
       "note": "가상자산 시세",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/dashboard/asset/sections/all": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v1/dashboard/common/cached-orderable-amount": {
       "status": "implemented",
@@ -873,41 +1335,89 @@
     },
     "/api/v1/dashboard/common/ongoing-events/all": {
       "status": "candidate",
-      "first_seen": "2026-06-29"
+      "first_seen": "2026-06-29",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/dashboard/common/stocks/mini-chart": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v1/dashboard/common/watchlists/grid-view": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/dashboard/wts/overview/ai-signal-home/latest": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/dashboard/wts/overview/ai-signal-home/personalized": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/dashboard/wts/overview/ai-signals": {
       "status": "candidate",
       "priority": "next",
       "note": "AI 시그널 확장",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v1/dashboard/wts/overview/ai-signals/detail": {
       "status": "candidate",
       "priority": "next",
       "note": "AI 시그널 확장",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/dashboard/wts/overview/ai-signals/latest": {
       "status": "candidate",
       "priority": "next",
       "note": "AI 시그널 확장",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/dashboard/wts/overview/ai-signals/personalized": {
       "status": "implemented",
@@ -919,7 +1429,13 @@
     },
     "/api/v1/dashboard/wts/overview/indicator": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/dashboard/wts/overview/margin": {
       "status": "implemented",
@@ -927,27 +1443,57 @@
     },
     "/api/v1/dashboard/wts/overview/signals": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/dashboard/wts/overview/tics": {
       "status": "candidate",
       "priority": "next",
       "note": "업종(TICS) 개요·랭킹",
-      "first_seen": "2026-06-29"
+      "first_seen": "2026-06-29",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/dashboard/wts/overview/trading-info": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/delayed-transfer/schedules": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/dividends/accounts": {
       "status": "candidate",
       "priority": "next",
       "note": "배당 내역/캘린더",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/dividends/accounts/annual/history": {
       "status": "implemented",
@@ -957,7 +1503,13 @@
       "status": "candidate",
       "priority": "next",
       "note": "실적발표(어닝콜) 일정",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/earning-call/home": {
       "status": "implemented",
@@ -967,7 +1519,13 @@
       "status": "candidate",
       "priority": "next",
       "note": "실적발표(어닝콜) 일정",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/earning-call/upcoming": {
       "status": "implemented",
@@ -977,31 +1535,73 @@
       "status": "candidate",
       "priority": "next",
       "note": "실적발표(어닝콜) 일정",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/employee/is-tester": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/exchange-auto-orders": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/exchange-auto-orders/histories": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/exchange-quote-info/buffered-quote": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/exchange/calculate/for-buy-amount": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/exchange/calculate/for-sell-amount": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/exchange/current-quote": {
       "status": "implemented",
@@ -1021,7 +1621,13 @@
     },
     "/api/v1/exchange/wts/order": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/feed/content/posts": {
       "status": "excluded",
@@ -1040,15 +1646,33 @@
     },
     "/api/v1/fomc-live/alimy": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/giphy/v1/gifs/search": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/growth/autotrade/open-banking/check/transfer": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/growth/autotrade/plan/stock": {
       "status": "implemented",
@@ -1056,11 +1680,23 @@
     },
     "/api/v1/growth/autotrade/schedule": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/inbox-alimies/has-unread": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/index-prices": {
       "status": "implemented",
@@ -1068,7 +1704,13 @@
     },
     "/api/v1/intelligence/user/mark": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v1/kyc/agent/due-diligence": {
       "status": "excluded",
@@ -1174,7 +1816,13 @@
       "status": "candidate",
       "priority": "next",
       "note": "대주(주식대여) 수익",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/lending/revenue/account/expected": {
       "status": "implemented",
@@ -1184,19 +1832,37 @@
       "status": "candidate",
       "priority": "next",
       "note": "대주(주식대여) 수익",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/lending/revenue/account/summary": {
       "status": "candidate",
       "priority": "next",
       "note": "대주(주식대여) 수익",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/lending/revenue/account/top-revenue": {
       "status": "candidate",
       "priority": "next",
       "note": "대주(주식대여) 수익",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/lending/setting/agreement": {
       "status": "excluded",
@@ -1225,15 +1891,33 @@
     },
     "/api/v1/lens/agreements": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/lens/issues": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/lens/segments": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/login/device-info": {
       "status": "excluded",
@@ -1242,11 +1926,23 @@
     },
     "/api/v1/logout": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/margin/bff/buy-control/required-deposit-amount": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/margin/cert/differential-margin/enabled": {
       "status": "implemented",
@@ -1254,31 +1950,73 @@
     },
     "/api/v1/margin/cert/frozen-account": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/margin/cert/liquidation-product-priorities": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/margin/cert/notice/receivable": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/mds/info": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/mds/info/trading-trend": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/member-subscriptions/get-option-real-time-tick": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/member-terms/get-all-agreed-by-scope-range": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/memo/private": {
       "status": "excluded",
@@ -1302,7 +2040,13 @@
     },
     "/api/v1/messages/deca-down-notify": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/minor/multi-account-open/guard/auth/sign": {
       "status": "excluded",
@@ -1436,7 +2180,13 @@
     },
     "/api/v1/misc/shorten-url": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/multi-account-open/common/kyc/fatca/countries": {
       "status": "excluded",
@@ -1635,27 +2385,63 @@
     },
     "/api/v1/multi-account/terms/base-user": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/multi-account/terms/mandatory": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/multi-account/terms/optional": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/multi-account/terms/privacy-policy": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/my-assets/hidden-stocks/hide": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/my-assets/hidden-stocks/show": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/my-assets/summaries/deposit-notice": {
       "status": "implemented",
@@ -1675,7 +2461,13 @@
     },
     "/api/v1/my-assets/transfer-income/overseas/summary": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/new-watchlists": {
       "status": "implemented",
@@ -1763,47 +2555,113 @@
     },
     "/api/v1/og": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/open-banking/terms/agree": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/open-banking/terms/banks": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/open-banking/toss-account-terms": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/open-banking/toss-account-terms/is-agreed": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/openapi/client": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/openapi/client/allowed-ips": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/option-both-chain/get-all": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/option-chain/get-all": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/option-infos/default-chart-option": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/option-maturity-date/get-all": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/pension/frontend/certificate/contribution-certificate/issuable": {
       "status": "excluded",
@@ -1862,23 +2720,53 @@
     },
     "/api/v1/pin/error-status": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/pin/exist": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/prime/benefits/interest/simulate": {
       "status": "candidate",
-      "first_seen": "2026-06-29"
+      "first_seen": "2026-06-29",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/prime/exchange/transactions": {
       "status": "candidate",
-      "first_seen": "2026-06-29"
+      "first_seen": "2026-06-29",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/prime/test/users": {
       "status": "candidate",
-      "first_seen": "2026-06-29"
+      "first_seen": "2026-06-29",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/prime/users/benefits": {
       "status": "implemented",
@@ -1888,7 +2776,13 @@
       "status": "candidate",
       "priority": "next",
       "note": "토스프라임 혜택·구독 상태",
-      "first_seen": "2026-06-29"
+      "first_seen": "2026-06-29",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/prime/users/info": {
       "status": "implemented",
@@ -1966,7 +2860,13 @@
     },
     "/api/v1/product/exchange-rate": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/product/stock-prices": {
       "status": "implemented",
@@ -1974,7 +2874,13 @@
     },
     "/api/v1/profit": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/profit/overview": {
       "status": "implemented",
@@ -2395,27 +3301,57 @@
     },
     "/api/v1/properties/member": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/properties/member/remove": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/properties/member/upsert": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/r-chart": {
       "status": "candidate",
       "priority": "next",
       "note": "실시간 차트",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/r-chart/fx/EXCHANGE_RATE": {
       "status": "candidate",
       "priority": "next",
       "note": "실시간 차트",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/rankings/realtime/stock": {
       "status": "implemented",
@@ -2423,47 +3359,113 @@
     },
     "/api/v1/reasoning": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/reasoning-contents/alimy/subscription": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/reasoning-news/count": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/reasoning/agreement": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/reasoning/graph": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/reasoning/interest": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/reasoning/latest": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/reasoning/personalized": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/redirect-push": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/refresh-utk": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/relation/follow-alimy": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/rename-documents": {
       "status": "excluded",
@@ -2507,31 +3509,73 @@
     },
     "/api/v1/ria-calculator/limit": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/ria-calculator/report": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/ria-calculator/tax-savings/optimized": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/ria-calculator/withdrawable-amounts": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 500,
+        "verdict": "http-500"
+      }
     },
     "/api/v1/ria-calculator/withdrawable-stocks": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/rights/us/categories": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/rights/us/categories/dividend-option/detail": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/rights/us/dividend-option/account-give-type": {
       "status": "implemented",
@@ -2549,59 +3593,143 @@
     },
     "/api/v1/search-all/auto-complete": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v1/search-all/auto-complete/community": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v1/search-all/auto-complete/community/user": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v1/search-all/auto-complete/company": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v1/search-all/auto-complete/tradable": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v1/search-all/wts-auto-complete": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v1/secure-keyboard/wts": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 410,
+        "verdict": "http-410"
+      }
     },
     "/api/v1/secure-keyboard/wts/new": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/securities-transfer/my-accounts": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/securities-transfer/recent-accounts": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/securities-transfer/send/ars": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v1/securities-transfer/send/result": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/security/nos/decrypt": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/security/nos/nppfs": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/session/expired-at": {
       "status": "implemented",
@@ -2659,11 +3787,23 @@
     },
     "/api/v1/stock-detail/ui": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/stock-infos": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/stock-infos/header": {
       "status": "implemented",
@@ -2671,7 +3811,13 @@
     },
     "/api/v1/stock-infos/trade/trend": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/stock-infos/trade/trend/trading-trend": {
       "status": "implemented",
@@ -2679,27 +3825,63 @@
     },
     "/api/v1/stock-internal-transfer/availability": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/stock-internal-transfer/ria-account-stock-in-yn": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/stock-internal-transfer/transferable-balances": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/stock-prices/mainsession": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/survey/vote": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/system-down-recipes": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/terms": {
       "status": "excluded",
@@ -2733,15 +3915,33 @@
     },
     "/api/v1/test/multi-account-open/clear": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/test/multi-account-open/clear-minor": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/test/product-eligibility/reviews/delete": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/tics/rankings": {
       "status": "implemented",
@@ -2749,39 +3949,93 @@
     },
     "/api/v1/time": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/toss-one-user/terms": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 403,
+        "verdict": "forbidden"
+      }
     },
     "/api/v1/trade-purpose-verification": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/trade-purpose-verification/doc": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/trade-purpose-verification/doc/request": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/trade-purpose-verification/file/upload": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/trade-purpose-verification/my-data/account/exists": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/trade-purpose-verification/pin/file": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/trade-purpose-verification/status": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/trade-purpose-verification/transfer-limit-restricted": {
       "status": "implemented",
@@ -2789,59 +4043,143 @@
     },
     "/api/v1/trade/executions": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/trade/product/recent-holdings": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/trading/auto-trading": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/trading/auto-trading/profit-rate": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/trading/auto-trading/stocks-info": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/trading/cashback/monthly-summary": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/trading/commission-info": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/trading/markets/us-opt/options/average-price": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/trading/markets/us/stocks/average-price": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/trading/open-banking/auto-trading": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/trading/order": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/trading/orders/calculate": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/trading/orders/calculate/order-data": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/trading/orders/histories": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/trading/orders/histories/all/pending": {
       "status": "implemented",
@@ -2849,15 +4187,33 @@
     },
     "/api/v1/trading/orders/histories/tab": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/trading/settings/simple-trade": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/trading/settings/simple-trade/off": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v1/trading/settings/toggle": {
       "status": "implemented",
@@ -2869,7 +4225,13 @@
     },
     "/api/v1/trading/stocks": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/transfer-income-payments": {
       "status": "excluded",
@@ -3032,23 +4394,53 @@
     },
     "/api/v1/usa-bond/receipt/tax/zero-coupon-discount": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/usa-market/get-option-biz-day-by-overtime": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/user-alimies": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v1/user-alimies/types": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/user-price-alimy": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/user-profiles": {
       "status": "excluded",
@@ -3132,7 +4524,13 @@
     },
     "/api/v1/user-reactions/summaries": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/user-setting": {
       "status": "excluded",
@@ -3141,43 +4539,103 @@
     },
     "/api/v1/user-token/uuid": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/user/age": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/user/last-login-info": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/user/terms/sections": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/users": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/users/ca-info": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/users/email": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/users/settings/me/ats-notification": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/workspaces/9/faq": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/wts-bridge/id-card/session/new": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/wts-login-device": {
       "status": "excluded",
@@ -3206,7 +4664,13 @@
     },
     "/api/v1/wts-login-extend": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/wts-login-extend/check-session-blocked": {
       "status": "implemented",
@@ -3222,15 +4686,33 @@
     },
     "/api/v1/wts-notification": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/wts/active-method/locked-status": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/wts/pin-activation": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/account/report/issue/withholding-tax/base-years": {
       "status": "excluded",
@@ -3239,63 +4721,153 @@
     },
     "/api/v2/account/unlock": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/account/unlock/accident-account/count": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v2/account/unlock/locked-info": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v2/accounts/closeable": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v2/accounts/contracts/high-risk/auth/wts": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/accounts/investment-propensity/auth/sign/token": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/accounts/investment-propensity/auth/wts": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/accounts/investment-propensity/capital/active": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v2/accounts/investment-propensity/capital/auth/sign": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/accounts/investment-propensity/capital/auth/sign/token": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/accounts/investment-propensity/capital/auth/wts": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/accounts/investment-propensity/capital/find": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/accounts/investment-propensity/capital/last": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v2/accounts/investment-propensity/revision/auth/sign": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/accounts/investment-propensity/revision/auth/wts": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/autotrade/plan/find": {
       "status": "implemented",
@@ -3313,27 +4885,63 @@
     },
     "/api/v2/common/auth/sms/simple/issue/basic": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/common/auth/sms/simple/issue/compact": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/common/auth/sms/simple/status": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/common/auth/sms/simple/verify": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/company-events": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/contents": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/dashboard/asset/sections/all": {
       "status": "implemented",
@@ -3341,31 +4949,61 @@
     },
     "/api/v2/dashboard/common/watchlists/grid-view": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/dashboard/intelligences/all": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v2/dashboard/wts/overview/calendar/economic-events": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v2/dashboard/wts/overview/ranking": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v2/dashboard/wts/overview/tics": {
       "status": "candidate",
       "priority": "next",
       "note": "업종(TICS) 개요·랭킹",
-      "first_seen": "2026-06-29"
+      "first_seen": "2026-06-29",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v2/dashboard/wts/overview/tics/ranking": {
       "status": "candidate",
       "priority": "next",
       "note": "업종(TICS) 개요·랭킹",
-      "first_seen": "2026-06-29"
+      "first_seen": "2026-06-29",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v2/feed/subscription/followings": {
       "status": "excluded",
@@ -3379,11 +5017,23 @@
     },
     "/api/v2/hidden-stocks": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v2/index-infos": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v2/kyc/agent/agent-mode-kyc-reprocess": {
       "status": "excluded",
@@ -3419,13 +5069,25 @@
       "status": "candidate",
       "priority": "next",
       "note": "대주(주식대여) 수익",
-      "first_seen": "2026-06-29"
+      "first_seen": "2026-06-29",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/lending/revenue/account/summary": {
       "status": "candidate",
       "priority": "next",
       "note": "대주(주식대여) 수익",
-      "first_seen": "2026-06-29"
+      "first_seen": "2026-06-29",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/lending/setting/flag": {
       "status": "excluded",
@@ -3439,7 +5101,13 @@
     },
     "/api/v2/lens/issues": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/log/bulk": {
       "status": "excluded",
@@ -3503,7 +5171,13 @@
     },
     "/api/v2/margin/bff/liquidation-product-priorities": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/memo/private/stocks/recent": {
       "status": "excluded",
@@ -3612,55 +5286,133 @@
     },
     "/api/v2/my-assets/orders/markets": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/my-assets/transactions": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/news": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/open-api/registration/cert/complete": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/open-api/registration/cert/push": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/open-api/registration/cert/status": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 403,
+        "verdict": "forbidden"
+      }
     },
     "/api/v2/open-api/registration/wts": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/open-api/reissue/cert/complete": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/open-api/reissue/cert/push": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/open-api/reissue/cert/status": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 403,
+        "verdict": "forbidden"
+      }
     },
     "/api/v2/open-api/reissue/wts": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/profit/daily/market": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/profit/group/market": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/promotion/account-open-quiz/enabled": {
       "status": "excluded",
@@ -3713,31 +5465,73 @@
     },
     "/api/v2/reasoning/graph": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/reasoning/graph/latest": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/reasoning/indices": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/reasoning/interest": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v2/reasoning/personalized": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v2/reasoning/stocks": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/replies": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/settings/password/reset": {
       "status": "excluded",
@@ -3826,43 +5620,103 @@
     },
     "/api/v2/share-holdings/folders": {
       "status": "candidate",
-      "first_seen": "2026-07-13"
+      "first_seen": "2026-07-13",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v2/share-holdings/folders/items": {
       "status": "candidate",
-      "first_seen": "2026-07-13"
+      "first_seen": "2026-07-13",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v2/share-holdings/folders/move": {
       "status": "candidate",
-      "first_seen": "2026-07-13"
+      "first_seen": "2026-07-13",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v2/share-holdings/folders/name": {
       "status": "candidate",
-      "first_seen": "2026-07-13"
+      "first_seen": "2026-07-13",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v2/share-holdings/folders/validate-name": {
       "status": "candidate",
-      "first_seen": "2026-07-13"
+      "first_seen": "2026-07-13",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v2/sms-auth/request": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/sms-auth/request/simple": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/sms-auth/verify": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/stock-alimies": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/stock-infos": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v2/stock-infos/code-or-symbol": {
       "status": "implemented",
@@ -3874,11 +5728,23 @@
     },
     "/api/v2/stock-infos/simple/by-guid": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 500,
+        "verdict": "http-500"
+      }
     },
     "/api/v2/stock-prices": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/system/trading-hours/integrated": {
       "status": "implemented",
@@ -3921,19 +5787,43 @@
     },
     "/api/v2/trading/auto-trading": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v2/trading/auto-trading/prepare": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/trading/auto-trading/profit-rate/create": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v2/trading/auto-trading/profit-rate/prepare/create": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v2/trading/my-orders/markets": {
       "status": "implemented",
@@ -3945,39 +5835,93 @@
     },
     "/api/v2/trading/order": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/trading/order/buy-control/required-deposit-amount": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v2/trading/order/correct": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/trading/order/correct/prepare": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/trading/orders/calculate": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/trading/orders/cancel/prepare": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/trading/settings/investor-exchange-choice-type": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v2/trading/settings/prepare/toggle": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v2/trading/settings/toggle": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v2/transfer-income-calculator": {
       "status": "excluded",
@@ -4055,11 +5999,23 @@
     },
     "/api/v3/accounts/closeable": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v3/dashboard/common/watchlists": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v3/feed/recommend/posts": {
       "status": "excluded",
@@ -4073,19 +6029,43 @@
     },
     "/api/v3/init": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v3/ipd-thor/api/v1/workspaces": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v3/ipd-thor/api/v1/workspaces/6/posts": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v3/ipd-toss-survey/forms": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v3/login/ticket": {
       "status": "excluded",
@@ -4172,15 +6152,33 @@
     },
     "/api/v3/search-all/wts-auto-complete": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v3/share-holdings/sort-order": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v3/stock-prices": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v3/stock-prices/details": {
       "status": "implemented",
@@ -4243,71 +6241,173 @@
     },
     "/api/v3/trading/auto-trading": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v3/trading/auto-trading/create": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v3/trading/auto-trading/delete": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v3/trading/auto-trading/histories": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v3/trading/auto-trading/prepare/create": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v3/trading/auto-trading/prepare/delete": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v3/trading/auto-trading/prepare/update": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v3/trading/auto-trading/stop-loss": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v3/trading/auto-trading/stop-loss/prepare/create": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v3/trading/auto-trading/update": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v3/trading/order": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v3/trading/orders/histories/compact/executed": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v3/trading/promotion/commission/by-market": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v3/wts/trading/order/bulk-cancel": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v3/wts/trading/order/bulk-cancel/prepare": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 405,
+        "verdict": "http-405"
+      }
     },
     "/api/v3/wts/trading/order/cancel": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v4/certs/register/init-session-v2": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v4/comments": {
       "status": "excluded",
@@ -4316,7 +6416,13 @@
     },
     "/api/v4/dashboard/wts/overview/indicator": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "worth-review"
+      }
     },
     "/api/v4/feed/issue-ranking": {
       "status": "excluded",
@@ -4335,27 +6441,63 @@
     },
     "/api/v4/signup": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v4/signup/member-type": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v4/trading/auto-trading": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-info-api",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v4/trading/auto-trading/all": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-cert-api",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v5/signup/link/auth/simple": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 403,
+        "verdict": "forbidden"
+      }
     },
     "/api/v5/signup/link/simple": {
       "status": "candidate",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "probe": {
+        "at": "2026-08-03",
+        "host": "wts-api",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     }
   },
   "updated_at": "2026-08-03"

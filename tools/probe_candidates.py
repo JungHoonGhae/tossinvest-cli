@@ -1,0 +1,191 @@
+#!/usr/bin/env python3
+"""미확인 candidate 엔드포인트를 실제로 한 번씩 찔러보고 결과를 카탈로그에 기록한다.
+
+왜 필요한가
+-----------
+`wts_endpoints.py` 는 번들에서 경로를 뽑아 `candidate` 로 쌓기만 한다. 주간 모니터는
+**델타(신규·삭제)만** 보고하므로, 처음 쌓인 날 눈에 안 띈 경로는 영영 안 열어보게 된다.
+2026-08-03 기준 candidate 358개 중 346개가 카탈로그 생성일(6-19)부터 45일째 미확인이었다.
+
+이 도구는 그 백로그를 4등급으로 갈라 "다음에 뭘 볼지" 를 정할 수 있게 한다.
+
+왜 CLI 가 아니라 tools/ 인가
+---------------------------
+카탈로그(`docs/reverse-engineering/wts-endpoints.json`)는 레포 파일이라 설치된 tossctl
+바이너리에는 없다. 세션은 tossctl 이 저장한 것을 그대로 읽는다.
+
+안전
+----
+- **GET 만 보낸다.** 쓰기는 절대 하지 않는다.
+- **응답 본문을 저장하지 않는다.** 실계좌 데이터가 카탈로그에 새는 걸 막기 위해
+  상태코드와 본문 크기 구간만 남긴다.
+- 동시 요청을 제한하고 사이에 쉰다 — 남의 서비스다.
+
+사용
+----
+    python3 tools/probe_candidates.py            # 미확인 candidate 전부
+    python3 tools/probe_candidates.py --limit 40 # 40개만
+    python3 tools/probe_candidates.py --recheck  # 이미 확인한 것도 다시
+"""
+
+from __future__ import annotations
+
+import argparse
+import concurrent.futures
+import datetime
+import json
+import os
+import re
+import sys
+import threading
+import time
+import urllib.error
+import urllib.request
+
+CATALOG = "docs/reverse-engineering/wts-endpoints.json"
+
+# 토스는 호스트를 셋으로 나눠 쓴다. 경로만 보고 호스트를 짐작하면 403/404 로 헤매므로
+# wts-api 를 먼저 보고, 404 일 때만 나머지를 시도한다 (요청 수를 3배로 늘리지 않기 위해).
+HOSTS = [
+    "https://wts-api.tossinvest.com",
+    "https://wts-info-api.tossinvest.com",
+    "https://wts-cert-api.tossinvest.com",
+]
+
+UA = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+)
+
+# 경로에 자리표시자가 있으면 그대로 부를 수 없다. 찔러봐야 404 라 요청을 아낀다.
+TEMPLATED = re.compile(r"[\[{<]")
+
+CONCURRENCY = 4
+PAUSE_SEC = 0.15
+
+
+def session_cookie_header() -> str:
+    """tossctl 이 저장한 세션을 Cookie 헤더 한 줄로 만든다."""
+    base = os.environ.get(
+        "TOSSCTL_SESSION_FILE",
+        os.path.expanduser("~/Library/Application Support/tossctl/session.json"),
+    )
+    if not os.path.exists(base):
+        sys.exit(f"세션 파일이 없다: {base}\n먼저 `tossctl auth login` 을 실행할 것.")
+    with open(base, encoding="utf-8") as fh:
+        sess = json.load(fh)
+    cookies = sess.get("cookies") or {}
+    if not cookies:
+        sys.exit("세션에 쿠키가 없다. `tossctl auth login` 을 다시 실행할 것.")
+    return "; ".join(f"{k}={v}" for k, v in cookies.items())
+
+
+def classify(status: int, size: int) -> str:
+    """상태코드와 본문 크기를 사람이 다음 행동을 정할 수 있는 등급으로 바꾼다."""
+    if status == 200:
+        # 200 이어도 `{"result":null}` 이나 빈 배열이면 볼 게 없다. 오늘 rights/us
+        # categories 가 정확히 그랬다 — 200 인데 body 가 늘 빈 배열이라 구현 불가.
+        return "worth-review" if size > 120 else "thin"
+    if status in (400, 422):
+        return "needs-params"
+    if status in (401, 403):
+        return "forbidden"
+    if status == 404:
+        return "not-found"
+    return f"http-{status}"
+
+
+def probe_one(path: str, cookie: str) -> dict:
+    if TEMPLATED.search(path):
+        return {"verdict": "templated", "note": "경로에 자리표시자가 있어 그대로 호출 불가"}
+
+    last = None
+    for host in HOSTS:
+        req = urllib.request.Request(
+            host + path,
+            headers={"User-Agent": UA, "Cookie": cookie, "Accept": "application/json"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                body = resp.read(4096)
+                status, size = resp.status, len(body)
+        except urllib.error.HTTPError as err:
+            try:
+                size = len(err.read(4096))
+            except Exception:
+                size = 0
+            status = err.code
+        except Exception as exc:  # 네트워크 실패는 판정이 아니다
+            last = {"verdict": "error", "note": type(exc).__name__}
+            continue
+
+        last = {
+            "verdict": classify(status, size),
+            "status": status,
+            "host": host.split("//")[1].split(".")[0],
+        }
+        # 404 면 호스트를 잘못 골랐을 수 있으니 다음 호스트로. 그 외는 확정.
+        if status != 404:
+            return last
+        time.sleep(PAUSE_SEC)
+    return last or {"verdict": "error", "note": "no host answered"}
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--limit", type=int, default=0, help="찔러볼 개수 상한 (0=전부)")
+    ap.add_argument("--recheck", action="store_true", help="이미 기록된 것도 다시 확인")
+    ap.add_argument("--dry-run", action="store_true", help="대상만 세고 요청하지 않음")
+    args = ap.parse_args()
+
+    with open(CATALOG, encoding="utf-8") as fh:
+        catalog = json.load(fh)
+    endpoints = catalog["endpoints"]
+
+    targets = [
+        p
+        for p, meta in sorted(endpoints.items())
+        if meta.get("status") == "candidate" and (args.recheck or "probe" not in meta)
+    ]
+    if args.limit:
+        targets = targets[: args.limit]
+
+    print(f"candidate 중 대상 {len(targets)}개")
+    if args.dry_run or not targets:
+        return
+
+    cookie = session_cookie_header()
+    today = datetime.date.today().isoformat()
+    lock = threading.Lock()
+    done = [0]
+
+    def work(path: str) -> None:
+        result = probe_one(path, cookie)
+        result["at"] = today
+        with lock:
+            endpoints[path]["probe"] = result
+            done[0] += 1
+            if done[0] % 25 == 0:
+                print(f"  … {done[0]}/{len(targets)}")
+        time.sleep(PAUSE_SEC)
+
+    with concurrent.futures.ThreadPoolExecutor(CONCURRENCY) as pool:
+        list(pool.map(work, targets))
+
+    with open(CATALOG, "w", encoding="utf-8") as fh:
+        json.dump(catalog, fh, ensure_ascii=False, indent=2, sort_keys=True)
+        fh.write("\n")
+
+    tally: dict[str, int] = {}
+    for path in targets:
+        tally[endpoints[path]["probe"]["verdict"]] = (
+            tally.get(endpoints[path]["probe"]["verdict"], 0) + 1
+        )
+    print("\n등급별:")
+    for verdict, count in sorted(tally.items(), key=lambda kv: -kv[1]):
+        print(f"  {verdict:14} {count:4}개")
+    print("\nworth-review 가 구현 후보다. 응답 본문은 저장하지 않았다(실계좌 데이터).")
+
+
+if __name__ == "__main__":
+    main()

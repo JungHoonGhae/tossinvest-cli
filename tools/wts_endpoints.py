@@ -76,6 +76,7 @@ IMPLEMENTED = [
     r"^/api/v1/profit/overview$",                                 # profit
     r"^/api/v3/profit/readable-tab$",                             # profit (tab meta)
     r"^/api/v1/dashboard/wts/news$",                             # market news
+    r"^/api/v2/dashboard/wts/overview/calendar/economic-events$",  # market calendar
     r"^/api/v1/account/detail$",                                  # account detail
     r"^/api/v1/transfer/withdrawable-status$",                    # account detail
     r"^/api/v1/dashboard/wts/overview/margin$",                   # account detail
@@ -205,6 +206,13 @@ def main():
                     break
         # first_seen lifecycle: preserve prior date so churn is visible.
         entry["first_seen"] = prev_eps_map.get(p, {}).get("first_seen", today)
+        # probe: the live-sweep verdict from tools/probe_candidates.py. It is
+        # human/agent triage state, not something this extractor can rederive,
+        # so it must survive regeneration — otherwise the weekly monitor wipes
+        # the backlog triage every Monday and candidates stay undifferentiated
+        # forever, which is the problem the sweep exists to fix.
+        if prior_probe := prev_eps_map.get(p, {}).get("probe"):
+            entry["probe"] = prior_probe
         endpoints[p] = entry
         counts[status] = counts.get(status, 0) + 1
     counts["candidate_next"] = next_count
