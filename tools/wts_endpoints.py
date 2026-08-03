@@ -157,19 +157,30 @@ def fetch(path):
 
 CHUNK_RE = r"/assets/v2/_next/static/chunks/[^\"']+\.js"
 
-# 라우트가 아닌 것들: 에러 페이지, 자리표시자가 든 동적 세그먼트(그대로 받을 수 없다),
-# 정적 자산.
-_ROUTE_SKIP = re.compile(r"^/(?:\d{3}|_|api/|assets/|static/)|[\[\]]|\.(?:js|css|png|svg|json|webp|ico)$")
+# 라우트가 아닌 것들: 에러 페이지, 정적 자산.
+_ROUTE_SKIP = re.compile(r"^/(?:\d{3}|_|api/|assets/|static/)|\.(?:js|css|png|svg|json|webp|ico)$")
+
+# 동적 세그먼트(`/stocks/[code]`)는 그대로 받을 수 없지만, **아무 값이나 넣어도 그
+# 라우트의 청크는 그대로 내려온다** (2026-08-03 측정: `/stocks/ZZZZZZ` 가 실제 종목과
+# 같은 12개를 준다). 그래서 건너뛰지 않고 치환해서 받는다 — 안 그러면 종목 상세·채권·
+# 커뮤니티 글처럼 동적 라우트에만 있는 API 를 통째로 놓친다.
+_ROUTE_PARAM = re.compile(r"\[[^\]]*\]")
+_ROUTE_TOKEN = "1"
 
 
 def discover_routes(blob):
-    """번들 문자열에서 앱 라우트 후보를 뽑는다."""
+    """번들 문자열에서 앱 라우트 후보를 뽑는다. 동적 세그먼트는 치환한다."""
     routes = {"/"}
     for m in re.finditer(r'href:"(/[^"?#]{1,40})"', blob):
         routes.add(m.group(1))
-    for m in re.finditer(r'"(/[a-z0-9][a-z0-9\-]{1,25}(?:/[a-z0-9\-]{1,25}){0,3})"', blob):
+    for m in re.finditer(r'"(/[a-z0-9][a-z0-9\-]{1,25}(?:/[a-z0-9\-\[\]]{1,25}){0,3})"', blob):
         routes.add(m.group(1))
-    return sorted(r for r in routes if not _ROUTE_SKIP.search(r))
+    out = set()
+    for r in routes:
+        if _ROUTE_SKIP.search(r):
+            continue
+        out.add(_ROUTE_PARAM.sub(_ROUTE_TOKEN, r))
+    return sorted(out)
 
 
 def collect_paths():
@@ -257,6 +268,11 @@ def main():
         # forever, which is the problem the sweep exists to fix.
         if prior_probe := prev_eps_map.get(p, {}).get("probe"):
             entry["probe"] = prior_probe
+        # observed: capture_post_bodies.mjs --sweep 이 기록한 실제 요청의 파라미터
+        # 키와 호스트. probe 와 같은 이유로 보존해야 한다 — 이 추출기가 다시
+        # 만들어낼 수 없는 관측값이다.
+        if prior_obs := prev_eps_map.get(p, {}).get("observed"):
+            entry["observed"] = prior_obs
         endpoints[p] = entry
         counts[status] = counts.get(status, 0) + 1
     counts["candidate_next"] = next_count

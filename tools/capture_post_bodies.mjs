@@ -21,20 +21,48 @@
 //   node tools/capture_post_bodies.mjs <path> --all      # 텔레메트리까지 포함
 //   node tools/capture_post_bodies.mjs <path> --get      # GET 도 (조회 기능 발굴용)
 //
+//   # 스윕: 여러 라우트를 돌며 엔드포인트별 **파라미터 키**를 카탈로그에 기록한다.
+//   # `probe_candidates.py` 가 needs-params 로 분류한 것들의 파라미터 이름을 알아내는 용도.
+//   node tools/capture_post_bodies.mjs --sweep                 # 기본 라우트 목록
+//   node tools/capture_post_bodies.mjs --sweep --routes r.txt  # 줄바꿈 구분 목록
+//
+//   스윕은 **키 이름만** 저장한다. 값은 어떤 모드에서도 카탈로그에 들어가지 않는다.
+//
 // 선행조건: `tossctl auth status` 의 Live Check 가 valid 여야 한다.
 
 import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync, readFileSync, existsSync, readdirSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { tmpdir, homedir } from "node:os";
 import { join } from "node:path";
 
 const args = process.argv.slice(2);
 const target = args.find((a) => !a.startsWith("--")) ?? "/";
 const raw = args.includes("--raw");
-const waitSec = Number(args[args.indexOf("--wait") + 1]) || 6;
+// indexOf 가 -1 이면 args[0] 을 집는다 — 플래그가 없을 때 엉뚱한 인자를 값으로
+// 읽는 고전적 off-by-one. 값을 받는 플래그는 전부 이 헬퍼를 쓴다.
+const flagValue = (name) => {
+  const i = args.indexOf(name);
+  return i >= 0 ? args[i + 1] : undefined;
+};
+const waitSec = Number(flagValue("--wait")) || 6;
 const keepNoise = args.includes("--all");
 // 기본은 non-GET(바디가 있는 것)만. 조회 기능을 발굴할 땐 GET 도 봐야 한다.
 const withGet = args.includes("--get");
+const sweep = args.includes("--sweep");
+const routesFile = flagValue("--routes");
+
+// 스윕 기본 라우트. 동적 세그먼트는 아무 값이나 넣어도 그 화면이 뜬다
+// (wts_endpoints.py 의 _ROUTE_TOKEN 과 같은 근거).
+const DEFAULT_ROUTES = [
+  "/", "/calendar", "/account", "/account/dividends", "/account/asset",
+  "/account/orders", "/account/transactions", "/account/transactions/us",
+  "/order", "/screener", "/community", "/news", "/my",
+  "/stocks/A005930", "/investment-portfolio", "/feed/news", "/feed/recommended",
+  "/bonds/1", "/live-event/1/1",
+];
+const sweepRoutes = routesFile
+  ? readFileSync(routesFile, "utf8").split("\n").map((l) => l.trim()).filter(Boolean)
+  : DEFAULT_ROUTES;
 
 // 텔레메트리·로깅 엔드포인트. 기능 발굴에 쓸모없고 출력의 절반을 차지한다.
 const NOISE = /\/(log|perf-log)\/bulk|\/tuba\/|\/wts-login-device/;
@@ -187,14 +215,71 @@ const { sessionId } = await send("Target.attachToTarget", { targetId, flatten: t
 await send("Network.enable", {}, sessionId);              // 내비게이션 '전에'
 await send("Network.setCookies", { cookies: loadCookies() }, sessionId);
 await send("Page.enable", {}, sessionId);
-await send("Page.navigate", { url: ORIGIN + target }, sessionId);
-await sleep(waitSec * 1000);
+const routes = sweep ? sweepRoutes : [target];
+for (const route of routes) {
+  if (sweep) process.stderr.write(`  → ${route}\n`);
+  await send("Page.navigate", { url: ORIGIN + route }, sessionId);
+  await sleep(waitSec * 1000);
+}
 
 // 인라인으로 안 온 바디를 requestId 로 회수한다.
 for (const r of seen) {
   if (r.postData || !r.hasPostData) continue;
   const res = await send("Network.getRequestPostData", { requestId: r.requestId }, sessionId);
   r.postData = res?.postData;
+}
+
+if (sweep) {
+  // 카탈로그에 **키 이름만** 적는다. 값은 실계좌 데이터라 어떤 모드에서도 안 남긴다.
+  const CATALOG = "docs/reverse-engineering/wts-endpoints.json";
+  const cat = JSON.parse(readFileSync(CATALOG, "utf8"));
+  const today = new Date().toISOString().slice(0, 10);
+  const bodyKeys = (raw) => {
+    if (!raw) return [];
+    try {
+      const v = JSON.parse(raw);
+      return v && typeof v === "object" && !Array.isArray(v) ? Object.keys(v) : [];
+    } catch {
+      return [...new URLSearchParams(raw).keys()];
+    }
+  };
+  // 카탈로그 키는 숫자 id 가 {id} 로 정규화돼 있다. 같은 규칙을 적용해 맞춘다.
+  const norm = (p) => p.replace(/\/[0-9]{3,}(?=\/|$)/g, "/{id}").replace(/[/.]+$/, "");
+  // 번들은 경로를 조립해 쓰는 경우가 많아(`base + "/" + code`) 카탈로그 키가
+  // **접두사**로 남는다: 키는 `/api/v2/stock-infos` 인데 라이브는
+  // `/api/v2/stock-infos/A005930` 이다. 정확 매칭만 하면 이런 요청이 전부 버려진다
+  // (첫 스윕에서 924건 중 237건). 뒤 세그먼트를 하나씩 떼며 가장 긴 일치를 찾는다.
+  const lookup = (pathname) => {
+    let key = norm(pathname);
+    while (key.includes("/")) {
+      if (cat.endpoints[key]) return key;
+      key = key.slice(0, key.lastIndexOf("/"));
+      if (key.split("/").length <= 3) break;   // /api/vN 아래로는 내려가지 않는다
+    }
+    return null;
+  };
+  let hit = 0, miss = 0;
+  for (const r of seen) {
+    const u = new URL(r.url);
+    const key = lookup(u.pathname);
+    const entry = key ? cat.endpoints[key] : null;
+    if (!entry) { miss++; continue; }
+    const prev = entry.observed ?? {};
+    const merge = (a = [], b = []) => [...new Set([...a, ...b])].sort();
+    entry.observed = {
+      method: r.method,
+      host: u.hostname.split(".")[0],
+      query: merge(prev.query, [...u.searchParams.keys()]),
+      body: merge(prev.body, bodyKeys(r.postData)),
+      at: today,
+    };
+    hit++;
+  }
+  writeFileSync(CATALOG, JSON.stringify(cat, null, 2) + "\n");
+  console.log(`\n스윕: 라우트 ${routes.length}개, 요청 ${seen.length}건 → 카탈로그 반영 ${hit}건 (카탈로그에 없는 경로 ${miss}건)`);
+  console.log("키 이름만 기록했다. 값은 저장하지 않는다.");
+  cleanup();
+  process.exit(0);
 }
 
 console.log(`\n대상: ${ORIGIN}${target}`);
