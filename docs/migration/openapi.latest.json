@@ -672,10 +672,10 @@
         "type": "object"
       },
       "ConditionRequest": {
-        "description": "감시 조건 (leg). 가격이 `triggerPrice` 에 닿으면 `orderSide`(매수/매도) 주문을 냅니다.\n수량(`quantity`)·호가유형(`orderType`)은 그룹 공통이라 상위 요청에 있습니다.\n호가유형이 `LIMIT` 이면 `orderPrice` 가 필수이고, `MARKET` 이면 `orderPrice` 를 보내면 안 됩니다.\n",
+        "description": "감시 조건 (leg). 가격이 `triggerPrice` 에 닿으면 `orderSide`(매수/매도) 주문을 냅니다.\n수량(`quantity`)·호가유형(`orderType`)은 그룹 공통이라 상위 요청에 있습니다.\n호가유형이 `LIMIT` 이면 `orderPrice` 가 필수이고, `MARKET` 이면 `orderPrice` 를 보내면 안 됩니다.\n`orderPrice` 는 호가 단위에 맞아야 하며, 맞지 않으면 `400 invalid-request` 에러와 함께 올바른 호가 단위가 `data`에 포함됩니다.\n",
         "properties": {
           "orderPrice": {
-            "description": "[orderType=LIMIT] 주문 가격(지정가). 트리거 시 이 가격의 지정가 주문을 생성합니다. MARKET 이면 보내지 않습니다.",
+            "description": "[orderType=LIMIT] 주문 가격(지정가). 트리거 시 이 가격의 지정가 주문을 생성합니다. MARKET 이면 보내지 않습니다.\n- KR: 정수 (원 단위). 호가 단위에 맞아야 합니다 (예: 50,000~200,000원 구간은 100원 단위).\n- US: 소수점 (달러 단위). 호가 단위에 맞아야 합니다 ($1 미만은 0.0001, $1 이상은 0.01 단위).\n\n호가 단위에 맞지 않으면 `400 invalid-request` 에러와 함께 올바른 호가 단위가 `data`에 포함됩니다.\n",
             "example": "305",
             "format": "decimal",
             "maxLength": 30,
@@ -1997,7 +1997,7 @@
                 "type": "string"
               },
               "price": {
-                "description": "주문 가격. `orderType`이 `LIMIT` 일 때만 사용합니다.\n- `LIMIT`: 필수. 미전달 시 `400 invalid-request`.\n- `MARKET`: 전달 불가. 전달 시 `400 invalid-request`.\nKR: 정수 (원 단위). 호가 단위에 맞아야 합니다 (예: 50,000~200,000원 구간은 100원 단위).\nKR 은 호가 단위에 맞지 않으면 `400 invalid-request` 에러와 함께 올바른 호가 단위가 `data`에 포함됩니다.\nUS: 소수점 (달러 단위).\n  - $1 미만: 소수점 넷째 자리까지 (그 이하 자릿수는 절삭).\n  - $1 이상: 소수점 둘째 자리까지 (그 이하 자릿수는 절삭).\n",
+                "description": "주문 가격. `orderType`이 `LIMIT` 일 때만 사용합니다.\n- `LIMIT`: 필수. 미전달 시 `400 invalid-request`.\n- `MARKET`: 전달 불가. 전달 시 `400 invalid-request`.\n- KR: 정수 (원 단위). 호가 단위에 맞아야 합니다 (예: 50,000~200,000원 구간은 100원 단위). 맞지 않으면 `400 invalid-request` 에러와 함께 올바른 호가 단위가 `data`에 포함됩니다.\n- US: 소수점 (달러 단위).\n  - $1 미만: 소수점 넷째 자리까지 (그 이하 자릿수는 절삭).\n  - $1 이상: 소수점 둘째 자리까지 (그 이하 자릿수는 절삭).\n",
                 "example": "70000",
                 "format": "decimal",
                 "maxLength": 30,
@@ -2005,7 +2005,7 @@
                 "type": "string"
               },
               "quantity": {
-                "description": "주문 수량 (주 단위). 지정한 수량만큼 주문합니다.\n- 기본: 양의 정수만 가능합니다.\n- 소수점 수량: 미국 주식 시장가 매도(`orderType=MARKET` + `side=SELL`) 주문에만 허용됩니다.\n  그 외(매수/지정가/국내) 소수점 수량은 `400 invalid-request` 를 반환합니다.\n  소수점 매수는 `orderAmount` 를 사용하세요.\n  소수점 수량 매도는 정규장 시간에만 접수 가능하며, 정규장 외 요청 시 `422 fractional-quantity-outside-regular-hours` 를 반환합니다.\n  소수점 수량은 소수점 6자리까지 지원하며, 초과 시 `400 invalid-request` (`fractional-quantity-scale-exceeded`) 를 반환합니다.\n",
+                "description": "주문 수량 (주 단위). 지정한 수량만큼 주문합니다.\n- 기본: 양의 정수만 가능합니다.\n- 소수점 수량: 미국 주식 시장가 매도(`orderType=MARKET` + `side=SELL`) 주문에만 허용됩니다.\n  그 외(매수/지정가/국내) 소수점 수량은 `400 invalid-request` 를 반환합니다.\n  소수점 매수는 `orderAmount` 를 사용하세요.\n  소수점 수량 매도는 정규장 시작부터 정규장 종료 1시간 전까지만 접수 가능하며, 그 외 시간 요청 시 `422 fractional-quantity-outside-regular-hours` 를 반환합니다.\n  소수점 수량은 소수점 6자리까지 지원하며, 초과 시 `400 invalid-request` (`fractional-quantity-scale-exceeded`) 를 반환합니다.\n",
                 "example": "10",
                 "format": "decimal",
                 "maxLength": 30,
@@ -2063,7 +2063,7 @@
                 "type": "boolean"
               },
               "orderAmount": {
-                "description": "주문 금액 (달러). 지정한 금액만큼 주문합니다.\n체결 수량은 체결 시점의 시장가에 따라 결정됩니다.\n\nQuantity-based 와의 차이: quantity 는 수량을 확정하고 비용이 변동하며,\norderAmount 는 금액을 확정하고 수량이 변동합니다.\n\n정규장 시간에만 접수 가능합니다.\n정규장 시간 외 요청 시 `422 amount-order-outside-regular-hours` 에러를 반환합니다.\n",
+                "description": "주문 금액 (달러). 지정한 금액만큼 주문합니다.\n체결 수량은 체결 시점의 시장가에 따라 결정됩니다.\n\nQuantity-based 와의 차이: quantity 는 수량을 확정하고 비용이 변동하며,\norderAmount 는 금액을 확정하고 수량이 변동합니다.\n\n정규장 시작부터 정규장 종료 1시간 전까지만 접수 가능합니다.\n그 외 시간 요청 시 `422 amount-order-outside-regular-hours` 에러를 반환합니다.\n",
                 "example": "100.5",
                 "format": "decimal",
                 "maxLength": 30,
@@ -2201,7 +2201,7 @@
             "type": "string"
           },
           "price": {
-            "description": "변경할 가격. `orderType`이 `LIMIT` 일 때만 사용합니다.\n- `LIMIT`: 필수. 미전달 시 `400 invalid-request`.\n- `MARKET`: 전달 불가. 전달 시 `400 invalid-request`.\nKR: 정수 (원 단위). 호가 단위에 맞아야 합니다. 맞지 않으면 `400 invalid-request` 에러.\nUS: 소수점 (달러 단위).\n  - $1 미만: 소수점 넷째 자리까지 (그 이하 자릿수는 절삭).\n  - $1 이상: 소수점 둘째 자리까지 (그 이하 자릿수는 절삭).\n",
+            "description": "변경할 가격. `orderType`이 `LIMIT` 일 때만 사용합니다.\n- `LIMIT`: 필수. 미전달 시 `400 invalid-request`.\n- `MARKET`: 전달 불가. 전달 시 `400 invalid-request`.\n- KR: 정수 (원 단위). 호가 단위에 맞아야 합니다. 맞지 않으면 `400 invalid-request` 에러.\n- US: 소수점 (달러 단위).\n  - $1 미만: 소수점 넷째 자리까지 (그 이하 자릿수는 절삭).\n  - $1 이상: 소수점 둘째 자리까지 (그 이하 자릿수는 절삭).\n",
             "example": "71000",
             "format": "decimal",
             "maxLength": 30,
@@ -3199,7 +3199,7 @@
   },
   "info": {
     "title": "토스증권 Open API",
-    "version": "1.2.5"
+    "version": "1.2.9"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -4063,6 +4063,24 @@
                       }
                     }
                   },
+                  "invalidTickSize": {
+                    "summary": "호가 단위 불일치",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "field": "first.orderPrice",
+                          "nearestPrices": [
+                            "24500",
+                            "24550"
+                          ],
+                          "tickSize": "50"
+                        },
+                        "message": "주문 가격이 호가 단위에 맞지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
                   "invalidTriggerPrice": {
                     "summary": "감시 가격 형식 오류",
                     "value": {
@@ -4356,6 +4374,26 @@
           "400": {
             "content": {
               "application/json": {
+                "examples": {
+                  "invalidTickSize": {
+                    "summary": "호가 단위 불일치",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "field": "first.orderPrice",
+                          "nearestPrices": [
+                            "24500",
+                            "24550"
+                          ],
+                          "tickSize": "50"
+                        },
+                        "message": "주문 가격이 호가 단위에 맞지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
@@ -6459,7 +6497,7 @@
         ]
       },
       "post": {
-        "description": "매수 또는 매도 주문을 생성합니다.\n\n**수량 지정 방식** — `quantity`, `orderAmount` 중 정확히 하나를 사용:\n- `quantity`: 주문 수량 (주 단위). 지정한 수량만큼 주문. 소수점 수량은 미국 주식 시장가 매도(`MARKET`+`SELL`)에만 허용 (그 외는 정수만)\n- `orderAmount`: 주문 금액 (달러). 지정한 금액만큼 주문하며, 체결 수량은 시장가에 따라 결정. US MARKET 전용\n\n**금액 주문 (`orderAmount`)**: 정규장 시간에만 가능합니다. 정규장 외 시간에 호출 시 `422 amount-order-outside-regular-hours` 를 반환합니다.\n\n**Rate Limits Group**: `ORDER`\n",
+        "description": "매수 또는 매도 주문을 생성합니다.\n\n**수량 지정 방식** — `quantity`, `orderAmount` 중 정확히 하나를 사용:\n- `quantity`: 주문 수량 (주 단위). 지정한 수량만큼 주문. 소수점 수량은 미국 주식 시장가 매도(`MARKET`+`SELL`)에만 허용 (그 외는 정수만)\n- `orderAmount`: 주문 금액 (달러). 지정한 금액만큼 주문하며, 체결 수량은 시장가에 따라 결정. US MARKET 전용\n\n**소수점 거래 접수 시간**: 금액 주문 (`orderAmount`) 과 소수점 수량 주문은 정규장 시작부터 **정규장 종료 1시간 전**까지만 접수할 수 있습니다.\n그 외 시간에 호출 시 각각 `422 amount-order-outside-regular-hours` / `422 fractional-quantity-outside-regular-hours` 를 반환합니다.\n\n**Rate Limits Group**: `ORDER`\n",
         "operationId": "createOrder",
         "parameters": [
           {
@@ -6805,35 +6843,43 @@
                     }
                   },
                   "amountOrderOutsideRegularHours": {
-                    "summary": "정규장 외 시간 금액 주문 불가",
+                    "summary": "접수 시간(정규장 종료 1시간 전 마감) 외 금액 주문 불가",
                     "value": {
                       "error": {
                         "code": "amount-order-outside-regular-hours",
                         "data": {
                           "field": "orderAmount",
+                          "orderableHours": {
+                            "end": "2026-03-30T15:00:00-04:00",
+                            "start": "2026-03-30T09:30:00-04:00"
+                          },
                           "regularHours": {
                             "end": "2026-03-30T16:00:00-04:00",
                             "start": "2026-03-30T09:30:00-04:00"
                           }
                         },
-                        "message": "미국 주식 금액 주문은 정규장 시간에만 접수할 수 있습니다.",
+                        "message": "미국 주식 금액 주문은 정규장 종료 1시간 전까지만 접수할 수 있습니다.",
                         "requestId": "01HXYZABCDEFG123456789"
                       }
                     }
                   },
                   "fractionalQuantityOutsideRegularHours": {
-                    "summary": "정규장 외 시간 소수점 수량 주문 불가",
+                    "summary": "접수 시간(정규장 종료 1시간 전 마감) 외 소수점 수량 주문 불가",
                     "value": {
                       "error": {
                         "code": "fractional-quantity-outside-regular-hours",
                         "data": {
                           "field": "quantity",
+                          "orderableHours": {
+                            "end": "2026-03-30T15:00:00-04:00",
+                            "start": "2026-03-30T09:30:00-04:00"
+                          },
                           "regularHours": {
                             "end": "2026-03-30T16:00:00-04:00",
                             "start": "2026-03-30T09:30:00-04:00"
                           }
                         },
-                        "message": "미국 주식 소수점 수량 주문은 정규장 시간에만 접수할 수 있습니다.",
+                        "message": "미국 주식 소수점 수량 주문은 정규장 종료 1시간 전까지만 접수할 수 있습니다.",
                         "requestId": "01HXYZABCDEFG123456789"
                       }
                     }
@@ -7625,23 +7671,6 @@
                       "error": {
                         "code": "account-restricted",
                         "message": "계좌 상태가 주문을 허용하지 않습니다.",
-                        "requestId": "01HXYZABCDEFG123456789"
-                      }
-                    }
-                  },
-                  "amountOrderOutsideRegularHours": {
-                    "summary": "정규장 외 시간 금액 주문 정정 불가",
-                    "value": {
-                      "error": {
-                        "code": "amount-order-outside-regular-hours",
-                        "data": {
-                          "field": "orderAmount",
-                          "regularHours": {
-                            "end": "2026-03-30T16:00:00-04:00",
-                            "start": "2026-03-30T09:30:00-04:00"
-                          }
-                        },
-                        "message": "미국 주식 금액 주문은 정규장 시간에만 접수할 수 있습니다.",
                         "requestId": "01HXYZABCDEFG123456789"
                       }
                     }
