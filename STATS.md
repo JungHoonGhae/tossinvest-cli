@@ -7,12 +7,14 @@
 > that show `n/a`, and days without a fresh sample carry the last known value
 > forward. **Total** = stars + forks + downloads.
 
-**⭐ 467 stars · 🍴 78 forks · ⬇️ 4,073 downloads · Σ 4,618 total · since 2026-03-13**
+**⭐ 467 stars · 🍴 78 forks · ⬇️ 4,116 downloads · Σ 4,661 total · since 2026-03-13**
 
-_Last updated: 2026-08-01 (UTC)_
+_Last updated: 2026-08-03 (UTC)_
 
 | Date | Stars | Forks | Release Downloads | Total |
 | ---------- | -------------------- | -------------------- | -------------------- | -------------------- |
+| 2026-08-03 | 467 (+0) | 78 (+0) | 4,116 (+43) | 4,661 (+43) |
+| 2026-08-02 | 467 (+0) | 78 (+0) | 4,073 | 4,618 (+0) |
 | 2026-08-01 | 467 (+3) | 78 (+0) | 4,073 (+36) | 4,618 (+39) |
 | 2026-07-31 | 464 (+1) | 78 (+0) | 4,037 (+80) | 4,579 (+81) |
 | 2026-07-30 | 463 (+0) | 78 (+0) | 3,957 (+57) | 4,498 (+57) |
