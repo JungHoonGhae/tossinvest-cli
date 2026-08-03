@@ -4,8 +4,8 @@
   "chunk_count": 81,
   "total": 988,
   "counts": {
-    "implemented": 91,
-    "candidate": 387,
+    "implemented": 92,
+    "candidate": 386,
     "excluded": 510,
     "candidate_next": 20,
     "meaningful": 478
@@ -7220,7 +7220,7 @@
       }
     },
     "/api/v3/trading/auto-trading/histories": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",

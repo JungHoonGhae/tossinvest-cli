@@ -128,6 +128,8 @@
   "openapi.status.short": "Show Open API diagnostic dashboard (credentials, key status, IPs, connection)",
   "openapi.test.short": "Test saved Open API credentials against the live API",
   "order.amend.short": "Amend a live pending order",
+  "order.autotrade.long": "Show the automated-trading rules armed on the account: STOP_LOSS, PROFIT_RATE, OCO, OTO.\n\nRead-only. Arming and cancelling happen in the Toss app or web only — the same stance `account detail` takes toward the 계좌관리 screen's actions.\n\nStatus is the server's numeric code translated to its enum name (6 → EXPIRED); the raw code is kept as `status_code`. WTS-only.",
+  "order.autotrade.short": "List automated trading rules (stop-loss, target profit)",
   "order.cancel.short": "Cancel a live pending order",
   "order.conditional.cancel.done": "Conditional order canceled.",
   "order.conditional.cancel.previewLine": "Preview: this will cancel the conditional order. Rerun with --execute --confirm <token>.",

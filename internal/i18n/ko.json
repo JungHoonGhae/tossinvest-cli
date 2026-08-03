@@ -128,6 +128,8 @@
   "openapi.status.short": "Open API 진단 대시보드 표시 (자격 증명, 키 상태, IP, 연결 상태)",
   "openapi.test.short": "저장된 Open API 자격 증명을 실제 API로 테스트",
   "order.amend.short": "미체결 주문 정정",
+  "order.autotrade.long": "계좌에 걸어둔 자동매매 규칙을 봅니다 — 스탑로스(STOP_LOSS), 목표수익(PROFIT_RATE), OCO, OTO.\n\n조회 전용입니다. 설정·해제는 토스 앱/웹에서만 됩니다 — `account detail` 이 계좌관리 화면을 보여주되 변경 동작은 노출하지 않는 것과 같은 기준입니다.\n\n상태는 서버 코드(`6` 같은 숫자)를 이름(`EXPIRED`)으로 바꿔 보여주고, 원본 코드도 `status_code` 로 남깁니다. 웹앱(WTS) 전용.",
+  "order.autotrade.short": "자동매매 설정 조회 (스탑로스·목표수익)",
   "order.cancel.short": "미체결 주문 취소",
   "order.conditional.cancel.done": "조건주문을 취소했습니다.",
   "order.conditional.cancel.previewLine": "미리보기: 이 조건주문을 취소합니다. --execute --confirm <토큰> 으로 다시 실행하세요.",
