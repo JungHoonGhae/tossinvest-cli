@@ -51,6 +51,25 @@ func newAccountCmd(opts *rootOptions) *cobra.Command {
 			},
 		},
 		&cobra.Command{
+			Use:         "commission",
+			Short:       i18n.T("account.commission.short"),
+			Long:        i18n.T("account.commission.long"),
+			Annotations: map[string]string{"source": "wts"},
+			RunE: func(cmd *cobra.Command, _ []string) error {
+				app, err := newAppContext(opts)
+				if err != nil {
+					return err
+				}
+
+				schedule, err := app.client.GetCommissionSchedule(cmd.Context())
+				if err != nil {
+					return userFacingCommandError(err)
+				}
+
+				return output.WriteAccountCommission(cmd.OutOrStdout(), app.format, schedule)
+			},
+		},
+		&cobra.Command{
 			Use:         "prime",
 			Short:       i18n.T("account.prime.short"),
 			Long:        i18n.T("account.prime.long"),

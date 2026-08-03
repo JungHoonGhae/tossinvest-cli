@@ -98,3 +98,53 @@ func TestWriteAccountPrimeNonMember(t *testing.T) {
 		t.Errorf("table output leaked a nil-pointer format artifact, got: %s", out)
 	}
 }
+
+// 더미 값 — 실계좌 데이터 아님.
+var testCommissionSchedule = domain.CommissionSchedule{
+	Korea: domain.CommissionTier{RatePercent: 0.011},
+	US: domain.CommissionTier{
+		RatePercent:    0.2,
+		HasReduction:   true,
+		ReductionEndAt: "2026-12-31",
+	},
+	USOptions: &domain.CommissionTier{PerContract: 2.49},
+}
+
+func TestWriteAccountCommissionTable(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteAccountCommission(&buf, FormatTable, testCommissionSchedule); err != nil {
+		t.Fatalf("WriteAccountCommission(table) error = %v", err)
+	}
+	out := buf.String()
+	// 요율은 이미 퍼센트 단위다. 어디선가 ×100 이 끼면 "1.1%" 로 새고 여기서 잡힌다.
+	if !strings.Contains(out, "0.011%") {
+		t.Errorf("table missing KR rate 0.011%%:\n%s", out)
+	}
+	// 옵션은 요율이 아니라 계약당 정액이다.
+	if !strings.Contains(out, "$2.49") {
+		t.Errorf("table missing US options per-contract fee:\n%s", out)
+	}
+	// 우대는 적용된 행에만 종료일이 붙는다.
+	if !strings.Contains(out, "2026-12-31") {
+		t.Errorf("table missing reduction end date:\n%s", out)
+	}
+	for _, line := range strings.Split(strings.TrimRight(out, "\n"), "\n") {
+		if line != strings.TrimRight(line, " ") {
+			t.Errorf("line has trailing whitespace: %q", line)
+		}
+	}
+}
+
+// 옵션 약정이 없는 계좌는 티어가 nil 이다. 0원 수수료 행으로 렌더하면 안 된다.
+func TestWriteAccountCommissionTableNoOptions(t *testing.T) {
+	schedule := testCommissionSchedule
+	schedule.USOptions = nil
+
+	var buf bytes.Buffer
+	if err := WriteAccountCommission(&buf, FormatTable, schedule); err != nil {
+		t.Fatalf("WriteAccountCommission(table) error = %v", err)
+	}
+	if got := strings.Count(buf.String(), "\n"); got != 3 {
+		t.Errorf("expected header + 2 rows, got %d lines:\n%s", got, buf.String())
+	}
+}

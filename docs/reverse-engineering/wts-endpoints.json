@@ -4,8 +4,8 @@
   "chunk_count": 81,
   "total": 988,
   "counts": {
-    "implemented": 93,
-    "candidate": 385,
+    "implemented": 94,
+    "candidate": 384,
     "excluded": 510,
     "candidate_next": 20,
     "meaningful": 478
@@ -22,6 +22,10 @@
     "/api/v1/usa-bond/receipt/tax/zero-coupon-discount": {
       "status": "candidate",
       "note": "미국채 제로쿠폰 할인 세금영수증: 200 이지만 taxReceipts 가 빈 배열이라 항목 구조 미상. 트리거 = 해당 영수증 발생"
+    },
+    "/api/v1/trading/commission-info": {
+      "status": "candidate",
+      "note": "v2 를 구현했다 (account commission). v1 은 같은 응답이지만 commissionInfoUsOpt 가 늘 null — 쓰지 말 것"
     }
   },
   "endpoints": {
@@ -4733,7 +4737,8 @@
         "host": "wts-api",
         "status": 200,
         "verdict": "worth-review"
-      }
+      },
+      "note": "v2 를 구현했다 (account commission). v1 은 같은 응답이지만 commissionInfoUsOpt 가 늘 null — 쓰지 말 것"
     },
     "/api/v1/trading/markets/us-opt/options/average-price": {
       "status": "candidate",
@@ -6697,8 +6702,15 @@
       }
     },
     "/api/v2/trading/commission-info": {
-      "status": "candidate",
-      "first_seen": "2026-08-03"
+      "status": "implemented",
+      "first_seen": "2026-08-03",
+      "observed": {
+        "method": "GET",
+        "host": "wts-api",
+        "query": [],
+        "body": [],
+        "at": "2026-08-04"
+      }
     },
     "/api/v2/trading/my-orders/markets": {
       "status": "implemented",
