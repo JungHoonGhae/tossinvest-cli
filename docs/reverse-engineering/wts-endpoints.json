@@ -10,7 +10,20 @@
     "candidate_next": 20,
     "meaningful": 478
   },
-  "overrides": {},
+  "overrides": {
+    "/api/v1/bond-infos": {
+      "status": "candidate",
+      "note": "채권: 호출법은 확정됐으나 guid 출처가 보유 포지션뿐이라 응답 미관측. 트리거 = 계좌에 채권 보유 발생"
+    },
+    "/api/v1/bond-infos/simple": {
+      "status": "candidate",
+      "note": "채권: 호출법은 확정됐으나 guid 출처가 보유 포지션뿐이라 응답 미관측. 트리거 = 계좌에 채권 보유 발생"
+    },
+    "/api/v1/usa-bond/receipt/tax/zero-coupon-discount": {
+      "status": "candidate",
+      "note": "미국채 제로쿠폰 할인 세금영수증: 200 이지만 taxReceipts 가 빈 배열이라 항목 구조 미상. 트리거 = 해당 영수증 발생"
+    }
+  },
   "endpoints": {
     "/api/v1/account": {
       "status": "candidate",
@@ -995,12 +1008,25 @@
           "guid"
         ],
         "body": [],
-        "at": "2026-08-03"
-      }
+        "at": "2026-08-04",
+        "source": "bundle-literal: pages/bonds/[guid] — FH.get(`${INFO}/api/v1/bond-infos`,{params:{guid}})"
+      },
+      "note": "채권: 호출법은 확정됐으나 guid 출처가 보유 포지션뿐이라 응답 미관측. 트리거 = 계좌에 채권 보유 발생"
     },
     "/api/v1/bond-infos/simple": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "observed": {
+        "method": "GET",
+        "host": "wts-info-api",
+        "query": [
+          "guids"
+        ],
+        "body": [],
+        "at": "2026-08-04",
+        "source": "bundle-literal: 같은 청크 — qs.stringify({guids},{arrayFormat:'repeat'}) 로 반복 파라미터"
+      },
+      "note": "채권: 호출법은 확정됐으나 guid 출처가 보유 포지션뿐이라 응답 미관측. 트리거 = 계좌에 채권 보유 발생"
     },
     "/api/v1/c-chart": {
       "status": "candidate",
@@ -5050,7 +5076,8 @@
         "host": "wts-info-api",
         "status": 200,
         "verdict": "worth-review"
-      }
+      },
+      "note": "미국채 제로쿠폰 할인 세금영수증: 200 이지만 taxReceipts 가 빈 배열이라 항목 구조 미상. 트리거 = 해당 영수증 발생"
     },
     "/api/v1/usa-market/get-option-biz-day-by-overtime": {
       "status": "candidate",
