@@ -254,6 +254,22 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "market_issues", Method: "GET", Path: "wts:lens/issues", Backend: "wts",
+			Category: "market",
+			Summary:  "Ranked board of the topics the market is talking about most, each with its rank movement (UP/DOWN), the number of articles behind it, and those articles. A different axis from market_news (flat headlines) and news_briefing (AI category grouping): here the topic ranking itself is the payload. Takes no parameters. WTS-only.",
+			Probe: &ProbeSpec{Name: "market-issues", Method: "GET",
+				URL: probeInfo + "/api/v1/lens/issues",
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.issues", "array")
+				}},
+			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
+				return d.WTS.GetMarketIssues(ctx)
+			},
+		},
+		{
 			ID: "auto_trades", Method: "GET", Path: "wts:trading/auto-trading/histories", Backend: "wts",
 			Category: "order",
 			Summary:  "Automated-trading rules armed on the account (STOP_LOSS, PROFIT_RATE, OCO, OTO) with their trigger and order prices. Read-only: arming and cancelling happen in the Toss app only. status is the server's numeric code translated to its enum name (6 = EXPIRED); status_code keeps the raw value. WTS-only.",

@@ -258,6 +258,27 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	calendarCmd.Flags().StringVar(&calendarMonth, "month", "",
 		"month to show as YYYY-MM (default: current month)")
 
+	var issuesFull bool
+	issuesCmd := &cobra.Command{
+		Use:         "issues",
+		Short:       i18n.T("market.issues.short"),
+		Long:        i18n.T("market.issues.long"),
+		Annotations: map[string]string{"source": "wts"},
+		Args:        cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			m, err := app.client.GetMarketIssues(cmd.Context())
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteMarketIssues(cmd.OutOrStdout(), app.format, m, issuesFull)
+		},
+	}
+	issuesCmd.Flags().BoolVar(&issuesFull, "full", false, "include the articles behind each topic")
+
 	briefingCmd := &cobra.Command{
 		Use:         "briefing",
 		Short:       i18n.T("market.briefing.short"),
@@ -438,6 +459,6 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	investorTradingCmd.Flags().IntVar(&investorTradingCount, "count", 0, "number of records (max 100; 0 = API default)")
 	investorTradingCmd.Flags().StringVar(&investorTradingUntil, "until", "", "inclusive upper-bound date (YYYY-MM-DD)")
 
-	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd)
+	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, issuesCmd)
 	return cmd
 }

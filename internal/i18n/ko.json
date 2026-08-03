@@ -106,6 +106,8 @@
   "market.investorTrading.long": "토스 공식 Open API 로 시장 전체 투자자별(개인·외국인·기관·기타법인) 매매동향을 조회합니다. 공식 키 연결이 필요합니다. --interval 1d|1w|1mo|1y, --count 최대 100.",
   "market.investorTrading.short": "시장 투자자별 매매동향 (코스피/코스닥, 공식 API 키 필요)",
   "market.investors.short": "투자자 유형별(외국인, 기관, 개인) 순매수 랭킹",
+  "market.issues.long": "지금 시장이 가장 많이 이야기하는 **토픽**을 순위로 봅니다. 각 토픽의 순위 변동(▲▼)과 관련 기사 수가 함께 나옵니다.\n\n`market news`(헤드라인 목록)·`market briefing`(AI 카테고리 묶음)과 다른 축입니다 — 이쪽은 **토픽 자체의 랭킹**입니다.\n\n`--full` 로 각 토픽의 관련 기사를 함께 봅니다. 웹앱(WTS) 전용.",
+  "market.issues.short": "시장 이슈 랭킹 (토픽별 순위·등락)",
   "market.news.long": "뉴스와 함께 각 기사의 관련 종목이 지금 얼마나 움직이는지 보여줍니다 — 단순 헤드라인 목록에는 없는 부분입니다.\n\n범위(--type): all(기본, 가장 넓음), recommended, watchlist, holdings, latest, soaring. 서버 enum 을 그대로 넣어도 되므로 토스가 나중에 추가하는 범위도 릴리즈 없이 쓸 수 있습니다.\n\n서버가 50건으로 제한하며 페이지네이션과 검색은 제공하지 않습니다. 요약문은 기본적으로 생략됩니다(50개면 화면이 가득 찹니다) — --full 로 함께 볼 수 있습니다. 웹앱(WTS) 전용.",
   "market.news.short": "시장 뉴스 (관련 종목 등락률 포함)",
   "market.ranking.short": "실시간 인기 종목 랭킹",

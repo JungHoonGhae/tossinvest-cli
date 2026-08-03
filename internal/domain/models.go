@@ -1039,6 +1039,41 @@ type AutoTradeList struct {
 	FetchedAt time.Time   `json:"fetched_at"`
 }
 
+// MarketIssue is one ranked market topic: a cluster of news the feed groups
+// under a single theme, with its position and which way it is moving.
+//
+// Distinct from both existing surfaces: `market news` is a flat headline list,
+// `market briefing` groups articles by AI category. This one ranks the topics
+// themselves, so it answers "what is the market talking about most right now".
+type MarketIssue struct {
+	Rank int `json:"rank"`
+	// RankStatus is the server's movement flag (UP / DOWN / …), passed through.
+	RankStatus string `json:"rank_status,omitempty"`
+	// Topic is the short key phrase ("CXMT 메모리 증설"); Title is the fuller
+	// framing ("글로벌 D램 공급 확대"). Both come from the server.
+	Topic    string `json:"topic"`
+	Title    string `json:"title,omitempty"`
+	Category string `json:"category,omitempty"`
+	// SourceCount is the server's total; Sources carries the ones it sent,
+	// which can be fewer.
+	SourceCount int           `json:"source_count,omitempty"`
+	Sources     []IssueSource `json:"sources,omitempty"`
+}
+
+// IssueSource is one article backing an issue topic.
+type IssueSource struct {
+	Name      string `json:"name,omitempty"`
+	Title     string `json:"title"`
+	CreatedAt string `json:"created_at,omitempty"`
+}
+
+// MarketIssues is the ranked topic board.
+type MarketIssues struct {
+	Issues    []MarketIssue `json:"issues"`
+	UpdatedAt string        `json:"updated_at,omitempty"`
+	FetchedAt time.Time     `json:"fetched_at"`
+}
+
 // WithdrawableByDay is cash available now (D+0) and as settlement completes.
 type WithdrawableByDay struct {
 	Day0 float64 `json:"day0"`
