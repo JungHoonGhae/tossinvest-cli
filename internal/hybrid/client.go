@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"strconv"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/client"
@@ -84,6 +85,26 @@ func route[T any](c *Client, official func() (T, error), wts func() (T, error)) 
 // rather than a domain error like 404.
 func officialShouldFallback(err error) bool { return official.ShouldFallback(err) }
 
+// officialSymbolPattern mirrors the official API's own symbol validation —
+// `^[A-Za-z0-9.,\-]+$`, taken verbatim from the `rule: Pattern` it returns on a
+// 400.
+//
+// Option contract guids carry underscores (OPT_AAPL260805C00230000_20260722),
+// so sending one to the official path earns a validation 400. That is a domain
+// error, not an availability failure, so ShouldFallback says no and the request
+// dies there — even though WTS serves these fine. Deciding before the call
+// keeps a request we know will fail from being made at all.
+var officialSymbolPattern = regexp.MustCompile(`^[A-Za-z0-9.,\-]+$`)
+
+// routeSymbol is route plus the knowledge that some symbols the official API
+// simply cannot express. Those go straight to WTS.
+func routeSymbol[T any](c *Client, symbol string, official func() (T, error), wts func() (T, error)) (T, error) {
+	if !officialSymbolPattern.MatchString(symbol) {
+		return wts()
+	}
+	return route(c, official, wts)
+}
+
 // --- Overrides: official -> (fallback) WTS ---------------------------------
 
 // ListAccounts routes to off.Accounts. The official path has no cursor, so the
@@ -115,7 +136,7 @@ func (c *Client) ListPositions(ctx context.Context) ([]domain.Position, error) {
 // GetQuote routes to off.Prices for a single symbol. An empty official result
 // is a definitive "not found" — official answered, so we do NOT fall back.
 func (c *Client) GetQuote(ctx context.Context, symbol string) (domain.Quote, error) {
-	return route(c,
+	return routeSymbol(c, symbol,
 		func() (domain.Quote, error) {
 			qs, err := c.off.Prices(ctx, []string{symbol})
 			if err != nil {
@@ -131,49 +152,49 @@ func (c *Client) GetQuote(ctx context.Context, symbol string) (domain.Quote, err
 
 // GetOrderBook routes to off.Orderbook.
 func (c *Client) GetOrderBook(ctx context.Context, symbol string) (domain.OrderBook, error) {
-	return route(c,
+	return routeSymbol(c, symbol,
 		func() (domain.OrderBook, error) { return c.off.Orderbook(ctx, symbol) },
 		func() (domain.OrderBook, error) { return c.Client.GetOrderBook(ctx, symbol) })
 }
 
 // GetTrades routes to off.Trades.
 func (c *Client) GetTrades(ctx context.Context, symbol string, count int) (domain.TradeList, error) {
-	return route(c,
+	return routeSymbol(c, symbol,
 		func() (domain.TradeList, error) { return c.off.Trades(ctx, symbol, count) },
 		func() (domain.TradeList, error) { return c.Client.GetTrades(ctx, symbol, count) })
 }
 
 // GetChart routes to off.Candles (no before-cursor, unadjusted).
 func (c *Client) GetChart(ctx context.Context, symbol, interval string, count int) (domain.Chart, error) {
-	return route(c,
+	return routeSymbol(c, symbol,
 		func() (domain.Chart, error) { return c.off.Candles(ctx, symbol, interval, count, "", false) },
 		func() (domain.Chart, error) { return c.Client.GetChart(ctx, symbol, interval, count) })
 }
 
 // GetPriceLimits routes to off.PriceLimits.
 func (c *Client) GetPriceLimits(ctx context.Context, symbol string) (domain.PriceLimits, error) {
-	return route(c,
+	return routeSymbol(c, symbol,
 		func() (domain.PriceLimits, error) { return c.off.PriceLimits(ctx, symbol) },
 		func() (domain.PriceLimits, error) { return c.Client.GetPriceLimits(ctx, symbol) })
 }
 
 // GetStockWarnings routes to off.Warnings.
 func (c *Client) GetStockWarnings(ctx context.Context, symbol string) (domain.StockWarnings, error) {
-	return route(c,
+	return routeSymbol(c, symbol,
 		func() (domain.StockWarnings, error) { return c.off.Warnings(ctx, symbol) },
 		func() (domain.StockWarnings, error) { return c.Client.GetStockWarnings(ctx, symbol) })
 }
 
 // GetSellableQuantity routes to off.SellableQuantity.
 func (c *Client) GetSellableQuantity(ctx context.Context, symbol string) (domain.SellableQuantity, error) {
-	return route(c,
+	return routeSymbol(c, symbol,
 		func() (domain.SellableQuantity, error) { return c.off.SellableQuantity(ctx, symbol) },
 		func() (domain.SellableQuantity, error) { return c.Client.GetSellableQuantity(ctx, symbol) })
 }
 
 // GetCommission routes to off.Commissions.
 func (c *Client) GetCommission(ctx context.Context, symbol string) (domain.Commission, error) {
-	return route(c,
+	return routeSymbol(c, symbol,
 		func() (domain.Commission, error) { return c.off.Commissions(ctx, symbol) },
 		func() (domain.Commission, error) { return c.Client.GetCommission(ctx, symbol) })
 }
