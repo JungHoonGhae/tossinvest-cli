@@ -20,6 +20,12 @@
 //   node tools/capture_post_bodies.mjs <path> --wait 8   # 대기 초
 //   node tools/capture_post_bodies.mjs <path> --all      # 텔레메트리까지 포함
 //   node tools/capture_post_bodies.mjs <path> --get      # GET 도 (조회 기능 발굴용)
+//   node tools/capture_post_bodies.mjs <path> --click "필터,적용"   # 로드 뒤 눌러본다
+//   node tools/capture_post_bodies.mjs <path> --click "필터" --click-wait 6
+//
+//   --click 은 **보이는 텍스트**로 요소를 찾는다(셀렉터 아님). 토스 번들은 클래스명이
+//   minified 라 셀렉터를 알 방법이 없고, 텍스트는 화면에서 그대로 읽힌다. 탭·모달·필터
+//   편집 UI 처럼 눌러야 요청이 나는 화면이 이걸로 열린다.
 //
 //   # 스윕: 여러 라우트를 돌며 엔드포인트별 **파라미터 키**를 카탈로그에 기록한다.
 //   # `probe_candidates.py` 가 needs-params 로 분류한 것들의 파라미터 이름을 알아내는 용도.
@@ -45,6 +51,10 @@ const flagValue = (name) => {
   return i >= 0 ? args[i + 1] : undefined;
 };
 const waitSec = Number(flagValue("--wait")) || 6;
+// 로드 뒤 눌러볼 요소들의 **보이는 텍스트**(콤마 구분). 페이지 로드로는 안 나는
+// 요청(탭·모달·필터 편집 UI)을 잡을 때 쓴다.
+const clickLabels = (flagValue("--click") || "").split(",").map((s) => s.trim()).filter(Boolean);
+const clickWaitSec = Number(flagValue("--click-wait")) || 4;
 const keepNoise = args.includes("--all");
 // 기본은 non-GET(바디가 있는 것)만. 조회 기능을 발굴할 땐 GET 도 봐야 한다.
 const withGet = args.includes("--get");
@@ -215,11 +225,46 @@ const { sessionId } = await send("Target.attachToTarget", { targetId, flatten: t
 await send("Network.enable", {}, sessionId);              // 내비게이션 '전에'
 await send("Network.setCookies", { cookies: loadCookies() }, sessionId);
 await send("Page.enable", {}, sessionId);
+await send("Runtime.enable", {}, sessionId);   // --click 의 Runtime.evaluate 용
+// 페이지 로드만으로는 안 나는 요청이 있다 — 탭·모달·필터 편집 UI 는 눌러야 뜬다.
+// 셀렉터가 아니라 **보이는 텍스트**로 찾는다: 토스 번들은 클래스명이 minified 라
+// 셀렉터를 알아낼 방법이 없고, 텍스트는 화면에서 그대로 읽힌다.
+const clickAfterLoad = async () => {
+  for (const label of clickLabels) {
+    const expr = `(() => {
+      const wanted = ${JSON.stringify(label)};
+      const el = [...document.querySelectorAll('button,a,[role="button"],[role="tab"],li,span,div')]
+        .filter((e) => e.offsetParent !== null)
+        .find((e) => e.textContent.trim() === wanted);
+      if (!el) {
+        // 못 찾았으면 후보를 돌려준다. 라벨을 모르는 채로 재시도를 반복하는 게
+        // 이 도구를 쓸 때 가장 많이 낭비되는 시간이다.
+        const cands = [...document.querySelectorAll('button,[role="button"],[role="tab"],a')]
+          .filter((e) => e.offsetParent !== null)
+          .map((e) => e.textContent.trim())
+          .filter((t) => t && t.length <= 20);
+        return "miss:" + [...new Set(cands)].slice(0, 30).join(" | ");
+      }
+      el.click();
+      return "hit";
+    })()`;
+    const res = await send("Runtime.evaluate", { expression: expr, returnByValue: true }, sessionId);
+    const outcome = String(res?.result?.value ?? "");
+    if (outcome === "hit") {
+      process.stderr.write(`  · 클릭 "${label}": 성공\n`);
+    } else {
+      process.stderr.write(`  · 클릭 "${label}": 요소 없음\n    후보: ${outcome.slice(5)}\n`);
+    }
+    await sleep(clickWaitSec * 1000);
+  }
+};
+
 const routes = sweep ? sweepRoutes : [target];
 for (const route of routes) {
   if (sweep) process.stderr.write(`  → ${route}\n`);
   await send("Page.navigate", { url: ORIGIN + route }, sessionId);
   await sleep(waitSec * 1000);
+  if (clickLabels.length) await clickAfterLoad();
 }
 
 // 인라인으로 안 온 바디를 requestId 로 회수한다.

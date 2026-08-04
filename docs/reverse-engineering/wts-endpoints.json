@@ -13,11 +13,11 @@
   "overrides": {
     "/api/v1/bond-infos": {
       "status": "candidate",
-      "note": "채권: 호출법은 확정됐으나 guid 출처가 보유 포지션뿐이라 응답 미관측. 트리거 = 계좌에 채권 보유 발생"
+      "note": "채권: 파라미터 확정 — GET ?guid= (INFO). guid 출처가 보유 포지션뿐이라 응답 미관측. 이슈 #143, 트리거 = 계좌에 채권 보유 발생"
     },
     "/api/v1/bond-infos/simple": {
       "status": "candidate",
-      "note": "채권: 호출법은 확정됐으나 guid 출처가 보유 포지션뿐이라 응답 미관측. 트리거 = 계좌에 채권 보유 발생"
+      "note": "채권 목록: GET ?guids= (복수, INFO). 이슈 #143 과 같은 트리거"
     },
     "/api/v1/usa-bond/receipt/tax/zero-coupon-discount": {
       "status": "candidate",
@@ -146,6 +146,18 @@
     "/api/v1/usa-market/get-option-biz-day-by-overtime": {
       "status": "candidate",
       "note": "옵션 영업일 (INFO, GET ?overtimeFlag=). market option-hours 와 중복"
+    },
+    "/api/v1/dashboard/common/stocks/mini-chart": {
+      "status": "candidate",
+      "note": "다종목 미니차트 (CERT, POST {codes:[]}, 1일 10분봉). 200 확인 2026-08-04. quote batch --chart 가 종목마다 GetChart 를 N번 부르는 걸 1요청으로 줄일 수 있으나, 측정된 성능 문제가 없어 보류 — v3/stock-prices 와 같은 판단"
+    },
+    "/api/v1/dashboard/asset/sections/all": {
+      "status": "candidate",
+      "note": "thin: sections 빈 배열 (CERT, POST {types}). 200 이지만 내용 없음 (2026-08-04)"
+    },
+    "/api/v2/dashboard/intelligences/all": {
+      "status": "candidate",
+      "note": "POST {types, variable}. types 어휘 미상으로 400 (2026-08-04)"
     }
   },
   "endpoints": {
@@ -1660,7 +1672,7 @@
         "host": "wts-info-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v1/dashboard/wts/overview/ai-signal-home/latest": {

@@ -268,6 +268,24 @@ node tools/capture_post_bodies.mjs --sweep --get        # 파라미터·호스�
 (`probe`·`observed` 는 추출기가 다시 만들 수 없는 관측값이다 — 보존을 빼먹으면 주간
 모니터가 매주 월요일 지운다).
 
+#### 로드만으로 안 나는 요청은 `--click` (2026-08-04)
+
+스윕은 **페이지 로드 시점 요청만** 잡는다. 탭·모달·필터 편집 UI 는 눌러야 요청이 난다.
+
+```bash
+node tools/capture_post_bodies.mjs /screener --get --click "직접 만들기,필터추가" --click-wait 6
+```
+
+- 셀렉터가 아니라 **보이는 텍스트**로 찾는다. 토스 번들은 클래스명이 minified 라 셀렉터를
+  알아낼 방법이 없고, 텍스트는 화면에서 그대로 읽힌다.
+- 라벨을 모르면 아무 문자열이나 넘겨라 — 못 찾으면 **화면의 클릭 가능한 텍스트 후보를
+  출력**한다. 거기서 골라 다시 돌리면 된다.
+- 한계: 클릭으로 닿지 않는 조작(슬라이더 드래그 등)은 여전히 안 된다. 그 경우
+  `Input.dispatchMouseEvent` 로 내려가야 한다.
+
+**스윕은 대기가 짧아 무거운 화면을 놓친다.** 옵션 체인이 그랬다 — 스윕에선 안 잡히고
+단건 `--wait 14` 로만 잡혔다. 특정 화면을 노릴 땐 단건 모드에 대기를 넉넉히 준다.
+
 #### `observed` 가 호스트 문제를 없앤다
 
 토스는 `wts-api`/`wts-info-api`/`wts-cert-api` 를 섞어 쓰고 경로만 보고는 알 수 없다.
@@ -369,6 +387,22 @@ README 는 필터 어휘(`배당_수익률` 같은 한글 id)가 "토스 번들�
 #### 대신 확실히 알아낸 호출 시그니처
 
 번들의 **호출부**(변수가 아니라 리터럴 경로)는 신뢰할 수 있다. 호스트는 전부 CERT:
+
+**2026-08-04 진전** — `--click` 으로 필터 편집 UI 를 열어 `screen/count` 바디를 잡았다:
+
+```bash
+node tools/capture_post_bodies.mjs /screener --get --click "직접 만들기,필터추가,시가총액"
+```
+
+```
+POST /api/v1/screener/screen/count
+{"filters":[{"id":"<string>","conditions":[{"id":"<string>","type":"<string>","value":"<string>"}]}]}
+```
+
+`filters/base` 와 `filters/range` 는 **여전히 안 잡힌다.** 필터를 추가하고 다시 눌러도
+요청이 나지 않는다 — 값 범위 슬라이더를 실제로 조작해야 하는 것으로 보이고, 텍스트
+클릭으로는 닿지 않는다. 다음 시도는 CDP `Input.dispatchMouseEvent` 로 드래그를 흉내내는
+쪽이다.
 
 ```
 POST /api/v1/screener/filters/base   {filterId, nation}   → basedAt
