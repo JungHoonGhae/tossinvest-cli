@@ -9,6 +9,7 @@ func TestProbesRegistryStableNames(t *testing.T) {
 	want := map[string]bool{
 		"account-commission-info":  true,
 		"account-interest-years":   true,
+		"ria-report":               true,
 		"account-list":             true,
 		"account-summary-overview": true,
 		"portfolio-positions":      true,

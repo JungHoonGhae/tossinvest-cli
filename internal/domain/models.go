@@ -1223,3 +1223,66 @@ type OverseasTransferIncome struct {
 	Stocks            []TransferIncomeStock `json:"stocks"`
 	FetchedAt         time.Time             `json:"fetched_at"`
 }
+
+// RIAQuarterProfitLoss is one period's weighted profit/loss. The RIA
+// deduction weights periods differently, so the weight is carried rather than
+// folded into the amount. Quarter is the server's own label and is not always
+// a quarter — live responses mix "Q1"/"Q2" with "H2" (a half-year), so treat
+// it as an opaque period label, never parse it.
+type RIAQuarterProfitLoss struct {
+	Quarter            string  `json:"quarter"`
+	Weight             float64 `json:"weight"`
+	TotalProfitLoss    float64 `json:"total_profit_loss"`
+	WeightedProfitLoss float64 `json:"weighted_profit_loss"`
+}
+
+// RIADeduction is the RIA-account portion of the transfer-income deduction.
+type RIADeduction struct {
+	DeductionRate                   float64                `json:"deduction_rate"`
+	NormalAccountOverseasBuyAmount  float64                `json:"normal_account_overseas_buy_amount"`
+	NormalAccountOverseasSellAmount float64                `json:"normal_account_overseas_sell_amount"`
+	RIAAccountOverseasSellAmount    float64                `json:"ria_account_overseas_sell_amount"`
+	PreAdjustmentDeduction          float64                `json:"pre_adjustment_deduction"`
+	TotalAmount                     float64                `json:"total_amount"`
+	QuarterlyProfitLoss             []RIAQuarterProfitLoss `json:"quarterly_profit_loss,omitempty"`
+}
+
+// RIALimit is the account's RIA sell-limit state.
+type RIALimit struct {
+	TotalLimit              float64 `json:"total_limit"`
+	RemainingLimit          float64 `json:"remaining_limit"`
+	OverseasStockSellAmount float64 `json:"overseas_stock_sell_amount"`
+	SettlementDate          string  `json:"settlement_date,omitempty"`
+	Settled                 bool    `json:"settled"`
+}
+
+// RIAReport is the RIA (해외주식 양도세 절세 계좌) tax-saving projection:
+// estimated tax with and without the RIA deduction, and the deduction's
+// components. Complements `tax overseas`, which reports the plain filing
+// figures with no RIA concept.
+type RIAReport struct {
+	EstimatedTransferIncomeTax float64 `json:"estimated_transfer_income_tax"`
+	EstimatedTaxSaving         float64 `json:"estimated_tax_saving"`
+	FinalTransferIncomeTax     float64 `json:"final_transfer_income_tax"`
+
+	TotalTransferIncomeAmount   float64      `json:"total_transfer_income_amount"`
+	NormalAccountTransferIncome float64      `json:"normal_account_transfer_income"`
+	RIAAccountTransferIncome    float64      `json:"ria_account_transfer_income"`
+	BaseDeduction               float64      `json:"base_deduction"`
+	Deduction                   RIADeduction `json:"deduction"`
+	ProfitAfterDeduction        float64      `json:"profit_after_deduction"`
+	TransferIncomeTaxRate       float64      `json:"transfer_income_tax_rate"`
+	TransferIncomeTax           float64      `json:"transfer_income_tax"`
+	LocalTaxRate                float64      `json:"local_tax_rate"`
+	LocalTax                    float64      `json:"local_tax"`
+
+	// MaxTaxSaving is the best saving still reachable this year.
+	// ZeroReasonCode is the server's raw reason when it is zero (e.g.
+	// NO_PROFITABLE_STOCKS) — kept verbatim because Toss ships no web
+	// mapping for it and guessing a translation would be worse than the code.
+	MaxTaxSaving   *float64 `json:"max_tax_saving,omitempty"`
+	ZeroReasonCode string   `json:"zero_reason_code,omitempty"`
+
+	Limit     *RIALimit `json:"limit,omitempty"`
+	FetchedAt time.Time `json:"fetched_at"`
+}
