@@ -1363,3 +1363,154 @@ type RIAReport struct {
 	Limit     *RIALimit `json:"limit,omitempty"`
 	FetchedAt time.Time `json:"fetched_at"`
 }
+
+// CryptoPrice is one crypto pair's snapshot from the WTS crypto tape.
+//
+// Toss quotes crypto against KRW under codes shaped `VWAP.KRW-BTC` — a
+// volume-weighted average across the exchanges it aggregates, not a single
+// venue's tape. Symbol is the short form (`BTC`) for display; ProductCode is
+// what the API takes.
+//
+// Premium is the "김치 프리미엄": how far the KRW price sits from the global
+// USD price converted at USDPerKRW. It is negative when Korea trades below
+// the global market, so it is kept signed rather than normalised.
+type CryptoPrice struct {
+	ProductCode string  `json:"product_code"`
+	Symbol      string  `json:"symbol"`
+	Base        float64 `json:"base,omitempty"` // 기준가 (전일 종가)
+	Open        float64 `json:"open,omitempty"`
+	High        float64 `json:"high,omitempty"`
+	Low         float64 `json:"low,omitempty"`
+	Close       float64 `json:"close,omitempty"` // 현재가
+	Change      float64 `json:"change,omitempty"`
+	ChangeRate  float64 `json:"change_rate,omitempty"` // 퍼센트 (1.5 = 1.5%)
+	ChangeType  string  `json:"change_type,omitempty"`
+	Volume      float64 `json:"volume,omitempty"`
+	Value       float64 `json:"value,omitempty"` // 거래대금 (KRW)
+	High52w     float64 `json:"high_52w,omitempty"`
+	Low52w      float64 `json:"low_52w,omitempty"`
+
+	USDPerKRW   float64 `json:"usd_per_krw,omitempty"`
+	Premium     float64 `json:"premium,omitempty"`      // KRW
+	PremiumRate float64 `json:"premium_rate,omitempty"` // 퍼센트, 부호 유지
+}
+
+type CryptoPrices struct {
+	Prices    []CryptoPrice `json:"prices"`
+	FetchedAt time.Time     `json:"fetched_at"`
+}
+
+// StockReasoning is Toss's AI explanation of why a stock moved today
+// ("왜 올랐을까?"). Direction is the server's own sign: positive for a rise,
+// negative for a fall.
+type StockReasoning struct {
+	Symbol       string         `json:"symbol"`
+	ProductCode  string         `json:"product_code"`
+	Title        string         `json:"title,omitempty"`
+	Summary      string         `json:"summary,omitempty"`
+	Direction    int            `json:"direction,omitempty"`
+	Keyword      string         `json:"keyword,omitempty"`
+	SignalID     string         `json:"signal_id,omitempty"`
+	CreatedAt    string         `json:"created_at,omitempty"`
+	RelatedStock []RelatedStock `json:"related_stocks,omitempty"`
+	FetchedAt    time.Time      `json:"fetched_at"`
+}
+
+// RelatedStock is a stock the reasoning cites as connected to the move.
+// InvestmentTypeValue is the server's display string for InvestmentType; both
+// are kept verbatim because Toss ships no public mapping for the enum.
+type RelatedStock struct {
+	ProductCode         string `json:"product_code"`
+	Name                string `json:"name,omitempty"`
+	Symbol              string `json:"symbol,omitempty"`
+	Market              string `json:"market,omitempty"`
+	InvestmentType      string `json:"investment_type,omitempty"`
+	InvestmentTypeValue string `json:"investment_type_value,omitempty"`
+}
+
+// StockSignals are the per-stock signal cards Toss shows on a stock page —
+// distinct from the market-wide AI signals behind `market signals`.
+type StockSignals struct {
+	Symbol      string        `json:"symbol"`
+	ProductCode string        `json:"product_code"`
+	Signals     []StockSignal `json:"signals"`
+	FetchedAt   time.Time     `json:"fetched_at"`
+}
+
+type StockSignal struct {
+	Label    string `json:"label,omitempty"` // 호재 / 악재 등 (서버 원문)
+	Info     string `json:"info,omitempty"`
+	SignalID int64  `json:"signal_id,omitempty"`
+	DateTime string `json:"datetime,omitempty"`
+}
+
+// MarginNotice is the receivable (미수금) / forced-liquidation warning state
+// for one currency.
+//
+// Every timestamp is nil in the healthy case — the account owes nothing. They
+// are pointers rather than zero times so "no deadline" never renders as an
+// epoch date, which would read as an overdue account.
+type MarginNotice struct {
+	Currency           string    `json:"currency"`
+	NoticeType         string    `json:"notice_type,omitempty"` // 서버 원문 (NONE 등)
+	ReceivableAmount   float64   `json:"receivable_amount"`
+	DeadlineAt         *string   `json:"deadline_at,omitempty"`
+	ForcedLiquidatedAt *string   `json:"forced_liquidated_at,omitempty"`
+	SuspensionStart    *string   `json:"suspension_start_date,omitempty"`
+	SuspensionEnd      *string   `json:"suspension_end_date,omitempty"`
+	FetchedAt          time.Time `json:"fetched_at"`
+}
+
+// SearchResults are unified search hits — stocks today, with bond and community
+// fields present but unset on this surface.
+type SearchResults struct {
+	Query     string      `json:"query"`
+	Results   []SearchHit `json:"results"`
+	FetchedAt time.Time   `json:"fetched_at"`
+}
+
+type SearchHit struct {
+	Keyword     string `json:"keyword"`
+	SubKeyword  string `json:"sub_keyword,omitempty"`
+	ProductCode string `json:"product_code,omitempty"`
+	Symbol      string `json:"symbol,omitempty"`
+	CompanyName string `json:"company_name,omitempty"`
+	Market      string `json:"market,omitempty"`
+}
+
+// OptionExpiry is one listed expiration for an underlying.
+//
+// DisplayLiquidation is Toss's own display string ("거래 종료" and the like) and
+// is kept verbatim: it encodes states the timestamps alone don't distinguish.
+type OptionExpiry struct {
+	MaturityDate        string `json:"maturity_date"`
+	MaturityDateTime    string `json:"maturity_datetime,omitempty"`
+	LiquidationDateTime string `json:"liquidation_datetime,omitempty"`
+	DisplayLiquidation  string `json:"display_liquidation,omitempty"`
+	CorporateActionName string `json:"corporate_action_name,omitempty"`
+}
+
+type OptionExpiries struct {
+	Symbol      string         `json:"symbol"`
+	ProductCode string         `json:"product_code"`
+	Expiries    []OptionExpiry `json:"expiries"`
+	FetchedAt   time.Time      `json:"fetched_at"`
+}
+
+// OptionChainRow is one strike, with the call and put side by side.
+// OpenInterest is contracts outstanding — the chain carries no prices.
+type OptionChainRow struct {
+	StrikePrice      float64 `json:"strike_price"`
+	CallGUID         string  `json:"call_guid,omitempty"`
+	PutGUID          string  `json:"put_guid,omitempty"`
+	CallOpenInterest int     `json:"call_open_interest"`
+	PutOpenInterest  int     `json:"put_open_interest"`
+}
+
+type OptionChain struct {
+	Symbol       string           `json:"symbol"`
+	ProductCode  string           `json:"product_code"`
+	MaturityDate string           `json:"maturity_date"`
+	Rows         []OptionChainRow `json:"rows"`
+	FetchedAt    time.Time        `json:"fetched_at"`
+}

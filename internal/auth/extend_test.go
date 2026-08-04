@@ -283,3 +283,49 @@ func TestExtendRequiresExtensionRunner(t *testing.T) {
 		t.Fatalf("expected ErrExtensionNotConfigured, got %v", err)
 	}
 }
+
+func TestServerExpiryInReadsServerNotDisk(t *testing.T) {
+	t.Parallel()
+
+	runner := &fakeExtensionRunner{expiredAt: time.Now().Add(48 * time.Hour)}
+	svc, _ := newExtendService(t, runner)
+
+	got, err := svc.ServerExpiryIn(context.Background())
+	if err != nil {
+		t.Fatalf("ServerExpiryIn: %v", err)
+	}
+	// The stored session has no ServerExpiresAt at all, so a disk-based answer
+	// would be zero — this asserts we asked the server.
+	if got < 47*time.Hour || got > 48*time.Hour {
+		t.Fatalf("remaining = %s, want ~48h", got)
+	}
+	if runner.expiredAtCalls.Load() != 1 {
+		t.Fatalf("GetServerExpiredAt calls = %d, want 1", runner.expiredAtCalls.Load())
+	}
+	// Must not have poked the phone.
+	if runner.requestCalls.Load() != 0 {
+		t.Fatalf("RequestExtension calls = %d, want 0", runner.requestCalls.Load())
+	}
+}
+
+func TestServerExpiryInPropagatesError(t *testing.T) {
+	t.Parallel()
+
+	runner := &fakeExtensionRunner{expiredErr: errors.New("boom")}
+	svc, _ := newExtendService(t, runner)
+
+	if _, err := svc.ServerExpiryIn(context.Background()); err == nil {
+		t.Fatal("ServerExpiryIn: want error, got nil")
+	}
+}
+
+func TestServerExpiryInWithoutRunner(t *testing.T) {
+	t.Parallel()
+
+	svc, _ := newExtendService(t, nil)
+	svc.extensionRunner = nil
+
+	if _, err := svc.ServerExpiryIn(context.Background()); !errors.Is(err, ErrExtensionNotConfigured) {
+		t.Fatalf("err = %v, want ErrExtensionNotConfigured", err)
+	}
+}

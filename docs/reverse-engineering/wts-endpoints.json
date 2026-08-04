@@ -4,8 +4,8 @@
   "chunk_count": 81,
   "total": 988,
   "counts": {
-    "implemented": 103,
-    "candidate": 375,
+    "implemented": 110,
+    "candidate": 368,
     "excluded": 510,
     "candidate_next": 20,
     "meaningful": 478
@@ -50,6 +50,102 @@
     "/api/v1/trade/product/recent-holdings": {
       "status": "candidate",
       "note": "thin: productCode/name/type 뿐이고 portfolio positions 와 겹친다 (2026-08-04 라이브)"
+    },
+    "/api/v3/stock-prices": {
+      "status": "candidate",
+      "note": "다종목 배치 시세(productCodes 콤마, 1요청 100개). quote batch 가 이미 커버하지만 종목당 GetQuote 를 N번 부른다. 응답이 base/close/volume 수준으로 얕아 domain.Quote 를 못 채우므로, --live 성능이 실제 문제로 측정되기 전까지 교체하지 않는다 (2026-08-04 라이브 확인)"
+    },
+    "/api/v1/stock-prices/mainsession": {
+      "status": "candidate",
+      "note": "정규장 종가만 주는 얇은 응답. product/stock-prices 와 겹친다 (2026-08-04)"
+    },
+    "/api/v1/product/exchange-rate": {
+      "status": "candidate",
+      "note": "중복: exchange/usd/base-exchange-rate 와 overview/exchange-rates 가 이미 구현됨"
+    },
+    "/api/v3/trading/promotion/commission/by-market": {
+      "status": "candidate",
+      "note": "중복: account commission 과 같은 commissionInfoKr/Us/UsOpt 구조를 준다 (CERT, GET ?marketDivision=KR, 200 대조 2026-08-04)"
+    },
+    "/api/v1/trading/orders/histories/tab": {
+      "status": "candidate",
+      "note": "thin: 응답이 기본 탭 문자열 하나(\"kr\") 뿐 (CERT, GET, 200 확인 2026-08-04)"
+    },
+    "/api/v1/mds/info/trading-trend": {
+      "status": "candidate",
+      "note": "종목별 매매동향 (INFO, GET ?productCode=&size=60, 무한스크롤 pagingParam). productCode만으로는 400 — 페이징 파라미터 필요. quote flows 와 중복 여부 미확정"
+    },
+    "/api/v1/exchange/calculate/for-buy-amount": {
+      "status": "candidate",
+      "note": "환전 계산 (POST). 레지스트리는 host=launcher 인데 실제 호출부는 DEFAULT(wts-api) 를 쓴다. 라이브 403 — accountKey 헤더/권한 필요. 보류"
+    },
+    "/api/v1/exchange/calculate/for-sell-amount": {
+      "status": "candidate",
+      "note": "for-buy-amount 와 동일 계열. 보류 (403)"
+    },
+    "/api/v1/trading/orders/calculate/order-data": {
+      "status": "candidate",
+      "note": "주문 준비 계산 (CERT, POST {stockCode,market,orderPrice,orderVolumeRate,currencyMode,isFractional,orderPriceType}). 순수 계산이지만 주문 화면 전용이라 order preview 와 겹친다"
+    },
+    "/api/v1/my-assets/transfer-income/overseas/summary": {
+      "status": "candidate",
+      "note": "host=launcher — wts-api/info/cert 셋이 아닌 네 번째 호스트다. client.Config 에 launcher 가 없어 현재 호출 불가"
+    },
+    "/api/v1/option-chain/get-all": {
+      "status": "candidate",
+      "note": "underlyingGuid+maturityDate 로도 400 MissingServletRequestParameter — 파라미터가 더 필요하다. option-both-chain/get-all 이 콜/풋을 한 번에 주므로 이쪽으로 충분 (2026-08-04)"
+    },
+    "/api/v1/asset-snapshot/page": {
+      "status": "candidate",
+      "note": "웹 화면 없음 — /account/asset 을 라이브로 열어도 호출되지 않는다 (2026-08-04 캡처). 모바일 전용으로 보인다"
+    },
+    "/api/v2/dashboard/wts/overview/ranking": {
+      "status": "candidate",
+      "note": "CERT, POST {id, tag/market, filters, duration}. market ranking(realtime/stock) 과 표면이 겹치나 필터·기간 지정이 가능. 파라미터 어휘는 번들 상수(B9)에 한글 id 로 있어 #141 과 같은 함정"
+    },
+    "/api/v1/earning-call/major-companies": {
+      "status": "candidate",
+      "note": "웹 화면 없음 — /calendar 캡처에서 미관측. market earnings 는 earning-call/upcoming·home 을 쓴다 (2026-08-04)"
+    },
+    "/api/v1/earning-call/user-based": {
+      "status": "candidate",
+      "note": "웹 화면 없음 — /calendar 캡처에서 미관측 (2026-08-04)"
+    },
+    "/api/v1/user-reactions/summaries": {
+      "status": "candidate",
+      "note": "웹 화면 없음 — 커뮤니티 라우트 캡처에서 미관측 (2026-08-04)"
+    },
+    "/api/v1/asset-snapshot/detail-by-date": {
+      "status": "candidate",
+      "note": "웹 화면 없음 — /account/asset 캡처에서 미관측 (2026-08-04)"
+    },
+    "/api/v1/prime/benefits/interest/simulate": {
+      "status": "candidate",
+      "note": "400/404. 파라미터명 미상 (2026-08-04)"
+    },
+    "/api/v1/community/profile/top-ranking": {
+      "status": "candidate",
+      "note": "observed query = limit + type (2026-08-03 스윕). type 어휘 미상이라 limit 만으론 400"
+    },
+    "/api/v1/lending/revenue/account/summary": {
+      "status": "candidate",
+      "note": "400 lending.agreement-not-found — 대차 약정이 없는 계좌. 트리거 = 대차 약정 체결 (2026-08-04)"
+    },
+    "/api/v1/tics/rankings": {
+      "status": "candidate",
+      "note": "중복: market themes 로 이미 구현됨 (marketdata.go)"
+    },
+    "/api/v3/search-all/wts-auto-complete": {
+      "status": "candidate",
+      "note": "v1 을 구현했다. v3 는 sections 를 요구하고 빈 배열이면 결과 0건 — 섹션 어휘 미상"
+    },
+    "/api/v1/option-infos/default-chart-option": {
+      "status": "candidate",
+      "note": "차트 UI 기본 설정 (INFO, GET ?underlyingGuid=). 프로차트 화면 전용이라 CLI 가치 없음"
+    },
+    "/api/v1/usa-market/get-option-biz-day-by-overtime": {
+      "status": "candidate",
+      "note": "옵션 영업일 (INFO, GET ?overtimeFlag=). market option-hours 와 중복"
     }
   },
   "endpoints": {
@@ -390,7 +486,7 @@
         "body": [
           "termsKeys"
         ],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v1/account/frontend/terms/list": {
@@ -1039,7 +1135,14 @@
         "at": "2026-08-04",
         "source": "bundle-literal: pages/bonds/[guid] — FH.get(`${INFO}/api/v1/bond-infos`,{params:{guid}})"
       },
-      "note": "채권: 호출법은 확정됐으나 guid 출처가 보유 포지션뿐이라 응답 미관측. 트리거 = 계좌에 채권 보유 발생"
+      "note": "채권: 호출법은 확정됐으나 guid 출처가 보유 포지션뿐이라 응답 미관측. 트리거 = 계좌에 채권 보유 발생",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-info-api",
+        "method": "GET",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/bond-infos/simple": {
       "status": "candidate",
@@ -1054,7 +1157,14 @@
         "at": "2026-08-04",
         "source": "bundle-literal: 같은 청크 — qs.stringify({guids},{arrayFormat:'repeat'}) 로 반복 파라미터"
       },
-      "note": "채권: 호출법은 확정됐으나 guid 출처가 보유 포지션뿐이라 응답 미관측. 트리거 = 계좌에 채권 보유 발생"
+      "note": "채권: 호출법은 확정됐으나 guid 출처가 보유 포지션뿐이라 응답 미관측. 트리거 = 계좌에 채권 보유 발생",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-info-api",
+        "method": "GET",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/c-chart": {
       "status": "candidate",
@@ -1434,7 +1544,14 @@
     },
     "/api/v1/companies": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-api",
+        "method": "GET",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/company-events": {
       "status": "candidate",
@@ -1447,16 +1564,10 @@
       }
     },
     "/api/v1/crypto-prices": {
-      "status": "candidate",
+      "status": "implemented",
       "priority": "next",
       "note": "가상자산 시세",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "first_seen": "2026-06-19"
     },
     "/api/v1/dashboard/all-accounts": {
       "status": "candidate",
@@ -1486,7 +1597,7 @@
         "body": [
           "types"
         ],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v1/dashboard/common/cached-orderable-amount": {
@@ -1528,7 +1639,7 @@
         "body": [
           "codes"
         ],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v1/dashboard/common/watchlists/grid-view": {
@@ -1672,14 +1783,8 @@
       }
     },
     "/api/v1/dashboard/wts/overview/signals": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "status": "implemented",
+      "first_seen": "2026-06-19"
     },
     "/api/v1/dashboard/wts/overview/tics": {
       "status": "candidate",
@@ -2315,18 +2420,19 @@
       }
     },
     "/api/v1/margin/cert/notice/receivable": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "status": "implemented",
+      "first_seen": "2026-06-19"
     },
     "/api/v1/mds/broker/trading-ranking": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-info-api",
+        "method": "GET",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/mds/info": {
       "status": "candidate",
@@ -2933,8 +3039,11 @@
         "method": "POST",
         "host": "wts-cert-api",
         "query": [],
-        "body": [],
-        "at": "2026-08-03"
+        "body": [
+          "code",
+          "itemType"
+        ],
+        "at": "2026-08-04"
       }
     },
     "/api/v1/new-watchlists/recent/delete": {
@@ -3043,14 +3152,8 @@
       }
     },
     "/api/v1/option-both-chain/get-all": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "status": "implemented",
+      "first_seen": "2026-06-19"
     },
     "/api/v1/option-chain/get-all": {
       "status": "candidate",
@@ -3073,14 +3176,8 @@
       }
     },
     "/api/v1/option-maturity-date/get-all": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "status": "implemented",
+      "first_seen": "2026-06-19"
     },
     "/api/v1/orders": {
       "status": "candidate",
@@ -3095,7 +3192,14 @@
     },
     "/api/v1/paper/education/redirect-push": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-info-api",
+        "method": "POST",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v1/pension/frontend/certificate/contribution-certificate/issuable": {
       "status": "excluded",
@@ -3181,7 +3285,14 @@
     },
     "/api/v1/post": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-cert-api",
+        "method": "GET",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/prime/benefits/interest/simulate": {
       "status": "candidate",
@@ -3349,7 +3460,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v1/profit/type/overview": {
@@ -3816,6 +3927,13 @@
         "host": "wts-info-api",
         "status": 200,
         "verdict": "thin"
+      },
+      "observed": {
+        "method": "POST",
+        "host": "wts-cert-api",
+        "query": [],
+        "body": [],
+        "at": "2026-08-04"
       }
     },
     "/api/v1/r-chart": {
@@ -4232,15 +4350,8 @@
       }
     },
     "/api/v1/search-all/wts-auto-complete": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "method": "POST",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "status": "implemented",
+      "first_seen": "2026-06-19"
     },
     "/api/v1/secure-keyboard/wts": {
       "status": "candidate",
@@ -4400,7 +4511,14 @@
     },
     "/api/v1/stock-detail/companies": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-cert-api",
+        "method": "GET",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/stock-detail/ui": {
       "status": "candidate",
@@ -4421,7 +4539,14 @@
     },
     "/api/v1/stock-detail/ui/wts": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-cert-api",
+        "method": "GET",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/stock-infos": {
       "status": "candidate",
@@ -4446,7 +4571,14 @@
     },
     "/api/v1/stock-infos/filings/companies": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-cert-api",
+        "method": "GET",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v1/stock-infos/header": {
       "status": "implemented",
@@ -4471,15 +4603,36 @@
     },
     "/api/v1/stock-infos/trade/trend/accumulated-fixed-trading-trend": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-info-api",
+        "method": "GET",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/stock-infos/trade/trend/accumulated-fixed-trading-trend/detail": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-info-api",
+        "method": "GET",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/stock-infos/trade/trend/fixed-trading-trend": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-info-api",
+        "method": "GET",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/stock-infos/trade/trend/trading-trend": {
       "status": "implemented",
@@ -4517,7 +4670,14 @@
     },
     "/api/v1/stock-prices/after": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-api",
+        "method": "GET",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v1/stock-prices/mainsession": {
       "status": "candidate",
@@ -4886,7 +5046,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v1/trading/orders/histories": {
@@ -5727,7 +5887,14 @@
     },
     "/api/v2/companies": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-cert-api",
+        "method": "GET",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/company-events": {
       "status": "candidate",
@@ -5759,7 +5926,7 @@
         "body": [
           "types"
         ],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v2/dashboard/common/watchlists/grid-view": {
@@ -5790,7 +5957,7 @@
           "types",
           "variable"
         ],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v2/dashboard/wts/overview/calendar/economic-events": {
@@ -6187,7 +6354,14 @@
     },
     "/api/v2/news/companies": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-info-api",
+        "method": "GET",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v2/open-api/registration/cert/complete": {
       "status": "candidate",
@@ -6389,14 +6563,8 @@
       }
     },
     "/api/v2/reasoning/stocks": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "status": "implemented",
+      "first_seen": "2026-06-19"
     },
     "/api/v2/replies": {
       "status": "candidate",
@@ -6961,15 +7129,36 @@
     },
     "/api/v2/wts/asap-provision": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-cert-api",
+        "method": "GET",
+        "status": 404,
+        "verdict": "not-found"
+      }
     },
     "/api/v2/wts/asap-provision/apply": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-api",
+        "method": "GET",
+        "status": 400,
+        "verdict": "needs-params"
+      }
     },
     "/api/v2/wts/asap-provision/in-progress": {
       "status": "candidate",
-      "first_seen": "2026-08-03"
+      "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-api",
+        "method": "GET",
+        "status": 200,
+        "verdict": "thin"
+      }
     },
     "/api/v2/wts/trading/order/cancel/prepare": {
       "status": "implemented",
@@ -7489,7 +7678,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v4/certs/register/init-session-v2": {

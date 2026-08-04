@@ -195,7 +195,9 @@ def main() -> None:
         list(pool.map(work, targets))
 
     with open(CATALOG, "w", encoding="utf-8") as fh:
-        json.dump(catalog, fh, ensure_ascii=False, indent=2, sort_keys=True)
+        # sort_keys 를 쓰지 않는다: wts_endpoints.py 가 삽입 순서대로 쓰므로, 여기서
+        # 정렬하면 두 도구가 번갈아 돌 때마다 파일 전체가 뒤집혀 diff 가 5000줄이 된다.
+        json.dump(catalog, fh, ensure_ascii=False, indent=2)
         fh.write("\n")
 
     tally: dict[str, int] = {}

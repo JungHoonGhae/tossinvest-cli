@@ -150,6 +150,7 @@ func newRootCmd() *cobra.Command {
 		newTransactionsCmd(opts),
 		newWatchlistCmd(opts),
 		newQuoteCmd(opts),
+		newSearchCmd(opts),
 		newMarketCmd(opts),
 		newCommunityCmd(opts),
 		newOrderCmd(opts),

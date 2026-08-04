@@ -297,7 +297,93 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(getCmd, batchCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd)
+	cryptoCmd := &cobra.Command{
+		Use:         "crypto <symbol>[,symbol,...] [...]",
+		Short:       i18n.T("quote.crypto.short"),
+		Args:        cobra.MinimumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			// One request covers every symbol — no fan-out needed here, unlike
+			// `batch` where each quote costs several calls.
+			p, err := app.client.GetCryptoPrices(cmd.Context(), parseBatchSymbols(args))
+			if err != nil {
+				return err
+			}
+			return output.WriteCryptoPrices(cmd.OutOrStdout(), app.format, p)
+		},
+	}
+
+	reasoningCmd := &cobra.Command{
+		Use:         "reasoning <symbol or name>",
+		Short:       i18n.T("quote.reasoning.short"),
+		Args:        cobra.MinimumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			r, err := app.client.GetStockReasoning(cmd.Context(), strings.Join(args, " "))
+			if err != nil {
+				return err
+			}
+			return output.WriteStockReasoning(cmd.OutOrStdout(), app.format, r)
+		},
+	}
+
+	signalsCmd := &cobra.Command{
+		Use:         "signals <symbol or name>",
+		Short:       i18n.T("quote.signals.short"),
+		Args:        cobra.MinimumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			s, err := app.client.GetStockSignals(cmd.Context(), strings.Join(args, " "))
+			if err != nil {
+				return err
+			}
+			return output.WriteStockSignals(cmd.OutOrStdout(), app.format, s)
+		},
+	}
+
+	var optionExpiry string
+	optionsCmd := &cobra.Command{
+		Use:         "options <symbol or name>",
+		Short:       i18n.T("quote.options.short"),
+		Args:        cobra.MinimumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			symbol := strings.Join(args, " ")
+			// 만기를 안 주면 만기일 목록을 낸다: 체인은 만기를 하나 골라야만
+			// 부를 수 있으므로, 목록이 그 다음 명령의 인자가 된다.
+			if optionExpiry == "" {
+				e, err := app.client.GetOptionExpiries(cmd.Context(), symbol)
+				if err != nil {
+					return err
+				}
+				return output.WriteOptionExpiries(cmd.OutOrStdout(), app.format, e)
+			}
+			c, err := app.client.GetOptionChain(cmd.Context(), symbol, optionExpiry)
+			if err != nil {
+				return err
+			}
+			return output.WriteOptionChain(cmd.OutOrStdout(), app.format, c)
+		},
+	}
+	optionsCmd.Flags().StringVar(&optionExpiry, "expiry", "", "Expiration date (YYYY-MM-DD); omit to list available expiries")
+
+	cmd.AddCommand(getCmd, batchCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd, cryptoCmd, reasoningCmd, signalsCmd, optionsCmd)
 
 	return cmd
 }

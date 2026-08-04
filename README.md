@@ -183,6 +183,35 @@ Waiting for approval in the Toss app on your phone...
 
 기본 timeout 은 120초이며 `--timeout 60s` 처럼 단축할 수 있습니다.
 
+#### 만료되기 전에 자동으로 챙기기
+
+폰 승인은 토스의 2차 인증이라 없앨 수 없지만, **언제 승인을 요청할지**는 자동화할 수 있습니다.
+`--if-expiring` 은 서버에 남은 시간을 먼저 확인해서, 지정한 창보다 여유가 있으면 아무것도
+하지 않고 그대로 끝납니다(exit 0). 스케줄러에 걸어두면 만료가 임박한 날에만 폰 알림이 옵니다.
+
+```bash
+tossctl auth extend --if-expiring 48h   # 48시간 이내면 연장, 아니면 no-op
+```
+
+macOS launchd 예시 — 매일 09:00 에 확인:
+
+```xml
+<!-- ~/Library/LaunchAgents/com.tossctl.extend.plist -->
+<key>ProgramArguments</key>
+<array>
+  <string>/opt/homebrew/bin/tossctl</string>
+  <string>auth</string><string>extend</string>
+  <string>--if-expiring</string><string>48h</string>
+</array>
+<key>StartCalendarInterval</key>
+<dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
+```
+
+`launchctl load ~/Library/LaunchAgents/com.tossctl.extend.plist` 로 등록합니다.
+cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
+
+> 값은 Go duration 표기입니다 — `7d` 는 안 되고 `168h` 로 씁니다.
+
 ## 지원 범위
 
 > **tossctl 은 토스 공식 Open API 의 조회·거래 범위를 100% 커버하고, 그 너머까지 다룹니다.**
@@ -220,6 +249,12 @@ Waiting for approval in the Toss app on your phone...
 | 시세 | `quote get <symbol>` (OHLC·52주 고저·시총·거래대금·체결강도) | 🔸 *(체결강도·52주 등 제외)* | ✅ |
 | 캔들 차트 | `quote chart --interval 1m\|3m\|5m\|10m\|15m\|30m\|60m` | 🔸 *(1분·일봉만)* | ✅ |
 | **멀티 시세 / 실시간 갱신** | `quote batch <sym>[,sym,...]` (`--chart`·`--live`) | ❌ | ✅ |
+| **🆕 가상자산 시세 + 김프** | `quote crypto BTC,ETH,SOL,XRP` (OHLC·52주·김치 프리미엄) | ❌ | ✅ |
+| **🆕 미국 옵션 만기·체인** | `quote options <symbol> [--expiry]` (행사가별 콜/풋 미결제약정) | ❌ | ✅ |
+| **🆕 종목 등락 이유 (AI)** | `quote reasoning <symbol>` (왜 올랐는지 + 관련 종목) | ❌ | ✅ |
+| **🆕 종목별 시그널** | `quote signals <symbol>` (호재/악재 카드) | ❌ | ✅ |
+| **🆕 통합 검색** | `search <이름\|티커>` (종목 코드 조회) | ❌ | ✅ |
+| **🆕 미수금·반대매매 통지** | `account receivable --currency KRW\|USD` | ❌ | ✅ |
 | **수급 (투자자별 순매수)** | `quote flows <symbol>` (개인·외국인·기관, KR) | ❌ | ✅ |
 | **시장 지수** | `market index` (코스피·코스닥·나스닥·S&P500·VIX), `market index <코드\|이름>` 상세(OHLC·52주) | ❌ | ✅ |
 | **실시간 인기 순위** | `market ranking --size N` | ❌ | ✅ |
@@ -724,6 +759,11 @@ tossctl order show <id>
 tossctl quote get <symbol>
 tossctl quote batch <symbol> [symbol...]
 tossctl quote orderbook|sellable|commission <symbol>
+tossctl quote crypto BTC,ETH,SOL,XRP
+tossctl quote reasoning|signals <symbol>
+tossctl quote options AAPL [--expiry 2026-08-05]
+tossctl search <이름|티커>
+tossctl account receivable --currency KRW|USD
 tossctl watchlist list
 tossctl export positions --market us|kr|all
 tossctl export orders --market us|kr|all
@@ -761,6 +801,7 @@ tossctl config show
 tossctl auth login
 tossctl auth status         # 세션 + Server Expiry (KST) 표시
 tossctl auth extend         # 폰 푸시 승인으로 서버 측 ~7일 만료 연장
+tossctl auth extend --if-expiring 48h   # 만료 임박할 때만 연장 (cron/launchd 용)
 tossctl auth doctor
 tossctl auth logout
 ```

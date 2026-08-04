@@ -90,8 +90,31 @@ func newAccountCmd(opts *rootOptions) *cobra.Command {
 				return output.WriteAccountPrime(cmd.OutOrStdout(), app.format, status)
 			},
 		},
+		newAccountReceivableCmd(opts),
 	)
 
+	return cmd
+}
+
+func newAccountReceivableCmd(opts *rootOptions) *cobra.Command {
+	var currency string
+	cmd := &cobra.Command{
+		Use:         "receivable",
+		Short:       i18n.T("account.receivable.short"),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			n, err := app.client.GetMarginNotice(cmd.Context(), currency)
+			if err != nil {
+				return err
+			}
+			return output.WriteMarginNotice(cmd.OutOrStdout(), app.format, n)
+		},
+	}
+	cmd.Flags().StringVar(&currency, "currency", "KRW", "KRW or USD")
 	return cmd
 }
 

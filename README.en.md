@@ -139,6 +139,38 @@ Waiting for approval in the Toss app on your phone...
 ✓ Extension complete. New expiry: 2026-05-13 07:03 KST (took 4s)
 ```
 
+The default timeout is 120s; shorten it with `--timeout 60s`.
+
+#### Renewing before it lapses
+
+Phone approval is Toss's second factor and can't be removed — but *when* to ask for it can be
+automated. `--if-expiring` checks the server-side remaining time first and exits 0 doing nothing
+if there's more room than the given window. Put it on a scheduler and the phone only buzzes on
+the days it actually matters.
+
+```bash
+tossctl auth extend --if-expiring 48h   # extend if under 48h left, otherwise no-op
+```
+
+macOS launchd example — check daily at 09:00:
+
+```xml
+<!-- ~/Library/LaunchAgents/com.tossctl.extend.plist -->
+<key>ProgramArguments</key>
+<array>
+  <string>/opt/homebrew/bin/tossctl</string>
+  <string>auth</string><string>extend</string>
+  <string>--if-expiring</string><string>48h</string>
+</array>
+<key>StartCalendarInterval</key>
+<dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
+```
+
+Register with `launchctl load ~/Library/LaunchAgents/com.tossctl.extend.plist`.
+For cron: `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
+
+> The value is a Go duration — `7d` is rejected, use `168h`.
+
 ## Support Scope
 
 > **tossctl covers 100% of the official Toss Open API's read & trade coverage — and goes beyond.**
@@ -173,6 +205,12 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | Quote | `quote get <symbol>` (OHLC · 52w · market cap · trading value · strength) | 🔸 *(no strength/52w etc.)* | ✅ |
 | Candle chart | `quote chart --interval 1m\|3m\|5m\|10m\|15m\|30m\|60m` | 🔸 *(1m / daily only)* | ✅ |
 | **Multi-quote / live refresh** | `quote batch <sym>[,sym,...]` (`--chart` · `--live`) | ❌ | ✅ |
+| **🆕 Crypto prices + premium** | `quote crypto BTC,ETH,SOL,XRP` (OHLC · 52w · Korea premium) | ❌ | ✅ |
+| **🆕 US option expiries & chain** | `quote options <symbol> [--expiry]` (per-strike call/put open interest) | ❌ | ✅ |
+| **🆕 Why a stock moved (AI)** | `quote reasoning <symbol>` (explanation + related stocks) | ❌ | ✅ |
+| **🆕 Per-stock signals** | `quote signals <symbol>` (bullish/bearish cards) | ❌ | ✅ |
+| **🆕 Unified search** | `search <name\|ticker>` (resolve product codes) | ❌ | ✅ |
+| **🆕 Receivable / liquidation notice** | `account receivable --currency KRW\|USD` | ❌ | ✅ |
 | **Investor flows** | `quote flows <symbol>` (retail · foreign · inst., KR) | ❌ | ✅ |
 | **Market indices** | `market index` (KOSPI · KOSDAQ · Nasdaq · S&P500 · VIX), `market index <code\|name>` detail (OHLC · 52w) | ❌ | ✅ |
 | **Live popularity ranking** | `market ranking --size N` | ❌ | ✅ |
@@ -604,6 +642,11 @@ tossctl quote batch <symbol> [symbol...]
 tossctl quote orderbook|sellable|commission <symbol>
 tossctl quote chart <symbol> --interval 5m
 tossctl quote trades|limits|warnings|flows <symbol>
+tossctl quote crypto BTC,ETH,SOL,XRP
+tossctl quote reasoning|signals <symbol>
+tossctl quote options AAPL [--expiry 2026-08-05]
+tossctl search <name|ticker>
+tossctl account receivable --currency KRW|USD
 tossctl market hours|fx|index|ranking|signals|investors|earnings
 tossctl market screener [id] --nation kr|us
 tossctl watchlist list|groups
@@ -638,6 +681,7 @@ tossctl doctor
 tossctl doctor --report     # JSON diagnostic bundle (for issues; paths auto-redacted)
 tossctl config init|show
 tossctl auth login|status|extend|doctor|logout
+tossctl auth extend --if-expiring 48h   # extend only when close to expiry (cron/launchd)
 ```
 
 ### API regression watch
