@@ -285,6 +285,45 @@ type TradingHours struct {
 	FetchedAt time.Time     `json:"fetched_at"`
 }
 
+// OptionSession is one US-options business day. PreMarket/AfterMarket are
+// nil-able in the feed — options have no extended session the way equities do,
+// so they stay empty rather than being faked to match the regular window.
+type OptionSession struct {
+	Date             string `json:"date"`
+	Start            string `json:"start,omitempty"`
+	End              string `json:"end,omitempty"`
+	PreMarketStart   string `json:"pre_market_start,omitempty"`
+	PreMarketEnd     string `json:"pre_market_end,omitempty"`
+	AfterMarketStart string `json:"after_market_start,omitempty"`
+	AfterMarketEnd   string `json:"after_market_end,omitempty"`
+}
+
+// OptionTradingHours is the US-options session window for the previous,
+// current, and next business day. Distinct from TradingHours, which covers
+// equities — the two can diverge around holidays.
+type OptionTradingHours struct {
+	Previous  OptionSession `json:"previous"`
+	Today     OptionSession `json:"today"`
+	Next      OptionSession `json:"next"`
+	FetchedAt time.Time     `json:"fetched_at"`
+}
+
+// OrderFunding answers "can I buy right now, and if not, how much do I need to
+// deposit or exchange". Distinct from AccountSummary's orderable amounts and
+// from BuyingPower (official API), both of which report what is already
+// available rather than what is missing.
+type OrderFunding struct {
+	Buyable                bool      `json:"buyable"`
+	ReceivableCurrency     string    `json:"receivable_currency,omitempty"`
+	KRWAmount              float64   `json:"krw_amount"`
+	USDAmount              float64   `json:"usd_amount"`
+	USDReceivableKRWEquiv  float64   `json:"usd_receivable_krw_equivalent"`
+	KRWWithdrawable        float64   `json:"krw_withdrawable"`
+	RequiredDepositAmount  float64   `json:"required_deposit_amount"`
+	RequiredExchangeAmount float64   `json:"required_exchange_amount"`
+	FetchedAt              time.Time `json:"fetched_at"`
+}
+
 // WatchlistGroup is a watchlist folder (관심종목 폴더) with its items.
 // 공식 API 에 없는 web 전용 표면 — 읽기 + 쓰기(폴더 CRUD, 종목 add/remove).
 type WatchlistGroup struct {

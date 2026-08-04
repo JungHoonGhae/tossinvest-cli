@@ -1129,3 +1129,119 @@ func WriteInvestorTrading(w io.Writer, format Format, it domain.InvestorTrading)
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
 }
+
+// WriteOptionTradingHours renders the US-options session windows for the
+// previous, current, and next business day.
+func WriteOptionTradingHours(w io.Writer, format Format, oh domain.OptionTradingHours) error {
+	rows := []struct {
+		LabelKey string
+		Session  domain.OptionSession
+	}{
+		{"output.optionHours.previous", oh.Previous},
+		{"output.optionHours.today", oh.Today},
+		{"output.optionHours.next", oh.Next},
+	}
+	switch format {
+	case FormatJSON:
+		return writeJSON(w, oh)
+	case FormatCSV:
+		writer := csv.NewWriter(w)
+		if err := writer.Write([]string{"day", "date", "start", "end", "pre_market_start", "pre_market_end", "after_market_start", "after_market_end"}); err != nil {
+			return err
+		}
+		for _, row := range rows {
+			if err := writer.Write([]string{
+				strings.TrimPrefix(row.LabelKey, "output.optionHours."),
+				row.Session.Date, row.Session.Start, row.Session.End,
+				row.Session.PreMarketStart, row.Session.PreMarketEnd,
+				row.Session.AfterMarketStart, row.Session.AfterMarketEnd,
+			}); err != nil {
+				return err
+			}
+		}
+		writer.Flush()
+		return writer.Error()
+	case FormatTable:
+		if _, err := fmt.Fprint(w, i18n.T("output.optionHours.header")); err != nil {
+			return err
+		}
+		for _, row := range rows {
+			if _, err := fmt.Fprintf(w, i18n.T("output.optionHours.row"),
+				i18n.T(row.LabelKey), row.Session.Date,
+				shortTime(row.Session.Start), shortTime(row.Session.End)); err != nil {
+				return err
+			}
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported output format: %s", format)
+	}
+}
+
+// shortTime trims an ISO datetime down to HH:MM for table display. The feed
+// sends full offsets (2026-08-03T22:30:00.000+09:00); the date is already its
+// own column, so only the clock time is new information here.
+func shortTime(iso string) string {
+	if len(iso) < 16 {
+		return iso
+	}
+	return iso[11:16]
+}
+
+// WriteOrderFunding renders whether a buy can go through now and, if not, the
+// deposit/exchange still required.
+func WriteOrderFunding(w io.Writer, format Format, f domain.OrderFunding) error {
+	switch format {
+	case FormatJSON:
+		return writeJSON(w, f)
+	case FormatCSV:
+		writer := csv.NewWriter(w)
+		if err := writer.Write([]string{"metric", "value"}); err != nil {
+			return err
+		}
+		rows := [][2]string{
+			{"buyable", strconv.FormatBool(f.Buyable)},
+			{"receivable_currency", f.ReceivableCurrency},
+			{"krw_amount", formatFloat(f.KRWAmount)},
+			{"usd_amount", formatFloat(f.USDAmount)},
+			{"usd_receivable_krw_equivalent", formatFloat(f.USDReceivableKRWEquiv)},
+			{"krw_withdrawable", formatFloat(f.KRWWithdrawable)},
+			{"required_deposit_amount", formatFloat(f.RequiredDepositAmount)},
+			{"required_exchange_amount", formatFloat(f.RequiredExchangeAmount)},
+		}
+		for _, row := range rows {
+			if err := writer.Write(row[:]); err != nil {
+				return err
+			}
+		}
+		writer.Flush()
+		return writer.Error()
+	case FormatTable:
+		statusKey := "output.orderFunding.blocked"
+		if f.Buyable {
+			statusKey = "output.orderFunding.buyable"
+		}
+		if _, err := fmt.Fprint(w, i18n.T(statusKey)); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(w, i18n.T("output.orderFunding.balances"),
+			formatFloat(f.KRWAmount), formatFloat(f.USDAmount)); err != nil {
+			return err
+		}
+		// 부족분은 0일 때 찍지 않는다 — "0원 입금 필요" 는 매수 가능하다는 뜻이라
+		// 상태 줄과 중복이고 오히려 막힌 것처럼 읽힌다.
+		if f.RequiredDepositAmount > 0 {
+			if _, err := fmt.Fprintf(w, i18n.T("output.orderFunding.deposit"), formatFloat(f.RequiredDepositAmount)); err != nil {
+				return err
+			}
+		}
+		if f.RequiredExchangeAmount > 0 {
+			if _, err := fmt.Fprintf(w, i18n.T("output.orderFunding.exchange"), formatFloat(f.RequiredExchangeAmount)); err != nil {
+				return err
+			}
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported output format: %s", format)
+	}
+}

@@ -459,6 +459,24 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	investorTradingCmd.Flags().IntVar(&investorTradingCount, "count", 0, "number of records (max 100; 0 = API default)")
 	investorTradingCmd.Flags().StringVar(&investorTradingUntil, "until", "", "inclusive upper-bound date (YYYY-MM-DD)")
 
-	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, issuesCmd)
+	optionHoursCmd := &cobra.Command{
+		Use:         "option-hours",
+		Short:       i18n.T("market.optionHours.short"),
+		Long:        i18n.T("market.optionHours.long"),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			hours, err := app.client.GetOptionTradingHours(cmd.Context())
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteOptionTradingHours(cmd.OutOrStdout(), app.format, hours)
+		},
+	}
+
+	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, issuesCmd, optionHoursCmd)
 	return cmd
 }
