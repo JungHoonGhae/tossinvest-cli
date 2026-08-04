@@ -4,8 +4,8 @@
   "chunk_count": 81,
   "total": 988,
   "counts": {
-    "implemented": 99,
-    "candidate": 379,
+    "implemented": 101,
+    "candidate": 377,
     "excluded": 510,
     "candidate_next": 20,
     "meaningful": 478
@@ -34,6 +34,22 @@
     "/api/v1/ria-calculator/withdrawable-stocks": {
       "status": "candidate",
       "note": "RIA 인출가능 종목: 400, 파라미터명 미상. 웹 화면이 없어 라이브 캡처 불가"
+    },
+    "/api/v2/dashboard/wts/overview/calendar/economic-events": {
+      "status": "candidate",
+      "note": "중복·열등: market calendar(v0.34.0)가 42건+예상/실제/직전값을 주는데 이쪽은 16건에 title 뿐 (2026-08-04 대조)"
+    },
+    "/api/v1/dashboard/common/ongoing-events/all": {
+      "status": "candidate",
+      "note": "토스증권 이벤트 배너 — 마케팅 표면이라 스코프 밖"
+    },
+    "/api/v1/dashboard/wts/overview/trading-info": {
+      "status": "candidate",
+      "note": "thin: marketOpen 이 전부 null, market hours 와 중복 (2026-08-04 라이브)"
+    },
+    "/api/v1/trade/product/recent-holdings": {
+      "status": "candidate",
+      "note": "thin: productCode/name/type 뿐이고 portfolio positions 와 겹친다 (2026-08-04 라이브)"
     }
   },
   "endpoints": {
@@ -1492,7 +1508,8 @@
         "host": "wts-info-api",
         "status": 200,
         "verdict": "worth-review"
-      }
+      },
+      "note": "토스증권 이벤트 배너 — 마케팅 표면이라 스코프 밖"
     },
     "/api/v1/dashboard/common/stocks/mini-chart": {
       "status": "candidate",
@@ -1691,7 +1708,8 @@
         "query": [],
         "body": [],
         "at": "2026-08-03"
-      }
+      },
+      "note": "thin: marketOpen 이 전부 null, market hours 와 중복 (2026-08-04 라이브)"
     },
     "/api/v1/delayed-transfer/schedules": {
       "status": "candidate",
@@ -4734,7 +4752,8 @@
         "host": "wts-info-api",
         "status": 200,
         "verdict": "worth-review"
-      }
+      },
+      "note": "thin: productCode/name/type 뿐이고 portfolio positions 와 겹친다 (2026-08-04 라이브)"
     },
     "/api/v1/trading/auto-trading": {
       "status": "candidate",
@@ -5132,7 +5151,7 @@
       "note": "미국채 제로쿠폰 할인 세금영수증: 200 이지만 taxReceipts 가 빈 배열이라 항목 구조 미상. 트리거 = 해당 영수증 발생"
     },
     "/api/v1/usa-market/get-option-biz-day-by-overtime": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -5143,11 +5162,9 @@
       "observed": {
         "method": "GET",
         "host": "wts-info-api",
-        "query": [
-          "overtimeFlag"
-        ],
+        "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v1/user-alimies": {
@@ -5785,7 +5802,8 @@
         "query": [],
         "body": [],
         "at": "2026-08-03"
-      }
+      },
+      "note": "중복·열등: market calendar(v0.34.0)가 42건+예상/실제/직전값을 주는데 이쪽은 16건에 title 뿐 (2026-08-04 대조)"
     },
     "/api/v2/dashboard/wts/overview/ranking": {
       "status": "candidate",
@@ -6797,13 +6815,20 @@
       }
     },
     "/api/v2/trading/order/buy-control/required-deposit-amount": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
         "host": "wts-info-api",
         "status": 200,
         "verdict": "worth-review"
+      },
+      "observed": {
+        "method": "GET",
+        "host": "wts-info-api",
+        "query": [],
+        "body": [],
+        "at": "2026-08-04"
       }
     },
     "/api/v2/trading/order/correct": {

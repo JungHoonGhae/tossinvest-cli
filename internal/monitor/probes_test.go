@@ -10,6 +10,7 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"account-commission-info":  true,
 		"account-interest-years":   true,
 		"ria-report":               true,
+		"order-funding":            true,
 		"account-list":             true,
 		"account-summary-overview": true,
 		"portfolio-positions":      true,

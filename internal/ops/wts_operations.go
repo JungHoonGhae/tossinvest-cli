@@ -424,6 +424,28 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "market_option_hours", Method: "GET", Path: "wts:market/option-hours", Backend: "wts",
+			Category: "market", Summary: "US options session windows for the previous, current, and next business day. Equity hours are market_trading_hours; the two can diverge around holidays. WTS-only.",
+			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
+				return d.WTS.GetOptionTradingHours(ctx)
+			},
+		},
+		{
+			ID: "order_funding", Method: "GET", Path: "wts:order/funding", Backend: "wts",
+			Category: "order", Summary: "Whether buying is possible right now and, when blocked, the deposit or exchange amount still required. Reports the gap, unlike account_summary which reports what is already orderable. WTS-only.",
+			Probe: &ProbeSpec{Name: "order-funding", Method: "GET",
+				URL: probeInfo + "/api/v2/trading/order/buy-control/required-deposit-amount",
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.requiredDepositAmount", "number")
+				}},
+			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
+				return d.WTS.GetOrderFunding(ctx)
+			},
+		},
+		{
 			ID: "tax_ria", Method: "GET", Path: "wts:tax/ria", Backend: "wts",
 			Category: "account", Summary: "RIA account (해외주식 양도세 절세 계좌) tax-saving report: estimated capital-gains tax before/after the RIA deduction, the deduction's quarterly components, sell limit, and any further saving still reachable. Complements tax_overseas, which has no RIA concept. Mobile-app-only surface. WTS-only.",
 			Probe: &ProbeSpec{Name: "ria-report", Method: "GET",

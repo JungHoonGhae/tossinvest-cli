@@ -79,6 +79,7 @@ func newOrderCmd(opts *rootOptions) *cobra.Command {
 		newOrderAmendCmd(opts),
 		newOrderConditionalCmd(opts),
 		newOrderAutoTradeCmd(opts),
+		newOrderFundingCmd(opts),
 	)
 
 	return cmd
@@ -681,4 +682,24 @@ func newOrderConditionalCmd(opts *rootOptions) *cobra.Command {
 
 	cmd.AddCommand(listCmd, getCmd, cancelCmd, placeCmd, modifyCmd)
 	return cmd
+}
+
+func newOrderFundingCmd(opts *rootOptions) *cobra.Command {
+	return &cobra.Command{
+		Use:         "funding",
+		Short:       i18n.T("order.funding.short"),
+		Long:        i18n.T("order.funding.long"),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			funding, err := app.client.GetOrderFunding(cmd.Context())
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteOrderFunding(cmd.OutOrStdout(), app.format, funding)
+		},
+	}
 }

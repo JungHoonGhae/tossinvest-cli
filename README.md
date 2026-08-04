@@ -242,6 +242,8 @@ Waiting for approval in the Toss app on your phone...
 | **🆕 종목별 일자별 실현손익** | `profit daily [--from --to] [--currency KRW\|USD]` (종목·수량·손익·수익률·매도/매수 금액, 전체 페이지 병합 — 세금 준비용 CSV) | ❌ | ✅ |
 | **🆕 해외 양도소득(세금)** | `tax overseas --year YYYY` (양도소득세 신고용: 세율·공제·종목별 손익) | ❌ | ✅ |
 | **예상 대여수익** | `lending expected` (주식대여 예상 수익: 월/연 USD + 종목별) | ❌ | ✅ |
+| **🆕 미국 옵션 거래시간** | `market option-hours` (직전·오늘·다음 영업일 세션) | ❌ | ✅ |
+| **🆕 매수 여력 부족분** | `order funding` (매수 가능 여부·필요 입금액·필요 환전액) | ❌ | ✅ |
 | **🆕 예탁금 이용료(예수금 이자)** | `account interest --year YYYY` (지급 건별: 세전액·세금·실지급액·산정기간·예상 여부) | ❌ | ✅ |
 | **🆕 계좌 수수료 체계** | `account commission` (국내주식·미국주식 수수료율, 미국옵션 계약당 수수료, 우대 적용 여부) | ❌ | ✅ |
 | **Prime 구독 상태·혜택** | `account prime` (수수료·이자 3단 비교: 일반/Prime/내 적용) | ❌ | ✅ |
