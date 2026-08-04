@@ -424,6 +424,24 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "tax_ria", Method: "GET", Path: "wts:tax/ria", Backend: "wts",
+			Category: "account", Summary: "RIA account (해외주식 양도세 절세 계좌) tax-saving report: estimated capital-gains tax before/after the RIA deduction, the deduction's quarterly components, sell limit, and any further saving still reachable. Complements tax_overseas, which has no RIA concept. Mobile-app-only surface. WTS-only.",
+			Probe: &ProbeSpec{Name: "ria-report", Method: "GET",
+				URL: probeCert + "/api/v1/ria-calculator/report",
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					if err := ExpectPath(body, "result.transferIncomeTax.estimatedTaxSaving", "number"); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.transferIncomeTaxDetail.riaDeduction", "object")
+				}},
+			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
+				return d.WTS.GetRIAReport(ctx)
+			},
+		},
+		{
 			ID: "account_interest", Method: "GET", Path: "wts:account/interest", Backend: "wts",
 			Category: "account", Summary: "Deposit-interest (예탁금 이용료) payments for a year: payment date, pre-tax amount, tax, net amount, accrual period, and whether it is still an estimate. Distinct from profit_summary type=account-interest, which is one period total. WTS-only.",
 			Params: []Param{

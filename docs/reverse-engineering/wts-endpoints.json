@@ -4,8 +4,8 @@
   "chunk_count": 81,
   "total": 988,
   "counts": {
-    "implemented": 96,
-    "candidate": 382,
+    "implemented": 99,
+    "candidate": 379,
     "excluded": 510,
     "candidate_next": 20,
     "meaningful": 478
@@ -26,6 +26,14 @@
     "/api/v1/trading/commission-info": {
       "status": "candidate",
       "note": "v2 를 구현했다 (account commission). v1 은 같은 응답이지만 commissionInfoUsOpt 가 늘 null — 쓰지 말 것"
+    },
+    "/api/v1/ria-calculator/withdrawable-amounts": {
+      "status": "candidate",
+      "note": "RIA 인출가능액: 라이브 500 (2026-08-04). 서버 오류로 보류"
+    },
+    "/api/v1/ria-calculator/withdrawable-stocks": {
+      "status": "candidate",
+      "note": "RIA 인출가능 종목: 400, 파라미터명 미상. 웹 화면이 없어 라이브 캡처 불가"
     }
   },
   "endpoints": {
@@ -3991,33 +3999,54 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/ria-calculator/limit": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
         "host": "wts-info-api",
         "status": 200,
         "verdict": "worth-review"
+      },
+      "observed": {
+        "method": "GET",
+        "host": "wts-cert-api",
+        "query": [],
+        "body": [],
+        "at": "2026-08-04"
       }
     },
     "/api/v1/ria-calculator/report": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
         "host": "wts-info-api",
         "status": 200,
         "verdict": "worth-review"
+      },
+      "observed": {
+        "method": "GET",
+        "host": "wts-cert-api",
+        "query": [],
+        "body": [],
+        "at": "2026-08-04"
       }
     },
     "/api/v1/ria-calculator/tax-savings/optimized": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
         "host": "wts-info-api",
         "status": 200,
         "verdict": "thin"
+      },
+      "observed": {
+        "method": "GET",
+        "host": "wts-cert-api",
+        "query": [],
+        "body": [],
+        "at": "2026-08-04"
       }
     },
     "/api/v1/ria-calculator/withdrawable-amounts": {
@@ -4028,7 +4057,8 @@
         "host": "wts-info-api",
         "status": 500,
         "verdict": "http-500"
-      }
+      },
+      "note": "RIA 인출가능액: 라이브 500 (2026-08-04). 서버 오류로 보류"
     },
     "/api/v1/ria-calculator/withdrawable-stocks": {
       "status": "candidate",
@@ -4038,7 +4068,8 @@
         "host": "wts-info-api",
         "status": 400,
         "verdict": "needs-params"
-      }
+      },
+      "note": "RIA 인출가능 종목: 400, 파라미터명 미상. 웹 화면이 없어 라이브 캡처 불가"
     },
     "/api/v1/rights/us/categories": {
       "status": "candidate",

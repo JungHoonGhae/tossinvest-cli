@@ -36,7 +36,25 @@ func newTaxCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 	overseasCmd.Flags().IntVar(&year, "year", 0, "Tax year (default: current year)")
-	cmd.AddCommand(overseasCmd)
+	riaCmd := &cobra.Command{
+		Use:         "ria",
+		Short:       i18n.T("tax.ria.short"),
+		Long:        i18n.T("tax.ria.long"),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			report, err := app.client.GetRIAReport(cmd.Context())
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteRIAReport(cmd.OutOrStdout(), app.format, report)
+		},
+	}
+
+	cmd.AddCommand(overseasCmd, riaCmd)
 
 	return cmd
 }
