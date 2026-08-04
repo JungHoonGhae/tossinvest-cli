@@ -32,6 +32,7 @@ CATALOG = os.path.join("docs", "reverse-engineering", "wts-endpoints.json")
 # the endpoints internal/client/*.go actually calls).
 IMPLEMENTED = [
     r"^/api/v1/account/list$",
+    r"^/api/v1/interest/accounts/annual/history",       # account interest
     # v2 만 구현했다 — v1 은 미국옵션 티어를 늘 null 로 준다 (2026-08-04 라이브 확인).
     r"^/api/v2/trading/commission-info$",
     r"^/api/v\d+/my-assets/summaries/",

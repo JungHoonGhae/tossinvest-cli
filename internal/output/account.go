@@ -276,3 +276,78 @@ func WriteAccountCommission(w io.Writer, format Format, s domain.CommissionSched
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
 }
+
+// WriteAccountInterest renders one year's deposit-interest payments.
+// Months with no payment are omitted — the server returns all 12 regardless,
+// and printing ten empty rows buries the two that matter.
+func WriteAccountInterest(w io.Writer, format Format, ai domain.AccountInterest) error {
+	switch format {
+	case FormatJSON:
+		return writeJSON(w, ai)
+	case FormatCSV:
+		writer := csv.NewWriter(w)
+		if err := writer.Write([]string{"month", "date", "amount", "tax", "payment_amount", "start_date", "end_date", "estimated"}); err != nil {
+			return err
+		}
+		for _, m := range ai.Monthly {
+			for _, p := range m.Payments {
+				if err := writer.Write([]string{
+					strconv.Itoa(m.Month),
+					p.Date,
+					formatFloat(p.Amount),
+					formatFloat(p.Tax),
+					formatFloat(p.PaymentAmount),
+					p.StartDate,
+					p.EndDate,
+					strconv.FormatBool(p.Estimated),
+				}); err != nil {
+					return err
+				}
+			}
+		}
+		writer.Flush()
+		return writer.Error()
+	case FormatTable:
+		if _, err := fmt.Fprintf(w, i18n.T("output.accountInterest.header"), ai.Year, formatFloat(ai.Total)); err != nil {
+			return err
+		}
+		paid := 0
+		for _, m := range ai.Monthly {
+			for _, p := range m.Payments {
+				paid++
+				mark := ""
+				if p.Estimated {
+					// 예상 이자는 아직 안 들어온 돈이다. 실지급액과 같은 열에
+					// 그냥 찍으면 확정 수령액으로 읽힌다.
+					mark = i18n.T("output.accountInterest.estimatedMark")
+				}
+				line := fmt.Sprintf(i18n.T("output.accountInterest.row"),
+					p.Date, formatFloat(p.PaymentAmount), mark)
+				if _, err := fmt.Fprintln(w, strings.TrimRight(line, " \n")); err != nil {
+					return err
+				}
+				if _, err := fmt.Fprintf(w, i18n.T("output.accountInterest.detail"),
+					formatFloat(p.Amount), formatFloat(p.Tax), p.StartDate, p.EndDate); err != nil {
+					return err
+				}
+			}
+		}
+		if paid == 0 {
+			if _, err := fmt.Fprint(w, i18n.T("output.accountInterest.empty")); err != nil {
+				return err
+			}
+			if len(ai.AvailableYears) > 0 {
+				years := make([]string, len(ai.AvailableYears))
+				for i, y := range ai.AvailableYears {
+					years[i] = strconv.Itoa(y)
+				}
+				if _, err := fmt.Fprintf(w, i18n.T("output.accountInterest.availableYears"), strings.Join(years, ", ")); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported output format: %s", format)
+	}
+}

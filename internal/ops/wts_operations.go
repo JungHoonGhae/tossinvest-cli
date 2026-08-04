@@ -424,6 +424,33 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "account_interest", Method: "GET", Path: "wts:account/interest", Backend: "wts",
+			Category: "account", Summary: "Deposit-interest (예탁금 이용료) payments for a year: payment date, pre-tax amount, tax, net amount, accrual period, and whether it is still an estimate. Distinct from profit_summary type=account-interest, which is one period total. WTS-only.",
+			Params: []Param{
+				{Name: "year", Type: "integer", Desc: "Year to report (default: current year)"},
+			},
+			Probe: &ProbeSpec{Name: "account-interest-years", Method: "GET",
+				URL: probeCert + "/api/v1/interest/accounts/annual/history/years",
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result", "array")
+				}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				// year 는 선택 — 없으면 클라이언트가 올해로 채운다.
+				year := 0
+				if _, ok := args["year"]; ok {
+					v, err := argInt(args, "year")
+					if err != nil {
+						return nil, err
+					}
+					year = v
+				}
+				return d.WTS.GetAccountInterest(ctx, year)
+			},
+		},
+		{
 			ID: "account_commission", Method: "GET", Path: "wts:account/commission", Backend: "wts",
 			Category: "account", Summary: "Commission schedule this account is charged, per market (KR equities, US equities, US options). Distinct from quote_commission, which is per-symbol. WTS-only.",
 			Probe: &ProbeSpec{Name: "account-commission-info", Method: "GET",

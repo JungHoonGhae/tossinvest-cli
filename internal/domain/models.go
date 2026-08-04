@@ -541,6 +541,39 @@ type Dividends struct {
 	FetchedAt     time.Time        `json:"fetched_at"`
 }
 
+// InterestPayment is one deposit-interest payment. Amount is pre-tax and
+// PaymentAmount is what actually landed; StartDate/EndDate bound the period
+// the interest was accrued over, which is not the month it was paid in.
+// Estimated marks a payment Toss has projected but not yet made.
+type InterestPayment struct {
+	Date          string  `json:"date"`
+	Amount        float64 `json:"amount"`
+	Tax           float64 `json:"tax"`
+	PaymentAmount float64 `json:"payment_amount"`
+	StartDate     string  `json:"start_date"`
+	EndDate       string  `json:"end_date"`
+	Estimated     bool    `json:"estimated"`
+}
+
+// InterestMonth is one month's deposit-interest total plus its payments.
+type InterestMonth struct {
+	Month    int               `json:"month"`
+	Total    float64           `json:"total"`
+	Payments []InterestPayment `json:"payments,omitempty"`
+}
+
+// AccountInterest is an annual deposit-interest (예탁금 이용료) report.
+// Amounts are KRW only — Toss pays this on the won cash balance.
+// Distinct from `profit summary --type account-interest`, which reports one
+// period total; this is the per-payment breakdown.
+type AccountInterest struct {
+	Year           int             `json:"year"`
+	Total          float64         `json:"total"`
+	Monthly        []InterestMonth `json:"monthly"`
+	AvailableYears []int           `json:"available_years,omitempty"`
+	FetchedAt      time.Time       `json:"fetched_at"`
+}
+
 // LendingExpectedStock is one holding's projected share-lending income.
 type LendingExpectedStock struct {
 	ProductCode string  `json:"product_code"`
