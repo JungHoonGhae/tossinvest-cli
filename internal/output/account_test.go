@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 var testAccountSummary = domain.AccountSummary{
@@ -146,5 +147,63 @@ func TestWriteAccountCommissionTableNoOptions(t *testing.T) {
 	}
 	if got := strings.Count(buf.String(), "\n"); got != 3 {
 		t.Errorf("expected header + 2 rows, got %d lines:\n%s", got, buf.String())
+	}
+}
+
+// 더미 값 — 실계좌 데이터 아님.
+var testAccountInterest = domain.AccountInterest{
+	Year:  2025,
+	Total: 1300,
+	Monthly: []domain.InterestMonth{
+		{Month: 1, Total: 0},
+		{Month: 2, Total: 1300, Payments: []domain.InterestPayment{
+			{Date: "2025-02-11", Amount: 1500, Tax: 200, PaymentAmount: 1300,
+				StartDate: "2024-11-01", EndDate: "2025-01-31"},
+			{Date: "2025-02-28", Amount: 400, PaymentAmount: 400,
+				StartDate: "2025-02-01", EndDate: "2025-02-28", Estimated: true},
+		}},
+	},
+}
+
+func TestWriteAccountInterestTable(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteAccountInterest(&buf, FormatTable, testAccountInterest); err != nil {
+		t.Fatalf("WriteAccountInterest(table) error = %v", err)
+	}
+	out := buf.String()
+	// 예상 이자는 확정 수령액과 구분돼야 한다.
+	if !strings.Contains(out, "2025-02-28") || !strings.Contains(out, i18n.T("output.accountInterest.estimatedMark")) {
+		t.Errorf("estimated payment not marked:\n%s", out)
+	}
+	// 세전액·세금이 사라지면 실지급액만 남아 세금이 안 보인다.
+	for _, want := range []string{"1500", "200", "1300"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("table missing %q:\n%s", want, out)
+		}
+	}
+	// 산정기간은 지급월과 다르므로 반드시 보여야 한다.
+	if !strings.Contains(out, "2024-11-01") {
+		t.Errorf("table missing accrual start date:\n%s", out)
+	}
+	// 지급 없는 달(1월)은 빠진다 — 서버는 12개월을 다 준다.
+	if strings.Contains(out, "  1  ") {
+		t.Errorf("empty month should be omitted:\n%s", out)
+	}
+}
+
+// 빈 해에는 조회 가능한 연도를 알려줘야 사용자가 다음에 뭘 넣을지 안다.
+func TestWriteAccountInterestEmptyYearListsAvailable(t *testing.T) {
+	var buf bytes.Buffer
+	empty := domain.AccountInterest{
+		Year:           2020,
+		Monthly:        []domain.InterestMonth{{Month: 1}, {Month: 2}},
+		AvailableYears: []int{2024, 2025},
+	}
+	if err := WriteAccountInterest(&buf, FormatTable, empty); err != nil {
+		t.Fatalf("WriteAccountInterest(table) error = %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "2024, 2025") {
+		t.Errorf("empty year should list available years:\n%s", out)
 	}
 }
