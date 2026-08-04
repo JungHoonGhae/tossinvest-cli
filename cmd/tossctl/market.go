@@ -339,6 +339,28 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	screenerCmd.Flags().IntVar(&screenerSize, "size", 30, "max stocks to return")
 	screenerCmd.Flags().StringVar(&screenerFilter, "filter", "", "custom raw filter JSON array (instead of a preset)")
 
+	var filtersNation string
+	filtersCmd := &cobra.Command{
+		Use:         "filters <filter-id> [filter-id...]",
+		Short:       i18n.T("market.filters.short"),
+		Args:        cobra.MinimumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			// 필터 id 는 `market screener --output json` 의 프리셋 filters 배열에서
+			// 나온다. 번들에서 긁는 방법은 신뢰할 수 없다(이슈 #141).
+			r, err := app.client.GetScreenerFilterRanges(cmd.Context(), parseBatchSymbols(args), filtersNation)
+			if err != nil {
+				return err
+			}
+			return output.WriteScreenerFilterRanges(cmd.OutOrStdout(), app.format, r)
+		},
+	}
+	filtersCmd.Flags().StringVar(&filtersNation, "nation", "kr", "market: kr | us")
+
 	var themesSize int
 	themesCmd := &cobra.Command{
 		Use:         "themes",
@@ -477,6 +499,6 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, issuesCmd, optionHoursCmd)
+	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, filtersCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, issuesCmd, optionHoursCmd)
 	return cmd
 }

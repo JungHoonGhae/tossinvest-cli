@@ -4,8 +4,8 @@
   "chunk_count": 81,
   "total": 988,
   "counts": {
-    "implemented": 110,
-    "candidate": 368,
+    "implemented": 112,
+    "candidate": 366,
     "excluded": 510,
     "candidate_next": 20,
     "meaningful": 478
@@ -158,6 +158,10 @@
     "/api/v2/dashboard/intelligences/all": {
       "status": "candidate",
       "note": "POST {types, variable}. types 어휘 미상으로 400 (2026-08-04)"
+    },
+    "/api/v1/screener/screen/count": {
+      "status": "candidate",
+      "note": "필터 조건에 맞는 종목 수 (CERT, POST {filters:[{id,conditions:[{id,type,value}]}]}). market screener 가 결과 목록을 주므로 개수만 따로 셀 이유가 없다 (2026-08-04 캡처)"
     }
   },
   "endpoints": {
@@ -4254,26 +4258,12 @@
       "first_seen": "2026-08-03"
     },
     "/api/v1/screener/filters/base": {
-      "status": "candidate",
-      "first_seen": "2026-08-03",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "method": "POST",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "status": "implemented",
+      "first_seen": "2026-08-03"
     },
     "/api/v1/screener/filters/range": {
-      "status": "candidate",
-      "first_seen": "2026-08-03",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "method": "POST",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "status": "implemented",
+      "first_seen": "2026-08-03"
     },
     "/api/v1/screener/presets/user": {
       "status": "candidate",

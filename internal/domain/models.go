@@ -1514,3 +1514,28 @@ type OptionChain struct {
 	Rows         []OptionChainRow `json:"rows"`
 	FetchedAt    time.Time        `json:"fetched_at"`
 }
+
+// ScreenerFilterRange is the observed value span of one screener filter, plus
+// the date the underlying data is based on.
+//
+// This is what makes a filter usable: `market screener` accepts a filter id but
+// nothing said what values are in bounds. Min/Max come from the live universe,
+// so they move day to day — BasedAt says which day.
+//
+// Unavailable marks filters the server refused because they need extra
+// conditions (a period, typically) that this surface can't express. The reason
+// is the server's own code, kept verbatim.
+type ScreenerFilterRange struct {
+	FilterID    string   `json:"filter_id"`
+	Nation      string   `json:"nation"`
+	Min         *float64 `json:"min,omitempty"`
+	Max         *float64 `json:"max,omitempty"`
+	BasedAt     string   `json:"based_at,omitempty"`
+	Unavailable string   `json:"unavailable_reason,omitempty"`
+}
+
+type ScreenerFilterRanges struct {
+	Nation    string                `json:"nation"`
+	Filters   []ScreenerFilterRange `json:"filters"`
+	FetchedAt time.Time             `json:"fetched_at"`
+}

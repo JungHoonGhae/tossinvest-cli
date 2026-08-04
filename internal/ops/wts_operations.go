@@ -515,6 +515,30 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "screener_filter_ranges", Method: "GET", Path: "wts:market/filters", Backend: "wts",
+			Category: "market", Summary: "Usable value span (min/max) and base date for screener filters, so a filter threshold can be chosen from the live universe instead of guessed. Filter ids come from the presets returned by market_screener. WTS-only.",
+			Params: []Param{
+				{Name: "filter_ids", Type: "string", Required: true, Desc: `comma-separated filter ids, e.g. "PER,PBR"`},
+				{Name: "nation", Type: "string", Desc: `"kr" (default) or "us"`},
+			},
+			Probe: &ProbeSpec{Name: "screener-filter-range", Method: "POST",
+				URL: probeCert + "/api/v1/screener/filters/range", Body: `{"filter":{"id":"PER"},"nation":"kr"}`,
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.max", "number")
+				}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				ids, err := argString(args, "filter_ids")
+				if err != nil {
+					return nil, err
+				}
+				nation, _ := args["nation"].(string)
+				return d.WTS.GetScreenerFilterRanges(ctx, strings.Split(ids, ","), nation)
+			},
+		},
+		{
 			ID: "quote_option_expiries", Method: "GET", Path: "wts:quote/options", Backend: "wts",
 			Category: "market", Summary: "Listed expiration dates for a US underlying's options, with each one's liquidation time. Pick one and pass it to quote_option_chain. WTS-only.",
 			Params: []Param{{Name: "symbol", Type: "string", Required: true, Desc: "US ticker (e.g. AAPL) or Toss product code"}},

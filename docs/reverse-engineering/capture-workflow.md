@@ -399,10 +399,21 @@ POST /api/v1/screener/screen/count
 {"filters":[{"id":"<string>","conditions":[{"id":"<string>","type":"<string>","value":"<string>"}]}]}
 ```
 
-`filters/base` 와 `filters/range` 는 **여전히 안 잡힌다.** 필터를 추가하고 다시 눌러도
-요청이 나지 않는다 — 값 범위 슬라이더를 실제로 조작해야 하는 것으로 보이고, 텍스트
-클릭으로는 닿지 않는다. 다음 시도는 CDP `Input.dispatchMouseEvent` 로 드래그를 흉내내는
-쪽이다.
+**2026-08-04 해결** — `filters/base`·`filters/range` 도 잡았다. `--click` 의 `el.click()` 으로는
+안 되고 **CDP `Input.dispatchMouseEvent`** 로 진짜 마우스 이벤트를 보내야 했다: React 의
+pointer 핸들러가 합성 클릭에 반응하지 않는다. 모달 안 필터 항목의 좌표를 DOM 에서 구해
+그 지점을 눌렀다.
+
+바디는 이랬다 — **두 형제 엔드포인트가 요청 모양이 서로 다르다:**
+
+```
+POST /api/v1/screener/filters/range  {"filter":{"id":"PER"},"nation":"kr"}  → {min, max}
+POST /api/v1/screener/filters/base   {"filterId":"PER","nation":"kr"}       → {basedAt}
+```
+
+`range` 는 `filter` 가 **중첩 객체**다. 이 문서가 오래 `{filterId, nation}` 으로 적어둬서
+계속 400 이 났다 — `base` 쪽 모양을 양쪽에 적용한 게 원인이었다. 형제 경로라고 요청
+모양이 같다고 가정하지 말 것.
 
 ```
 POST /api/v1/screener/filters/base   {filterId, nation}   → basedAt
