@@ -278,6 +278,23 @@ jq -r '.endpoints["/api/v3/stock-prices"].observed' docs/reverse-engineering/wts
 # {"method":"GET","host":"wts-info-api","query":["meta","productCodes"], ...}
 ```
 
+#### 번들 레지스트리의 `host` 를 그대로 믿지 말 것
+
+번들에는 자동 생성된 API 클라이언트 레지스트리가 있고, 항목이
+`(0,n.m)({host:"cert",method:"GET",path:"/api/v1/..."})` 꼴이라 호스트가 적혀 있는 것처럼
+보인다. 두 가지 함정이 있다 (2026-08-04 확인):
+
+1. **`launcher` 라는 네 번째 호스트가 있다.** `wts-api`/`wts-info-api`/`wts-cert-api` 셋이
+   전부가 아니다. `my-assets/transfer-income/overseas/summary` 와 KYC·환전 계열이 여기
+   달려 있고, `client.Config` 에는 이 호스트가 없어서 현재 호출할 수 없다.
+2. **레지스트리의 `host` 가 실제 호출과 다를 수 있다.** `exchange/calculate/for-buy-amount`
+   는 레지스트리에 `launcher` 로 등록돼 있지만 실제 호출부는 `Q.DEFAULT`(wts-api) 를 쓴다.
+
+레지스트리 항목은 **경로·메서드의 존재**만 확정한다. 호스트와 파라미터는 실제 호출부
+(`` `${Q.INFO}/api/v1/...` `` 꼴의 템플릿 리터럴)나 라이브 캡처에서 가져와야 한다.
+레지스트리에만 있고 호출부가 없다면 그 화면은 웹에 없다는 뜻이다 — 옵션 체인
+(`option-chain/get-all` 계열)과 `asset-snapshot/*` 이 그 경우다.
+
 #### 스윕이 못 덮는 것
 
 페이지 **로드 시점**의 요청만 잡는다. 탭 클릭·스크롤로 발생하는 요청은 안 잡히므로,

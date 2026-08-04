@@ -62,6 +62,54 @@
     "/api/v1/product/exchange-rate": {
       "status": "candidate",
       "note": "중복: exchange/usd/base-exchange-rate 와 overview/exchange-rates 가 이미 구현됨"
+    },
+    "/api/v1/dashboard/wts/overview/signals": {
+      "status": "candidate",
+      "note": "종목별 AI 시그널 (INFO, GET ?codes=A005930). 200 확인 — signalLabel/signalInfo/landingUrl. market signals 는 ai-signals/personalized 라 표면이 다르다: 이쪽은 종목 지정. 구현 후보 (2026-08-04)"
+    },
+    "/api/v1/margin/cert/notice/receivable": {
+      "status": "candidate",
+      "note": "미수금·반대매매 통지 (CERT, GET ?currency=KRW, accountKey 헤더). 200 확인 — depositNoticeType/receivableAmount/deadlineAt/forcedLiquidatedAt/suspension 기간. 중복 없음, 구현 후보 (2026-08-04)"
+    },
+    "/api/v3/trading/promotion/commission/by-market": {
+      "status": "candidate",
+      "note": "중복: account commission 과 같은 commissionInfoKr/Us/UsOpt 구조를 준다 (CERT, GET ?marketDivision=KR, 200 대조 2026-08-04)"
+    },
+    "/api/v1/trading/orders/histories/tab": {
+      "status": "candidate",
+      "note": "thin: 응답이 기본 탭 문자열 하나(\"kr\") 뿐 (CERT, GET, 200 확인 2026-08-04)"
+    },
+    "/api/v1/mds/info/trading-trend": {
+      "status": "candidate",
+      "note": "종목별 매매동향 (INFO, GET ?productCode=&size=60, 무한스크롤 pagingParam). productCode만으로는 400 — 페이징 파라미터 필요. quote flows 와 중복 여부 미확정"
+    },
+    "/api/v1/exchange/calculate/for-buy-amount": {
+      "status": "candidate",
+      "note": "환전 계산 (POST). 레지스트리는 host=launcher 인데 실제 호출부는 DEFAULT(wts-api) 를 쓴다. 라이브 403 — accountKey 헤더/권한 필요. 보류"
+    },
+    "/api/v1/exchange/calculate/for-sell-amount": {
+      "status": "candidate",
+      "note": "for-buy-amount 와 동일 계열. 보류 (403)"
+    },
+    "/api/v1/trading/orders/calculate/order-data": {
+      "status": "candidate",
+      "note": "주문 준비 계산 (CERT, POST {stockCode,market,orderPrice,orderVolumeRate,currencyMode,isFractional,orderPriceType}). 순수 계산이지만 주문 화면 전용이라 order preview 와 겹친다"
+    },
+    "/api/v1/my-assets/transfer-income/overseas/summary": {
+      "status": "candidate",
+      "note": "host=launcher — wts-api/info/cert 셋이 아닌 네 번째 호스트다. client.Config 에 launcher 가 없어 현재 호출 불가"
+    },
+    "/api/v1/option-chain/get-all": {
+      "status": "candidate",
+      "note": "옵션 체인 (INFO, GET). 번들에 레지스트리 등록만 있고 호출부(파라미터 조립)가 없다 — 웹 화면 없음. maturity-date/get-all·both-chain/get-all·default-chart-option 도 같다. 라이브 캡처 필요"
+    },
+    "/api/v1/asset-snapshot/page": {
+      "status": "candidate",
+      "note": "자산 스냅샷 (CERT, GET). 레지스트리 등록만 존재, 호출부 없음 — 웹 화면 없음"
+    },
+    "/api/v2/dashboard/wts/overview/ranking": {
+      "status": "candidate",
+      "note": "CERT, POST {id, tag/market, filters, duration}. market ranking(realtime/stock) 과 표면이 겹치나 필터·기간 지정이 가능. 파라미터 어휘는 번들 상수(B9)에 한글 id 로 있어 #141 과 같은 함정"
     }
   },
   "endpoints": {
