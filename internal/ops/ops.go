@@ -23,6 +23,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -261,6 +262,21 @@ func ExpectPath(body []byte, path, wantType string) error {
 	}
 	current := v
 	for _, segment := range strings.Split(path, ".") {
+		// A numeric segment indexes an array. Endpoints that return a bare list
+		// (crypto-prices, and others like it) otherwise can only be checked down
+		// to "result is an array" — which an empty array passes, so a probe
+		// couldn't tell a working call from one that matched nothing.
+		if idx, err := strconv.Atoi(segment); err == nil {
+			arr, ok := current.([]any)
+			if !ok {
+				return fmt.Errorf("path %q: expected array at %q, got %s", path, segment, jsonTypeOf(current))
+			}
+			if idx < 0 || idx >= len(arr) {
+				return fmt.Errorf("path %q: index %d out of range (len %d)", path, idx, len(arr))
+			}
+			current = arr[idx]
+			continue
+		}
 		obj, ok := current.(map[string]any)
 		if !ok {
 			return fmt.Errorf("path %q: expected object at %q, got %s", path, segment, jsonTypeOf(current))

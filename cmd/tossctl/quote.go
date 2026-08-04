@@ -297,7 +297,27 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(getCmd, batchCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd)
+	cryptoCmd := &cobra.Command{
+		Use:         "crypto <symbol>[,symbol,...] [...]",
+		Short:       i18n.T("quote.crypto.short"),
+		Args:        cobra.MinimumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			// One request covers every symbol — no fan-out needed here, unlike
+			// `batch` where each quote costs several calls.
+			p, err := app.client.GetCryptoPrices(cmd.Context(), parseBatchSymbols(args))
+			if err != nil {
+				return err
+			}
+			return output.WriteCryptoPrices(cmd.OutOrStdout(), app.format, p)
+		},
+	}
+
+	cmd.AddCommand(getCmd, batchCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd, cryptoCmd)
 
 	return cmd
 }

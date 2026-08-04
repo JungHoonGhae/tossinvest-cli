@@ -431,6 +431,26 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "quote_crypto", Method: "GET", Path: "wts:quote/crypto", Backend: "wts",
+			Category: "market", Summary: "KRW crypto prices (BTC/ETH/SOL/XRP) — OHLC, 52-week range, and the premium gap against the global market at the current USD/KRW rate. A volume-weighted average across aggregated exchanges, not one venue. WTS-only.",
+			Params: []Param{{Name: "symbols", Type: "string", Required: true, Desc: `comma-separated, e.g. "BTC,ETH" (full codes like VWAP.KRW-BTC also work)`}},
+			Probe: &ProbeSpec{Name: "quote-crypto", Method: "GET",
+				URL: probeInfo + "/api/v1/crypto-prices?productCodes=VWAP.KRW-BTC",
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.0.close", "number")
+				}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				symbols, err := argString(args, "symbols")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetCryptoPrices(ctx, strings.Split(symbols, ","))
+			},
+		},
+		{
 			ID: "market_option_hours", Method: "GET", Path: "wts:market/option-hours", Backend: "wts",
 			Category: "market", Summary: "US options session windows for the previous, current, and next business day. Equity hours are market_trading_hours; the two can diverge around holidays. WTS-only.",
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {

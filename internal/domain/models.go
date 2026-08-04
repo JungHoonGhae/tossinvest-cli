@@ -1363,3 +1363,39 @@ type RIAReport struct {
 	Limit     *RIALimit `json:"limit,omitempty"`
 	FetchedAt time.Time `json:"fetched_at"`
 }
+
+// CryptoPrice is one crypto pair's snapshot from the WTS crypto tape.
+//
+// Toss quotes crypto against KRW under codes shaped `VWAP.KRW-BTC` — a
+// volume-weighted average across the exchanges it aggregates, not a single
+// venue's tape. Symbol is the short form (`BTC`) for display; ProductCode is
+// what the API takes.
+//
+// Premium is the "김치 프리미엄": how far the KRW price sits from the global
+// USD price converted at USDPerKRW. It is negative when Korea trades below
+// the global market, so it is kept signed rather than normalised.
+type CryptoPrice struct {
+	ProductCode string  `json:"product_code"`
+	Symbol      string  `json:"symbol"`
+	Base        float64 `json:"base,omitempty"` // 기준가 (전일 종가)
+	Open        float64 `json:"open,omitempty"`
+	High        float64 `json:"high,omitempty"`
+	Low         float64 `json:"low,omitempty"`
+	Close       float64 `json:"close,omitempty"` // 현재가
+	Change      float64 `json:"change,omitempty"`
+	ChangeRate  float64 `json:"change_rate,omitempty"` // 퍼센트 (1.5 = 1.5%)
+	ChangeType  string  `json:"change_type,omitempty"`
+	Volume      float64 `json:"volume,omitempty"`
+	Value       float64 `json:"value,omitempty"` // 거래대금 (KRW)
+	High52w     float64 `json:"high_52w,omitempty"`
+	Low52w      float64 `json:"low_52w,omitempty"`
+
+	USDPerKRW   float64 `json:"usd_per_krw,omitempty"`
+	Premium     float64 `json:"premium,omitempty"`      // KRW
+	PremiumRate float64 `json:"premium_rate,omitempty"` // 퍼센트, 부호 유지
+}
+
+type CryptoPrices struct {
+	Prices    []CryptoPrice `json:"prices"`
+	FetchedAt time.Time     `json:"fetched_at"`
+}

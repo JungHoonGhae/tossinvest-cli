@@ -20,6 +20,7 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"quote-trades":             true,
 		"quote-orderbook":          true,
 		"quote-price-limits":       true,
+		"quote-crypto":             true,
 		"market-trading-hours":     true,
 		"market-index":             true,
 		"stock-ranking":            true,
@@ -70,7 +71,9 @@ func TestExpectPathTypes(t *testing.T) {
 		{"result.f", "null", true},
 		{"result.a", "number", false}, // wrong type
 		{"result.missing", "string", false},
-		{"result.c.0", "number", false}, // array indexing not supported
+		{"result.c.0", "number", true},  // numeric segment indexes an array
+		{"result.c.9", "number", false}, // out of range
+		{"result.d.0", "number", false}, // object indexed as array
 	}
 	for _, c := range cases {
 		err := expectPath(body, c.path, c.typ)

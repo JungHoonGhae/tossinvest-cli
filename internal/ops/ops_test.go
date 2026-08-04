@@ -66,3 +66,23 @@ func TestRegistryInvariants(t *testing.T) {
 		t.Errorf("Probes() returned %d specs, want %d", got, len(seenProbe))
 	}
 }
+
+func TestExpectPathArrayIndex(t *testing.T) {
+	body := []byte(`{"result":[{"close":100},{"close":200}]}`)
+
+	if err := ExpectPath(body, "result.0.close", "number"); err != nil {
+		t.Errorf("result.0.close: %v", err)
+	}
+	if err := ExpectPath(body, "result.1.close", "number"); err != nil {
+		t.Errorf("result.1.close: %v", err)
+	}
+	// An empty list must fail — that is the whole point of indexing rather than
+	// stopping at "result is an array". A wrong product code returns [].
+	if err := ExpectPath([]byte(`{"result":[]}`), "result.0.close", "number"); err == nil {
+		t.Error("empty array: want error, got nil")
+	}
+	// Indexing a non-array must say so rather than reporting a missing key.
+	if err := ExpectPath([]byte(`{"result":{"close":1}}`), "result.0.close", "number"); err == nil {
+		t.Error("object indexed as array: want error, got nil")
+	}
+}

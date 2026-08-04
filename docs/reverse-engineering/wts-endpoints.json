@@ -4,8 +4,8 @@
   "chunk_count": 81,
   "total": 988,
   "counts": {
-    "implemented": 103,
-    "candidate": 375,
+    "implemented": 104,
+    "candidate": 374,
     "excluded": 510,
     "candidate_next": 20,
     "meaningful": 478
@@ -50,6 +50,18 @@
     "/api/v1/trade/product/recent-holdings": {
       "status": "candidate",
       "note": "thin: productCode/name/type 뿐이고 portfolio positions 와 겹친다 (2026-08-04 라이브)"
+    },
+    "/api/v3/stock-prices": {
+      "status": "candidate",
+      "note": "다종목 배치 시세(productCodes 콤마, 1요청 100개). quote batch 가 이미 커버하지만 종목당 GetQuote 를 N번 부른다. 응답이 base/close/volume 수준으로 얕아 domain.Quote 를 못 채우므로, --live 성능이 실제 문제로 측정되기 전까지 교체하지 않는다 (2026-08-04 라이브 확인)"
+    },
+    "/api/v1/stock-prices/mainsession": {
+      "status": "candidate",
+      "note": "정규장 종가만 주는 얇은 응답. product/stock-prices 와 겹친다 (2026-08-04)"
+    },
+    "/api/v1/product/exchange-rate": {
+      "status": "candidate",
+      "note": "중복: exchange/usd/base-exchange-rate 와 overview/exchange-rates 가 이미 구현됨"
     }
   },
   "endpoints": {
@@ -1468,16 +1480,10 @@
       }
     },
     "/api/v1/crypto-prices": {
-      "status": "candidate",
+      "status": "implemented",
       "priority": "next",
       "note": "가상자산 시세",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "first_seen": "2026-06-19"
     },
     "/api/v1/dashboard/all-accounts": {
       "status": "candidate",
