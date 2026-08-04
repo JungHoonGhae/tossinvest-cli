@@ -32,6 +32,24 @@ func newCommunityCmd(opts *rootOptions) *cobra.Command {
 	}
 	rankingsCmd.Flags().StringVar(&rankType, "type", "influencer", "ranking type: influencer | profit | followers")
 
-	cmd.AddCommand(rankingsCmd)
+	boardsCmd := &cobra.Command{
+		Use:         "boards",
+		Short:       i18n.T("community.boards.short"),
+		Long:        i18n.T("community.boards.long"),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			boards, err := app.client.GetPopularBoards(cmd.Context())
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteCommunityBoards(cmd.OutOrStdout(), app.format, boards)
+		},
+	}
+
+	cmd.AddCommand(rankingsCmd, boardsCmd)
 	return cmd
 }
