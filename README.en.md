@@ -8,7 +8,7 @@
   <h1>tossinvest-cli</h1>
   <p><strong>The most flexible way to connect Toss Securities. Via CLI, via MCP server, from any AI agent — 100% of the official API, plus the features only the web app had.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — any AI agent drives Toss Securities accounts, quotes, and trades through one <code>tossctl</code>. <strong>Attach it as an MCP server (<code>tossctl mcp</code>) or run it by hand</strong>, <strong>with no key at all — or auto-routed through the official path when you connect one.</strong></p>
-  <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — 24 WTS-only features, and <strong>100% of the official Open API's coverage, included too.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
+  <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — 39 WTS-only features, and <strong>100% of the official Open API's coverage, included too.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
   <p><sub><em>An unofficial Toss Securities CLI for AI agents. Auto-routes through the official OAuth path when you connect an official key.</em></sub></p>
 </div>
 
@@ -142,7 +142,7 @@ Waiting for approval in the Toss app on your phone...
 ## Support Scope
 
 > **tossctl covers 100% of the official Toss Open API's read & trade coverage — and goes beyond.**
-> It maps to every endpoint in the official [Open API docs](https://developers.tossinvest.com/docs) (accounts, holdings, quotes, orderbook, ticks, candles, price limits, sellable quantity, commissions, orders, …), and adds investor flows, market indices, AI signals, screener, watchlist management, transaction ledger, real-time push, fractional orders, dry-run preview, and more — **24 features that aren't in the official API are tossctl-only.**
+> It maps to every endpoint in the official [Open API docs](https://developers.tossinvest.com/docs) (accounts, holdings, quotes, orderbook, ticks, candles, price limits, sellable quantity, commissions, orders, …), and adds investor flows, market indices, AI signals, screener, watchlist management, transaction ledger, real-time push, fractional orders, dry-run preview, and more — **39 features that aren't in the official API are tossctl-only.**
 
 <p align="center">
   <img src="docs/assets/api-comparison.en.svg" alt="tossctl vs official Open API (upcoming) coverage — tossctl is a superset" width="900" />
@@ -194,6 +194,12 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **🆕 Realized profit by period** | `profit summary --type sales\|dividend\|lending\|account-interest [--from --to]` (one category's earned amount, return rate, purchase basis in KRW/USD) | ❌ | ✅ |
 | **🆕 Per-stock daily realized profit** | `profit daily [--from --to] [--currency KRW\|USD]` (symbol · quantity · P/L · rate · sell/buy amounts, every page merged — CSV for tax prep) | ❌ | ✅ |
 | **🆕 Overseas transfer income (tax)** | `tax overseas --year YYYY` (capital-gains filing: rate · deduction · per-stock P/L) | ❌ | ✅ |
+| **Toss Prime status & benefits** | `account prime` (fee/interest across three tiers: standard, Prime, your rate) | ❌ | ✅ |
+| **🆕 Deposit interest (예탁금 이용료)** | `account interest --year YYYY` (per payment: pre-tax · tax · net · accrual period · estimated flag) | ❌ | ✅ |
+| **🆕 Commission schedule** | `account commission` (KR/US equity rates, US options per-contract fee, reduced-rate status) | ❌ | ✅ |
+| **🆕 Order funding gap** | `order funding` (whether buying is possible now · deposit needed · exchange needed) | ❌ | ✅ |
+| **🆕 US options trading hours** | `market option-hours` (previous · today · next business-day sessions) | ❌ | ✅ |
+| **🆕 Popular community lounges** | `community boards` (lounges by follower count · comment counts · joined) | ❌ | ✅ |
 | **Expected lending income** | `lending expected` (projected share-lending income: monthly/yearly USD + per-stock) | ❌ | ✅ |
 | **Community rankings** | `community rankings --type influencer\|profit\|followers` | ❌ | ✅ |
 | **Sector movements** | `market sectors [id]` (industry tree, 1d·1m·1y returns) | ❌ | ✅ |
@@ -215,6 +221,7 @@ tossctl opens even these up, via backend APIs callable with a web session.
 
 | Feature | Command | Mobile app | Web (WTS) | tossctl |
 |---------|---------|:--:|:--:|:--:|
+| **🆕 RIA tax-saving report** | `tax ria` (overseas capital-gains saving account: tax before/after deduction · saving · weighted quarterly P/L · sell limit) | ✅ | ❌ (no UI) | ✅ (read) |
 | **🆕 Stock accumulation plans** | `accumulate list`, `accumulate status <symbol>` (recurring auto-buy: Active/Paused · amount/frequency · rounds) | ✅ (settings UI) | ❌ (no UI) | ✅ (read) |
 | **🆕 US dividend payout mode** | the «미국 배당» block in `account detail` (`CASH` paid out / `STOCK` reinvested + last change date) | ✅ (settings UI) | ❌ (no UI) | ✅ (read) |
 
@@ -580,6 +587,12 @@ tossctl portfolio allocation
 tossctl portfolio dividends [--year YYYY] [--by-payment-date]
 tossctl profit                                   # cumulative realized profit (by category)
 tossctl tax overseas [--year YYYY]               # overseas transfer income (tax)
+tossctl tax ria                                  # RIA tax-saving report (mobile-app-only)
+tossctl account interest [--year YYYY]           # deposit interest, per payment
+tossctl account commission                       # commission schedule per market
+tossctl order funding                            # buyable? deposit/exchange still needed
+tossctl market option-hours                      # US options business days
+tossctl community boards                         # popular lounges by followers
 tossctl accumulate list|status <symbol>          # stock accumulation (mobile-app-only)
 tossctl market investors|earnings|briefing|sectors|themes|index|ranking|signals
 tossctl community rankings --type influencer|profit|followers
