@@ -241,6 +241,8 @@ All trades also require `allow_live_order_actions=true`. Fractional orders auto-
 
 US limit prices choose interpretation via `--currency-mode`: `KRW` (default, converted to USD at the server rate) or `USD` (sent as-is). e.g. `order place --symbol MRVL --side buy --qty 1 --price 158.01 --currency-mode USD`.
 
+> 💵 **Limit prices must land on a tick** — US ticks are **0.0001 below $1 and 0.01 at or above $1** (KR uses price-band ticks, e.g. ₩100 between 50,000 and 200,000). Off-tick prices get `400 invalid-request` with the nearest valid prices in `data.nearestPrices`. tossctl sends the price as-is, so this validation happens server-side.
+
 ### Why tossctl — the official API is a fraction of Toss
 
 The official Open API offers only **basic REST read/order** (~20 endpoints). Toss's
