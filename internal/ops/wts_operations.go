@@ -424,6 +424,13 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "community_boards", Method: "GET", Path: "wts:community/boards", Backend: "wts",
+			Category: "market", Summary: "Toss community lounges ranked by follower count, with comment counts and whether this account has joined. Server order is the ranking. WTS-only.",
+			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
+				return d.WTS.GetPopularBoards(ctx)
+			},
+		},
+		{
 			ID: "market_option_hours", Method: "GET", Path: "wts:market/option-hours", Backend: "wts",
 			Category: "market", Summary: "US options session windows for the previous, current, and next business day. Equity hours are market_trading_hours; the two can diverge around holidays. WTS-only.",
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {

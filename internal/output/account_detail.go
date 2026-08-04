@@ -82,6 +82,23 @@ func WriteAccountDetail(w io.Writer, format Format, d domain.AccountDetail, full
 				return err
 			}
 		}
+		// 심사 상태는 제한 여부와 별개로 보여준다. 제한이 안 걸렸어도 심사가
+		// 반려됐거나 진행 중일 수 있고, 그게 곧 제한으로 이어진다.
+		if tp := d.TradePurpose; tp != nil && (tp.Status != "" || tp.Purpose != "") {
+			// 서버 코드를 그대로 낸다 — 토스가 웹에 매핑을 싣지 않아 번역하면 추측이다.
+			line := fmt.Sprintf("  %-12s %s", "거래목적 심사", tp.Status)
+			if tp.Purpose != "" {
+				line += " (" + tp.Purpose + ")"
+			}
+			if _, err := fmt.Fprintln(w, line); err != nil {
+				return err
+			}
+			if tp.RejectReason != "" {
+				if _, err := fmt.Fprintf(w, "  %-12s %s (%s)\n", "반려 사유", tp.RejectReason, tp.RejectReasonType); err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	if d.MarginKR != nil || d.MarginUS != nil || d.DifferentialMargin != nil {

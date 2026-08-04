@@ -324,6 +324,27 @@ type OrderFunding struct {
 	FetchedAt              time.Time `json:"fetched_at"`
 }
 
+// CommunityBoard is one Toss community lounge (라운지). Rules is the board's
+// posting-rule list as the server sends it.
+type CommunityBoard struct {
+	ID            int64    `json:"id"`
+	SubjectType   string   `json:"subject_type,omitempty"`
+	SubjectID     string   `json:"subject_id,omitempty"`
+	Title         string   `json:"title"`
+	About         string   `json:"about,omitempty"`
+	Rules         []string `json:"rules,omitempty"`
+	FollowerCount int      `json:"follower_count"`
+	CommentCount  int      `json:"comment_count"`
+	IsMember      bool     `json:"is_member"`
+	IsManager     bool     `json:"is_manager"`
+	CreatedAt     string   `json:"created_at,omitempty"`
+}
+
+type CommunityBoards struct {
+	Boards    []CommunityBoard `json:"boards"`
+	FetchedAt time.Time        `json:"fetched_at"`
+}
+
 // WatchlistGroup is a watchlist folder (관심종목 폴더) with its items.
 // 공식 API 에 없는 web 전용 표면 — 읽기 + 쓰기(폴더 CRUD, 종목 add/remove).
 type WatchlistGroup struct {
@@ -1214,8 +1235,25 @@ type AccountDetail struct {
 
 	USDividendOption *USDividendOption `json:"us_dividend_option,omitempty"`
 
+	// TradePurpose explains a transfer restriction that TransferRestricted only
+	// flags as a bool. Status/RejectReasonType are the server's own codes.
+	TradePurpose *TradePurposeVerification `json:"trade_purpose,omitempty"`
+
 	Warnings  []string  `json:"warnings,omitempty"`
 	FetchedAt time.Time `json:"fetched_at"`
+}
+
+// TradePurposeVerification is the trade-purpose review (거래목적 확인) state
+// behind a transfer-limit restriction. Codes are kept verbatim — Toss ships no
+// web mapping for them, so translating would be a guess. RejectReason is the
+// server's own free text and is empty when nothing was rejected.
+type TradePurposeVerification struct {
+	Purpose          string `json:"purpose,omitempty"`
+	Status           string `json:"status,omitempty"`
+	RejectReasonType string `json:"reject_reason_type,omitempty"`
+	RejectReason     string `json:"reject_reason,omitempty"`
+	DocumentType     string `json:"document_type,omitempty"`
+	OpenedAt         string `json:"opened_at,omitempty"`
 }
 
 // USDividendOption is how US dividends land in this account: as cash, or

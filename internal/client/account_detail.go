@@ -87,7 +87,7 @@ func (c *Client) GetAccountDetail(ctx context.Context) (domain.AccountDetail, er
 		}
 	)
 
-	wg.Add(5)
+	wg.Add(6)
 
 	go func() {
 		defer wg.Done()
@@ -172,6 +172,28 @@ func (c *Client) GetAccountDetail(ctx context.Context) (domain.AccountDetail, er
 		}
 	}()
 
+	go func() {
+		defer wg.Done()
+		var env quoteEnvelope[tradePurposeRaw]
+		// 계좌번호도 함께 오지만 담지 않는다 — 이 응답에서 새로운 건 심사 상태뿐이고,
+		// 계좌번호는 상위 detail 이 이미 마스킹 정책과 함께 들고 있다.
+		if err := c.getJSON(ctx, c.apiBaseURL+"/api/v1/trade-purpose-verification/status", &env); err != nil {
+			warn("거래목적 확인", err)
+			return
+		}
+		r := env.Result
+		mu.Lock()
+		defer mu.Unlock()
+		out.TradePurpose = &domain.TradePurposeVerification{
+			Purpose:          r.Purpose,
+			Status:           r.Status,
+			RejectReasonType: r.RejectReasonType,
+			RejectReason:     r.RejectReason,
+			DocumentType:     r.DocumentType,
+			OpenedAt:         r.OpenedAt,
+		}
+	}()
+
 	wg.Wait()
 	return out, nil
 }
@@ -196,4 +218,18 @@ func MaskAccountNumber(no string) string {
 	}
 	masked = append(masked, r[len(r)-keepTail:]...)
 	return string(masked)
+}
+
+// tradePurposeRaw mirrors /api/v1/trade-purpose-verification/status.
+// accountNo and passDetail are deliberately not mapped: the account number is
+// already carried (and masked) by the parent detail, and passDetail was null
+// on every live response, so its shape is unknown — modelling it from a null
+// would be a guess.
+type tradePurposeRaw struct {
+	Purpose          string `json:"purpose"`
+	Status           string `json:"status"`
+	RejectReasonType string `json:"rejectReasonType"`
+	RejectReason     string `json:"rejectReason"`
+	DocumentType     string `json:"documentType"`
+	OpenedAt         string `json:"openedAt"`
 }

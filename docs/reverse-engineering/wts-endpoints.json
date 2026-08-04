@@ -4,8 +4,8 @@
   "chunk_count": 81,
   "total": 988,
   "counts": {
-    "implemented": 101,
-    "candidate": 377,
+    "implemented": 103,
+    "candidate": 375,
     "excluded": 510,
     "candidate_next": 20,
     "meaningful": 478
@@ -1010,7 +1010,7 @@
       }
     },
     "/api/v1/boards/popular-follower": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -1023,7 +1023,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v1/bond-infos": {
@@ -4721,13 +4721,20 @@
       }
     },
     "/api/v1/trade-purpose-verification/status": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
         "host": "wts-api",
         "status": 200,
         "verdict": "worth-review"
+      },
+      "observed": {
+        "method": "GET",
+        "host": "wts-api",
+        "query": [],
+        "body": [],
+        "at": "2026-08-04"
       }
     },
     "/api/v1/trade-purpose-verification/transfer-limit-restricted": {
