@@ -97,7 +97,7 @@
     },
     "/api/v1/asset-snapshot/page": {
       "status": "candidate",
-      "note": "자산 스냅샷 (CERT, GET). 레지스트리 등록만 존재, 호출부 없음 — 웹 화면 없음"
+      "note": "웹 화면 없음 — /account/asset 을 라이브로 열어도 호출되지 않는다 (2026-08-04 캡처). 모바일 전용으로 보인다"
     },
     "/api/v2/dashboard/wts/overview/ranking": {
       "status": "candidate",
@@ -105,19 +105,19 @@
     },
     "/api/v1/earning-call/major-companies": {
       "status": "candidate",
-      "note": "400 MissingServletRequestParameter. size/count 추측 실패 — 파라미터명 미상, 라이브 캡처 필요 (2026-08-04)"
+      "note": "웹 화면 없음 — /calendar 캡처에서 미관측. market earnings 는 earning-call/upcoming·home 을 쓴다 (2026-08-04)"
     },
     "/api/v1/earning-call/user-based": {
       "status": "candidate",
-      "note": "400 MissingServletRequestParameter. 파라미터명 미상 (2026-08-04)"
+      "note": "웹 화면 없음 — /calendar 캡처에서 미관측 (2026-08-04)"
     },
     "/api/v1/user-reactions/summaries": {
       "status": "candidate",
-      "note": "400 MissingServletRequestParameter. commentIds 추측 실패 (2026-08-04)"
+      "note": "웹 화면 없음 — 커뮤니티 라우트 캡처에서 미관측 (2026-08-04)"
     },
     "/api/v1/asset-snapshot/detail-by-date": {
       "status": "candidate",
-      "note": "400 MissingServletRequestParameter. 웹 화면 없음 — 레지스트리 등록만 (2026-08-04)"
+      "note": "웹 화면 없음 — /account/asset 캡처에서 미관측 (2026-08-04)"
     },
     "/api/v1/prime/benefits/interest/simulate": {
       "status": "candidate",
