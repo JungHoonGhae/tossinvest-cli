@@ -181,3 +181,42 @@ func TestOfficialOnlyReadsRequireKey(t *testing.T) {
 		t.Errorf("ModifyConditionalOrder: want ErrOfficialKeyRequired, got %v", err)
 	}
 }
+
+// 공식 API 는 심볼 정규식이 `^[A-Za-z0-9.,\-]+$` 라 언더스코어를 거부한다. 옵션 계약
+// guid 가 정확히 거기 걸리는데, 그 400 은 도메인 에러라 폴백이 안 걸린다 — WTS 는
+// 멀쩡히 서빙하는데도 요청이 거기서 죽는다. 아예 보내지 않는지 본다.
+func TestRouteSymbolSkipsOfficialForOptionGuid(t *testing.T) {
+	officialCalled := false
+	wtsCalled := false
+	c := &Client{off: &official.Client{}, pol: Policy{Prefer: "auto", Fallback: true}, stderr: io.Discard}
+
+	got, err := routeSymbol(c, "OPT_AAPL260805C00230000_20260722",
+		func() (string, error) { officialCalled = true; return "official", nil },
+		func() (string, error) { wtsCalled = true; return "wts", nil })
+
+	if err != nil {
+		t.Fatalf("routeSymbol: %v", err)
+	}
+	if officialCalled {
+		t.Error("official was called with a symbol it cannot express")
+	}
+	if !wtsCalled || got != "wts" {
+		t.Errorf("want WTS result, got %q (wtsCalled=%v)", got, wtsCalled)
+	}
+}
+
+func TestRouteSymbolUsesOfficialForPlainTicker(t *testing.T) {
+	for _, sym := range []string{"AAPL", "005930", "BRK.B", "TSLA-X"} {
+		officialCalled := false
+		c := &Client{off: &official.Client{}, pol: Policy{Prefer: "auto", Fallback: true}, stderr: io.Discard}
+		got, err := routeSymbol(c, sym,
+			func() (string, error) { officialCalled = true; return "official", nil },
+			func() (string, error) { return "wts", nil })
+		if err != nil {
+			t.Fatalf("%s: %v", sym, err)
+		}
+		if !officialCalled || got != "official" {
+			t.Errorf("%s: routed away from official (got %q)", sym, got)
+		}
+	}
+}

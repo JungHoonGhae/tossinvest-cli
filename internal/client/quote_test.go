@@ -138,3 +138,23 @@ func mustPublicFixturePath(t *testing.T, path string) string {
 	}
 	return path
 }
+
+// 옵션 계약 guid 는 product code 인데도 shape 검사에 걸려 종목 검색으로 빠졌다.
+// 검색에는 계약 항목이 없으니 quote options 로 얻은 guid 를 조회하면 전부 실패한다.
+func TestLooksLikeProductCodeAcceptsOptionGuid(t *testing.T) {
+	if !looksLikeProductCode("OPT_AAPL260805C00230000_20260722") {
+		t.Error("option contract guid rejected as a product code")
+	}
+	// 기존 형태는 그대로 통과해야 한다.
+	for _, ok := range []string{"A005930", "US19801212001"} {
+		if !looksLikeProductCode(ok) {
+			t.Errorf("%s rejected", ok)
+		}
+	}
+	// 티커는 여전히 검색을 거쳐야 한다.
+	for _, no := range []string{"AAPL", "삼성전자", "OPT"} {
+		if looksLikeProductCode(no) {
+			t.Errorf("%s accepted as a product code", no)
+		}
+	}
+}

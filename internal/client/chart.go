@@ -101,6 +101,12 @@ func (c *Client) GetChart(ctx context.Context, symbol, interval string, count in
 }
 
 func deriveSecurityType(productCode string) string {
+	// The chart path is segmented by security type (us-s stocks, us-o options,
+	// us-b bonds, us-i indices — the set the web bundle uses). Option contracts
+	// fall through to us-s otherwise and the server answers 400.
+	if strings.HasPrefix(productCode, "OPT_") {
+		return "us-o"
+	}
 	if len(productCode) >= 7 && productCode[0] == 'A' {
 		for i := 1; i < len(productCode); i++ {
 			if productCode[i] < '0' || productCode[i] > '9' {

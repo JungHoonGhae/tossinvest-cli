@@ -57,3 +57,17 @@ func TestDeriveSecurityType(t *testing.T) {
 		}
 	}
 }
+
+// 차트 경로는 증권 종류로 세그먼트가 갈린다. 옵션 계약이 us-s 로 새면 서버가 400 을
+// 준다 — 조회 자체가 불가능해진다.
+func TestDeriveSecurityTypeOption(t *testing.T) {
+	if got := deriveSecurityType("OPT_AAPL260805C00230000_20260722"); got != "us-o" {
+		t.Errorf("option security type = %q, want us-o", got)
+	}
+	if got := deriveSecurityType("A005930"); got != "kr-s" {
+		t.Errorf("KR stock = %q, want kr-s", got)
+	}
+	if got := deriveSecurityType("US19801212001"); got != "us-s" {
+		t.Errorf("US stock = %q, want us-s", got)
+	}
+}

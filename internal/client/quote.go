@@ -252,6 +252,15 @@ func normalizeProductCode(symbol string) string {
 }
 
 func looksLikeProductCode(value string) bool {
+	// Option contract guids (OPT_AAPL260805C00230000_20260722) are product codes
+	// too, but the shape check below rejects them: it allows only digits past
+	// position 2, and these carry letters and underscores. Without this they get
+	// sent to stock search, which has no entry for a contract — so every quote of
+	// an option from `quote options` failed. The prefix is a safe discriminator:
+	// the chain produces these, nobody types them as a ticker.
+	if strings.HasPrefix(value, "OPT_") {
+		return true
+	}
 	if len(value) == 7 && value[0] == 'A' {
 		return true
 	}
