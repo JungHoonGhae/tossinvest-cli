@@ -4,8 +4,8 @@
   "chunk_count": 81,
   "total": 988,
   "counts": {
-    "implemented": 104,
-    "candidate": 374,
+    "implemented": 108,
+    "candidate": 370,
     "excluded": 510,
     "candidate_next": 20,
     "meaningful": 478
@@ -63,14 +63,6 @@
       "status": "candidate",
       "note": "중복: exchange/usd/base-exchange-rate 와 overview/exchange-rates 가 이미 구현됨"
     },
-    "/api/v1/dashboard/wts/overview/signals": {
-      "status": "candidate",
-      "note": "종목별 AI 시그널 (INFO, GET ?codes=A005930). 200 확인 — signalLabel/signalInfo/landingUrl. market signals 는 ai-signals/personalized 라 표면이 다르다: 이쪽은 종목 지정. 구현 후보 (2026-08-04)"
-    },
-    "/api/v1/margin/cert/notice/receivable": {
-      "status": "candidate",
-      "note": "미수금·반대매매 통지 (CERT, GET ?currency=KRW, accountKey 헤더). 200 확인 — depositNoticeType/receivableAmount/deadlineAt/forcedLiquidatedAt/suspension 기간. 중복 없음, 구현 후보 (2026-08-04)"
-    },
     "/api/v3/trading/promotion/commission/by-market": {
       "status": "candidate",
       "note": "중복: account commission 과 같은 commissionInfoKr/Us/UsOpt 구조를 준다 (CERT, GET ?marketDivision=KR, 200 대조 2026-08-04)"
@@ -110,6 +102,42 @@
     "/api/v2/dashboard/wts/overview/ranking": {
       "status": "candidate",
       "note": "CERT, POST {id, tag/market, filters, duration}. market ranking(realtime/stock) 과 표면이 겹치나 필터·기간 지정이 가능. 파라미터 어휘는 번들 상수(B9)에 한글 id 로 있어 #141 과 같은 함정"
+    },
+    "/api/v1/earning-call/major-companies": {
+      "status": "candidate",
+      "note": "400 MissingServletRequestParameter. size/count 추측 실패 — 파라미터명 미상, 라이브 캡처 필요 (2026-08-04)"
+    },
+    "/api/v1/earning-call/user-based": {
+      "status": "candidate",
+      "note": "400 MissingServletRequestParameter. 파라미터명 미상 (2026-08-04)"
+    },
+    "/api/v1/user-reactions/summaries": {
+      "status": "candidate",
+      "note": "400 MissingServletRequestParameter. commentIds 추측 실패 (2026-08-04)"
+    },
+    "/api/v1/asset-snapshot/detail-by-date": {
+      "status": "candidate",
+      "note": "400 MissingServletRequestParameter. 웹 화면 없음 — 레지스트리 등록만 (2026-08-04)"
+    },
+    "/api/v1/prime/benefits/interest/simulate": {
+      "status": "candidate",
+      "note": "400/404. 파라미터명 미상 (2026-08-04)"
+    },
+    "/api/v1/community/profile/top-ranking": {
+      "status": "candidate",
+      "note": "400 typeMismatch.topRankingRequest.limit — limit 만으론 부족, 요청 객체 형태 미상 (2026-08-04)"
+    },
+    "/api/v1/lending/revenue/account/summary": {
+      "status": "candidate",
+      "note": "400 lending.agreement-not-found — 대차 약정이 없는 계좌. 트리거 = 대차 약정 체결 (2026-08-04)"
+    },
+    "/api/v1/tics/rankings": {
+      "status": "candidate",
+      "note": "중복: market themes 로 이미 구현됨 (marketdata.go)"
+    },
+    "/api/v3/search-all/wts-auto-complete": {
+      "status": "candidate",
+      "note": "v1 을 구현했다. v3 는 sections 를 요구하고 빈 배열이면 결과 0건 — 섹션 어휘 미상"
     }
   },
   "endpoints": {
@@ -1747,14 +1775,8 @@
       }
     },
     "/api/v1/dashboard/wts/overview/signals": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "status": "implemented",
+      "first_seen": "2026-06-19"
     },
     "/api/v1/dashboard/wts/overview/tics": {
       "status": "candidate",
@@ -2390,14 +2412,8 @@
       }
     },
     "/api/v1/margin/cert/notice/receivable": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "status": "implemented",
+      "first_seen": "2026-06-19"
     },
     "/api/v1/mds/broker/trading-ranking": {
       "status": "candidate",
@@ -4328,15 +4344,8 @@
       }
     },
     "/api/v1/search-all/wts-auto-complete": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "method": "POST",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "status": "implemented",
+      "first_seen": "2026-06-19"
     },
     "/api/v1/secure-keyboard/wts": {
       "status": "candidate",
@@ -6548,14 +6557,8 @@
       }
     },
     "/api/v2/reasoning/stocks": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "status": "implemented",
+      "first_seen": "2026-06-19"
     },
     "/api/v2/replies": {
       "status": "candidate",

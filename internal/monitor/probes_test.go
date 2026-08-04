@@ -21,6 +21,8 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"quote-orderbook":          true,
 		"quote-price-limits":       true,
 		"quote-crypto":             true,
+		"quote-stock-signals":      true,
+		"account-receivable":       true,
 		"market-trading-hours":     true,
 		"market-index":             true,
 		"stock-ranking":            true,

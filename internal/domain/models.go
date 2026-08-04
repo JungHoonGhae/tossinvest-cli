@@ -1399,3 +1399,81 @@ type CryptoPrices struct {
 	Prices    []CryptoPrice `json:"prices"`
 	FetchedAt time.Time     `json:"fetched_at"`
 }
+
+// StockReasoning is Toss's AI explanation of why a stock moved today
+// ("왜 올랐을까?"). Direction is the server's own sign: positive for a rise,
+// negative for a fall.
+type StockReasoning struct {
+	Symbol       string         `json:"symbol"`
+	ProductCode  string         `json:"product_code"`
+	Title        string         `json:"title,omitempty"`
+	Summary      string         `json:"summary,omitempty"`
+	Direction    int            `json:"direction,omitempty"`
+	Keyword      string         `json:"keyword,omitempty"`
+	SignalID     string         `json:"signal_id,omitempty"`
+	CreatedAt    string         `json:"created_at,omitempty"`
+	RelatedStock []RelatedStock `json:"related_stocks,omitempty"`
+	FetchedAt    time.Time      `json:"fetched_at"`
+}
+
+// RelatedStock is a stock the reasoning cites as connected to the move.
+// InvestmentTypeValue is the server's display string for InvestmentType; both
+// are kept verbatim because Toss ships no public mapping for the enum.
+type RelatedStock struct {
+	ProductCode         string `json:"product_code"`
+	Name                string `json:"name,omitempty"`
+	Symbol              string `json:"symbol,omitempty"`
+	Market              string `json:"market,omitempty"`
+	InvestmentType      string `json:"investment_type,omitempty"`
+	InvestmentTypeValue string `json:"investment_type_value,omitempty"`
+}
+
+// StockSignals are the per-stock signal cards Toss shows on a stock page —
+// distinct from the market-wide AI signals behind `market signals`.
+type StockSignals struct {
+	Symbol      string        `json:"symbol"`
+	ProductCode string        `json:"product_code"`
+	Signals     []StockSignal `json:"signals"`
+	FetchedAt   time.Time     `json:"fetched_at"`
+}
+
+type StockSignal struct {
+	Label    string `json:"label,omitempty"` // 호재 / 악재 등 (서버 원문)
+	Info     string `json:"info,omitempty"`
+	SignalID int64  `json:"signal_id,omitempty"`
+	DateTime string `json:"datetime,omitempty"`
+}
+
+// MarginNotice is the receivable (미수금) / forced-liquidation warning state
+// for one currency.
+//
+// Every timestamp is nil in the healthy case — the account owes nothing. They
+// are pointers rather than zero times so "no deadline" never renders as an
+// epoch date, which would read as an overdue account.
+type MarginNotice struct {
+	Currency           string    `json:"currency"`
+	NoticeType         string    `json:"notice_type,omitempty"` // 서버 원문 (NONE 등)
+	ReceivableAmount   float64   `json:"receivable_amount"`
+	DeadlineAt         *string   `json:"deadline_at,omitempty"`
+	ForcedLiquidatedAt *string   `json:"forced_liquidated_at,omitempty"`
+	SuspensionStart    *string   `json:"suspension_start_date,omitempty"`
+	SuspensionEnd      *string   `json:"suspension_end_date,omitempty"`
+	FetchedAt          time.Time `json:"fetched_at"`
+}
+
+// SearchResults are unified search hits — stocks today, with bond and community
+// fields present but unset on this surface.
+type SearchResults struct {
+	Query     string      `json:"query"`
+	Results   []SearchHit `json:"results"`
+	FetchedAt time.Time   `json:"fetched_at"`
+}
+
+type SearchHit struct {
+	Keyword     string `json:"keyword"`
+	SubKeyword  string `json:"sub_keyword,omitempty"`
+	ProductCode string `json:"product_code,omitempty"`
+	Symbol      string `json:"symbol,omitempty"`
+	CompanyName string `json:"company_name,omitempty"`
+	Market      string `json:"market,omitempty"`
+}

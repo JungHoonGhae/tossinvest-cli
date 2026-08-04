@@ -317,7 +317,43 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(getCmd, batchCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd, cryptoCmd)
+	reasoningCmd := &cobra.Command{
+		Use:         "reasoning <symbol or name>",
+		Short:       i18n.T("quote.reasoning.short"),
+		Args:        cobra.MinimumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			r, err := app.client.GetStockReasoning(cmd.Context(), strings.Join(args, " "))
+			if err != nil {
+				return err
+			}
+			return output.WriteStockReasoning(cmd.OutOrStdout(), app.format, r)
+		},
+	}
+
+	signalsCmd := &cobra.Command{
+		Use:         "signals <symbol or name>",
+		Short:       i18n.T("quote.signals.short"),
+		Args:        cobra.MinimumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			s, err := app.client.GetStockSignals(cmd.Context(), strings.Join(args, " "))
+			if err != nil {
+				return err
+			}
+			return output.WriteStockSignals(cmd.OutOrStdout(), app.format, s)
+		},
+	}
+
+	cmd.AddCommand(getCmd, batchCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd, cryptoCmd, reasoningCmd, signalsCmd)
 
 	return cmd
 }

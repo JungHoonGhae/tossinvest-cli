@@ -451,6 +451,70 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "quote_reasoning", Method: "GET", Path: "wts:quote/reasoning", Backend: "wts",
+			Category: "market", Summary: "Toss's AI explanation of why a stock moved today, plus the stocks it cites as connected. Narrative, unlike quote_signals which is short signal cards. WTS-only.",
+			Params: []Param{{Name: "symbol", Type: "string", Required: true, Desc: "ticker (e.g. 005930, AAPL) or Toss product code"}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				symbol, err := argString(args, "symbol")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetStockReasoning(ctx, symbol)
+			},
+		},
+		{
+			ID: "quote_signals", Method: "GET", Path: "wts:quote/signals", Backend: "wts",
+			// Summary must not name other operation ids: list_operations matches on
+			// summary text too, so a cross-reference makes this entry surface on a
+			// search for that other id.
+			Category: "market", Summary: "Per-stock signal cards (호재/악재 labels with a one-line reason), for one symbol. The market-wide personalized signal feed is a separate operation. WTS-only.",
+			Params: []Param{{Name: "symbol", Type: "string", Required: true, Desc: "ticker (e.g. 005930, AAPL) or Toss product code"}},
+			Probe: &ProbeSpec{Name: "quote-stock-signals", Method: "GET",
+				URL: probeInfo + "/api/v1/dashboard/wts/overview/signals?codes=A005930",
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.stockCode", "string")
+				}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				symbol, err := argString(args, "symbol")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetStockSignals(ctx, symbol)
+			},
+		},
+		{
+			ID: "account_receivable", Method: "GET", Path: "wts:account/receivable", Backend: "wts",
+			Category: "account", Summary: "Receivable (미수금) and forced-liquidation warning state for one currency: amount owed, payment deadline, liquidation time, and any trading-suspension window. All timestamps are null on a healthy account. WTS-only.",
+			Params: []Param{{Name: "currency", Type: "string", Desc: `"KRW" (default) or "USD"`}},
+			Probe: &ProbeSpec{Name: "account-receivable", Method: "GET",
+				URL: probeCert + "/api/v1/margin/cert/notice/receivable?currency=KRW",
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.depositNoticeType", "string")
+				}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				currency, _ := args["currency"].(string)
+				return d.WTS.GetMarginNotice(ctx, currency)
+			},
+		},
+		{
+			ID: "search_stocks", Method: "GET", Path: "wts:search", Backend: "wts",
+			Category: "market", Summary: "Unified search over Toss's catalog by name or ticker, returning product codes usable by every other operation. WTS-only.",
+			Params: []Param{{Name: "query", Type: "string", Required: true, Desc: "name or ticker, e.g. 삼성 or AAPL"}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				query, err := argString(args, "query")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.Search(ctx, query)
+			},
+		},
+		{
 			ID: "market_option_hours", Method: "GET", Path: "wts:market/option-hours", Backend: "wts",
 			Category: "market", Summary: "US options session windows for the previous, current, and next business day. Equity hours are market_trading_hours; the two can diverge around holidays. WTS-only.",
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
