@@ -8,7 +8,7 @@
   <h1>tossinvest-cli</h1>
   <p><strong>토스증권에 연결하는 가장 유연한 방법. CLI 로, MCP 서버로, 어떤 AI 에이전트로든 — 공식 API는 물론 웹앱에만 있던 기능까지 하나로.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — 어떤 AI 에이전트로든 <code>tossctl</code> 하나로 토스증권 계좌·시세·거래를 다룹니다. <strong>MCP 서버(<code>tossctl mcp</code>)로 붙이거나 터미널에서 직접</strong>, <strong>공식 키 없이 바로 또는 연결 시 자동 라우팅.</strong></p>
-  <p><sub>수급 · 시장지수 · AI 시그널 · 조건검색 · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview 등 WTS 전용 기능 24가지 — <strong>공식 Open API 지원 범위도 물론 100% 포함합니다.</strong> <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
+  <p><sub>수급 · 시장지수 · AI 시그널 · 조건검색 · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview 등 WTS 전용 기능 39가지 — <strong>공식 Open API 지원 범위도 물론 100% 포함합니다.</strong> <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
   <p><sub><em>The most flexible way to connect Toss Securities — via CLI, via MCP, from any AI agent. 100% of the official Open API, plus 24 features only the web app had.</em></sub></p>
 </div>
 
@@ -186,7 +186,7 @@ Waiting for approval in the Toss app on your phone...
 ## 지원 범위
 
 > **tossctl 은 토스 공식 Open API 의 조회·거래 범위를 100% 커버하고, 그 너머까지 다룹니다.**
-> 공식 [Open API 문서](https://developers.tossinvest.com/docs)의 모든 엔드포인트(계좌·잔고·시세·호가·체결·캔들·상하한가·매도가능수량·수수료·주문 등)에 대응하며, 추가로 수급·시장지수·AI 시그널·조건검색·관심종목 관리·거래내역 ledger·실시간 푸시·원화 소수점 주문·dry-run preview 등 **24개가 공식 Open API에 없는 tossctl 고유 범위**입니다.
+> 공식 [Open API 문서](https://developers.tossinvest.com/docs)의 모든 엔드포인트(계좌·잔고·시세·호가·체결·캔들·상하한가·매도가능수량·수수료·주문 등)에 대응하며, 추가로 수급·시장지수·AI 시그널·조건검색·관심종목 관리·거래내역 ledger·실시간 푸시·원화 소수점 주문·dry-run preview 등 **39개가 공식 Open API에 없는 tossctl 고유 범위**입니다.
 
 <p align="center">
   <img src="docs/assets/api-comparison.svg" alt="tossctl vs 공식 Open API(예정) 커버리지 비교 — tossctl 이 상위집합" width="840" />
@@ -709,6 +709,12 @@ tossctl profit                                   # 누적 실현손익 (카테�
 tossctl profit summary --type sales --from 2026-01-01 --to 2026-07-25   # 기간별
 tossctl profit daily --from 2026-01-01 --to 2026-07-25 --output csv      # 종목별 (세금용)
 tossctl tax overseas [--year YYYY]               # 해외주식 양도소득 (세금)
+tossctl tax ria                                  # RIA 절세 리포트 (모바일 앱 전용)
+tossctl account interest [--year YYYY]           # 예탁금 이용료 (지급 건별)
+tossctl account commission                       # 계좌 수수료 체계
+tossctl order funding                            # 매수 가능 여부·필요 입금/환전액
+tossctl market option-hours                      # 미국 옵션 영업일·거래시간
+tossctl community boards                         # 인기 라운지 (팔로워 순)
 tossctl accumulate list|status <symbol>          # 주식모으기 (모바일 앱 전용)
 tossctl market investors|earnings|briefing|sectors|themes|index|ranking|signals
 tossctl community rankings --type influencer|profit|followers
