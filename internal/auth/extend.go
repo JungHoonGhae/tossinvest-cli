@@ -34,6 +34,24 @@ type ExtendResult struct {
 	Elapsed         time.Duration
 }
 
+// ServerExpiryIn reports how long the server-side session has left.
+//
+// It asks the server instead of reading the stored copy: `ServerExpiresAt` on
+// disk is only refreshed by `auth status` and by a successful Extend, so a
+// scheduled run deciding "is it time to extend?" from the stored value would be
+// deciding on a stale number — and getting that wrong means either a needless
+// phone prompt or a session that quietly dies.
+func (s *Service) ServerExpiryIn(ctx context.Context) (time.Duration, error) {
+	if s.extensionRunner == nil {
+		return 0, ErrExtensionNotConfigured
+	}
+	expiredAt, err := s.extensionRunner.GetServerExpiredAt(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("read current expiry: %w", err)
+	}
+	return time.Until(expiredAt), nil
+}
+
 func (s *Service) Extend(ctx context.Context, timeout time.Duration) (*ExtendResult, error) {
 	if s.extensionRunner == nil {
 		return nil, ErrExtensionNotConfigured

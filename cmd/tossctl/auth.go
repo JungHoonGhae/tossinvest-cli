@@ -56,6 +56,7 @@ func newAuthCmd(opts *rootOptions) *cobra.Command {
 	loginCmd.Flags().StringVar(&loginQROutput, "qr-output", "", "Path to write the current QR PNG (forward to phone via messenger)")
 
 	var extendTimeout time.Duration
+	var extendIfExpiring time.Duration
 	extendCmd := &cobra.Command{
 		Use:         "extend",
 		Short:       i18n.T("auth.extend.short"),
@@ -68,6 +69,19 @@ func newAuthCmd(opts *rootOptions) *cobra.Command {
 
 			ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 			defer cancel()
+
+			// Checked before the spinner: a scheduled run that has nothing to do
+			// must not flash "waiting for phone approval" at a user who isn't there.
+			if extendIfExpiring > 0 {
+				remaining, err := app.authService.ServerExpiryIn(ctx)
+				if err != nil {
+					return userFacingCommandError(err)
+				}
+				if remaining > extendIfExpiring {
+					fmt.Fprintf(cmd.ErrOrStderr(), "session has ~%s left; not extending yet\n", humanizeDuration(remaining))
+					return nil
+				}
+			}
 
 			fmt.Fprintln(cmd.ErrOrStderr(), "Waiting for approval in the Toss app on your phone...")
 			stop := startSpinner(cmd.ErrOrStderr(), "Waiting for approval", isTerminal(cmd.ErrOrStderr()))
@@ -82,6 +96,7 @@ func newAuthCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 	extendCmd.Flags().DurationVar(&extendTimeout, "timeout", 120*time.Second, "Maximum time to wait for phone approval")
+	extendCmd.Flags().DurationVar(&extendIfExpiring, "if-expiring", 0, "Only extend when the session expires within this window (for cron/launchd); exits 0 doing nothing otherwise")
 
 	cmd.AddCommand(
 		loginCmd,

@@ -139,6 +139,38 @@ Waiting for approval in the Toss app on your phone...
 ✓ Extension complete. New expiry: 2026-05-13 07:03 KST (took 4s)
 ```
 
+The default timeout is 120s; shorten it with `--timeout 60s`.
+
+#### Renewing before it lapses
+
+Phone approval is Toss's second factor and can't be removed — but *when* to ask for it can be
+automated. `--if-expiring` checks the server-side remaining time first and exits 0 doing nothing
+if there's more room than the given window. Put it on a scheduler and the phone only buzzes on
+the days it actually matters.
+
+```bash
+tossctl auth extend --if-expiring 48h   # extend if under 48h left, otherwise no-op
+```
+
+macOS launchd example — check daily at 09:00:
+
+```xml
+<!-- ~/Library/LaunchAgents/com.tossctl.extend.plist -->
+<key>ProgramArguments</key>
+<array>
+  <string>/opt/homebrew/bin/tossctl</string>
+  <string>auth</string><string>extend</string>
+  <string>--if-expiring</string><string>48h</string>
+</array>
+<key>StartCalendarInterval</key>
+<dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
+```
+
+Register with `launchctl load ~/Library/LaunchAgents/com.tossctl.extend.plist`.
+For cron: `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
+
+> The value is a Go duration — `7d` is rejected, use `168h`.
+
 ## Support Scope
 
 > **tossctl covers 100% of the official Toss Open API's read & trade coverage — and goes beyond.**
@@ -638,6 +670,7 @@ tossctl doctor
 tossctl doctor --report     # JSON diagnostic bundle (for issues; paths auto-redacted)
 tossctl config init|show
 tossctl auth login|status|extend|doctor|logout
+tossctl auth extend --if-expiring 48h   # extend only when close to expiry (cron/launchd)
 ```
 
 ### API regression watch
