@@ -290,11 +290,20 @@ for (const r of seen) {
   // 호스트를 남긴다. 토스는 wts-api / wts-info-api / wts-cert-api 를 섞어 쓰고
   // client 도 셋을 따로 설정하므로, 경로만 보면 어느 BaseURL 에 붙일지 알 수 없다.
   const k = `${r.method} ${r.url.replace(/\?.*$/, "")}`;
-  if (!byKey.has(k)) byKey.set(k, { ...r, count: 1 });
-  else byKey.get(k).count++;
+  // 쿼리 키를 모아둔다. GET 조회는 바디가 없어서, 쿼리를 버리면 "이 경로가
+  // 불렸다" 만 알고 **어떻게 부르는지**는 여전히 모른다 — needs-params 를 뚫는 데
+  // 정작 필요한 정보다. 값은 담지 않는다(계좌 데이터가 섞인다).
+  const qs = [...new URL(r.url).searchParams.keys()];
+  if (!byKey.has(k)) byKey.set(k, { ...r, count: 1, query: new Set(qs) });
+  else {
+    const prev = byKey.get(k);
+    prev.count++;
+    qs.forEach((q) => prev.query.add(q));
+  }
 }
 for (const [k, r] of byKey) {
-  console.log(`\n── ${k}${r.count > 1 ? `  (×${r.count})` : ""}`);
+  const q = r.query.size ? `  ?${[...r.query].join("&")}` : "";
+  console.log(`\n── ${k}${q}${r.count > 1 ? `  (×${r.count})` : ""}`);
   console.log(show(r.postData));
 }
 if (!seen.length) {

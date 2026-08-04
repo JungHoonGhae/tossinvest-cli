@@ -4,8 +4,8 @@
   "chunk_count": 81,
   "total": 988,
   "counts": {
-    "implemented": 108,
-    "candidate": 370,
+    "implemented": 110,
+    "candidate": 368,
     "excluded": 510,
     "candidate_next": 20,
     "meaningful": 478
@@ -93,7 +93,7 @@
     },
     "/api/v1/option-chain/get-all": {
       "status": "candidate",
-      "note": "옵션 체인 (INFO, GET). 번들에 레지스트리 등록만 있고 호출부(파라미터 조립)가 없다 — 웹 화면 없음. maturity-date/get-all·both-chain/get-all·default-chart-option 도 같다. 라이브 캡처 필요"
+      "note": "underlyingGuid+maturityDate 로도 400 MissingServletRequestParameter — 파라미터가 더 필요하다. option-both-chain/get-all 이 콜/풋을 한 번에 주므로 이쪽으로 충분 (2026-08-04)"
     },
     "/api/v1/asset-snapshot/page": {
       "status": "candidate",
@@ -125,7 +125,7 @@
     },
     "/api/v1/community/profile/top-ranking": {
       "status": "candidate",
-      "note": "400 typeMismatch.topRankingRequest.limit — limit 만으론 부족, 요청 객체 형태 미상 (2026-08-04)"
+      "note": "observed query = limit + type (2026-08-03 스윕). type 어휘 미상이라 limit 만으론 400"
     },
     "/api/v1/lending/revenue/account/summary": {
       "status": "candidate",
@@ -138,6 +138,14 @@
     "/api/v3/search-all/wts-auto-complete": {
       "status": "candidate",
       "note": "v1 을 구현했다. v3 는 sections 를 요구하고 빈 배열이면 결과 0건 — 섹션 어휘 미상"
+    },
+    "/api/v1/option-infos/default-chart-option": {
+      "status": "candidate",
+      "note": "차트 UI 기본 설정 (INFO, GET ?underlyingGuid=). 프로차트 화면 전용이라 CLI 가치 없음"
+    },
+    "/api/v1/usa-market/get-option-biz-day-by-overtime": {
+      "status": "candidate",
+      "note": "옵션 영업일 (INFO, GET ?overtimeFlag=). market option-hours 와 중복"
     }
   },
   "endpoints": {
@@ -478,7 +486,7 @@
         "body": [
           "termsKeys"
         ],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v1/account/frontend/terms/list": {
@@ -1589,7 +1597,7 @@
         "body": [
           "types"
         ],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v1/dashboard/common/cached-orderable-amount": {
@@ -1631,7 +1639,7 @@
         "body": [
           "codes"
         ],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v1/dashboard/common/watchlists/grid-view": {
@@ -3031,8 +3039,11 @@
         "method": "POST",
         "host": "wts-cert-api",
         "query": [],
-        "body": [],
-        "at": "2026-08-03"
+        "body": [
+          "code",
+          "itemType"
+        ],
+        "at": "2026-08-04"
       }
     },
     "/api/v1/new-watchlists/recent/delete": {
@@ -3141,14 +3152,8 @@
       }
     },
     "/api/v1/option-both-chain/get-all": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "status": "implemented",
+      "first_seen": "2026-06-19"
     },
     "/api/v1/option-chain/get-all": {
       "status": "candidate",
@@ -3171,14 +3176,8 @@
       }
     },
     "/api/v1/option-maturity-date/get-all": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "status": "implemented",
+      "first_seen": "2026-06-19"
     },
     "/api/v1/orders": {
       "status": "candidate",
@@ -3461,7 +3460,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v1/profit/type/overview": {
@@ -3928,6 +3927,13 @@
         "host": "wts-info-api",
         "status": 200,
         "verdict": "thin"
+      },
+      "observed": {
+        "method": "POST",
+        "host": "wts-cert-api",
+        "query": [],
+        "body": [],
+        "at": "2026-08-04"
       }
     },
     "/api/v1/r-chart": {
@@ -5040,7 +5046,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v1/trading/orders/histories": {
@@ -5920,7 +5926,7 @@
         "body": [
           "types"
         ],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v2/dashboard/common/watchlists/grid-view": {
@@ -5951,7 +5957,7 @@
           "types",
           "variable"
         ],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v2/dashboard/wts/overview/calendar/economic-events": {
@@ -7672,7 +7678,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-08-04"
       }
     },
     "/api/v4/certs/register/init-session-v2": {

@@ -353,7 +353,37 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(getCmd, batchCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd, cryptoCmd, reasoningCmd, signalsCmd)
+	var optionExpiry string
+	optionsCmd := &cobra.Command{
+		Use:         "options <symbol or name>",
+		Short:       i18n.T("quote.options.short"),
+		Args:        cobra.MinimumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			symbol := strings.Join(args, " ")
+			// 만기를 안 주면 만기일 목록을 낸다: 체인은 만기를 하나 골라야만
+			// 부를 수 있으므로, 목록이 그 다음 명령의 인자가 된다.
+			if optionExpiry == "" {
+				e, err := app.client.GetOptionExpiries(cmd.Context(), symbol)
+				if err != nil {
+					return err
+				}
+				return output.WriteOptionExpiries(cmd.OutOrStdout(), app.format, e)
+			}
+			c, err := app.client.GetOptionChain(cmd.Context(), symbol, optionExpiry)
+			if err != nil {
+				return err
+			}
+			return output.WriteOptionChain(cmd.OutOrStdout(), app.format, c)
+		},
+	}
+	optionsCmd.Flags().StringVar(&optionExpiry, "expiry", "", "Expiration date (YYYY-MM-DD); omit to list available expiries")
+
+	cmd.AddCommand(getCmd, batchCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd, cryptoCmd, reasoningCmd, signalsCmd, optionsCmd)
 
 	return cmd
 }

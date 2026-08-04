@@ -206,6 +206,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | Candle chart | `quote chart --interval 1m\|3m\|5m\|10m\|15m\|30m\|60m` | 🔸 *(1m / daily only)* | ✅ |
 | **Multi-quote / live refresh** | `quote batch <sym>[,sym,...]` (`--chart` · `--live`) | ❌ | ✅ |
 | **🆕 Crypto prices + premium** | `quote crypto BTC,ETH,SOL,XRP` (OHLC · 52w · Korea premium) | ❌ | ✅ |
+| **🆕 US option expiries & chain** | `quote options <symbol> [--expiry]` (per-strike call/put open interest) | ❌ | ✅ |
 | **🆕 Why a stock moved (AI)** | `quote reasoning <symbol>` (explanation + related stocks) | ❌ | ✅ |
 | **🆕 Per-stock signals** | `quote signals <symbol>` (bullish/bearish cards) | ❌ | ✅ |
 | **🆕 Unified search** | `search <name\|ticker>` (resolve product codes) | ❌ | ✅ |
@@ -643,6 +644,7 @@ tossctl quote chart <symbol> --interval 5m
 tossctl quote trades|limits|warnings|flows <symbol>
 tossctl quote crypto BTC,ETH,SOL,XRP
 tossctl quote reasoning|signals <symbol>
+tossctl quote options AAPL [--expiry 2026-08-05]
 tossctl search <name|ticker>
 tossctl account receivable --currency KRW|USD
 tossctl market hours|fx|index|ranking|signals|investors|earnings

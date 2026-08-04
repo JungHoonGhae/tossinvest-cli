@@ -1477,3 +1477,40 @@ type SearchHit struct {
 	CompanyName string `json:"company_name,omitempty"`
 	Market      string `json:"market,omitempty"`
 }
+
+// OptionExpiry is one listed expiration for an underlying.
+//
+// DisplayLiquidation is Toss's own display string ("거래 종료" and the like) and
+// is kept verbatim: it encodes states the timestamps alone don't distinguish.
+type OptionExpiry struct {
+	MaturityDate        string `json:"maturity_date"`
+	MaturityDateTime    string `json:"maturity_datetime,omitempty"`
+	LiquidationDateTime string `json:"liquidation_datetime,omitempty"`
+	DisplayLiquidation  string `json:"display_liquidation,omitempty"`
+	CorporateActionName string `json:"corporate_action_name,omitempty"`
+}
+
+type OptionExpiries struct {
+	Symbol      string         `json:"symbol"`
+	ProductCode string         `json:"product_code"`
+	Expiries    []OptionExpiry `json:"expiries"`
+	FetchedAt   time.Time      `json:"fetched_at"`
+}
+
+// OptionChainRow is one strike, with the call and put side by side.
+// OpenInterest is contracts outstanding — the chain carries no prices.
+type OptionChainRow struct {
+	StrikePrice      float64 `json:"strike_price"`
+	CallGUID         string  `json:"call_guid,omitempty"`
+	PutGUID          string  `json:"put_guid,omitempty"`
+	CallOpenInterest int     `json:"call_open_interest"`
+	PutOpenInterest  int     `json:"put_open_interest"`
+}
+
+type OptionChain struct {
+	Symbol       string           `json:"symbol"`
+	ProductCode  string           `json:"product_code"`
+	MaturityDate string           `json:"maturity_date"`
+	Rows         []OptionChainRow `json:"rows"`
+	FetchedAt    time.Time        `json:"fetched_at"`
+}

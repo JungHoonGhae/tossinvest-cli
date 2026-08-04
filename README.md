@@ -250,6 +250,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | 캔들 차트 | `quote chart --interval 1m\|3m\|5m\|10m\|15m\|30m\|60m` | 🔸 *(1분·일봉만)* | ✅ |
 | **멀티 시세 / 실시간 갱신** | `quote batch <sym>[,sym,...]` (`--chart`·`--live`) | ❌ | ✅ |
 | **🆕 가상자산 시세 + 김프** | `quote crypto BTC,ETH,SOL,XRP` (OHLC·52주·김치 프리미엄) | ❌ | ✅ |
+| **🆕 미국 옵션 만기·체인** | `quote options <symbol> [--expiry]` (행사가별 콜/풋 미결제약정) | ❌ | ✅ |
 | **🆕 종목 등락 이유 (AI)** | `quote reasoning <symbol>` (왜 올랐는지 + 관련 종목) | ❌ | ✅ |
 | **🆕 종목별 시그널** | `quote signals <symbol>` (호재/악재 카드) | ❌ | ✅ |
 | **🆕 통합 검색** | `search <이름\|티커>` (종목 코드 조회) | ❌ | ✅ |
@@ -760,6 +761,7 @@ tossctl quote batch <symbol> [symbol...]
 tossctl quote orderbook|sellable|commission <symbol>
 tossctl quote crypto BTC,ETH,SOL,XRP
 tossctl quote reasoning|signals <symbol>
+tossctl quote options AAPL [--expiry 2026-08-05]
 tossctl search <이름|티커>
 tossctl account receivable --currency KRW|USD
 tossctl watchlist list

@@ -515,6 +515,45 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "quote_option_expiries", Method: "GET", Path: "wts:quote/options", Backend: "wts",
+			Category: "market", Summary: "Listed expiration dates for a US underlying's options, with each one's liquidation time. Pick one and pass it to quote_option_chain. WTS-only.",
+			Params: []Param{{Name: "symbol", Type: "string", Required: true, Desc: "US ticker (e.g. AAPL) or Toss product code"}},
+			Probe: &ProbeSpec{Name: "option-expiries", Method: "GET",
+				URL: probeInfo + "/api/v1/option-maturity-date/get-all?underlyingGuid=US19801212001",
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.items.0.maturityDate", "string")
+				}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				symbol, err := argString(args, "symbol")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetOptionExpiries(ctx, symbol)
+			},
+		},
+		{
+			ID: "quote_option_chain", Method: "GET", Path: "wts:quote/options/chain", Backend: "wts",
+			Category: "market", Summary: "Call/put option chain for one expiration: every strike with the contract identifiers and open interest on each side. Carries no prices. Get valid expiry values from quote_option_expiries. WTS-only.",
+			Params: []Param{
+				{Name: "symbol", Type: "string", Required: true, Desc: "US ticker (e.g. AAPL) or Toss product code"},
+				{Name: "expiry", Type: "string", Required: true, Desc: "expiration date, YYYY-MM-DD"},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				symbol, err := argString(args, "symbol")
+				if err != nil {
+					return nil, err
+				}
+				expiry, err := argString(args, "expiry")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetOptionChain(ctx, symbol, expiry)
+			},
+		},
+		{
 			ID: "market_option_hours", Method: "GET", Path: "wts:market/option-hours", Backend: "wts",
 			Category: "market", Summary: "US options session windows for the previous, current, and next business day. Equity hours are market_trading_hours; the two can diverge around holidays. WTS-only.",
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
