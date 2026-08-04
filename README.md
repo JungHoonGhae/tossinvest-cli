@@ -291,6 +291,8 @@ Waiting for approval in the Toss app on your phone...
 
 US 지정가는 `--currency-mode`로 가격 해석을 선택합니다: `KRW` (기본, 서버 환율로 USD 변환) 또는 `USD` (입력을 USD 가격 그대로 전송). 예: `order place --symbol MRVL --side buy --qty 1 --price 158.01 --currency-mode USD`.
 
+> 💵 **지정가는 호가 단위에 맞아야 합니다** — 미국은 **$1 미만이면 0.0001, $1 이상이면 0.01** 단위입니다(국내는 가격대별 구간 단위, 예: 5만~20만원은 100원). 어긋나면 서버가 `400 invalid-request` 와 함께 가장 가까운 호가를 `data.nearestPrices` 로 알려줍니다. tossctl 은 가격을 그대로 전송하므로 이 검증은 서버에서 이뤄집니다.
+
 ### 왜 tossctl 인가 — 공식 API 는 토스 기능의 일부일 뿐
 
 공식 Open API 는 **REST 조회·주문의 기본만** 제공합니다 (약 20개 엔드포인트). 반면
