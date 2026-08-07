@@ -9,8 +9,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/client"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
 )
@@ -218,5 +220,38 @@ func TestRouteSymbolUsesOfficialForPlainTicker(t *testing.T) {
 		if !officialCalled || got != "official" {
 			t.Errorf("%s: routed away from official (got %q)", sym, got)
 		}
+	}
+}
+
+// 공식 investor-trading 은 WTS 보다 풍부하지만 quote flows 가 찍는 3개 필드로 좁혀
+// 들어간다. 좁히는 과정에서 값이 뒤바뀌지 않는지 본다.
+func TestSupplyToFlowsNarrowsCorrectly(t *testing.T) {
+	s := domain.SupplySeries{FetchedAt: time.Now(), Records: []domain.SupplyRecord{
+		{Date: "2026-01-05",
+			Individual:  &domain.TradingVolume{NetBuy: -100},
+			Foreigner:   &domain.TradingVolume{NetBuy: 60},
+			Institution: &domain.TradingVolume{NetBuy: 40}},
+		// 잠정 기록: 개인이 아직 없다. domain.TradingFlow 는 평범한 float 라
+		// 0 이 되는데, 그 손실은 quote supply 로 가면 복구된다.
+		{Date: "2026-01-06", Foreigner: &domain.TradingVolume{NetBuy: 5}},
+	}}
+	got := supplyToFlows("005930", s)
+	if got.Symbol != "005930" || len(got.Flows) != 2 {
+		t.Fatalf("shape wrong: %+v", got)
+	}
+	f := got.Flows[0]
+	if f.NetIndividuals != -100 || f.NetForeigner != 60 || f.NetInstitution != 40 {
+		t.Errorf("values crossed: %+v", f)
+	}
+	if got.Flows[1].NetIndividuals != 0 {
+		t.Errorf("missing individual should be 0 here, got %v", got.Flows[1].NetIndividuals)
+	}
+}
+
+// 공식 키가 없으면 수급은 안내 메시지를 줘야 한다 — WTS 에 대응 표면이 없다.
+func TestSupplyWithoutOfficialKey(t *testing.T) {
+	c := &Client{pol: Policy{Prefer: "auto"}, stderr: io.Discard}
+	if _, err := c.Supply(context.Background(), "005930", domain.SupplyShort, 0, ""); err == nil {
+		t.Fatal("want error without official credentials")
 	}
 }
