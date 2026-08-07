@@ -250,6 +250,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | 캔들 차트 | `quote chart --interval 1m\|3m\|5m\|10m\|15m\|30m\|60m` | 🔸 *(1분·일봉만)* | ✅ |
 | **멀티 시세 / 실시간 갱신** | `quote batch <sym>[,sym,...]` (`--chart`·`--live`) | ❌ | ✅ |
 | **🆕 가상자산 시세 + 김프** | `quote crypto BTC,ETH,SOL,XRP` (OHLC·52주·김치 프리미엄) | ❌ | ✅ |
+| **🆕 종목 수급 (5종)** | `quote supply <symbol> --type investor\|short\|credit\|lending\|program` | ✅ | ✅ |
 | **🆕 스크리너 필터 값 범위** | `market filters PER PBR --nation kr\|us` (min/max·기준일) | ❌ | ✅ |
 | **🆕 미국 옵션 만기·체인** | `quote options <symbol> [--expiry]` (행사가별 콜/풋 미결제약정) · 계약 코드는 `quote get`·`orderbook`·`chart` 에 그대로 사용 | ❌ | ✅ |
 | **🆕 종목 등락 이유 (AI)** | `quote reasoning <symbol>` (왜 올랐는지 + 관련 종목) | ❌ | ✅ |
@@ -764,6 +765,7 @@ tossctl quote crypto BTC,ETH,SOL,XRP
 tossctl quote reasoning|signals <symbol>
 tossctl quote options AAPL [--expiry 2026-08-05]
 tossctl market filters PER PBR --nation kr
+tossctl quote supply 005930 --type short --count 20
 tossctl search <이름|티커>
 tossctl account receivable --currency KRW|USD
 tossctl watchlist list

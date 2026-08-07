@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
+	"strings"
 )
 
 // ---------------------------------------------------------------------------
@@ -319,6 +321,41 @@ func readOperations() []Operation {
 					return nil, err
 				}
 				return d.WTS.GetCommission(ctx, symbol)
+			},
+		},
+		{
+			ID: "stock_supply", Method: "GET", Path: "/api/v1/stocks/{symbol}/supply",
+			Category: "market", Summary: "KR stock supply series — investor-type trading (with the 7-way institution breakdown, foreign holding, CFD balance), short selling, credit trades, securities lending, or program trades. Daily time series with a cursor. Fields not yet tallied for a date are null, which is distinct from zero.",
+			Params: []Param{
+				{Name: "symbol", Type: "string", Required: true, Desc: "KR ticker, e.g. 005930"},
+				{Name: "type", Type: "string", Desc: `"investor" (default), "short", "credit", "lending", or "program"`},
+				{Name: "count", Type: "integer", Desc: "rows per page (server default 10)"},
+				{Name: "until", Type: "string", Desc: "cursor from a previous page's next_until"},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				symbol, err := argString(args, "symbol")
+				if err != nil {
+					return nil, err
+				}
+				kindArg, _ := args["type"].(string)
+				if kindArg == "" {
+					kindArg = "investor"
+				}
+				var kind domain.SupplyKind
+				for _, k := range official.SupplyKinds() {
+					if string(k) == strings.ToLower(strings.TrimSpace(kindArg)) {
+						kind = k
+					}
+				}
+				if kind == "" {
+					return nil, fmt.Errorf("unknown type %q", kindArg)
+				}
+				count, err := argInt(args, "count")
+				if err != nil {
+					return nil, err
+				}
+				until, _ := args["until"].(string)
+				return d.Client.Supply(ctx, symbol, kind, count, until)
 			},
 		},
 		{

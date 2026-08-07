@@ -326,3 +326,53 @@ func officialLeg(l orderintent.ConditionLeg) official.ConditionLegBody {
 //     which is worse than making the user pick a backend. See issue tracker.
 //   - Order writes (PlacePendingOrder / CancelPendingOrder / AmendPendingOrder):
 //     these are the Broker's concern and are handled in Task 10 — not here.
+
+// Supply exposes the official supply series. There is no WTS equivalent for
+// short-selling/credit/lending/program, and the one overlapping series
+// (investor-trading) is routed by GetTradingFlows instead — so this is
+// official-only and says so plainly when no key is configured.
+func (c *Client) Supply(ctx context.Context, symbol string, kind domain.SupplyKind, count int, until string) (domain.SupplySeries, error) {
+	if c.off == nil || c.pol.Prefer == "wts" {
+		return domain.SupplySeries{}, fmt.Errorf("종목 수급은 공식 Open API 전용입니다 — `tossctl openapi login` 으로 키를 연결하세요")
+	}
+	return c.off.Supply(ctx, symbol, kind, count, until)
+}
+
+// GetTradingFlows prefers the official investor-trading series and falls back
+// to WTS. The official payload is strictly richer (4 investor classes plus the
+// institution breakdown, foreign holding, and CFD balance) where WTS carries
+// three net figures — so when a key is present it is the better answer, and the
+// WTS path stays as the no-key default it has always been.
+func (c *Client) GetTradingFlows(ctx context.Context, symbol string, size int) (domain.TradingFlows, error) {
+	return routeSymbol(c, symbol,
+		func() (domain.TradingFlows, error) {
+			s, err := c.off.Supply(ctx, symbol, domain.SupplyInvestor, size, "")
+			if err != nil {
+				return domain.TradingFlows{}, err
+			}
+			return supplyToFlows(symbol, s), nil
+		},
+		func() (domain.TradingFlows, error) { return c.Client.GetTradingFlows(ctx, symbol, size) })
+}
+
+// supplyToFlows narrows the official series to the shape `quote flows` has
+// always printed. Nil (not yet tallied) becomes 0 here because domain.TradingFlow
+// carries plain floats — callers who need the distinction should use
+// `quote supply --type investor`, which keeps it.
+func supplyToFlows(symbol string, s domain.SupplySeries) domain.TradingFlows {
+	out := domain.TradingFlows{Symbol: symbol, FetchedAt: s.FetchedAt}
+	for _, r := range s.Records {
+		f := domain.TradingFlow{Date: r.Date}
+		if r.Individual != nil {
+			f.NetIndividuals = r.Individual.NetBuy
+		}
+		if r.Foreigner != nil {
+			f.NetForeigner = r.Foreigner.NetBuy
+		}
+		if r.Institution != nil {
+			f.NetInstitution = r.Institution.NetBuy
+		}
+		out.Flows = append(out.Flows, f)
+	}
+	return out
+}

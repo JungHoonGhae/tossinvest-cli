@@ -1539,3 +1539,117 @@ type ScreenerFilterRanges struct {
 	Filters   []ScreenerFilterRange `json:"filters"`
 	FetchedAt time.Time             `json:"fetched_at"`
 }
+
+// --- 종목 수급 (공식 Open API 1.2.13 신규) ---------------------------------
+//
+// 다섯 표면(투자자별·공매도·신용·대차·프로그램)이 같은 모양이다: 일별 시계열 +
+// `NextUntil` 커서. 그래서 SupplySeries 하나가 다섯을 다 담고, Kind 로 갈린다.
+//
+// **nullable 을 포인터로 유지하는 게 이 도메인의 핵심이다.** 당일 잠정 기록에는
+// 개인 잠정치·외국인 보유·CFD 잔고가 아직 안 실린다. 0 으로 채우면 "순매수 0" 과
+// "아직 집계 안 됨" 이 구분되지 않는데, 수급에서 그 둘은 정반대 신호다.
+
+// SupplyKind identifies which supply series a record belongs to.
+type SupplyKind string
+
+const (
+	SupplyInvestor SupplyKind = "investor"
+	SupplyShort    SupplyKind = "short"
+	SupplyCredit   SupplyKind = "credit"
+	SupplyLending  SupplyKind = "lending"
+	SupplyProgram  SupplyKind = "program"
+)
+
+// TradingVolume is a buy/sell/net triple, the unit every investor-side figure
+// is reported in.
+type TradingVolume struct {
+	Buy    float64 `json:"buy"`
+	Sell   float64 `json:"sell"`
+	NetBuy float64 `json:"net_buy"`
+}
+
+// InstitutionBreakdown splits the institution total into its seven reported
+// sub-categories.
+// 각 분류가 매수/매도/순매수 삼중이다 — 합계와 같은 단위다. 스펙은 이 필드들을
+// allOf → InvestorTradingVolume 로 적어두는데, 얕게 읽으면 스칼라로 착각한다.
+type InstitutionBreakdown struct {
+	FinancialInvestment       *TradingVolume `json:"financial_investment,omitempty"`        // 금융투자
+	Insurance                 *TradingVolume `json:"insurance,omitempty"`                   // 보험
+	Trust                     *TradingVolume `json:"trust,omitempty"`                       // 투신
+	Bank                      *TradingVolume `json:"bank,omitempty"`                        // 은행
+	OtherFinancialInstitution *TradingVolume `json:"other_financial_institution,omitempty"` // 기타금융
+	PensionFund               *TradingVolume `json:"pension_fund,omitempty"`                // 연기금
+	PrivateEquityFund         *TradingVolume `json:"private_equity_fund,omitempty"`         // 사모펀드
+}
+
+// ForeignerHolding is the foreign ownership snapshot for a date.
+type ForeignerHolding struct {
+	HoldingQuantity float64 `json:"holding_quantity"`
+	HoldingRate     float64 `json:"holding_rate"`
+	LimitQuantity   float64 `json:"limit_quantity"`
+}
+
+// CFDBalance is the contract-for-difference balance on both sides.
+type CFDBalance struct {
+	BuyBalanceQuantity  float64 `json:"buy_balance_quantity"`
+	BuyBalanceRate      float64 `json:"buy_balance_rate"`
+	SellBalanceQuantity float64 `json:"sell_balance_quantity"`
+	SellBalanceRate     float64 `json:"sell_balance_rate"`
+}
+
+// CreditDetail is one side of the credit series (융자 or 대주).
+type CreditDetail struct {
+	NewQuantity     float64 `json:"new_quantity"`
+	ReturnQuantity  float64 `json:"return_quantity"`
+	BalanceQuantity float64 `json:"balance_quantity"`
+	BalanceRate     float64 `json:"balance_rate"`
+	TradingRate     float64 `json:"trading_rate"`
+}
+
+// SupplyRecord is one day of one supply series. Only the fields belonging to
+// the series' Kind are set; the rest stay nil.
+type SupplyRecord struct {
+	Date      string `json:"date"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+
+	// investor
+	Individual       *TradingVolume        `json:"individual,omitempty"`
+	Foreigner        *TradingVolume        `json:"foreigner,omitempty"`
+	Institution      *TradingVolume        `json:"institution,omitempty"`
+	InstitutionSplit *InstitutionBreakdown `json:"institution_breakdown,omitempty"`
+	OtherCorporation *TradingVolume        `json:"other_corporation,omitempty"`
+	ForeignerHolding *ForeignerHolding     `json:"foreigner_holding,omitempty"`
+	CFD              *CFDBalance           `json:"cfd,omitempty"`
+
+	// short selling
+	ShortVolume     *float64 `json:"short_volume,omitempty"`
+	ShortAmount     *float64 `json:"short_amount,omitempty"`
+	ShortVolumeRate *float64 `json:"short_volume_rate,omitempty"`
+	ShortAmountRate *float64 `json:"short_amount_rate,omitempty"`
+
+	// credit
+	MarginLoan *CreditDetail `json:"margin_loan,omitempty"` // 신용융자
+	StockLoan  *CreditDetail `json:"stock_loan,omitempty"`  // 대주
+
+	// securities lending
+	LendingExecution  *float64 `json:"lending_execution,omitempty"`
+	LendingRepayment  *float64 `json:"lending_repayment,omitempty"`
+	LendingBalanceQty *float64 `json:"lending_balance_quantity,omitempty"`
+	LendingBalanceAmt *float64 `json:"lending_balance_amount,omitempty"`
+
+	// program
+	Arbitrage    *TradingVolume `json:"arbitrage,omitempty"`
+	NonArbitrage *TradingVolume `json:"non_arbitrage,omitempty"`
+}
+
+// SupplySeries is one symbol's supply history for a single Kind.
+//
+// NextUntil is the server's cursor for the next (older) page; empty means the
+// series ended.
+type SupplySeries struct {
+	Symbol    string         `json:"symbol"`
+	Kind      SupplyKind     `json:"kind"`
+	Records   []SupplyRecord `json:"records"`
+	NextUntil string         `json:"next_until,omitempty"`
+	FetchedAt time.Time      `json:"fetched_at"`
+}

@@ -13,6 +13,7 @@ import (
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -383,7 +384,37 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 	}
 	optionsCmd.Flags().StringVar(&optionExpiry, "expiry", "", "Expiration date (YYYY-MM-DD); omit to list available expiries")
 
-	cmd.AddCommand(getCmd, batchCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd, cryptoCmd, reasoningCmd, signalsCmd, optionsCmd)
+	var (
+		supplyType  string
+		supplyCount int
+		supplyUntil string
+	)
+	supplyCmd := &cobra.Command{
+		Use:         "supply <symbol or name>",
+		Short:       i18n.T("quote.supply.short"),
+		Args:        cobra.MinimumNArgs(1),
+		Annotations: map[string]string{"source": "official"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			kind, err := parseSupplyKind(supplyType)
+			if err != nil {
+				return err
+			}
+			s, err := app.client.Supply(cmd.Context(), strings.Join(args, " "), kind, supplyCount, supplyUntil)
+			if err != nil {
+				return err
+			}
+			return output.WriteSupplySeries(cmd.OutOrStdout(), app.format, s)
+		},
+	}
+	supplyCmd.Flags().StringVar(&supplyType, "type", "investor", "investor | short | credit | lending | program")
+	supplyCmd.Flags().IntVar(&supplyCount, "count", 0, "rows per page (server default 10)")
+	supplyCmd.Flags().StringVar(&supplyUntil, "until", "", "cursor from a previous page's next_until")
+
+	cmd.AddCommand(getCmd, batchCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd, cryptoCmd, reasoningCmd, signalsCmd, optionsCmd, supplyCmd)
 
 	return cmd
 }
@@ -437,4 +468,20 @@ func fetchQuotesConcurrently(ctx context.Context, c quoteFetcher, symbols []stri
 		}
 	}
 	return quotes, nil
+}
+
+// parseSupplyKind maps the --type flag onto a domain kind. Unknown values fail
+// with the full list rather than a bare error: the vocabulary is the only thing
+// a caller has to know here.
+func parseSupplyKind(v string) (domain.SupplyKind, error) {
+	for _, k := range official.SupplyKinds() {
+		if string(k) == strings.ToLower(strings.TrimSpace(v)) {
+			return k, nil
+		}
+	}
+	var names []string
+	for _, k := range official.SupplyKinds() {
+		names = append(names, string(k))
+	}
+	return "", fmt.Errorf("unknown --type %q (want one of: %s)", v, strings.Join(names, ", "))
 }

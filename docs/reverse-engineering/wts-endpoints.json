@@ -73,7 +73,7 @@
     },
     "/api/v1/mds/info/trading-trend": {
       "status": "candidate",
-      "note": "종목별 매매동향 (INFO, GET ?productCode=&size=60, 무한스크롤 pagingParam). productCode만으로는 400 — 페이징 파라미터 필요. quote flows 와 중복 여부 미확정"
+      "note": "공식 Open API 가 대체한다 — 1.2.13(2026-08-07)의 /api/v1/stocks/{symbol}/investor-trading 이 같은 데이터를 문서화된 커서 페이징으로 준다. quote supply --type investor 로 구현됨. 파라미터 추적 중단"
     },
     "/api/v1/exchange/calculate/for-buy-amount": {
       "status": "candidate",
@@ -162,6 +162,18 @@
     "/api/v1/screener/screen/count": {
       "status": "candidate",
       "note": "필터 조건에 맞는 종목 수 (CERT, POST {filters:[{id,conditions:[{id,type,value}]}]}). market screener 가 결과 목록을 주므로 개수만 따로 셀 이유가 없다 (2026-08-04 캡처)"
+    },
+    "/api/v1/stock-infos/trade/trend/fixed-trading-trend": {
+      "status": "candidate",
+      "note": "공식 Open API 가 대체한다 — 1.2.13(2026-08-07)의 /api/v1/stocks/{symbol}/investor-trading 이 같은 데이터를 문서화된 커서 페이징으로 준다. quote supply --type investor 로 구현됨. 파라미터 추적 중단"
+    },
+    "/api/v1/stock-infos/trade/trend/accumulated-fixed-trading-trend": {
+      "status": "candidate",
+      "note": "공식 Open API 가 대체한다 — 1.2.13(2026-08-07)의 /api/v1/stocks/{symbol}/investor-trading 이 같은 데이터를 문서화된 커서 페이징으로 준다. quote supply --type investor 로 구현됨. 파라미터 추적 중단"
+    },
+    "/api/v1/stock-infos/trade/trend/accumulated-fixed-trading-trend/detail": {
+      "status": "candidate",
+      "note": "공식 Open API 가 대체한다 — 1.2.13(2026-08-07)의 /api/v1/stocks/{symbol}/investor-trading 이 같은 데이터를 문서화된 커서 페이징으로 준다. quote supply --type investor 로 구현됨. 파라미터 추적 중단"
     }
   },
   "endpoints": {
