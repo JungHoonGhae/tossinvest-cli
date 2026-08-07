@@ -26,7 +26,7 @@ FILES = ["README.md", "README.en.md"]
 # "community rankings" row. Date = CHANGELOG version date of first appearance.
 FEATURE_DATES = {
     "quote supply": "2026-08-07",
-    "market filters": "2026-08-05",
+    "market filters": "2026-08-07",
     "quote options": "2026-08-04",
     "quote reasoning": "2026-08-04",
     "quote signals": "2026-08-04",
