@@ -28,6 +28,22 @@
           "type": "integer"
         }
       },
+      "KrSymbol": {
+        "description": "국내(KR) 종목 심볼. KRX 6자리 종목코드 (예: 005930).",
+        "examples": {
+          "krx": {
+            "summary": "삼성전자",
+            "value": "005930"
+          }
+        },
+        "in": "path",
+        "name": "symbol",
+        "required": true,
+        "schema": {
+          "pattern": "^[A-Za-z0-9.\\-]+$",
+          "type": "string"
+        }
+      },
       "OrderId": {
         "description": "주문 식별자.\n서버에서 발급한 opaque token 입니다.\n",
         "example": "0d5QIHjmtksbsmM-hBRAgP-ExI8iodGm9fAR5txelPfnMM8XQ_swoJdwL5RpGWMo",
@@ -252,6 +268,23 @@
           }
         },
         "description": "종목 심볼 조회 중 일시적 오류"
+      },
+      "InternalErrorTradingTrend": {
+        "content": {
+          "application/json": {
+            "example": {
+              "error": {
+                "code": "internal-error",
+                "message": "처리 중 문제가 생겼어요. 잠시 후 다시 시도해주세요.",
+                "requestId": "01HXYZABCDEFG123456789"
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        },
+        "description": "수급·투자자 동향 조회 중 일시적 오류"
       },
       "NotFound": {
         "content": {
@@ -631,6 +664,45 @@
         },
         "required": [
           "candles"
+        ],
+        "type": "object"
+      },
+      "CfdBalance": {
+        "properties": {
+          "buyBalanceQuantity": {
+            "description": "CFD 매수 잔고 수량 (주, 정수)",
+            "example": "1250000",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "buyBalanceRate": {
+            "description": "CFD 매수 잔고 비율 (소수 비율). 상장주식수 대비 매수 잔고 수량. 예: `0.0002` = 0.02%",
+            "example": "0.0002",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "sellBalanceQuantity": {
+            "description": "CFD 매도 잔고 수량 (주, 정수)",
+            "example": "890000",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "sellBalanceRate": {
+            "description": "CFD 매도 잔고 비율 (소수 비율). 상장주식수 대비 매도 잔고 수량. 예: `0.0001` = 0.01%",
+            "example": "0.0001",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          }
+        },
+        "required": [
+          "buyBalanceQuantity",
+          "buyBalanceRate",
+          "sellBalanceQuantity",
+          "sellBalanceRate"
         ],
         "type": "object"
       },
@@ -1087,6 +1159,120 @@
         ],
         "type": "object"
       },
+      "CreditTradeDetail": {
+        "properties": {
+          "balanceQuantity": {
+            "description": "잔고 수량 (주, 정수)",
+            "example": "2513400",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "balanceRate": {
+            "description": "잔고 비율 (소수 비율). 상장주식수 대비 잔고 수량. 예: `0.0042` = 0.42%",
+            "example": "0.0042",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "newQuantity": {
+            "description": "신규 수량 (주, 정수)",
+            "example": "125300",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "returnQuantity": {
+            "description": "상환 수량 (주, 정수)",
+            "example": "98200",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "tradingRate": {
+            "description": "공여율 (소수 비율). 매매일의 종목 전체 거래량 중 해당 신용거래 유형의 거래량 비율. 예: `0.09` = 9%",
+            "example": "0.09",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          }
+        },
+        "required": [
+          "newQuantity",
+          "returnQuantity",
+          "balanceQuantity",
+          "balanceRate",
+          "tradingRate"
+        ],
+        "type": "object"
+      },
+      "CreditTradeRecord": {
+        "properties": {
+          "date": {
+            "description": "매매 기준일",
+            "example": "2026-07-16",
+            "format": "date",
+            "type": "string"
+          },
+          "marginLoan": {
+            "description": "신용융자 (돈을 빌려 매수하는 신용거래). 해당 일자의 융자 데이터가 없으면 null",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CreditTradeDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stockLoan": {
+            "description": "신용대주 (주식을 빌려 매도하는 개인 신용거래). 기관 간 대차거래\n(`GET /api/v1/stocks/{symbol}/securities-lending`)와는 다른 데이터입니다.\n해당 일자의 대주 데이터가 없으면 null\n",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CreditTradeDetail"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedAt": {
+            "description": "해당 기록의 마지막 갱신 시각",
+            "example": "2026-07-17T02:35:00+09:00",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "CreditTradesResponse": {
+        "properties": {
+          "nextUntil": {
+            "description": "다음 페이지 조회 기준일. 다음 페이지 조회 시 `until` 쿼리 파라미터에 그대로 전달. 더 이상 데이터가 없으면 null",
+            "example": "2026-07-14",
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "records": {
+            "description": "일별 신용거래 기록 목록 (최신순). 데이터가 없으면 빈 배열",
+            "items": {
+              "$ref": "#/components/schemas/CreditTradeRecord"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "records"
+        ],
+        "type": "object"
+      },
       "Currency": {
         "description": "통화 코드.\n- KRW: 한국 원화\n- USD: 미국 달러\n\n클라이언트는 unknown enum 값을 허용하도록 구현해야 합니다.\n",
         "enum": [
@@ -1196,6 +1382,37 @@
           "rateChangeType",
           "validFrom",
           "validUntil"
+        ],
+        "type": "object"
+      },
+      "ForeignerHolding": {
+        "properties": {
+          "holdingQuantity": {
+            "description": "외국인 보유 주식 수 (주, 정수)",
+            "example": "3012456789",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "holdingRate": {
+            "description": "외국인 보유 비율 (소수 비율). 상장주식수 대비 보유 주식 수. 예: `0.5089` = 50.89%",
+            "example": "0.5089",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "limitQuantity": {
+            "description": "외국인 보유 한도 주식 수 (주, 정수)",
+            "example": "5919637922",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          }
+        },
+        "required": [
+          "holdingQuantity",
+          "limitQuantity",
+          "holdingRate"
         ],
         "type": "object"
       },
@@ -1540,6 +1757,37 @@
         },
         "required": [
           "records"
+        ],
+        "type": "object"
+      },
+      "InvestorTradingVolume": {
+        "properties": {
+          "buyVolume": {
+            "description": "매수 거래량 (주, 정수)",
+            "example": "8412300",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "netBuyVolume": {
+            "description": "순매수 거래량 (주, 정수). 매수 거래량 − 매도 거래량, 음수면 순매도",
+            "example": "291850",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "sellVolume": {
+            "description": "매도 거래량 (주, 정수)",
+            "example": "8120450",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          }
+        },
+        "required": [
+          "buyVolume",
+          "sellVolume",
+          "netBuyVolume"
         ],
         "type": "object"
       },
@@ -2653,6 +2901,93 @@
         ],
         "type": "object"
       },
+      "ProgramTradeRecord": {
+        "properties": {
+          "arbitrage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProgramTradingVolume"
+              }
+            ],
+            "description": "차익거래"
+          },
+          "date": {
+            "description": "매매 기준일",
+            "example": "2026-07-17",
+            "format": "date",
+            "type": "string"
+          },
+          "nonArbitrage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProgramTradingVolume"
+              }
+            ],
+            "description": "비차익거래"
+          }
+        },
+        "required": [
+          "date",
+          "arbitrage",
+          "nonArbitrage"
+        ],
+        "type": "object"
+      },
+      "ProgramTradesResponse": {
+        "properties": {
+          "nextUntil": {
+            "description": "다음 페이지 조회 기준일. 다음 페이지 조회 시 `until` 쿼리 파라미터에 그대로 전달. 더 이상 데이터가 없으면 null",
+            "example": "2026-07-15",
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "records": {
+            "description": "일별 프로그램매매 기록 목록 (최신순). 데이터가 없으면 빈 배열",
+            "items": {
+              "$ref": "#/components/schemas/ProgramTradeRecord"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "records"
+        ],
+        "type": "object"
+      },
+      "ProgramTradingVolume": {
+        "properties": {
+          "buyVolume": {
+            "description": "프로그램 매수 거래량 (주, 정수)",
+            "example": "152300",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "netBuyVolume": {
+            "description": "프로그램 순매수 거래량 (주, 정수). 매수 − 매도, 음수면 순매도",
+            "example": "-31100",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "sellVolume": {
+            "description": "프로그램 매도 거래량 (주, 정수)",
+            "example": "183400",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          }
+        },
+        "required": [
+          "buyVolume",
+          "sellVolume",
+          "netBuyVolume"
+        ],
+        "type": "object"
+      },
       "RankingItem": {
         "properties": {
           "currency": {
@@ -2788,6 +3123,83 @@
         ],
         "type": "object"
       },
+      "SecuritiesLendingRecord": {
+        "properties": {
+          "balanceAmount": {
+            "description": "대차 잔고 금액 (KRW, 정수)",
+            "example": "1218720000000",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "balanceQuantity": {
+            "description": "대차 잔고 수량 (주, 정수)",
+            "example": "15234000",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "date": {
+            "description": "매매 기준일",
+            "example": "2026-07-17",
+            "format": "date",
+            "type": "string"
+          },
+          "executionQuantity": {
+            "description": "대차 체결 수량 (주, 정수)",
+            "example": "210500",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "repaymentQuantity": {
+            "description": "대차 상환 수량 (주, 정수)",
+            "example": "185300",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "updatedAt": {
+            "description": "해당 기록의 마지막 갱신 시각",
+            "example": "2026-07-17T19:03:21+09:00",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "updatedAt",
+          "executionQuantity",
+          "repaymentQuantity",
+          "balanceQuantity",
+          "balanceAmount"
+        ],
+        "type": "object"
+      },
+      "SecuritiesLendingResponse": {
+        "properties": {
+          "nextUntil": {
+            "description": "다음 페이지 조회 기준일. 다음 페이지 조회 시 `until` 쿼리 파라미터에 그대로 전달. 더 이상 데이터가 없으면 null",
+            "example": "2026-07-15",
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "records": {
+            "description": "일별 대차거래 기록 목록 (최신순). 데이터가 없으면 빈 배열",
+            "items": {
+              "$ref": "#/components/schemas/SecuritiesLendingRecord"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "records"
+        ],
+        "type": "object"
+      },
       "SellableQuantityResponse": {
         "properties": {
           "sellableQuantity": {
@@ -2800,6 +3212,87 @@
         },
         "required": [
           "sellableQuantity"
+        ],
+        "type": "object"
+      },
+      "ShortSellingRecord": {
+        "properties": {
+          "date": {
+            "description": "매매 기준일",
+            "example": "2026-07-16",
+            "format": "date",
+            "type": "string"
+          },
+          "shortSellingAmount": {
+            "description": "공매도 거래대금 (KRW, 정수)",
+            "example": "41250000000",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "shortSellingAmountRate": {
+            "description": "공매도 거래대금 비중 (소수 비율, 소수 넷째 자리까지). 해당 일자 전체 거래대금 대비 공매도 거래대금.\n분모인 전체 거래대금은 정규장 외 세션(장전·장후·시간외단일가)을 포함한 당일 누적입니다.\n기준 거래대금 데이터가 없는 날짜는 null, 기준 거래대금이 0 이면 `0`. 예: `0.0318` = 3.18%\n",
+            "example": "0.0318",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "shortSellingVolume": {
+            "description": "공매도 거래량 (주, 정수)",
+            "example": "512300",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "shortSellingVolumeRate": {
+            "description": "공매도 거래량 비중 (소수 비율, 소수 다섯째 자리까지). 해당 일자 전체 거래량 대비 공매도 거래량.\n분모인 전체 거래량은 정규장 외 세션(장전·장후·시간외단일가)을 포함한 당일 누적입니다.\n기준 거래량 데이터가 없는 날짜는 null, 기준 거래량이 0 이면 `0`. 예: `0.03215` = 3.215%\n",
+            "example": "0.03215",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updatedAt": {
+            "description": "해당 기록의 마지막 갱신 시각",
+            "example": "2026-07-16T17:25:43+09:00",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "updatedAt",
+          "shortSellingVolume",
+          "shortSellingAmount"
+        ],
+        "type": "object"
+      },
+      "ShortSellingResponse": {
+        "properties": {
+          "nextUntil": {
+            "description": "다음 페이지 조회 기준일. 다음 페이지 조회 시 `until` 쿼리 파라미터에 그대로 전달. 더 이상 데이터가 없으면 null",
+            "example": "2026-07-15",
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "records": {
+            "description": "일별 공매도 기록 목록 (최신순). 데이터가 없으면 빈 배열",
+            "items": {
+              "$ref": "#/components/schemas/ShortSellingRecord"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "records"
         ],
         "type": "object"
       },
@@ -2931,6 +3424,226 @@
           "status",
           "currency",
           "sharesOutstanding"
+        ],
+        "type": "object"
+      },
+      "StockInstitutionTradingBreakdown": {
+        "description": "기관 세부 7개 분류별 매매 거래량",
+        "properties": {
+          "bank": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvestorTradingVolume"
+              }
+            ],
+            "description": "은행"
+          },
+          "financialInvestment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvestorTradingVolume"
+              }
+            ],
+            "description": "금융투자"
+          },
+          "insurance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvestorTradingVolume"
+              }
+            ],
+            "description": "보험"
+          },
+          "otherFinancialInstitution": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvestorTradingVolume"
+              }
+            ],
+            "description": "기타금융"
+          },
+          "pensionFund": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvestorTradingVolume"
+              }
+            ],
+            "description": "연기금"
+          },
+          "privateEquityFund": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvestorTradingVolume"
+              }
+            ],
+            "description": "사모펀드"
+          },
+          "trust": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvestorTradingVolume"
+              }
+            ],
+            "description": "투신"
+          }
+        },
+        "required": [
+          "financialInvestment",
+          "insurance",
+          "trust",
+          "privateEquityFund",
+          "bank",
+          "otherFinancialInstitution",
+          "pensionFund"
+        ],
+        "type": "object"
+      },
+      "StockInstitutionTradingVolume": {
+        "properties": {
+          "breakdown": {
+            "description": "기관 세부 7개 분류별 거래량. 당일 잠정 기록에는 제공되지 않아 null 이며, 확정치가 반영되는 당일 저녁부터 값이 채워집니다",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StockInstitutionTradingBreakdown"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "buyVolume": {
+            "description": "기관 합계 매수 거래량 (주, 정수). `breakdown` 7개 항목의 `buyVolume` 합과 일치",
+            "example": "1953200",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "netBuyVolume": {
+            "description": "기관 합계 순매수 거래량 (주, 정수). 매수 − 매도, 음수면 순매도. `breakdown` 7개 항목의 `netBuyVolume` 합과 일치",
+            "example": "37900",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "sellVolume": {
+            "description": "기관 합계 매도 거래량 (주, 정수). `breakdown` 7개 항목의 `sellVolume` 합과 일치",
+            "example": "1915300",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          }
+        },
+        "required": [
+          "buyVolume",
+          "sellVolume",
+          "netBuyVolume"
+        ],
+        "type": "object"
+      },
+      "StockInvestorTradingRecord": {
+        "properties": {
+          "cfd": {
+            "description": "CFD(차액결제거래) 잔고 현황. 해당 일자의 잔고 데이터가 아직 반영되지 않았으면 null (다음 영업일 새벽 반영, T+1)",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CfdBalance"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "date": {
+            "description": "매매 기준일",
+            "example": "2026-07-16",
+            "format": "date",
+            "type": "string"
+          },
+          "foreigner": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvestorTradingVolume"
+              }
+            ],
+            "description": "등록외국인. 미등록 외국인은 포함하지 않으며, 시장 지표의 투자자별 매매대금\n(`GET /api/v1/market-indicators/{symbol}/investor-trading`)의 `foreigner`(등록·미등록 합계)와 기준이 다릅니다\n"
+          },
+          "foreignerHolding": {
+            "description": "외국인 보유 현황. 해당 일자의 보유 데이터가 아직 반영되지 않았으면 null (당일 저녁 반영, 다음 영업일 오전 확정 갱신될 수 있음)",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ForeignerHolding"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "individual": {
+            "description": "개인. 당일 잠정 기록에는 개인 잠정치가 제공되지 않아 null 이며, 확정치가 반영되는 당일 저녁부터 값이 채워집니다",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/InvestorTradingVolume"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "institution": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StockInstitutionTradingVolume"
+              }
+            ],
+            "description": "기관 합계"
+          },
+          "otherCorporation": {
+            "description": "기타법인. 당일 잠정 기록에는 제공되지 않아 null 이며, 확정치가 반영되는 당일 저녁부터 값이 채워집니다",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/InvestorTradingVolume"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updatedAt": {
+            "description": "기록 전체의 마지막 갱신 시각 (투자자별 매매동향과 `foreignerHolding`·`cfd` 반영 포함).\n당일 기록은 장중 잠정치로 계속 갱신되며, `cfd` 반영(T+1)과 외국인 보유 확정 갱신으로\n다음 영업일에도 갱신될 수 있습니다.\n",
+            "example": "2026-07-16T17:29:12+09:00",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "updatedAt",
+          "foreigner",
+          "institution"
+        ],
+        "type": "object"
+      },
+      "StockInvestorTradingResponse": {
+        "properties": {
+          "nextUntil": {
+            "description": "다음 페이지 조회 기준일. 다음 페이지 조회 시 `until` 쿼리 파라미터에 그대로 전달. 더 이상 데이터가 없으면 null",
+            "example": "2026-07-15",
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "records": {
+            "description": "일별 투자자 매매동향 기록 목록 (최신순). 데이터가 없으면 빈 배열",
+            "items": {
+              "$ref": "#/components/schemas/StockInvestorTradingRecord"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "records"
         ],
         "type": "object"
       },
@@ -3199,7 +3912,7 @@
   },
   "info": {
     "title": "토스증권 Open API",
-    "version": "1.2.9"
+    "version": "1.2.13"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -8573,6 +9286,959 @@
         ]
       }
     },
+    "/api/v1/stocks/{symbol}/credit-trades": {
+      "get": {
+        "description": "국내(KR) 종목의 신용거래 동향을 일별 시계열로 조회합니다. 신용융자(`marginLoan`)·신용대주(`stockLoan`)\n각각의 신규·상환·잔고 수량과 잔고 비율·공여율을 최신순으로 제공합니다.\n\n- 국내(KR) 종목만 지원합니다. 다른 시장의 종목은 400 `unsupported-market` 으로 응답합니다.\n- 자기신용과 유통금융을 합산한 값이며, 모든 수량은 주식 수(주) 정수입니다.\n- `stockLoan`(신용대주)은 주식을 빌려 매도하는 개인 신용거래입니다. 기관 간 대차거래\n  (`GET /api/v1/stocks/{symbol}/securities-lending`)와는 다른 데이터입니다.\n- 해당 일자에 융자·대주 중 한쪽 데이터만 있으면 없는 쪽 객체는 null 입니다.\n- 다음 페이지는 응답의 `nextUntil` 값을 `until` 파라미터로 전달해 조회합니다.\n\n**데이터 적시성**: 다음 영업일 새벽에 반영됩니다(T+1). 최신 기록은 전 영업일입니다.\n\n**Rate Limits Group**: `STOCK_TRADING_TREND`\n",
+        "operationId": "getStockCreditTrades",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KrSymbol"
+          },
+          {
+            "description": "조회 수 (최대 100)",
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "조회 기준일 (inclusive, `YYYY-MM-DD`). 이 날짜까지의 데이터를 최신순으로 `count` 개 반환합니다.\n미지정 시 가장 최신 데이터부터 반환. 다음 페이지 요청 시 이전 응답의 `nextUntil` 값을 그대로 전달합니다.\n",
+            "example": "2026-07-16",
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "daily": {
+                    "summary": "일별 신용거래 (count=2)",
+                    "value": {
+                      "result": {
+                        "nextUntil": "2026-07-14",
+                        "records": [
+                          {
+                            "date": "2026-07-16",
+                            "marginLoan": {
+                              "balanceQuantity": "2513400",
+                              "balanceRate": "0.0042",
+                              "newQuantity": "125300",
+                              "returnQuantity": "98200",
+                              "tradingRate": "0.09"
+                            },
+                            "stockLoan": {
+                              "balanceQuantity": "45200",
+                              "balanceRate": "0.0001",
+                              "newQuantity": "5200",
+                              "returnQuantity": "3100",
+                              "tradingRate": "0.0004"
+                            },
+                            "updatedAt": "2026-07-17T02:35:00+09:00"
+                          },
+                          {
+                            "date": "2026-07-15",
+                            "marginLoan": {
+                              "balanceQuantity": "2486300",
+                              "balanceRate": "0.0042",
+                              "newQuantity": "110200",
+                              "returnQuantity": "132400",
+                              "tradingRate": "0.085"
+                            },
+                            "stockLoan": {
+                              "balanceQuantity": "43100",
+                              "balanceRate": "0.0001",
+                              "newQuantity": "4100",
+                              "returnQuantity": "5300",
+                              "tradingRate": "0.0003"
+                            },
+                            "updatedAt": "2026-07-16T02:34:12+09:00"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "noData": {
+                    "summary": "조회 범위에 데이터 없음 (records 빈 배열, nextUntil null)",
+                    "value": {
+                      "result": {
+                        "nextUntil": null,
+                        "records": []
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/CreditTradesResponse"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "성공"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalidCount": {
+                    "summary": "count 가 허용 범위(1~100)를 벗어남",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "constraint": {
+                            "max": 100,
+                            "min": 1
+                          },
+                          "field": "count"
+                        },
+                        "message": "요청이 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
+                  "unsupportedMarket": {
+                    "summary": "국내(KR) 종목이 아님",
+                    "value": {
+                      "error": {
+                        "code": "unsupported-market",
+                        "data": {
+                          "allowedConditions": {
+                            "marketCountry": [
+                              "KR"
+                            ]
+                          },
+                          "field": "symbol"
+                        },
+                        "message": "지원하지 않는 시장의 종목입니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "잘못된 요청"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalErrorTradingTrend"
+          }
+        },
+        "security": [
+          {
+            "oauth2ClientCredentials": []
+          }
+        ],
+        "summary": "신용거래 동향 조회",
+        "tags": [
+          "Stock Info"
+        ]
+      }
+    },
+    "/api/v1/stocks/{symbol}/investor-trading": {
+      "get": {
+        "description": "국내(KR) 종목의 투자자별 매매동향을 일별 거래량 시계열로 조회합니다. 개인·외국인·기관·기타법인\n4개 투자자 분류의 매수·매도·순매수 거래량을 최신순으로 제공하며, 기관은 7개 세부 분류(`breakdown`)를\n함께 제공합니다. 외국인 보유 현황(`foreignerHolding`)과 CFD 잔고(`cfd`)도 일자별로 포함합니다.\n\n- 국내(KR) 종목만 지원합니다. 다른 시장의 종목은 400 `unsupported-market` 으로 응답합니다.\n- 거래량은 KRX·NXT 통합 기준이며, 모든 수량은 주식 수(주) 정수입니다. 순매수(`netBuyVolume`)는\n  매수 − 매도로 계산되며 음수면 순매도입니다. 거래대금(금액) 축은 제공하지 않습니다.\n- `foreigner` 는 등록외국인 기준입니다. 시장 지표의 투자자별 매매대금\n  (`GET /api/v1/market-indicators/{symbol}/investor-trading`, 등록·미등록 합계)과 기준이 다릅니다.\n- 당일 기록은 장중 잠정치로 제공합니다. 잠정치가 제공되지 않는 `individual`(개인)·\n  `institution.breakdown`(기관 세부)·`otherCorporation`(기타법인)·`foreignerHolding`(외국인 보유)·\n  `cfd`(CFD 잔고)는 null 이며, `updatedAt` 으로 마지막 갱신 시각을 확인할 수 있습니다.\n- 다음 페이지는 응답의 `nextUntil` 값을 `until` 파라미터로 전달해 조회합니다.\n\n**데이터 적시성**: 하나의 일자 기록은 시간에 걸쳐 완성됩니다. 투자자별 매매동향 확정치와\n외국인 보유(`foreignerHolding`)는 해당 일자 저녁에 반영됩니다. CFD 잔고(`cfd`)는 다음 영업일 새벽(T+1)에\n반영되며, 외국인 보유는 다음 영업일 오전에 확정치로 한 번 더 갱신될 수 있습니다.\n`updatedAt` 은 이 모든 반영을 포함한 기록 전체의 마지막 갱신 시각입니다.\n\n**Rate Limits Group**: `STOCK_TRADING_TREND`\n",
+        "operationId": "getStockInvestorTrading",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KrSymbol"
+          },
+          {
+            "description": "조회 수 (최대 100)",
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "조회 기준일 (inclusive, `YYYY-MM-DD`). 이 날짜까지의 데이터를 최신순으로 `count` 개 반환합니다.\n미지정 시 가장 최신 데이터부터 반환. 다음 페이지 요청 시 이전 응답의 `nextUntil` 값을 그대로 전달합니다.\n",
+            "example": "2026-07-16",
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "daily": {
+                    "summary": "당일 잠정 기록 + 확정 기록 (count=2)",
+                    "value": {
+                      "result": {
+                        "nextUntil": "2026-07-15",
+                        "records": [
+                          {
+                            "cfd": null,
+                            "date": "2026-07-17",
+                            "foreigner": {
+                              "buyVolume": "2105300",
+                              "netBuyVolume": "119900",
+                              "sellVolume": "1985400"
+                            },
+                            "foreignerHolding": null,
+                            "individual": null,
+                            "institution": {
+                              "breakdown": null,
+                              "buyVolume": "910200",
+                              "netBuyVolume": "-113200",
+                              "sellVolume": "1023400"
+                            },
+                            "otherCorporation": null,
+                            "updatedAt": "2026-07-17T14:35:08+09:00"
+                          },
+                          {
+                            "cfd": {
+                              "buyBalanceQuantity": "1250000",
+                              "buyBalanceRate": "0.0002",
+                              "sellBalanceQuantity": "890000",
+                              "sellBalanceRate": "0.0001"
+                            },
+                            "date": "2026-07-16",
+                            "foreigner": {
+                              "buyVolume": "4210500",
+                              "netBuyVolume": "-319700",
+                              "sellVolume": "4530200"
+                            },
+                            "foreignerHolding": {
+                              "holdingQuantity": "3012456789",
+                              "holdingRate": "0.5089",
+                              "limitQuantity": "5919637922"
+                            },
+                            "individual": {
+                              "buyVolume": "8412300",
+                              "netBuyVolume": "291850",
+                              "sellVolume": "8120450"
+                            },
+                            "institution": {
+                              "breakdown": {
+                                "bank": {
+                                  "buyVolume": "15200",
+                                  "netBuyVolume": "2800",
+                                  "sellVolume": "12400"
+                                },
+                                "financialInvestment": {
+                                  "buyVolume": "1203400",
+                                  "netBuyVolume": "53200",
+                                  "sellVolume": "1150200"
+                                },
+                                "insurance": {
+                                  "buyVolume": "45000",
+                                  "netBuyVolume": "-7300",
+                                  "sellVolume": "52300"
+                                },
+                                "otherFinancialInstitution": {
+                                  "buyVolume": "8700",
+                                  "netBuyVolume": "-2600",
+                                  "sellVolume": "11300"
+                                },
+                                "pensionFund": {
+                                  "buyVolume": "350100",
+                                  "netBuyVolume": "-52700",
+                                  "sellVolume": "402800"
+                                },
+                                "privateEquityFund": {
+                                  "buyVolume": "210300",
+                                  "netBuyVolume": "22700",
+                                  "sellVolume": "187600"
+                                },
+                                "trust": {
+                                  "buyVolume": "120500",
+                                  "netBuyVolume": "21800",
+                                  "sellVolume": "98700"
+                                }
+                              },
+                              "buyVolume": "1953200",
+                              "netBuyVolume": "37900",
+                              "sellVolume": "1915300"
+                            },
+                            "otherCorporation": {
+                              "buyVolume": "98200",
+                              "netBuyVolume": "-14200",
+                              "sellVolume": "112400"
+                            },
+                            "updatedAt": "2026-07-17T09:12:43+09:00"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "noData": {
+                    "summary": "조회 범위에 데이터 없음 (records 빈 배열, nextUntil null)",
+                    "value": {
+                      "result": {
+                        "nextUntil": null,
+                        "records": []
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/StockInvestorTradingResponse"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "성공"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalidCount": {
+                    "summary": "count 가 허용 범위(1~100)를 벗어남",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "constraint": {
+                            "max": 100,
+                            "min": 1
+                          },
+                          "field": "count"
+                        },
+                        "message": "요청이 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
+                  "unsupportedMarket": {
+                    "summary": "국내(KR) 종목이 아님",
+                    "value": {
+                      "error": {
+                        "code": "unsupported-market",
+                        "data": {
+                          "allowedConditions": {
+                            "marketCountry": [
+                              "KR"
+                            ]
+                          },
+                          "field": "symbol"
+                        },
+                        "message": "지원하지 않는 시장의 종목입니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "잘못된 요청"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalErrorTradingTrend"
+          }
+        },
+        "security": [
+          {
+            "oauth2ClientCredentials": []
+          }
+        ],
+        "summary": "투자자별 매매동향 조회",
+        "tags": [
+          "Stock Info"
+        ]
+      }
+    },
+    "/api/v1/stocks/{symbol}/program-trades": {
+      "get": {
+        "description": "국내(KR) 종목의 프로그램매매 동향을 일별 거래량 시계열로 조회합니다. 차익거래(`arbitrage`)·\n비차익거래(`nonArbitrage`) 각각의 매수·매도·순매수 거래량을 최신순으로 제공합니다.\n\n- 국내(KR) 종목만 지원합니다. 다른 시장의 종목은 400 `unsupported-market` 으로 응답합니다.\n- KRX 시장 거래만 집계하며 NXT 거래는 포함하지 않습니다. 모든 수량은 주식 수(주) 정수입니다.\n  순매수(`netBuyVolume`)는 매수 − 매도로 계산되며 음수면 순매도입니다. 거래대금(금액) 축은 제공하지 않습니다.\n- 다음 페이지는 응답의 `nextUntil` 값을 `until` 파라미터로 전달해 조회합니다.\n\n**데이터 적시성**: 당일 기록도 제공되며, 장 종료 전까지 갱신될 수 있습니다.\n\n**Rate Limits Group**: `STOCK_TRADING_TREND`\n",
+        "operationId": "getStockProgramTrades",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KrSymbol"
+          },
+          {
+            "description": "조회 수 (최대 100)",
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "조회 기준일 (inclusive, `YYYY-MM-DD`). 이 날짜까지의 데이터를 최신순으로 `count` 개 반환합니다.\n미지정 시 가장 최신 데이터부터 반환. 다음 페이지 요청 시 이전 응답의 `nextUntil` 값을 그대로 전달합니다.\n",
+            "example": "2026-07-16",
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "daily": {
+                    "summary": "일별 프로그램매매 (count=2)",
+                    "value": {
+                      "result": {
+                        "nextUntil": "2026-07-15",
+                        "records": [
+                          {
+                            "arbitrage": {
+                              "buyVolume": "152300",
+                              "netBuyVolume": "-31100",
+                              "sellVolume": "183400"
+                            },
+                            "date": "2026-07-17",
+                            "nonArbitrage": {
+                              "buyVolume": "1210500",
+                              "netBuyVolume": "105300",
+                              "sellVolume": "1105200"
+                            }
+                          },
+                          {
+                            "arbitrage": {
+                              "buyVolume": "98700",
+                              "netBuyVolume": "-21700",
+                              "sellVolume": "120400"
+                            },
+                            "date": "2026-07-16",
+                            "nonArbitrage": {
+                              "buyVolume": "1350200",
+                              "netBuyVolume": "51800",
+                              "sellVolume": "1298400"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "noData": {
+                    "summary": "조회 범위에 데이터 없음 (records 빈 배열, nextUntil null)",
+                    "value": {
+                      "result": {
+                        "nextUntil": null,
+                        "records": []
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/ProgramTradesResponse"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "성공"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalidCount": {
+                    "summary": "count 가 허용 범위(1~100)를 벗어남",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "constraint": {
+                            "max": 100,
+                            "min": 1
+                          },
+                          "field": "count"
+                        },
+                        "message": "요청이 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
+                  "unsupportedMarket": {
+                    "summary": "국내(KR) 종목이 아님",
+                    "value": {
+                      "error": {
+                        "code": "unsupported-market",
+                        "data": {
+                          "allowedConditions": {
+                            "marketCountry": [
+                              "KR"
+                            ]
+                          },
+                          "field": "symbol"
+                        },
+                        "message": "지원하지 않는 시장의 종목입니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "잘못된 요청"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalErrorTradingTrend"
+          }
+        },
+        "security": [
+          {
+            "oauth2ClientCredentials": []
+          }
+        ],
+        "summary": "프로그램매매 동향 조회",
+        "tags": [
+          "Stock Info"
+        ]
+      }
+    },
+    "/api/v1/stocks/{symbol}/securities-lending": {
+      "get": {
+        "description": "국내(KR) 종목의 대차거래 동향을 일별 시계열로 조회합니다. 대차 체결·상환·잔고 수량과\n잔고 금액을 최신순으로 제공합니다.\n\n- 국내(KR) 종목만 지원합니다. 다른 시장의 종목은 400 `unsupported-market` 으로 응답합니다.\n- 모든 금액은 원화(KRW)이며, 별도의 통화 필드는 제공하지 않습니다.\n- 대차거래는 기관 투자자 간 주식 대여·차입 거래입니다. 주식을 빌려 매도하는 개인 신용거래인\n  신용대주(`GET /api/v1/stocks/{symbol}/credit-trades` 의 `stockLoan`)와는 다른 데이터입니다.\n- 다음 페이지는 응답의 `nextUntil` 값을 `until` 파라미터로 전달해 조회합니다.\n\n**데이터 적시성**: 일별 확정치는 해당 일자 저녁에 반영됩니다.\n\n**Rate Limits Group**: `STOCK_TRADING_TREND`\n",
+        "operationId": "getStockSecuritiesLending",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KrSymbol"
+          },
+          {
+            "description": "조회 수 (최대 100)",
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "조회 기준일 (inclusive, `YYYY-MM-DD`). 이 날짜까지의 데이터를 최신순으로 `count` 개 반환합니다.\n미지정 시 가장 최신 데이터부터 반환. 다음 페이지 요청 시 이전 응답의 `nextUntil` 값을 그대로 전달합니다.\n",
+            "example": "2026-07-16",
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "daily": {
+                    "summary": "일별 대차거래 (count=2)",
+                    "value": {
+                      "result": {
+                        "nextUntil": "2026-07-15",
+                        "records": [
+                          {
+                            "balanceAmount": "1218720000000",
+                            "balanceQuantity": "15234000",
+                            "date": "2026-07-17",
+                            "executionQuantity": "210500",
+                            "repaymentQuantity": "185300",
+                            "updatedAt": "2026-07-17T19:03:21+09:00"
+                          },
+                          {
+                            "balanceAmount": "1216704000000",
+                            "balanceQuantity": "15208800",
+                            "date": "2026-07-16",
+                            "executionQuantity": "198200",
+                            "repaymentQuantity": "201400",
+                            "updatedAt": "2026-07-16T19:02:45+09:00"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "noData": {
+                    "summary": "조회 범위에 데이터 없음 (records 빈 배열, nextUntil null)",
+                    "value": {
+                      "result": {
+                        "nextUntil": null,
+                        "records": []
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/SecuritiesLendingResponse"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "성공"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalidCount": {
+                    "summary": "count 가 허용 범위(1~100)를 벗어남",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "constraint": {
+                            "max": 100,
+                            "min": 1
+                          },
+                          "field": "count"
+                        },
+                        "message": "요청이 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
+                  "unsupportedMarket": {
+                    "summary": "국내(KR) 종목이 아님",
+                    "value": {
+                      "error": {
+                        "code": "unsupported-market",
+                        "data": {
+                          "allowedConditions": {
+                            "marketCountry": [
+                              "KR"
+                            ]
+                          },
+                          "field": "symbol"
+                        },
+                        "message": "지원하지 않는 시장의 종목입니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "잘못된 요청"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalErrorTradingTrend"
+          }
+        },
+        "security": [
+          {
+            "oauth2ClientCredentials": []
+          }
+        ],
+        "summary": "대차거래 동향 조회",
+        "tags": [
+          "Stock Info"
+        ]
+      }
+    },
+    "/api/v1/stocks/{symbol}/short-selling": {
+      "get": {
+        "description": "국내(KR) 종목의 공매도 동향을 일별 시계열로 조회합니다. 공매도 거래량·거래대금과 함께\n해당 일자 전체 거래량·거래대금 대비 공매도 비중을 최신순으로 제공합니다.\n\n- 국내(KR) 종목만 지원합니다. 다른 시장의 종목은 400 `unsupported-market` 으로 응답합니다.\n- 모든 금액은 원화(KRW)이며, 별도의 통화 필드는 제공하지 않습니다.\n- 비중(`shortSellingVolumeRate`·`shortSellingAmountRate`)의 분모는 정규장 외 세션\n  (장전·장후·시간외단일가)을 포함한 해당 일자 누적 거래량·거래대금입니다.\n  분모 데이터가 없는 날짜는 비중이 null, 분모가 0 이면 `0` 입니다.\n- 다음 페이지는 응답의 `nextUntil` 값을 `until` 파라미터로 전달해 조회합니다.\n\n**데이터 적시성**: 일별 확정치는 해당 일자 저녁에 반영됩니다.\n\n**Rate Limits Group**: `STOCK_TRADING_TREND`\n",
+        "operationId": "getStockShortSelling",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KrSymbol"
+          },
+          {
+            "description": "조회 수 (최대 100)",
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "조회 기준일 (inclusive, `YYYY-MM-DD`). 이 날짜까지의 데이터를 최신순으로 `count` 개 반환합니다.\n미지정 시 가장 최신 데이터부터 반환. 다음 페이지 요청 시 이전 응답의 `nextUntil` 값을 그대로 전달합니다.\n",
+            "example": "2026-07-16",
+            "in": "query",
+            "name": "until",
+            "required": false,
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "daily": {
+                    "summary": "일별 공매도 (count=2)",
+                    "value": {
+                      "result": {
+                        "nextUntil": "2026-07-14",
+                        "records": [
+                          {
+                            "date": "2026-07-16",
+                            "shortSellingAmount": "41250000000",
+                            "shortSellingAmountRate": "0.0318",
+                            "shortSellingVolume": "512300",
+                            "shortSellingVolumeRate": "0.03215",
+                            "updatedAt": "2026-07-16T17:25:43+09:00"
+                          },
+                          {
+                            "date": "2026-07-15",
+                            "shortSellingAmount": "33980000000",
+                            "shortSellingAmountRate": "0.0281",
+                            "shortSellingVolume": "423100",
+                            "shortSellingVolumeRate": "0.02871",
+                            "updatedAt": "2026-07-15T17:26:02+09:00"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "noData": {
+                    "summary": "조회 범위에 데이터 없음 (records 빈 배열, nextUntil null)",
+                    "value": {
+                      "result": {
+                        "nextUntil": null,
+                        "records": []
+                      }
+                    }
+                  },
+                  "rateUnavailable": {
+                    "summary": "분모(전체 거래량·거래대금) 데이터가 없어 비중이 null 인 날짜",
+                    "value": {
+                      "result": {
+                        "nextUntil": null,
+                        "records": [
+                          {
+                            "date": "2026-07-15",
+                            "shortSellingAmount": "33980000000",
+                            "shortSellingAmountRate": null,
+                            "shortSellingVolume": "423100",
+                            "shortSellingVolumeRate": null,
+                            "updatedAt": "2026-07-15T17:26:02+09:00"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/ShortSellingResponse"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "성공"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalidCount": {
+                    "summary": "count 가 허용 범위(1~100)를 벗어남",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "constraint": {
+                            "max": 100,
+                            "min": 1
+                          },
+                          "field": "count"
+                        },
+                        "message": "요청이 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
+                  "unsupportedMarket": {
+                    "summary": "국내(KR) 종목이 아님",
+                    "value": {
+                      "error": {
+                        "code": "unsupported-market",
+                        "data": {
+                          "allowedConditions": {
+                            "marketCountry": [
+                              "KR"
+                            ]
+                          },
+                          "field": "symbol"
+                        },
+                        "message": "지원하지 않는 시장의 종목입니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "잘못된 요청"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalErrorTradingTrend"
+          }
+        },
+        "security": [
+          {
+            "oauth2ClientCredentials": []
+          }
+        ],
+        "summary": "공매도 동향 조회",
+        "tags": [
+          "Stock Info"
+        ]
+      }
+    },
     "/api/v1/stocks/{symbol}/warnings": {
       "get": {
         "description": "종목의 매수 유의사항 및 변동성 완화(VI) 발동 정보를 조회합니다.\n\n**포함 종류**: 정리매매(`LIQUIDATION_TRADING`), 단기과열종목(`OVERHEATED`), 투자경고(`INVESTMENT_WARNING`), 투자위험(`INVESTMENT_RISK`), VI 정적/동적/혼합(`VI_STATIC` / `VI_DYNAMIC` / `VI_STATIC_AND_DYNAMIC`), 신주인수권(`STOCK_WARRANTS`). 전체 enum 은 `StockWarning.warningType` 참조.\n\n**\"활성\"의 시간 기준**: 응답 시점 기준으로 `startDate <= 오늘 <= endDate` 인 항목 (또는 `endDate` 가 `null` 인 진행 중 항목).\n\n**응답 정렬**: `startDate` 내림차순 (최근 발동된 항목부터). `startDate` 가 동일한 경우 정렬 순서는 보장되지 않습니다.\n\n**데이터 적시성**: VI 발동/해제는 거래소 이벤트 발생 후 수 초 내 반영됩니다. 정리매매·단기과열·투자경고/위험 지정은 거래소 공시 기준 일배치로 반영됩니다.\n\n**미존재 vs 빈 배열**:\n- 종목 자체가 없으면 `404 stock-not-found`.\n- 종목은 있으나 활성 유의사항이 없으면 `200 OK` + `result: []`.\n\n**Rate Limits Group**: `STOCK`\n",
@@ -8906,7 +10572,7 @@
       "name": "Market Data"
     },
     {
-      "description": "종목명·시장·통화·상장 상태·발행주식수 등 종목의 기본 참조 정보와 매수 유의사항을 제공하는 그룹입니다. 정리매매·단기과열·투자경고/위험·VI 발동·신주인수권 같은 매수 시 주의가 필요한 정보도 조회할 수 있습니다. 응답은 영업일 단위(또는 그 이상)로 갱신되는 데이터이므로 짧은 주기로 폴링하지 말고 화면·세션 진입 시점에 한 번 캐시해 사용하기를 권장합니다.",
+      "description": "종목명·시장·통화·상장 상태·발행주식수 등 종목의 기본 참조 정보와 매수 유의사항, 그리고 국내(KR) 종목의 수급 동향(투자자별 매매동향·프로그램매매·공매도·신용거래·대차거래)을 제공하는 그룹입니다. 기본 참조 정보와 매수 유의사항은 영업일 단위(또는 그 이상)로 갱신되므로 짧은 주기로 폴링하지 말고 화면·세션 진입 시점에 한 번 캐시해 사용하기를 권장합니다. 수급 동향 시계열은 데이터별로 반영 시점이 다르므로(장중 잠정치 ~ T+1) 각 엔드포인트 설명의 데이터 적시성 안내를 참조하세요.",
       "name": "Stock Info"
     },
     {
