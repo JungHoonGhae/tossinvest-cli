@@ -1,11 +1,11 @@
 {
   "source": "tossinvest.com web bundles",
-  "build_id": "-owfs18fvEJHIHRdmooMq",
-  "chunk_count": 81,
+  "build_id": "_9vWo9cLoNnz5P1aQeayp",
+  "chunk_count": 80,
   "total": 988,
   "counts": {
-    "implemented": 112,
-    "candidate": 366,
+    "implemented": 101,
+    "candidate": 377,
     "excluded": 510,
     "candidate_next": 20,
     "meaningful": 478
@@ -895,6 +895,7 @@
     },
     "/api/v1/asset-snapshot/detail-by-date": {
       "status": "candidate",
+      "note": "웹 화면 없음 — /account/asset 캡처에서 미관측 (2026-08-04)",
       "first_seen": "2026-07-13",
       "probe": {
         "at": "2026-08-03",
@@ -905,6 +906,7 @@
     },
     "/api/v1/asset-snapshot/page": {
       "status": "candidate",
+      "note": "웹 화면 없음 — /account/asset 을 라이브로 열어도 호출되지 않는다 (2026-08-04 캡처). 모바일 전용으로 보인다",
       "first_seen": "2026-07-13",
       "probe": {
         "at": "2026-08-03",
@@ -1152,7 +1154,15 @@
     },
     "/api/v1/bond-infos": {
       "status": "candidate",
+      "note": "채권: 파라미터 확정 — GET ?guid= (INFO). guid 출처가 보유 포지션뿐이라 응답 미관측. 이슈 #143, 트리거 = 계좌에 채권 보유 발생",
       "first_seen": "2026-08-03",
+      "probe": {
+        "at": "2026-08-04",
+        "host": "wts-info-api",
+        "method": "GET",
+        "status": 400,
+        "verdict": "needs-params"
+      },
       "observed": {
         "method": "GET",
         "host": "wts-info-api",
@@ -1162,19 +1172,19 @@
         "body": [],
         "at": "2026-08-04",
         "source": "bundle-literal: pages/bonds/[guid] — FH.get(`${INFO}/api/v1/bond-infos`,{params:{guid}})"
-      },
-      "note": "채권: 호출법은 확정됐으나 guid 출처가 보유 포지션뿐이라 응답 미관측. 트리거 = 계좌에 채권 보유 발생",
+      }
+    },
+    "/api/v1/bond-infos/simple": {
+      "status": "candidate",
+      "note": "채권 목록: GET ?guids= (복수, INFO). 이슈 #143 과 같은 트리거",
+      "first_seen": "2026-08-03",
       "probe": {
         "at": "2026-08-04",
         "host": "wts-info-api",
         "method": "GET",
         "status": 400,
         "verdict": "needs-params"
-      }
-    },
-    "/api/v1/bond-infos/simple": {
-      "status": "candidate",
-      "first_seen": "2026-08-03",
+      },
       "observed": {
         "method": "GET",
         "host": "wts-info-api",
@@ -1184,14 +1194,6 @@
         "body": [],
         "at": "2026-08-04",
         "source": "bundle-literal: 같은 청크 — qs.stringify({guids},{arrayFormat:'repeat'}) 로 반복 파라미터"
-      },
-      "note": "채권: 호출법은 확정됐으나 guid 출처가 보유 포지션뿐이라 응답 미관측. 트리거 = 계좌에 채권 보유 발생",
-      "probe": {
-        "at": "2026-08-04",
-        "host": "wts-info-api",
-        "method": "GET",
-        "status": 400,
-        "verdict": "needs-params"
       }
     },
     "/api/v1/c-chart": {
@@ -1530,6 +1532,7 @@
     },
     "/api/v1/community/profile/top-ranking": {
       "status": "candidate",
+      "note": "observed query = limit + type (2026-08-03 스윕). type 어휘 미상이라 limit 만으론 400",
       "first_seen": "2026-07-13",
       "probe": {
         "at": "2026-08-03",
@@ -1592,7 +1595,7 @@
       }
     },
     "/api/v1/crypto-prices": {
-      "status": "implemented",
+      "status": "candidate",
       "priority": "next",
       "note": "가상자산 시세",
       "first_seen": "2026-06-19"
@@ -1610,6 +1613,7 @@
     },
     "/api/v1/dashboard/asset/sections/all": {
       "status": "candidate",
+      "note": "thin: sections 빈 배열 (CERT, POST {types}). 200 이지만 내용 없음 (2026-08-04)",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -1641,17 +1645,18 @@
     },
     "/api/v1/dashboard/common/ongoing-events/all": {
       "status": "candidate",
+      "note": "토스증권 이벤트 배너 — 마케팅 표면이라 스코프 밖",
       "first_seen": "2026-06-29",
       "probe": {
         "at": "2026-08-03",
         "host": "wts-info-api",
         "status": 200,
         "verdict": "worth-review"
-      },
-      "note": "토스증권 이벤트 배너 — 마케팅 표면이라 스코프 밖"
+      }
     },
     "/api/v1/dashboard/common/stocks/mini-chart": {
       "status": "candidate",
+      "note": "다종목 미니차트 (CERT, POST {codes:[]}, 1일 10분봉). 200 확인 2026-08-04. quote batch --chart 가 종목마다 GetChart 를 N번 부르는 걸 1요청으로 줄일 수 있으나, 측정된 성능 문제가 없어 보류 — v3/stock-prices 와 같은 판단",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -1811,7 +1816,7 @@
       }
     },
     "/api/v1/dashboard/wts/overview/signals": {
-      "status": "implemented",
+      "status": "candidate",
       "first_seen": "2026-06-19"
     },
     "/api/v1/dashboard/wts/overview/tics": {
@@ -1828,6 +1833,7 @@
     },
     "/api/v1/dashboard/wts/overview/trading-info": {
       "status": "candidate",
+      "note": "thin: marketOpen 이 전부 null, market hours 와 중복 (2026-08-04 라이브)",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -1841,8 +1847,7 @@
         "query": [],
         "body": [],
         "at": "2026-08-03"
-      },
-      "note": "thin: marketOpen 이 전부 null, market hours 와 중복 (2026-08-04 라이브)"
+      }
     },
     "/api/v1/delayed-transfer/schedules": {
       "status": "candidate",
@@ -1913,8 +1918,8 @@
     },
     "/api/v1/earning-call/major-companies": {
       "status": "candidate",
-      "priority": "next",
       "note": "실적발표(어닝콜) 일정",
+      "priority": "next",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -1929,8 +1934,8 @@
     },
     "/api/v1/earning-call/user-based": {
       "status": "candidate",
-      "priority": "next",
       "note": "실적발표(어닝콜) 일정",
+      "priority": "next",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -1981,6 +1986,7 @@
     },
     "/api/v1/exchange/calculate/for-buy-amount": {
       "status": "candidate",
+      "note": "환전 계산 (POST). 레지스트리는 host=launcher 인데 실제 호출부는 DEFAULT(wts-api) 를 쓴다. 라이브 403 — accountKey 헤더/권한 필요. 보류",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -1991,6 +1997,7 @@
     },
     "/api/v1/exchange/calculate/for-sell-amount": {
       "status": "candidate",
+      "note": "for-buy-amount 와 동일 계열. 보류 (403)",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -2305,8 +2312,8 @@
     },
     "/api/v1/lending/revenue/account/summary": {
       "status": "candidate",
-      "priority": "next",
       "note": "대주(주식대여) 수익",
+      "priority": "next",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -2448,7 +2455,7 @@
       }
     },
     "/api/v1/margin/cert/notice/receivable": {
-      "status": "implemented",
+      "status": "candidate",
       "first_seen": "2026-06-19"
     },
     "/api/v1/mds/broker/trading-ranking": {
@@ -2474,6 +2481,7 @@
     },
     "/api/v1/mds/info/trading-trend": {
       "status": "candidate",
+      "note": "공식 Open API 가 대체한다 — 1.2.13(2026-08-07)의 /api/v1/stocks/{symbol}/investor-trading 이 같은 데이터를 문서화된 커서 페이징으로 준다. quote supply --type investor 로 구현됨. 파라미터 추적 중단",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -2986,6 +2994,7 @@
     },
     "/api/v1/my-assets/transfer-income/overseas/summary": {
       "status": "candidate",
+      "note": "host=launcher — wts-api/info/cert 셋이 아닌 네 번째 호스트다. client.Config 에 launcher 가 없어 현재 호출 불가",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -3180,11 +3189,12 @@
       }
     },
     "/api/v1/option-both-chain/get-all": {
-      "status": "implemented",
+      "status": "candidate",
       "first_seen": "2026-06-19"
     },
     "/api/v1/option-chain/get-all": {
       "status": "candidate",
+      "note": "underlyingGuid+maturityDate 로도 400 MissingServletRequestParameter — 파라미터가 더 필요하다. option-both-chain/get-all 이 콜/풋을 한 번에 주므로 이쪽으로 충분 (2026-08-04)",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -3195,6 +3205,7 @@
     },
     "/api/v1/option-infos/default-chart-option": {
       "status": "candidate",
+      "note": "차트 UI 기본 설정 (INFO, GET ?underlyingGuid=). 프로차트 화면 전용이라 CLI 가치 없음",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -3204,7 +3215,7 @@
       }
     },
     "/api/v1/option-maturity-date/get-all": {
-      "status": "implemented",
+      "status": "candidate",
       "first_seen": "2026-06-19"
     },
     "/api/v1/orders": {
@@ -3324,6 +3335,7 @@
     },
     "/api/v1/prime/benefits/interest/simulate": {
       "status": "candidate",
+      "note": "400/404. 파라미터명 미상 (2026-08-04)",
       "first_seen": "2026-06-29",
       "probe": {
         "at": "2026-08-03",
@@ -3444,6 +3456,7 @@
     },
     "/api/v1/product/exchange-rate": {
       "status": "candidate",
+      "note": "중복: exchange/usd/base-exchange-rate 와 overview/exchange-rates 가 이미 구현됨",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -4215,25 +4228,25 @@
     },
     "/api/v1/ria-calculator/withdrawable-amounts": {
       "status": "candidate",
+      "note": "RIA 인출가능액: 라이브 500 (2026-08-04). 서버 오류로 보류",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
         "host": "wts-info-api",
         "status": 500,
         "verdict": "http-500"
-      },
-      "note": "RIA 인출가능액: 라이브 500 (2026-08-04). 서버 오류로 보류"
+      }
     },
     "/api/v1/ria-calculator/withdrawable-stocks": {
       "status": "candidate",
+      "note": "RIA 인출가능 종목: 400, 파라미터명 미상. 웹 화면이 없어 라이브 캡처 불가",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
         "host": "wts-info-api",
         "status": 400,
         "verdict": "needs-params"
-      },
-      "note": "RIA 인출가능 종목: 400, 파라미터명 미상. 웹 화면이 없어 라이브 캡처 불가"
+      }
     },
     "/api/v1/rights/us/categories": {
       "status": "candidate",
@@ -4270,11 +4283,11 @@
       "first_seen": "2026-08-03"
     },
     "/api/v1/screener/filters/base": {
-      "status": "implemented",
+      "status": "candidate",
       "first_seen": "2026-08-03"
     },
     "/api/v1/screener/filters/range": {
-      "status": "implemented",
+      "status": "candidate",
       "first_seen": "2026-08-03"
     },
     "/api/v1/screener/presets/user": {
@@ -4299,6 +4312,7 @@
     },
     "/api/v1/screener/screen/count": {
       "status": "candidate",
+      "note": "필터 조건에 맞는 종목 수 (CERT, POST {filters:[{id,conditions:[{id,type,value}]}]}). market screener 가 결과 목록을 주므로 개수만 따로 셀 이유가 없다 (2026-08-04 캡처)",
       "first_seen": "2026-08-03",
       "probe": {
         "at": "2026-08-03",
@@ -4364,7 +4378,7 @@
       }
     },
     "/api/v1/search-all/wts-auto-complete": {
-      "status": "implemented",
+      "status": "candidate",
       "first_seen": "2026-06-19"
     },
     "/api/v1/secure-keyboard/wts": {
@@ -4617,6 +4631,7 @@
     },
     "/api/v1/stock-infos/trade/trend/accumulated-fixed-trading-trend": {
       "status": "candidate",
+      "note": "공식 Open API 가 대체한다 — 1.2.13(2026-08-07)의 /api/v1/stocks/{symbol}/investor-trading 이 같은 데이터를 문서화된 커서 페이징으로 준다. quote supply --type investor 로 구현됨. 파라미터 추적 중단",
       "first_seen": "2026-08-03",
       "probe": {
         "at": "2026-08-04",
@@ -4628,6 +4643,7 @@
     },
     "/api/v1/stock-infos/trade/trend/accumulated-fixed-trading-trend/detail": {
       "status": "candidate",
+      "note": "공식 Open API 가 대체한다 — 1.2.13(2026-08-07)의 /api/v1/stocks/{symbol}/investor-trading 이 같은 데이터를 문서화된 커서 페이징으로 준다. quote supply --type investor 로 구현됨. 파라미터 추적 중단",
       "first_seen": "2026-08-03",
       "probe": {
         "at": "2026-08-04",
@@ -4639,6 +4655,7 @@
     },
     "/api/v1/stock-infos/trade/trend/fixed-trading-trend": {
       "status": "candidate",
+      "note": "공식 Open API 가 대체한다 — 1.2.13(2026-08-07)의 /api/v1/stocks/{symbol}/investor-trading 이 같은 데이터를 문서화된 커서 페이징으로 준다. quote supply --type investor 로 구현됨. 파라미터 추적 중단",
       "first_seen": "2026-08-03",
       "probe": {
         "at": "2026-08-04",
@@ -4695,6 +4712,7 @@
     },
     "/api/v1/stock-prices/mainsession": {
       "status": "candidate",
+      "note": "정규장 종가만 주는 얇은 응답. product/stock-prices 와 겹친다 (2026-08-04)",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -4804,7 +4822,8 @@
       }
     },
     "/api/v1/tics/rankings": {
-      "status": "implemented",
+      "status": "candidate",
+      "note": "중복: market themes 로 이미 구현됨 (marketdata.go)",
       "first_seen": "2026-06-29"
     },
     "/api/v1/time": {
@@ -4927,14 +4946,14 @@
     },
     "/api/v1/trade/product/recent-holdings": {
       "status": "candidate",
+      "note": "thin: productCode/name/type 뿐이고 portfolio positions 와 겹친다 (2026-08-04 라이브)",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
         "host": "wts-info-api",
         "status": 200,
         "verdict": "worth-review"
-      },
-      "note": "thin: productCode/name/type 뿐이고 portfolio positions 와 겹친다 (2026-08-04 라이브)"
+      }
     },
     "/api/v1/trading/auto-trading": {
       "status": "candidate",
@@ -4978,14 +4997,14 @@
     },
     "/api/v1/trading/commission-info": {
       "status": "candidate",
+      "note": "v2 를 구현했다 (account commission). v1 은 같은 응답이지만 commissionInfoUsOpt 가 늘 null — 쓰지 말 것",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
         "host": "wts-api",
         "status": 200,
         "verdict": "worth-review"
-      },
-      "note": "v2 를 구현했다 (account commission). v1 은 같은 응답이지만 commissionInfoUsOpt 가 늘 null — 쓰지 말 것"
+      }
     },
     "/api/v1/trading/markets/us-opt/options/average-price": {
       "status": "candidate",
@@ -5048,6 +5067,7 @@
     },
     "/api/v1/trading/orders/calculate/order-data": {
       "status": "candidate",
+      "note": "주문 준비 계산 (CERT, POST {stockCode,market,orderPrice,orderVolumeRate,currencyMode,isFractional,orderPriceType}). 순수 계산이지만 주문 화면 전용이라 order preview 와 겹친다",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -5098,6 +5118,7 @@
     },
     "/api/v1/trading/orders/histories/tab": {
       "status": "candidate",
+      "note": "thin: 응답이 기본 탭 문자열 하나(\"kr\") 뿐 (CERT, GET, 200 확인 2026-08-04)",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -5322,17 +5343,18 @@
     },
     "/api/v1/usa-bond/receipt/tax/zero-coupon-discount": {
       "status": "candidate",
+      "note": "미국채 제로쿠폰 할인 세금영수증: 200 이지만 taxReceipts 가 빈 배열이라 항목 구조 미상. 트리거 = 해당 영수증 발생",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
         "host": "wts-info-api",
         "status": 200,
         "verdict": "worth-review"
-      },
-      "note": "미국채 제로쿠폰 할인 세금영수증: 200 이지만 taxReceipts 가 빈 배열이라 항목 구조 미상. 트리거 = 해당 영수증 발생"
+      }
     },
     "/api/v1/usa-market/get-option-biz-day-by-overtime": {
-      "status": "implemented",
+      "status": "candidate",
+      "note": "옵션 영업일 (INFO, GET ?overtimeFlag=). market option-hours 와 중복",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -5481,6 +5503,7 @@
     },
     "/api/v1/user-reactions/summaries": {
       "status": "candidate",
+      "note": "웹 화면 없음 — 커뮤니티 라우트 캡처에서 미관측 (2026-08-04)",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -5955,6 +5978,7 @@
     },
     "/api/v2/dashboard/intelligences/all": {
       "status": "candidate",
+      "note": "POST {types, variable}. types 어휘 미상으로 400 (2026-08-04)",
       "first_seen": "2026-08-03",
       "probe": {
         "at": "2026-08-03",
@@ -5976,6 +6000,7 @@
     },
     "/api/v2/dashboard/wts/overview/calendar/economic-events": {
       "status": "candidate",
+      "note": "중복·열등: market calendar(v0.34.0)가 42건+예상/실제/직전값을 주는데 이쪽은 16건에 title 뿐 (2026-08-04 대조)",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -5990,11 +6015,11 @@
         "query": [],
         "body": [],
         "at": "2026-08-03"
-      },
-      "note": "중복·열등: market calendar(v0.34.0)가 42건+예상/실제/직전값을 주는데 이쪽은 16건에 title 뿐 (2026-08-04 대조)"
+      }
     },
     "/api/v2/dashboard/wts/overview/ranking": {
       "status": "candidate",
+      "note": "CERT, POST {id, tag/market, filters, duration}. market ranking(realtime/stock) 과 표면이 겹치나 필터·기간 지정이 가능. 파라미터 어휘는 번들 상수(B9)에 한글 id 로 있어 #141 과 같은 함정",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -6577,7 +6602,7 @@
       }
     },
     "/api/v2/reasoning/stocks": {
-      "status": "implemented",
+      "status": "candidate",
       "first_seen": "2026-06-19"
     },
     "/api/v2/replies": {
@@ -7401,6 +7426,7 @@
     },
     "/api/v3/search-all/wts-auto-complete": {
       "status": "candidate",
+      "note": "v1 을 구현했다. v3 는 sections 를 요구하고 빈 배열이면 결과 0건 — 섹션 어휘 미상",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -7423,6 +7449,7 @@
     },
     "/api/v3/stock-prices": {
       "status": "candidate",
+      "note": "다종목 배치 시세(productCodes 콤마, 1요청 100개). quote batch 가 이미 커버하지만 종목당 GetQuote 를 N번 부른다. 응답이 base/close/volume 수준으로 얕아 domain.Quote 를 못 채우므로, --live 성능이 실제 문제로 측정되기 전까지 교체하지 않는다 (2026-08-04 라이브 확인)",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -7644,6 +7671,7 @@
     },
     "/api/v3/trading/promotion/commission/by-market": {
       "status": "candidate",
+      "note": "중복: account commission 과 같은 commissionInfoKr/Us/UsOpt 구조를 준다 (CERT, GET ?marketDivision=KR, 200 대조 2026-08-04)",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -7822,5 +7850,5 @@
       }
     }
   },
-  "updated_at": "2026-08-03"
+  "updated_at": "2026-08-10"
 }
