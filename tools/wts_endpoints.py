@@ -35,6 +35,17 @@ IMPLEMENTED = [
     r"^/api/v1/interest/accounts/annual/history",       # account interest
     r"^/api/v1/ria-calculator/(report|limit|tax-savings/optimized)$",  # tax ria
     r"^/api/v1/usa-market/get-option-biz-day-by-overtime$",            # market option-hours
+    # 2026-08-04~07 추가분. **여기에 등록해야 보존된다** — endpoints[].status 를 손으로
+    # 고치면 다음 주간 모니터가 자동 분류로 덮어써 implemented 가 candidate 로 되돌아간다
+    # (2026-08-10 에 11건이 그렇게 뒤집혔다).
+    r"^/api/v1/crypto-prices$",                                        # quote crypto
+    r"^/api/v2/reasoning/stocks",                                      # quote reasoning
+    r"^/api/v1/dashboard/wts/overview/signals$",                       # quote signals
+    r"^/api/v1/search-all/wts-auto-complete$",                         # search
+    r"^/api/v1/margin/cert/notice/receivable$",                        # account receivable
+    r"^/api/v1/option-(maturity-date|both-chain)/get-all$",            # quote options
+    r"^/api/v1/screener/filters/(base|range)$",                        # market filters
+    r"^/api/v1/tics/rankings$",                                        # market themes
     r"^/api/v2/trading/order/buy-control/required-deposit-amount$",    # order funding
     r"^/api/v1/boards/popular-follower$",                              # community boards
     r"^/api/v1/trade-purpose-verification/status$",                    # account detail (거래목적 심사)
