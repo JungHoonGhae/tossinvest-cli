@@ -1,14 +1,14 @@
 {
   "source": "tossinvest.com web bundles",
-  "build_id": "_9vWo9cLoNnz5P1aQeayp",
-  "chunk_count": 80,
-  "total": 988,
+  "build_id": "2chi4J3teuh8sGw2r87FU",
+  "chunk_count": 78,
+  "total": 1005,
   "counts": {
-    "implemented": 101,
+    "implemented": 112,
     "candidate": 377,
-    "excluded": 510,
-    "candidate_next": 20,
-    "meaningful": 478
+    "excluded": 516,
+    "candidate_next": 19,
+    "meaningful": 489
   },
   "overrides": {
     "/api/v1/bond-infos": {
@@ -132,8 +132,8 @@
       "note": "400 lending.agreement-not-found — 대차 약정이 없는 계좌. 트리거 = 대차 약정 체결 (2026-08-04)"
     },
     "/api/v1/tics/rankings": {
-      "status": "candidate",
-      "note": "중복: market themes 로 이미 구현됨 (marketdata.go)"
+      "status": "implemented",
+      "note": "market themes (marketdata.go) — 오늘의 테마 등락 순위"
     },
     "/api/v3/search-all/wts-auto-complete": {
       "status": "candidate",
@@ -144,8 +144,8 @@
       "note": "차트 UI 기본 설정 (INFO, GET ?underlyingGuid=). 프로차트 화면 전용이라 CLI 가치 없음"
     },
     "/api/v1/usa-market/get-option-biz-day-by-overtime": {
-      "status": "candidate",
-      "note": "옵션 영업일 (INFO, GET ?overtimeFlag=). market option-hours 와 중복"
+      "status": "implemented",
+      "note": "market option-hours — 미국 옵션 영업일·세션"
     },
     "/api/v1/dashboard/common/stocks/mini-chart": {
       "status": "candidate",
@@ -1594,10 +1594,20 @@
         "verdict": "not-found"
       }
     },
-    "/api/v1/crypto-prices": {
+    "/api/v1/crm/chatbot/guest/start": {
       "status": "candidate",
-      "priority": "next",
-      "note": "가상자산 시세",
+      "first_seen": "2026-08-11"
+    },
+    "/api/v1/crm/chatbot/start": {
+      "status": "candidate",
+      "first_seen": "2026-08-11"
+    },
+    "/api/v1/crm/chatbot/view/content": {
+      "status": "candidate",
+      "first_seen": "2026-08-11"
+    },
+    "/api/v1/crypto-prices": {
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/dashboard/all-accounts": {
@@ -1816,7 +1826,7 @@
       }
     },
     "/api/v1/dashboard/wts/overview/signals": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/dashboard/wts/overview/tics": {
@@ -2455,7 +2465,7 @@
       }
     },
     "/api/v1/margin/cert/notice/receivable": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/mds/broker/trading-ranking": {
@@ -3189,7 +3199,7 @@
       }
     },
     "/api/v1/option-both-chain/get-all": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/option-chain/get-all": {
@@ -3215,7 +3225,7 @@
       }
     },
     "/api/v1/option-maturity-date/get-all": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/orders": {
@@ -3532,6 +3542,16 @@
       "note": "marketing/promotion",
       "first_seen": "2026-06-19"
     },
+    "/api/v1/promotion/account-open-stock-draw/period": {
+      "status": "excluded",
+      "note": "marketing/promotion",
+      "first_seen": "2026-08-11"
+    },
+    "/api/v1/promotion/account-open-stock-draw/user": {
+      "status": "excluded",
+      "note": "marketing/promotion",
+      "first_seen": "2026-08-11"
+    },
     "/api/v1/promotion/alphabet/board-info": {
       "status": "excluded",
       "note": "marketing/promotion",
@@ -3841,18 +3861,6 @@
       "status": "excluded",
       "note": "marketing/promotion",
       "first_seen": "2026-06-19"
-    },
-    "/api/v1/promotion/pre-apply/openapi/is-target": {
-      "status": "excluded",
-      "note": "marketing/promotion",
-      "first_seen": "2026-06-19",
-      "observed": {
-        "method": "GET",
-        "host": "wts-cert-api",
-        "query": [],
-        "body": [],
-        "at": "2026-08-03"
-      }
     },
     "/api/v1/promotion/pre-apply/status": {
       "status": "excluded",
@@ -4282,12 +4290,44 @@
       "note": "account-setting write (권리 행사)",
       "first_seen": "2026-08-03"
     },
-    "/api/v1/screener/filters/base": {
+    "/api/v1/risk-taker/quiz/basket-result": {
       "status": "candidate",
+      "first_seen": "2026-08-11"
+    },
+    "/api/v1/risk-taker/quiz/current": {
+      "status": "candidate",
+      "first_seen": "2026-08-11"
+    },
+    "/api/v1/risk-taker/quiz/participant-count": {
+      "status": "candidate",
+      "first_seen": "2026-08-11"
+    },
+    "/api/v1/risk-taker/quiz/participating": {
+      "status": "candidate",
+      "first_seen": "2026-08-11"
+    },
+    "/api/v1/risk-taker/quiz/preview": {
+      "status": "candidate",
+      "first_seen": "2026-08-11"
+    },
+    "/api/v1/risk-taker/quiz/result": {
+      "status": "candidate",
+      "first_seen": "2026-08-11"
+    },
+    "/api/v1/risk-taker/quiz/share": {
+      "status": "candidate",
+      "first_seen": "2026-08-11"
+    },
+    "/api/v1/risk-taker/quiz/shared": {
+      "status": "candidate",
+      "first_seen": "2026-08-11"
+    },
+    "/api/v1/screener/filters/base": {
+      "status": "implemented",
       "first_seen": "2026-08-03"
     },
     "/api/v1/screener/filters/range": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-08-03"
     },
     "/api/v1/screener/presets/user": {
@@ -4378,7 +4418,7 @@
       }
     },
     "/api/v1/search-all/wts-auto-complete": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/secure-keyboard/wts": {
@@ -4822,8 +4862,8 @@
       }
     },
     "/api/v1/tics/rankings": {
-      "status": "candidate",
-      "note": "중복: market themes 로 이미 구현됨 (marketdata.go)",
+      "status": "implemented",
+      "note": "market themes (marketdata.go) — 오늘의 테마 등락 순위",
       "first_seen": "2026-06-29"
     },
     "/api/v1/time": {
@@ -5353,8 +5393,8 @@
       }
     },
     "/api/v1/usa-market/get-option-biz-day-by-overtime": {
-      "status": "candidate",
-      "note": "옵션 영업일 (INFO, GET ?overtimeFlag=). market option-hours 와 중복",
+      "status": "implemented",
+      "note": "market option-hours — 미국 옵션 영업일·세션",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -6287,6 +6327,26 @@
       "note": "minor-account flow",
       "first_seen": "2026-06-19"
     },
+    "/api/v2/minor/multi-account-open/manual-document": {
+      "status": "excluded",
+      "note": "minor-account flow",
+      "first_seen": "2026-08-11"
+    },
+    "/api/v2/minor/multi-account-open/manual-document/file": {
+      "status": "excluded",
+      "note": "minor-account flow",
+      "first_seen": "2026-08-11"
+    },
+    "/api/v2/minor/multi-account-open/manual-document/funnel-exposed": {
+      "status": "excluded",
+      "note": "minor-account flow",
+      "first_seen": "2026-08-11"
+    },
+    "/api/v2/minor/multi-account-open/manual-document/sign/token": {
+      "status": "excluded",
+      "note": "minor-account flow",
+      "first_seen": "2026-08-11"
+    },
     "/api/v2/minor/multi-account-open/manual-validation/minor-name": {
       "status": "excluded",
       "note": "minor-account flow",
@@ -6321,6 +6381,16 @@
       "status": "excluded",
       "note": "minor-account flow",
       "first_seen": "2026-06-19"
+    },
+    "/api/v2/minor/multi-account-open/scraping-failure": {
+      "status": "excluded",
+      "note": "minor-account flow",
+      "first_seen": "2026-08-11"
+    },
+    "/api/v2/minor/multi-account-open/scraping-failure-count": {
+      "status": "excluded",
+      "note": "minor-account flow",
+      "first_seen": "2026-08-11"
     },
     "/api/v2/minor/multi-account-open/terms": {
       "status": "excluded",
@@ -6537,11 +6607,6 @@
       "note": "marketing/promotion",
       "first_seen": "2026-06-19"
     },
-    "/api/v2/promotion/pre-apply": {
-      "status": "excluded",
-      "note": "marketing/promotion",
-      "first_seen": "2026-06-19"
-    },
     "/api/v2/promotion/terms/all": {
       "status": "excluded",
       "note": "marketing/promotion",
@@ -6602,7 +6667,7 @@
       }
     },
     "/api/v2/reasoning/stocks": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v2/replies": {
@@ -7850,5 +7915,5 @@
       }
     }
   },
-  "updated_at": "2026-08-10"
+  "updated_at": "2026-08-11"
 }
