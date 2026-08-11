@@ -324,6 +324,51 @@ func readOperations() []Operation {
 			},
 		},
 		{
+			ID: "market_stocks", Method: "GET", Path: "/api/v1/stocks/all",
+			Category: "market", Summary: "Every tradable stock on one market (the universe), sorted by symbol. Thousands of rows in a single response with no pagination — low-churn batch data refreshed daily, so cache rather than re-request. Use the returned symbols with the per-symbol operations.",
+			Params: []Param{
+				{Name: "market", Type: "string", Required: true, Desc: `"KOSPI", "KOSDAQ", "NYSE", "NASDAQ", "AMEX", "KR_ETC", or "US_ETC"`},
+				{Name: "status", Type: "string", Desc: `"ACTIVE" (default), "SCHEDULED", or "DELISTED"`},
+				{Name: "security_type", Type: "string", Desc: `"STOCK", "ETF", "REIT", "ETN", … (omit for all)`},
+				{Name: "common_share", Type: "boolean", Desc: "common shares only"},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				market, err := argString(args, "market")
+				if err != nil {
+					return nil, err
+				}
+				status, _ := args["status"].(string)
+				secType, _ := args["security_type"].(string)
+				common, _ := args["common_share"].(bool)
+				return d.Client.ListStocks(ctx, market, status, secType, common)
+			},
+		},
+		{
+			// CLI 에만 있고 ops 에 빠져 있었다 — 에이전트는 시장 수급을 볼 수 없었다.
+			// 종목별은 stock_supply 다. 이쪽은 지수(KOSPI/KOSDAQ) 단위다.
+			ID: "market_investor_trading", Method: "GET", Path: "/api/v1/market-indicators/{symbol}/investor-trading",
+			Category: "market", Summary: "Market-wide investor trading for an index (KOSPI/KOSDAQ) over time — individual, foreigner, institution, other. For a single stock's supply use stock_supply instead.",
+			Params: []Param{
+				{Name: "symbol", Type: "string", Required: true, Desc: "index symbol, e.g. KOSPI or KOSDAQ"},
+				{Name: "interval", Type: "string", Desc: `"1d" (default), "1w", "1mo", or "1y"`},
+				{Name: "count", Type: "integer", Desc: "rows, up to 100"},
+				{Name: "until", Type: "string", Desc: "cursor from a previous page"},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				symbol, err := argString(args, "symbol")
+				if err != nil {
+					return nil, err
+				}
+				count, err := argInt(args, "count")
+				if err != nil {
+					return nil, err
+				}
+				interval, _ := args["interval"].(string)
+				until, _ := args["until"].(string)
+				return d.Client.MarketInvestorTrading(ctx, symbol, interval, count, until)
+			},
+		},
+		{
 			ID: "stock_supply", Method: "GET", Path: "/api/v1/stocks/{symbol}/supply",
 			Category: "market", Summary: "KR stock supply series — investor-type trading (with the 7-way institution breakdown, foreign holding, CFD balance), short selling, credit trades, securities lending, or program trades. Daily time series with a cursor. Fields not yet tallied for a date are null, which is distinct from zero.",
 			Params: []Param{

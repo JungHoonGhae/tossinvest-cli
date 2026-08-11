@@ -1653,3 +1653,25 @@ type SupplySeries struct {
 	NextUntil string         `json:"next_until,omitempty"`
 	FetchedAt time.Time      `json:"fetched_at"`
 }
+
+// ListedStock is one entry of a market's tradable universe.
+//
+// Deliberately thin — the API returns thousands of these at once (NASDAQ ~2,800)
+// and calls this a universe-construction surface. Names and prices are fetched
+// per-symbol afterwards; carrying them here would just inflate every row.
+type ListedStock struct {
+	Symbol       string `json:"symbol"`
+	Name         string `json:"name,omitempty"`
+	ISINCode     string `json:"isin_code,omitempty"`
+	SecurityType string `json:"security_type,omitempty"`
+	CommonShare  bool   `json:"common_share"`
+}
+
+// StockUniverse is one market's listed stocks, already sorted by symbol on the
+// server. Order is preserved.
+type StockUniverse struct {
+	Market    string        `json:"market"`
+	Status    string        `json:"status,omitempty"`
+	Stocks    []ListedStock `json:"stocks"`
+	FetchedAt time.Time     `json:"fetched_at"`
+}

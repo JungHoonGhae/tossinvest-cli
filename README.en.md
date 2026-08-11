@@ -206,6 +206,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | Candle chart | `quote chart --interval 1m\|3m\|5m\|10m\|15m\|30m\|60m` | 🔸 *(1m / daily only)* | ✅ |
 | **Multi-quote / live refresh** | `quote batch <sym>[,sym,...]` (`--chart` · `--live`) | ❌ | ✅ |
 | **🆕 Crypto prices + premium** | `quote crypto BTC,ETH,SOL,XRP` (OHLC · 52w · Korea premium) | ❌ | ✅ |
+| **🆕 Market universe** | `market stocks KOSPI\|NASDAQ\|…` (filters: `--status`·`--security-type`·`--common-share`) | ✅ | ✅ |
 | **🆕 Stock supply (5 series)** | `quote supply <symbol> --type investor\|short\|credit\|lending\|program` | ✅ | ✅ |
 | **🆕 Screener filter ranges** | `market filters PER PBR --nation kr\|us` (min/max · base date) | ❌ | ✅ |
 | **🆕 US option expiries & chain** | `quote options <symbol> [--expiry]` (per-strike call/put open interest) · contract codes work in `quote get`/`orderbook`/`chart` | ❌ | ✅ |
@@ -649,6 +650,7 @@ tossctl quote reasoning|signals <symbol>
 tossctl quote options AAPL [--expiry 2026-08-05]
 tossctl market filters PER PBR --nation kr
 tossctl quote supply 005930 --type short --count 20
+tossctl market stocks KOSPI --security-type ETF
 tossctl search <name|ticker>
 tossctl account receivable --currency KRW|USD
 tossctl market hours|fx|index|ranking|signals|investors|earnings
