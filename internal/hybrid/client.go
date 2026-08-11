@@ -376,3 +376,12 @@ func supplyToFlows(symbol string, s domain.SupplySeries) domain.TradingFlows {
 	}
 	return out
 }
+
+// ListStocks exposes the official universe endpoint. WTS has no equivalent —
+// its catalogue surfaces are search-shaped, not enumerable.
+func (c *Client) ListStocks(ctx context.Context, market, status, securityType string, commonShareOnly bool) (domain.StockUniverse, error) {
+	if c.off == nil || c.pol.Prefer == "wts" {
+		return domain.StockUniverse{}, fmt.Errorf("종목 유니버스는 공식 Open API 전용입니다 — `tossctl openapi login` 으로 키를 연결하세요")
+	}
+	return c.off.ListStocks(ctx, market, status, securityType, commonShareOnly)
+}

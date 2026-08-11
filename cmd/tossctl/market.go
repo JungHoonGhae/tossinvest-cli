@@ -339,6 +339,32 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	screenerCmd.Flags().IntVar(&screenerSize, "size", 30, "max stocks to return")
 	screenerCmd.Flags().StringVar(&screenerFilter, "filter", "", "custom raw filter JSON array (instead of a preset)")
 
+	var (
+		universeStatus     string
+		universeSecType    string
+		universeCommonOnly bool
+	)
+	stocksCmd := &cobra.Command{
+		Use:         "stocks <MARKET>",
+		Short:       i18n.T("market.stocks.short"),
+		Args:        cobra.ExactArgs(1),
+		Annotations: map[string]string{"source": "official"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			u, err := app.client.ListStocks(cmd.Context(), args[0], universeStatus, universeSecType, universeCommonOnly)
+			if err != nil {
+				return err
+			}
+			return output.WriteStockUniverse(cmd.OutOrStdout(), app.format, u)
+		},
+	}
+	stocksCmd.Flags().StringVar(&universeStatus, "status", "", "SCHEDULED | ACTIVE (default) | DELISTED")
+	stocksCmd.Flags().StringVar(&universeSecType, "security-type", "", "STOCK | ETF | REIT | ETN | ...")
+	stocksCmd.Flags().BoolVar(&universeCommonOnly, "common-share", false, "common shares only")
+
 	var filtersNation string
 	filtersCmd := &cobra.Command{
 		Use:         "filters <filter-id> [filter-id...]",
@@ -499,6 +525,6 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, filtersCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, issuesCmd, optionHoursCmd)
+	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, filtersCmd, stocksCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, issuesCmd, optionHoursCmd)
 	return cmd
 }
