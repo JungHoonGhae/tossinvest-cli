@@ -9,6 +9,29 @@ Version history below (source: the Korean-language [CHANGELOG.md](https://github
 
 ## [Unreleased]
 
+## [0.39.0] - 2026-08-11
+
+### 새 기능
+- **`market stocks`** — 마켓의 **전체 상장 종목**을 봅니다. 종목 유니버스를 만들 때 씁니다.
+
+  ```
+  $ tossctl market stocks KOSPI
+  KOSPI 상장 종목 (2474개)
+    000020     동화약품                     STOCK
+    000040     KR모터스                    STOCK
+  ```
+
+  - `KOSPI` `KOSDAQ` `NYSE` `NASDAQ` `AMEX` `KR_ETC` `US_ETC`. `--status`(기본 ACTIVE)·
+    `--security-type`·`--common-share` 로 좁힙니다.
+  - 페이지네이션 없이 **한 번에 다 옵니다**(NASDAQ 약 2,800건). 하루 한 번 갱신되는
+    저변동 데이터라 반복 조회보다 받아서 캐싱하는 쪽이 맞습니다.
+  - 공식 Open API 키가 필요합니다 (`tossctl openapi login`).
+
+### 개선
+- **에이전트(MCP)가 시장 투자자 매매동향을 볼 수 있습니다.** `market investor-trading` 은
+  CLI 에만 있고 오퍼레이션 목록에 빠져 있어서, MCP 로 붙은 도구는 조회할 방법이 없었습니다.
+  - 지수(KOSPI/KOSDAQ) 단위입니다. 개별 종목 수급은 `quote supply` 입니다.
+
 ## [0.38.0] - 2026-08-07
 
 ### 새 기능
