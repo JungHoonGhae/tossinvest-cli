@@ -267,7 +267,7 @@
             }
           }
         },
-        "description": "종목 심볼 조회 중 일시적 오류"
+        "description": "종목 정보 조회 중 일시적 오류"
       },
       "InternalErrorTradingTrend": {
         "content": {
@@ -1865,6 +1865,54 @@
           "liquidationTrading",
           "nxtSupported",
           "krxTradingSuspended"
+        ],
+        "type": "object"
+      },
+      "ListedStock": {
+        "properties": {
+          "isCommonShare": {
+            "description": "보통주 여부",
+            "example": true,
+            "type": "boolean"
+          },
+          "isinCode": {
+            "description": "ISIN 코드",
+            "example": "KR7005930003",
+            "type": "string"
+          },
+          "name": {
+            "description": "종목명 (한글)",
+            "example": "삼성전자",
+            "type": "string"
+          },
+          "securityType": {
+            "description": "종목 유형",
+            "enum": [
+              "STOCK",
+              "FOREIGN_STOCK",
+              "DEPOSITARY_RECEIPT",
+              "INFRASTRUCTURE_FUND",
+              "REIT",
+              "ETF",
+              "FOREIGN_ETF",
+              "ETN",
+              "STOCK_WARRANTS"
+            ],
+            "example": "STOCK",
+            "type": "string"
+          },
+          "symbol": {
+            "description": "종목 심볼.",
+            "example": "005930",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "name",
+          "securityType",
+          "isCommonShare",
+          "isinCode"
         ],
         "type": "object"
       },
@@ -9067,7 +9115,7 @@
     },
     "/api/v1/stocks": {
       "get": {
-        "description": "종목의 기본 정보를 조회합니다. `symbols` 를 콤마로 구분하여 최대 200건 까지 다건 조회를 지원합니다.\n종목명, 시장, 통화, 상장 상태, 거래정지 여부 등 트레이딩에서 필요한 참조 데이터를 제공합니다.\n\n**Rate Limits Group**: `STOCK`\n",
+        "description": "종목의 기본 정보를 조회합니다. `symbols` 를 콤마로 구분하여 최대 200건 까지 다건 조회를 지원합니다.\n종목명, 시장, 통화, 상장 상태, 거래정지 여부 등 트레이딩에서 필요한 참조 데이터를 제공합니다.\n\n**관련 API**: 마켓 전체 종목 목록(유니버스)이 필요하면 [`GET /api/v1/stocks/all`](#operation/listStocks) 을 사용하세요.\n\n**Rate Limits Group**: `STOCK`\n",
         "operationId": "getStocks",
         "parameters": [
           {
@@ -9094,7 +9142,6 @@
                         {
                           "currency": "KRW",
                           "delistDate": null,
-                          "englishName": "KODEX 200",
                           "isCommonShare": true,
                           "isinCode": "KR7069500007",
                           "koreanMarketDetail": {
@@ -9281,6 +9328,199 @@
           }
         ],
         "summary": "종목 기본 정보 조회",
+        "tags": [
+          "Stock Info"
+        ]
+      }
+    },
+    "/api/v1/stocks/all": {
+      "get": {
+        "description": "마켓(거래소)별 종목 리스트를 조회합니다. 종목 유니버스 구성 용도이며, 토스증권에서 거래 가능한 종목만 제공합니다.\n`status`·`securityType`·`commonShare` 로 유니버스를 필터링할 수 있습니다.\n\n**정렬**: `symbol` 오름차순. 필터 조건에 해당하는 종목을 페이지네이션 없이 한 번에 반환합니다.\n\n**응답 규모**: 마켓당 최대 수천 건(예: NASDAQ 약 2,800건, gzip 응답 약 30KB). 일 배치로 갱신되는 저변동 데이터이므로 하루 1회 조회 후 로컬 캐싱을 권장합니다.\n\n**관련 API**: 여기서 얻은 `symbol` 로 [`GET /api/v1/stocks`](#operation/getStocks)(다건 상세 조회)를 호출해 종목명·통화·상장상태 등 상세 정보를 채울 수 있습니다.\n\n**Rate Limits Group**: `STOCK_ALL`\n",
+        "operationId": "listStocks",
+        "parameters": [
+          {
+            "description": "조회할 마켓(거래소)",
+            "example": "KOSPI",
+            "in": "query",
+            "name": "market",
+            "required": true,
+            "schema": {
+              "enum": [
+                "KOSPI",
+                "KOSDAQ",
+                "NYSE",
+                "NASDAQ",
+                "AMEX",
+                "KR_ETC",
+                "US_ETC"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "종목 상태 필터 (미지정 시 ACTIVE)",
+            "example": "ACTIVE",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "ACTIVE",
+              "enum": [
+                "SCHEDULED",
+                "ACTIVE",
+                "DELISTED"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "종목 유형 필터 (미지정 시 전체 유형)",
+            "example": "STOCK",
+            "in": "query",
+            "name": "securityType",
+            "required": false,
+            "schema": {
+              "enum": [
+                "STOCK",
+                "FOREIGN_STOCK",
+                "DEPOSITARY_RECEIPT",
+                "INFRASTRUCTURE_FUND",
+                "REIT",
+                "ETF",
+                "FOREIGN_ETF",
+                "ETN",
+                "STOCK_WARRANTS"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "보통주 여부 필터 (true=보통주만, false=우선주만, 미지정 시 전체)",
+            "example": true,
+            "in": "query",
+            "name": "commonShare",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "kospi": {
+                    "summary": "KOSPI 종목 (일부 발췌)",
+                    "value": {
+                      "result": [
+                        {
+                          "isCommonShare": true,
+                          "isinCode": "KR7005930003",
+                          "name": "삼성전자",
+                          "securityType": "STOCK",
+                          "symbol": "005930"
+                        },
+                        {
+                          "isCommonShare": true,
+                          "isinCode": "KR7069500007",
+                          "name": "KODEX 200",
+                          "securityType": "ETF",
+                          "symbol": "069500"
+                        }
+                      ]
+                    }
+                  },
+                  "nasdaq": {
+                    "summary": "NASDAQ 종목 (미국 종목도 한글 name 제공)",
+                    "value": {
+                      "result": [
+                        {
+                          "isCommonShare": true,
+                          "isinCode": "US0378331005",
+                          "name": "애플",
+                          "securityType": "STOCK",
+                          "symbol": "AAPL"
+                        }
+                      ]
+                    }
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "result": {
+                          "items": {
+                            "$ref": "#/components/schemas/ListedStock"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "성공"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalidMarket": {
+                    "summary": "허용되지 않은 market",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "allowedValues": [
+                            "KOSPI",
+                            "KOSDAQ",
+                            "NYSE",
+                            "NASDAQ",
+                            "AMEX",
+                            "KR_ETC",
+                            "US_ETC"
+                          ],
+                          "field": "market"
+                        },
+                        "message": "유효하지 않은 market 입니다. KOSPI, KOSDAQ, NYSE, NASDAQ, AMEX, KR_ETC, US_ETC 만 허용됩니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "잘못된 요청"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalErrorStock"
+          }
+        },
+        "security": [
+          {
+            "oauth2ClientCredentials": []
+          }
+        ],
+        "summary": "마켓별 전체 종목 조회",
         "tags": [
           "Stock Info"
         ]
