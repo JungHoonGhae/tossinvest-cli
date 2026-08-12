@@ -4686,7 +4686,7 @@
         ]
       },
       "post": {
-        "description": "특정 종목의 가격을 감시해 조건 충족 시 자동으로 매매(매수/매도)하는 조건주문을 생성합니다.\n\n감시가와 매매 방향(매수/매도)을 설정한 후 가격이 감시가에 도달하면 조건이 발동되어 주문이 생성됩니다.\n\n**타입(`type`)** — 조건의 개수와 관계를 정합니다:\n- `SINGLE`: `first` 한 조건만 감시합니다.\n- `OCO` (One-Cancels-the-Other): 두 조건(`first`·`second`)을 동시에 감시하다, 하나의 조건이 충족되면 나머지 조건은 자동 취소됩니다.\n  `first`/`second` 모두 **매도(SELL)** 이며 `first` 감시가 > 현재가 > `second` 감시가 여야 합니다. 호가유형은 지정가(`LIMIT`)만 지원합니다.\n- `OTO` (One-Triggers-the-Other): `first` 조건이 체결되면 그때부터 `second` 조건 감시가 시작됩니다.\n  `first` 는 **매수(BUY)**, `second` 는 **매도(SELL)** 입니다. 호가유형은 지정가(`LIMIT`)만 지원합니다.\n\n**Rate Limits Group**: `CONDITIONAL_ORDER`\n",
+        "description": "특정 종목의 가격을 감시해 조건 충족 시 자동으로 매매(매수/매도)하는 조건주문을 생성합니다.\n\n감시가와 매매 방향(매수/매도)을 설정한 후 가격이 감시가에 도달하면 조건이 발동되어 주문이 생성됩니다.\n\n**발동 세션**: 조건 감시·발동 세션은 시장에 따라 다릅니다.\n- 국내 주식: KRX 정규장에서만 발동됩니다.\n- 해외 주식: 장 구분과 상관없이, 거래 가능한 모든 시간대에 발동됩니다.\n\n**타입(`type`)** — 조건의 개수와 관계를 정합니다:\n- `SINGLE`: `first` 한 조건만 감시합니다.\n- `OCO` (One-Cancels-the-Other): 두 조건(`first`·`second`)을 동시에 감시하다, 하나의 조건이 충족되면 나머지 조건은 자동 취소됩니다.\n  `first`/`second` 모두 **매도(SELL)** 이며 `first` 감시가 > 현재가 > `second` 감시가 여야 합니다. 호가유형은 지정가(`LIMIT`)만 지원합니다.\n- `OTO` (One-Triggers-the-Other): `first` 조건이 체결되면 그때부터 `second` 조건 감시가 시작됩니다.\n  `first` 는 **매수(BUY)**, `second` 는 **매도(SELL)** 입니다. 호가유형은 지정가(`LIMIT`)만 지원합니다.\n\n**Rate Limits Group**: `CONDITIONAL_ORDER`\n",
         "operationId": "createConditionalOrder",
         "parameters": [
           {
