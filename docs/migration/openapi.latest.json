@@ -709,8 +709,8 @@
       "Commission": {
         "properties": {
           "commissionRate": {
-            "description": "수수료율 (%). 예: 0.015는 0.015%",
-            "example": "0.015",
+            "description": "매매 수수료율 (소수 비율). 예: `0.00015` = 0.015%",
+            "example": "0.00015",
             "format": "decimal",
             "maxLength": 30,
             "type": "string"
@@ -3960,7 +3960,7 @@
   },
   "info": {
     "title": "토스증권 Open API",
-    "version": "1.2.13"
+    "version": "1.2.14"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -4412,13 +4412,13 @@
                     "value": {
                       "result": [
                         {
-                          "commissionRate": "0.015",
+                          "commissionRate": "0.00015",
                           "endDate": "2026-12-31",
                           "marketCountry": "KR",
                           "startDate": "2026-01-01"
                         },
                         {
-                          "commissionRate": "0.1",
+                          "commissionRate": "0.001",
                           "endDate": "2026-06-30",
                           "marketCountry": "US",
                           "startDate": null
@@ -4431,13 +4431,13 @@
                     "value": {
                       "result": [
                         {
-                          "commissionRate": "0.015",
+                          "commissionRate": "0.00015",
                           "endDate": null,
                           "marketCountry": "KR",
                           "startDate": "2026-01-01"
                         },
                         {
-                          "commissionRate": "0.25",
+                          "commissionRate": "0.0025",
                           "endDate": null,
                           "marketCountry": "US",
                           "startDate": null

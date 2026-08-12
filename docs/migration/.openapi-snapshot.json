@@ -2,13 +2,13 @@
   "phase": "spec-public",
   "spec_url": "https://openapi.tossinvest.com/openapi-docs/latest/openapi.json",
   "spec_file": "docs/migration/openapi.latest.json",
-  "spec_version": "1.2.13",
+  "spec_version": "1.2.14",
   "spec_path_count": 33,
   "spec_paths_sha256": "978ca20df55395df2bf7e19b57be7e6effcfa09c1d1b8e82002825ad9a9ddf85",
-  "spec_full_sha256": "b44cea94fdf219046dcc0da18422a686887b969f614d3ac2410c81a8a7787df3",
+  "spec_full_sha256": "a31b9792d6b2e96cc79f9e4b1cc9125aa00410b37a0080df61ea056ccb9ae8c3",
   "docs_url": "https://developers.tossinvest.com/docs",
   "docs_status": "200",
   "llms_txt_status": "200",
-  "updated_at": "2026-08-11",
-  "last_checked_at": "2026-08-11"
+  "updated_at": "2026-08-12",
+  "last_checked_at": "2026-08-12"
 }
