@@ -13,7 +13,7 @@ func TestAdaptCommissionsUnit(t *testing.T) {
 	raw := []apiCommission{
 		{
 			MarketCountry:  "KR",
-			CommissionRate: "0.015",
+			CommissionRate: "0.00015",
 			StartDate:      "2026-01-01",
 			EndDate:        "2026-12-31",
 		},
@@ -22,8 +22,11 @@ func TestAdaptCommissionsUnit(t *testing.T) {
 	if got.Symbol != "005930" {
 		t.Fatalf("Symbol: want 005930, got %q", got.Symbol)
 	}
-	if got.CommissionRate != 0.015 {
-		t.Fatalf("CommissionRate: want 0.015, got %v", got.CommissionRate)
+	// spec 1.2.14 의 example 그대로: "0.00015" 는 0.015% 를 뜻하는 **소수 비율**이다.
+	// 어댑터는 스케일을 건드리지 않고 그대로 통과시킨다 — 퍼센트 변환은 출력에서
+	// formatPercent(×100)가 한다. 여기서 100 을 곱하기 시작하면 표시가 100배로 뛴다.
+	if got.CommissionRate != 0.00015 {
+		t.Fatalf("CommissionRate: want 0.00015 (unscaled), got %v", got.CommissionRate)
 	}
 	if got.TaxRate != 0 {
 		t.Fatalf("TaxRate: expected 0 (not in response), got %v", got.TaxRate)

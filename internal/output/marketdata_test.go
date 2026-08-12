@@ -314,3 +314,35 @@ func TestWriteInvestorTradingJSON(t *testing.T) {
 		t.Errorf("json missing: %q", buf.String())
 	}
 }
+
+// 수수료율 스케일 회귀. 공식 API 는 소수 비율로 준다("0.00015" = 0.015%) — 표에서
+// 퍼센트로 보이려면 ×100 이 정확히 한 번만 일어나야 한다. 두 번 곱하거나 아예 안
+// 곱해도 에러가 안 나고 숫자만 100배 어긋난다.
+//
+// spec 1.2.14(2026-08-12)에서 이 필드의 표현이 실제로 바뀐 적이 있다.
+func TestWriteCommissionPercentScale(t *testing.T) {
+	c := domain.Commission{Symbol: "000000", CommissionRate: 0.00015, TaxRate: 0.0018}
+
+	var table bytes.Buffer
+	if err := WriteCommission(&table, FormatTable, c); err != nil {
+		t.Fatalf("WriteCommission table: %v", err)
+	}
+	if !strings.Contains(table.String(), "0.015%") {
+		t.Errorf("commission rate not rendered as 0.015%%:\n%s", table.String())
+	}
+	if !strings.Contains(table.String(), "0.18%") {
+		t.Errorf("tax rate not rendered as 0.18%%:\n%s", table.String())
+	}
+
+	// CSV·JSON 은 기계용이라 원값을 그대로 둔다. 표만 퍼센트로 바꾼다.
+	var csvBuf bytes.Buffer
+	if err := WriteCommission(&csvBuf, FormatCSV, c); err != nil {
+		t.Fatalf("WriteCommission csv: %v", err)
+	}
+	if !strings.Contains(csvBuf.String(), "commission_rate_ratio") {
+		t.Errorf("CSV header should state the unit:\n%s", csvBuf.String())
+	}
+	if !strings.Contains(csvBuf.String(), "0.00015") {
+		t.Errorf("CSV should carry the raw ratio:\n%s", csvBuf.String())
+	}
+}
