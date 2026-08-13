@@ -151,7 +151,7 @@
   "order.conditional.confirmToken": "확인 토큰",
   "order.conditional.get.short": "조건주문 단건 조회 (공식 API 키 필요)",
   "order.conditional.list.short": "조건주문 목록 (공식 API 키 필요)",
-  "order.conditional.long": "토스 공식 Open API 로 조건주문을 조회·확인합니다. 공식 키 연결이 필요합니다.",
+  "order.conditional.long": "토스 공식 Open API 로 조건주문을 조회·확인합니다. 공식 키 연결이 필요합니다.\n\n발동 세션은 시장에 따라 다릅니다 — 국내 주식은 KRX 정규장에서만 발동되고, 해외 주식은 거래 가능한 모든 시간대에 발동됩니다. 국내 조건주문을 장 마감 후에 걸어두면 다음 정규장까지 감시가 시작되지 않습니다.",
   "order.conditional.modify.done": "조건주문을 수정했습니다.",
   "order.conditional.modify.short": "조건주문 수정 (공식 API 키 필요)",
   "order.conditional.place.done": "조건주문을 생성했습니다",

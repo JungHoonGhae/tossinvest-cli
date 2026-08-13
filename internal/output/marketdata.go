@@ -603,7 +603,9 @@ func WriteCommission(w io.Writer, format Format, c domain.Commission) error {
 		return writeJSON(w, c)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"product_code", "symbol", "commission_rate", "tax_rate"}); err != nil {
+		// 헤더에 단위를 박는다. 값은 소수 비율(0.00015 = 0.015%)이라 이름만 보고
+		// 퍼센트로 읽으면 100배 어긋난다 — 표는 퍼센트, CSV·JSON 은 원값이다.
+		if err := cw.Write([]string{"product_code", "symbol", "commission_rate_ratio", "tax_rate_ratio"}); err != nil {
 			return err
 		}
 		if err := cw.Write([]string{c.ProductCode, c.Symbol, formatFloat(c.CommissionRate), formatFloat(c.TaxRate)}); err != nil {

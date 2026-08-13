@@ -152,6 +152,52 @@ def main() -> int:
         # 삭제는 breaking change 다. 없으면 없다고 찍어서, 안 본 것과 구분한다.
         print(f"\n{label} {sorted(gone) if gone else '없음'}")
 
+    # 경로·스키마 개수가 그대로여도 **필드의 의미**가 바뀔 수 있다. 2026-08-12 에
+    # Commission.commissionRate 의 단위가 "퍼센트" → "소수 비율" 로 뒤집혔는데
+    # (같은 요율을 100배 다르게 쓴다) 집합 차분은 +0/-0 이라 no-op 으로 보였다.
+    # 타입이 안 변하는 의미 변경은 여기서만 잡힌다.
+    drift = []
+    for name in sorted(os_ & ns):
+        oldp = old["components"]["schemas"][name].get("properties", {})
+        newp = new["components"]["schemas"][name].get("properties", {})
+        for field in sorted(set(oldp) & set(newp)):
+            for attr in ("description", "example", "type", "format"):
+                a, b = oldp[field].get(attr), newp[field].get(attr)
+                if a != b:
+                    drift.append((name, field, attr, a, b))
+    if drift:
+        print(f"\n[필드 의미 변경 {len(drift)}건] — 개수는 그대로지만 뜻이 바뀐 자리다")
+        for name, field, attr, a, b in drift:
+            print(f"  {name}.{field}  ({attr})")
+            print(f"    - {a}")
+            print(f"    + {b}")
+
+    # 스키마 필드뿐 아니라 **오퍼레이션 설명**도 동작 규칙을 담는다. 2026-08-12 에
+    # createConditionalOrder 설명에 "국내는 KRX 정규장에서만 발동" 이 추가됐는데,
+    # 위의 필드 순회로는 안 잡힌다(오퍼레이션 레벨이라서). 사용자가 조건주문을
+    # 걸어두고 왜 발동 안 하는지 묻게 되는 종류의 규칙이다.
+    op_drift = []
+    for path in sorted(op & np):
+        for m in methods(new["paths"][path]):
+            if m not in old["paths"][path]:
+                continue
+            for attr in ("summary", "description"):
+                a = old["paths"][path][m].get(attr)
+                b = new["paths"][path][m].get(attr)
+                if a != b:
+                    op_drift.append((m.upper(), path, attr, a or "", b or ""))
+    if op_drift:
+        print(f"\n[오퍼레이션 설명 변경 {len(op_drift)}건] — 동작 규칙이 여기 적힌다")
+        for m, path, attr, a, b in op_drift:
+            print(f"  {m} {path}  ({attr})")
+            # 통짜 비교는 읽을 수 없다. 줄 단위로 갈라 새로 생긴 줄만 보여준다.
+            added = [ln for ln in b.split("\n") if ln.strip() and ln not in a.split("\n")]
+            removed = [ln for ln in a.split("\n") if ln.strip() and ln not in b.split("\n")]
+            for ln in removed:
+                print(f"    - {ln.strip()[:110]}")
+            for ln in added:
+                print(f"    + {ln.strip()[:110]}")
+
     if ns - os_:
         print(f"\n[신규 스키마 {len(ns - os_)}개]")
         print("  " + ", ".join(sorted(ns - os_)))

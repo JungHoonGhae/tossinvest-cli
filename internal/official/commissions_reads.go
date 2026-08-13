@@ -13,9 +13,20 @@ import (
 // Schema:
 //
 //	marketCountry  string — "KR" | "US"
-//	commissionRate string (decimal) — e.g. "0.015" (1.5%)
+//	commissionRate string — **소수 비율**. "0.00015" 가 0.015% 다.
 //	startDate      string — effective from date
 //	endDate        string — effective until date
+//
+// 스케일 주의: spec 1.2.14(2026-08-12)에서 이 필드의 표현이 바뀌었다. 그 전에는
+// "수수료율 (%)" 로 0.015 가 곧 0.015% 였고, 이제는 소수 비율이라 0.00015 가
+// 0.015% 다 — **같은 요율을 100배 다르게 쓴다.** 출력은 formatPercent(×100)를
+// 태우므로 소수 비율 가정이 맞고, 그래서 이 파일의 주석이 원래 틀려 있었다
+// ("0.015" (1.5%)). 스케일이 또 뒤집히면 에러 없이 100배 어긋나므로
+// commissions_reads_test.go 와 marketdata_test.go 에 단언을 박아뒀다.
+//
+// 이 레포에는 규약이 다른 형제 필드가 있다: WTS `account commission` 의
+// `RatePercent` 는 **이미 퍼센트**다(internal/client/commission_schedule.go).
+// 둘을 섞지 말 것.
 type apiCommission struct {
 	MarketCountry  string `json:"marketCountry"`
 	CommissionRate string `json:"commissionRate"`
