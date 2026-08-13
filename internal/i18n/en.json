@@ -151,7 +151,7 @@
   "order.conditional.confirmToken": "confirm token",
   "order.conditional.get.short": "Show one conditional order (official API key required)",
   "order.conditional.list.short": "List conditional orders (official API key required)",
-  "order.conditional.long": "List and inspect conditional orders via the official Toss Open API. Requires a connected official key.",
+  "order.conditional.long": "List and inspect conditional orders via the official Toss Open API. Requires a connected official key.\n\nTrigger sessions differ by market: KR stocks only trigger during KRX regular hours, while overseas stocks trigger in every tradable session. A KR conditional order placed after the close is not watched until the next regular session.",
   "order.conditional.modify.done": "Conditional order modified.",
   "order.conditional.modify.short": "Modify a conditional order (official API key required)",
   "order.conditional.place.done": "Conditional order created",
