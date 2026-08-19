@@ -296,7 +296,8 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **거래내역 ledger** | `transactions list --market us\|kr` (매매·입출금·배당·입출고) | ❌ | ✅ |
 | **현금 overview** | `transactions overview --market us\|kr` (주문가능·출금가능·예정입금) | ❌ | ✅ |
 | **CSV 내보내기** | `export positions\|orders --market`, `transactions list --output csv` | ❌ | ✅ |
-| **실시간 푸시** | `push listen` (SSE 스트림 — 주문/가격 변경 알림) | ❌ *(공식 API REST only)* | ✅ |
+| **실시간 푸시** | `push listen` (SSE 스트림 — 주문/가격 변경 알림) | ❌ *(공식 API 는 웹소켓)* | ✅ |
+| **🆕 실시간 스트림 (웹소켓)** | `stream --trade\|--orderbook\|--order` (체결·호가·본인 주문 이벤트) | ✅ | ❌ *(웹은 SSE 알림뿐)* |
 
 #### 📱 모바일 앱 전용 기능 (웹에도 UI 없음)
 
@@ -795,6 +796,15 @@ tossctl push listen --retry=false  # 재연결 비활성
 ```
 
 토스 웹의 SSE 채널을 그대로 구독해 `pending-order-refresh` · `purchase-price-refresh` · `share-holdings` · `web-push` 이벤트를 JSONL로 흘립니다. 이벤트 분류와 후속 재조회 매핑은 [`docs/reverse-engineering/push-events.md`](docs/reverse-engineering/push-events.md).
+
+### 실시간 스트림 (공식 웹소켓)
+
+```bash
+tossctl stream --trade AAPL,005930          # 실시간 체결
+tossctl stream --orderbook 005930 --order   # 호가 + 본인 주문 이벤트
+```
+
+공식 Open API 웹소켓(`wss://openapi-ws.tossinvest.com/ws/v1`)을 구독해 프레임을 JSONL로 흘립니다. 채널을 몇 개 붙이든 **연결은 하나**입니다(프로토콜이 선언형 full-replace). 구독 직후 스냅샷은 오지 않고 다음 갱신부터 푸시되므로, 현재 상태는 `quote`·`orders` 로 먼저 확인하세요. 끊기면 지수 백오프로 재연결하며 구독을 다시 선언합니다(`--retry=false` 로 끌 수 있음). 구독 모델·한도·keepalive 규칙은 [`docs/reverse-engineering/change-analysis/2026-08-19.md`](docs/reverse-engineering/change-analysis/2026-08-19.md).
 
 ### 시스템
 

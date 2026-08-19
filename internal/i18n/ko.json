@@ -528,6 +528,8 @@
   "root.long": "tossctl은 tossinvest-cli의 CLI 바이너리로, 브라우저 기반 로그인과 제한적인 거래 베타 기능을 제공하는 비공식 토스증권 웹 클라이언트입니다.",
   "root.short": "토스증권 웹 데이터 조회 및 거래 실험용 CLI",
   "search.short": "종목 통합 검색",
+  "stream.long": "공식 Open API 웹소켓으로 실시간 체결·호가·본인 주문 이벤트를 구독해 JSON 라인으로 출력한다.\n\n한 연결에 여러 채널을 함께 선언한다 (프로토콜이 선언형 full-replace).\n구독 직후 스냅샷은 오지 않고 다음 갱신부터 푸시된다 — 현재 상태는 `quote`·`orders` 로 먼저 확인할 것.\n국내 6자리 숫자는 KRX, 그 외는 미국 종목으로 본다.\n\n예)\n  tossctl stream --trade AAPL,005930\n  tossctl stream --orderbook 005930 --order",
+  "stream.short": "실시간 체결·호가·주문 이벤트 구독 (웹소켓)",
   "tax.overseas.long": "특정 세금 연도의 해외주식 양도소득(양도소득) 내역을 보여줍니다: 세금 요약(세율·기본공제·산출세액)과 매도 종목별 손익. 해외주식 양도소득세 신고용입니다. 금액은 원(KRW). --year 로 연도를 지정합니다. 웹앱(WTS) 전용 기능입니다.",
   "tax.overseas.short": "특정 연도의 해외주식 양도소득(양도차익)",
   "tax.ria.long": "RIA 공제를 반영한 해외주식 양도소득세 추정과 절세액을 봅니다. 일반계좌 기준 신고 수치는 `tax overseas` 를 쓰세요. 토스 모바일 앱에만 화면이 있는 기능입니다.",

@@ -252,7 +252,8 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **Transaction ledger** | `transactions list --market us\|kr` (trades · transfers · dividends) | ❌ | ✅ |
 | **Cash overview** | `transactions overview --market us\|kr` (orderable · withdrawable · incoming) | ❌ | ✅ |
 | **CSV export** | `export positions\|orders --market`, `transactions list --output csv` | ❌ | ✅ |
-| **Real-time push** | `push listen` (SSE stream — order/price change events) | ❌ *(official API is REST only)* | ✅ |
+| **Real-time push** | `push listen` (SSE stream — order/price change events) | ❌ *(official API uses websockets)* | ✅ |
+| **🆕 Real-time stream (websocket)** | `stream --trade\|--orderbook\|--order` (executions, order book, own orders) | ✅ | ❌ *(web only has SSE alerts)* |
 
 #### 📱 Mobile-app-only features (no web UI either)
 
@@ -678,6 +679,15 @@ tossctl push listen --retry=false  # disable reconnect
 ```
 
 Subscribes to Toss's SSE channel and streams `pending-order-refresh` · `purchase-price-refresh` · `share-holdings` · `web-push` events as JSONL. Event taxonomy: [`docs/reverse-engineering/push-events.md`](docs/reverse-engineering/push-events.md).
+
+### Real-time stream (official websocket)
+
+```bash
+tossctl stream --trade AAPL,005930          # live executions
+tossctl stream --orderbook 005930 --order   # order book + your own order events
+```
+
+Subscribes to the official websocket (`wss://openapi-ws.tossinvest.com/ws/v1`) and streams frames as JSONL. However many channels you attach, there is **one connection** — the protocol is a declarative full-replace subscription. No snapshot arrives on subscribe (updates only), so read current state with `quote`/`orders` first. On a drop it reconnects with exponential backoff and re-declares (`--retry=false` to disable). Subscription model, limits and keepalive rules: [`docs/reverse-engineering/change-analysis/2026-08-19.md`](docs/reverse-engineering/change-analysis/2026-08-19.md).
 
 ### System
 
