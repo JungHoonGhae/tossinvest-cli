@@ -2202,7 +2202,7 @@
           },
           "orderedAt": {
             "description": "주문 시간 (ISO 8601, KST)",
-            "example": "2026-03-29T09:30:00+09:00",
+            "example": "2026-03-29T09:30:00.000+09:00",
             "format": "date-time",
             "type": "string"
           },
@@ -2403,7 +2403,7 @@
       "OrderExecution": {
         "properties": {
           "averageFilledPrice": {
-            "description": "평균 체결 가격 (native currency). 부분 체결 시 체결된 건의 평균",
+            "description": "평균 체결 가격 (native currency). 부분 체결 시 체결된 건의 평균, 미체결 시 null",
             "example": "70000",
             "format": "decimal",
             "maxLength": 30,
@@ -2434,7 +2434,7 @@
           },
           "filledAt": {
             "description": "최종 체결 시간 (ISO 8601, KST)",
-            "example": "2026-03-28T09:31:15+09:00",
+            "example": "2026-03-28T09:31:15.000+09:00",
             "format": "date-time",
             "type": [
               "string",
@@ -3958,7 +3958,12 @@
       }
     }
   },
+  "externalDocs": {
+    "description": "실시간 웹소켓 API 스펙 (AsyncAPI 3.0) — 구독 선언·메시지 스키마·한도·keepalive·재연결 규칙",
+    "url": "https://openapi.tossinvest.com/openapi-docs/latest/asyncapi.json"
+  },
   "info": {
+    "description": "토스증권 트레이딩 Open API 의 REST 스펙입니다. 실시간 체결·호가·본인 주문 이벤트 스트리밍은 REST 가 아닌 웹소켓 API(`wss://openapi-ws.tossinvest.com/ws/v1`)로 제공되며, 별도의 AsyncAPI 3.0 문서 (https://openapi.tossinvest.com/openapi-docs/latest/asyncapi.json)가 실시간 스펙의 source of truth 입니다.",
     "title": "토스증권 Open API",
     "version": "1.2.14"
   },
@@ -10808,7 +10813,7 @@
       "name": "Auth"
     },
     {
-      "description": "종목의 실시간성 시세 정보를 조회하는 그룹입니다. 매수/매도 호가, 현재가, 최근 체결 내역, 상·하한가, 캔들 차트(1분봉·일봉)를 제공합니다. 계좌 정보 없이 액세스 토큰만으로 호출할 수 있습니다. 호가·현재가·체결·상하한가는 `MARKET_DATA` Rate Limits Group 에 속하고, 캔들 차트는 호출 부하 특성이 달라 별도의 `MARKET_DATA_CHART` Rate Limits Group 으로 관리되므로, 두 그룹의 한도 응답 헤더를 각각 확인하는 것을 권장합니다.\n\n**이용 안내**  \n- 웹 소켓은 추후 지원 예정입니다",
+      "description": "종목의 실시간성 시세 정보를 조회하는 그룹입니다. 매수/매도 호가, 현재가, 최근 체결 내역, 상·하한가, 캔들 차트(1분봉·일봉)를 제공합니다. 계좌 정보 없이 액세스 토큰만으로 호출할 수 있습니다. 호가·현재가·체결·상하한가는 `MARKET_DATA` Rate Limits Group 에 속하고, 캔들 차트는 호출 부하 특성이 달라 별도의 `MARKET_DATA_CHART` Rate Limits Group 으로 관리되므로, 두 그룹의 한도 응답 헤더를 각각 확인하는 것을 권장합니다.\n\n**이용 안내**\n- 실시간 체결·호가는 폴링 대신 웹소켓 API(`wss://openapi-ws.tossinvest.com/ws/v1`)로 구독할 수 있습니다 — AsyncAPI 스펙(`/openapi-docs/latest/asyncapi.json`)과 연동 가이드의 **웹소켓 연동** 섹션 참고",
       "name": "Market Data"
     },
     {

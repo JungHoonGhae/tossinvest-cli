@@ -4,7 +4,7 @@ Verified 2026-04-23 from the authenticated dashboard with the tossctl session.
 
 ## Channel
 
-Toss Securities web does **not** use WebSocket. Server → client push is delivered via Server-Sent Events (SSE) on a single long-lived HTTP GET.
+Toss Securities **web (WTS)** does **not** use WebSocket — this is about the web session only. The official Open API gained a WebSocket surface on 2026-08-19 (`wss://openapi-ws.tossinvest.com/ws/v1`, AsyncAPI 3.0 spec); see `docs/reverse-engineering/change-analysis/2026-08-19.md`. Server → client push is delivered via Server-Sent Events (SSE) on a single long-lived HTTP GET.
 
 - Endpoint: `GET https://sse-message.tossinvest.com/api/v1/wts-notification`
 - Required headers: `Accept: text/event-stream`, `Cache-Control: no-cache`
