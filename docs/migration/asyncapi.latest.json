@@ -1,0 +1,1337 @@
+{
+  "asyncapi": "3.0.0",
+  "channels": {
+    "connection": {
+      "address": "/ws/v1",
+      "description": "`wss://openapi-ws.tossinvest.com/ws/v1` 로 요청합니다. `Authorization: Bearer {access_token}`\n헤더가 필요하며(`POST /oauth2/token` 으로 발급), HTTP 는 handshake 단계에서만 쓰입니다(성공 시 `101`, 토큰 없음·무효·만료 `401`,\n허용 IP 미등록 `403`, 서버 내부 오류 `503`). 허용 IP 는 REST 와 동일한 목록(WTS 설정 > Open API > 허용 IP 관리)이 적용됩니다.\n인증은 handshake 시점 1회이며, 연결 유지 중 액세스 토큰이 만료되어도 연결은 끊기지 않습니다.\n\n**구독 선언 (모든 채널 공통)** — 연결 후 JSON **배열 1개**를 텍스트 프레임으로 보냅니다. 배열 하나에 여러 채널\n(체결·호가·주문)을 함께 담을 수 있고, 이 배열이 곧 현재 구독 전체입니다 (**선언형 full-replace** — 빠진 항목은\n자동 해제, 빈 배열 `[]` 은 전체 해제, subscribe/unsubscribe 액션 없음). 형식은 각 채널 항목의 구독 선언을 참고하세요.\n선언 직후 도착하는 구독 ack 의 `rejected[]` 항목은 원인을 수정하기 전에는 재선언에 포함해도 같은 이유로 다시\n거부됩니다. 거부된 항목은 선언 목록에서 빼거나 수정한 뒤 다시 선언하세요 — 일부 거부여도 `subscribed` 항목은\n정상 구독되고 연결은 유지됩니다.\n\n**수신 프레임 디스패치** — 연결 하나로 아래 프레임들이 섞여 도착합니다. top-level `type` 으로 구분해\n처리하세요.\n\n| 프레임 | 구분 | 도착 시점 |\n|---|---|---|\n| 구독 ack | `\"type\": \"subscriptions\"` | 구독 선언 직후 — 데이터보다 먼저 도착 |\n| 실시간 데이터 | `\"type\": \"message\"` + `topic` | 구독 대상 갱신 시마다 |\n| 에러 | `\"type\": \"error\"` | 선언 전체 실패 시(기존 구독 유지) 또는 서버 배포 시(`server-shutdown`) |\n| keepalive | `\"type\": \"pong\"` | 텍스트 `PING`(대문자) 송신 직후 |\n\n**한도**\n\n| 항목 | 한도 | 초과 시 |\n|---|---|---|\n| 동시 연결 | 계정당 **2개** | 새 연결은 수락되고 가장 오래된 연결이 종료 |\n| 연결당 구독 수 | **100건** (`codes` 합산) | `too-many-topics` 에러 프레임 |\n| 선언 빈도 | **5회/초** | `rate-limit-exceeded` 에러 프레임 |\n\n구독 수는 채널×종목 조합 기준입니다 — 같은 종목이라도 채널이 다르면 각각 1건입니다 (`trade:us:AAPL` + `orderbook:us:AAPL` = 2건).\n`rate-limit-exceeded` 를 받으면 약 1초 대기 후 재선언하세요 (REST 와 달리 `Retry-After` 헤더는 제공되지 않습니다).\n\n**연결 유지** — 서버는 **클라이언트로부터의 수신이 180초간 없으면** 연결을 종료합니다. 서버가 보내주는 데이터는\n이 타이머를 리셋하지 않으므로, 데이터를 받고 있는 중에도 180초 이내 주기로 `PING` 을 보내세요(**60초 간격 권장**).\nJSON 이 아닌 순수 텍스트 프레임 `PING`(대문자 4글자)을 보내면 `{\"type\":\"pong\"}` 으로 응답하며, 웹소켓 표준\nping/pong 프레임도 지원됩니다.\n\n**종료·재연결** — 서버 배포 시에는 종료 직전에 `{\"type\":\"error\",\"error\":{\"code\":\"server-shutdown\",...}}` 프레임이\n먼저 도착합니다 — 받으면 재연결 후 구독을 다시 선언하세요. 그 외의 경우(idle 초과, 주문 채널 backpressure,\n동시 연결 한도 초과로 가장 오래된 연결이 밀려나는 경우 등)에는 별도 close code 없이 종료될 수 있어 클라이언트에는\n비정상 종료로 보일 수 있습니다. 끊김을 감지하면 지수 백오프(1s → 2s → 4s ..., jitter 포함 — REST `429` 대응과\n동일)로 재시도하며 구독을 다시 선언하세요.\n재연결하기 전에 쓰던 연결을 먼저 닫아 주세요. 이전 연결이 남아 있으면 새로 연결할 때마다 앞의 연결이 밀려나 끊김이 반복될 수 있습니다.",
+      "messages": {
+        "errorFrame": {
+          "examples": [
+            {
+              "name": "errorFrame",
+              "payload": {
+                "error": {
+                  "code": "no-codes",
+                  "message": "codes must be a non-empty array of strings"
+                },
+                "id": "req-1",
+                "type": "error"
+              },
+              "summary": "선언 실패"
+            },
+            {
+              "name": "serverShutdown",
+              "payload": {
+                "error": {
+                  "code": "server-shutdown",
+                  "message": "서버가 재시작됩니다. 재연결해주세요."
+                },
+                "type": "error"
+              },
+              "summary": "서버 배포 시 도착 (프레임 직후 연결 종료 — 재연결 필요)"
+            }
+          ],
+          "name": "errorFrame",
+          "payload": {
+            "description": "선언 전체가 실패했을 때(기존 구독 유지) 또는 서버 배포 시(`server-shutdown`, 프레임 직후 연결 종료 — 재연결 필요) 내려오는 프레임. `type` 은 `error` 고정입니다.",
+            "properties": {
+              "error": {
+                "properties": {
+                  "code": {
+                    "description": "`wrong-format` · `no-type` · `invalid-type` · `no-codes` · `too-many-topics` · `too-many` · `rate-limit-exceeded` · `internal-error` · `server-shutdown`",
+                    "example": "rate-limit-exceeded",
+                    "type": "string"
+                  },
+                  "message": {
+                    "example": "declare rate limit exceeded",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "type": "object"
+              },
+              "id": {
+                "description": "요청에 `id` 가 있을 때만 echo",
+                "example": "req-1",
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "error"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "error"
+            ],
+            "type": "object"
+          },
+          "summary": "선언 전체 실패(기존 구독 유지) 또는 서버 배포 시(server-shutdown) 도착",
+          "title": "[수신] 에러"
+        },
+        "ping": {
+          "contentType": "text/plain",
+          "examples": [
+            {
+              "name": "ping",
+              "payload": "PING",
+              "summary": "keepalive 요청 (60초 간격 권장)"
+            }
+          ],
+          "name": "ping",
+          "payload": {
+            "const": "PING",
+            "description": "따옴표 없는 순수 텍스트 PING 을 그대로 보냅니다. JSON 으로 감싸지 마세요 — 서버가 {\"type\":\"pong\"} 으로 응답합니다.",
+            "type": "string"
+          },
+          "summary": "keepalive 요청 — JSON 이 아닌 순수 텍스트 프레임 (대문자 4글자, 60초 간격 권장)",
+          "title": "[송신] PING"
+        },
+        "pong": {
+          "examples": [
+            {
+              "name": "pong",
+              "payload": {
+                "type": "pong"
+              },
+              "summary": "keepalive 응답"
+            }
+          ],
+          "name": "pong",
+          "payload": {
+            "description": "텍스트 `PING`(대문자) 에 대한 keepalive 응답.",
+            "properties": {
+              "type": {
+                "enum": [
+                  "pong"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ],
+            "type": "object"
+          },
+          "summary": "텍스트 PING(대문자) 에 대한 keepalive 응답",
+          "title": "[수신] pong"
+        },
+        "subscriptionsAck": {
+          "examples": [
+            {
+              "name": "subscriptionsAck",
+              "payload": {
+                "id": "req-1",
+                "rejected": [],
+                "subscribed": [
+                  "trade:us:AAPL",
+                  "trade:us:TSLA",
+                  "orderbook:kr:005930",
+                  "personal:order:3"
+                ],
+                "type": "subscriptions"
+              },
+              "summary": "구독 ack (전부 확정)"
+            },
+            {
+              "name": "subscriptionsAckPartialReject",
+              "payload": {
+                "id": "req-2",
+                "rejected": [
+                  {
+                    "code": "stock-not-found",
+                    "message": "해당 종목을 찾을 수 없습니다.",
+                    "target": "trade:kr:999999"
+                  }
+                ],
+                "subscribed": [
+                  "trade:kr:005930"
+                ],
+                "type": "subscriptions"
+              },
+              "summary": "구독 ack (일부 거부 — 나머지는 정상 구독)"
+            }
+          ],
+          "name": "subscriptionsAck",
+          "payload": {
+            "description": "구독 선언 직후 내려오는 ack. 구독 확정(`subscribed`)·거부(`rejected`) 결과를 담습니다.",
+            "properties": {
+              "id": {
+                "description": "요청에 `id` 가 있을 때만 echo",
+                "example": "req-1",
+                "type": "string"
+              },
+              "rejected": {
+                "description": "구독 실패 항목 + 사유 (나머지는 정상 구독)",
+                "items": {
+                  "properties": {
+                    "code": {
+                      "description": "`stock-not-found` · `symbol-market-mismatch` · `account-not-found`",
+                      "example": "stock-not-found",
+                      "type": "string"
+                    },
+                    "message": {
+                      "example": "해당 종목을 찾을 수 없습니다.",
+                      "type": "string"
+                    },
+                    "target": {
+                      "description": "실패한 full key",
+                      "example": "trade:us:NOPE",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "target",
+                    "code",
+                    "message"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "subscribed": {
+                "description": "구독 확정된 full key 목록 (시세 `trade:us:AAPL`, 주문 `personal:order:3`)",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "type": {
+                "enum": [
+                  "subscriptions"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "subscribed",
+              "rejected"
+            ],
+            "type": "object"
+          },
+          "summary": "구독 선언 직후 내려오는 확정·거부 결과 (데이터보다 먼저 도착)",
+          "title": "[수신] 구독 ack"
+        }
+      },
+      "summary": "웹소켓 연결 수립과 프로토콜 공통 규칙을 다루는 항목입니다. handshake 인증, 선언형(full-replace) 구독 모델, 수신 프레임 구분 규칙, 연결·구독 한도, keepalive, 종료·재연결 동작을 설명합니다. 개별 데이터 채널 (Trade·Orderbook·Order Event)을 구독하기 전에 먼저 읽어보세요.",
+      "title": "Connection"
+    },
+    "realtime-order": {
+      "address": "/ws/v1",
+      "description": "구독할 `accountSeq` 는 `GET /api/v1/accounts` 응답에서 확인합니다 — 값은 숫자이므로 문자열로 변환해 `codes` 에 넣으세요. 본인 종합매매·활성 계좌만 구독되고\n(부적격 계좌는 `account-not-found` 로 해당 계좌만 거부), 국내/미국 **주식** 주문만 전달됩니다.\n\n`data.order` 는 `GET /api/v1/orders/{orderId}` 응답과 같은 모양이지만 `execution.filledAt` 은 포함하지\n않습니다. `topic` 은 `personal:order:{accountSeq}` 이며 내부 계좌번호는 노출되지 않습니다.\n\n미소비분(backlog)을 건너뛰지 않고 유지하며, 클라이언트 수신이 2초 이상 계속 막히면(backpressure) 서버가\n연결을 끊습니다. 무손실 보장은 연결 세션 내부에 한정되어 끊긴 구간의 이벤트는 다시 전달되지 않으므로,\n재연결 후 다시 선언하고 `GET /api/v1/orders` 로 주문 상태를 재동기화하세요.",
+      "messages": {
+        "declare": {
+          "examples": [
+            {
+              "name": "orderDeclare",
+              "payload": [
+                {
+                  "codes": [
+                    "3"
+                  ],
+                  "type": "personal:order"
+                }
+              ],
+              "summary": "주문 이벤트 구독 선언"
+            }
+          ],
+          "name": "orderDeclare",
+          "payload": {
+            "description": "구독 선언 — 클라이언트 → 서버 JSON 배열 텍스트 프레임. 배열 1개가 곧 현재 구독 전체입니다(선언형 full-replace).\n새 배열은 기존 구독을 전부 대체하고, 빠진 항목은 자동 해제되며, 빈 배열 `[]` 은 전체 해제입니다.\nsubscribe/unsubscribe 액션은 없습니다.\n\n원소는 아래 4가지 중 하나이며, `type` 에 따라 `codes` 에 넣는 값이 다릅니다:\n\n| type | codes 에 넣는 값 | 예시 |\n|---|---|---|\n| `trade:us` · `orderbook:us` | 미국 종목 symbol (영문 티커) | `{\"type\":\"trade:us\",\"codes\":[\"AAPL\",\"TSLA\"]}` |\n| `trade:kr` · `orderbook:kr` | 국내 종목 symbol (6자리 숫자) | `{\"type\":\"orderbook:kr\",\"codes\":[\"005930\"]}` |\n| `personal:order` | 계좌 `accountSeq` — 종목 symbol 아님 | `{\"type\":\"personal:order\",\"codes\":[\"3\"]}` |\n| (type 없음) | `id` 만 있는 원소 — 응답에 echo 되는 요청 식별자 | `{\"id\":\"req-1\"}` |",
+            "items": {
+              "oneOf": [
+                {
+                  "description": "선택 원소. 배열 어디에나 1개 넣을 수 있으며, 이 선언에 대한 응답(`subscriptions` ack·`error` 프레임)에\n같은 값이 `id` 로 echo 됩니다. 어떤 선언에 대한 응답인지 구분할 때 사용하세요.",
+                  "properties": {
+                    "id": {
+                      "description": "요청 식별자 (임의 문자열)",
+                      "example": "req-1",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "title": "요청 id (선택)",
+                  "type": "object"
+                },
+                {
+                  "description": "실시간 체결을 구독합니다. `type` 은 `trade:{시장}` 형식 — 미국은 `trade:us`, 국내(통합 시세, KRX+NXT)는 `trade:kr`.\n`codes` 에는 해당 시장의 종목 symbol 만 넣습니다 — 시장이 다른 symbol 은 `symbol-market-mismatch` 로 해당 항목만 거부됩니다.",
+                  "properties": {
+                    "codes": {
+                      "description": "종목 symbol 목록. `trade:us` 는 영문 티커(`AAPL`·`TSLA`), `trade:kr` 는 6자리 숫자(`005930`). 표기는 종목 마스터 그대로 사용하세요(미국 티커는 대문자) — 종목 마스터에 없는 symbol 이나 소문자 등 다른 표기는 `stock-not-found` 로 해당 항목만 거부됩니다.",
+                      "example": [
+                        "AAPL",
+                        "TSLA"
+                      ],
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "type": {
+                      "description": "`trade:us` = 미국 체결, `trade:kr` = 국내 체결 (통합 시세)",
+                      "enum": [
+                        "trade:us",
+                        "trade:kr"
+                      ],
+                      "example": "trade:us",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "codes"
+                  ],
+                  "title": "체결 구독 (trade)",
+                  "type": "object"
+                },
+                {
+                  "description": "실시간 호가(매도/매수)를 구독합니다. `type` 은 `orderbook:{시장}` 형식 — 미국은 `orderbook:us`, 국내(통합 시세, KRX+NXT)는 `orderbook:kr`.\n`codes` 에는 해당 시장의 종목 symbol 만 넣습니다 — 시장이 다른 symbol 은 `symbol-market-mismatch` 로 해당 항목만 거부됩니다.",
+                  "properties": {
+                    "codes": {
+                      "description": "종목 symbol 목록. `orderbook:us` 는 영문 티커(`AAPL`·`TSLA`), `orderbook:kr` 는 6자리 숫자(`005930`). 표기는 종목 마스터 그대로 사용하세요(미국 티커는 대문자) — 종목 마스터에 없는 symbol 이나 소문자 등 다른 표기는 `stock-not-found` 로 해당 항목만 거부됩니다.",
+                      "example": [
+                        "005930"
+                      ],
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "type": {
+                      "description": "`orderbook:us` = 미국 호가, `orderbook:kr` = 국내 호가 (통합 시세)",
+                      "enum": [
+                        "orderbook:us",
+                        "orderbook:kr"
+                      ],
+                      "example": "orderbook:kr",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "codes"
+                  ],
+                  "title": "호가 구독 (orderbook)",
+                  "type": "object"
+                },
+                {
+                  "description": "본인 계좌의 주문 이벤트를 구독합니다. `type` 은 고정값 `personal:order` 이며,\n`codes` 에는 종목 symbol 이 아니라 **계좌 `accountSeq`** 를 넣습니다 (`GET /api/v1/accounts` 응답의 `accountSeq` 값 — 응답은 숫자이므로 문자열로 변환해 넣으세요).\n본인 소유가 아니거나 구독 부적격인 계좌는 `account-not-found` 로 해당 계좌만 거부됩니다.",
+                  "properties": {
+                    "codes": {
+                      "description": "계좌 `accountSeq` 목록 (종목 symbol 아님). `GET /api/v1/accounts` 응답의 `accountSeq` 를 문자열로 변환해 사용합니다 (REST 응답은 숫자, `codes` 는 문자열 배열).",
+                      "example": [
+                        "3"
+                      ],
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "type": {
+                      "description": "고정값",
+                      "enum": [
+                        "personal:order"
+                      ],
+                      "example": "personal:order",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "codes"
+                  ],
+                  "title": "주문 이벤트 구독 (personal:order)",
+                  "type": "object"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "summary": "예: [{\"type\":\"personal:order\",\"codes\":[\"3\"]}]",
+          "title": "[송신] 구독 선언"
+        },
+        "orderStream": {
+          "examples": [
+            {
+              "name": "orderMessage",
+              "payload": {
+                "data": {
+                  "accountSeq": "3",
+                  "event": "FILL",
+                  "order": {
+                    "canceledAt": null,
+                    "currency": "USD",
+                    "execution": {
+                      "averageFilledPrice": "100",
+                      "commission": "1.23",
+                      "filledAmount": "1000",
+                      "filledQuantity": "10",
+                      "settlementDate": "2026-06-25",
+                      "tax": "0"
+                    },
+                    "orderAmount": null,
+                    "orderId": "bAGzNvMOOTa5Uy0xVzYNbxDJ3Qpobwau4jDF3hyZZGWbpHm7wha8CFZc7aXVOWAl",
+                    "orderType": "LIMIT",
+                    "orderedAt": "2026-06-23T09:30:00.000+09:00",
+                    "price": "100.5",
+                    "quantity": "10",
+                    "side": "BUY",
+                    "status": "FILLED",
+                    "symbol": "AAPL",
+                    "timeInForce": "DAY"
+                  }
+                },
+                "topic": "personal:order:3",
+                "type": "message"
+              },
+              "summary": "전량 체결 이벤트"
+            }
+          ],
+          "name": "orderStream",
+          "payload": {
+            "description": "실시간 주문 이벤트 프레임. 본인 계좌의 주문 상태 변화마다 푸시됩니다.",
+            "properties": {
+              "data": {
+                "description": "`personal:order` 실시간 주문 이벤트. `message` 프레임의 `data` 로 내려갑니다.",
+                "properties": {
+                  "accountSeq": {
+                    "description": "주문이 발생한 계좌의 `accountSeq` (구독 시 보낸 code 값). topic 의 accountSeq 와 동일",
+                    "example": "3",
+                    "type": "string"
+                  },
+                  "event": {
+                    "description": "주문 이벤트 종류.\n- `PENDING`: 접수\n- `PARTIAL_FILL` / `FILL`: 부분 체결 / 전량 체결\n- `CANCELING` / `CANCELED`: 취소 중 / 취소됨\n- `REPLACING` / `REPLACED`: 정정 중 / 정정됨\n- `REJECTED` / `CANCEL_REJECTED` / `REPLACE_REJECTED`: 주문 / 취소 / 정정 거부\n\n클라이언트는 unknown code 를 허용하도록 구현해야 합니다.\n",
+                    "enum": [
+                      "PENDING",
+                      "PARTIAL_FILL",
+                      "FILL",
+                      "CANCELING",
+                      "CANCELED",
+                      "REPLACING",
+                      "REPLACED",
+                      "REJECTED",
+                      "CANCEL_REJECTED",
+                      "REPLACE_REJECTED"
+                    ],
+                    "example": "FILL",
+                    "type": "string"
+                  },
+                  "order": {
+                    "description": "주문 스냅샷. 필드/포맷은 REST 주문 조회(`GET /api/v1/orders/{orderId}`)와 동일하나, `execution.filledAt` 은 포함하지 않습니다.",
+                    "properties": {
+                      "canceledAt": {
+                        "description": "취소 시간 (ISO 8601, KST). 해당 없으면 null",
+                        "example": null,
+                        "format": "date-time",
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "currency": {
+                        "description": "통화 코드.\n- KRW: 한국 원화\n- USD: 미국 달러\n\n클라이언트는 unknown enum 값을 허용하도록 구현해야 합니다.\n",
+                        "enum": [
+                          "KRW",
+                          "USD"
+                        ],
+                        "example": "KRW",
+                        "type": "string"
+                      },
+                      "execution": {
+                        "description": "체결 결과. 체결 내역이 없으면 filledQuantity=0",
+                        "properties": {
+                          "averageFilledPrice": {
+                            "description": "평균 체결 가격 (native currency). 부분 체결 시 체결된 건의 평균, 미체결 시 null",
+                            "example": "70000",
+                            "format": "decimal",
+                            "maxLength": 30,
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "commission": {
+                            "description": "총 체결 수수료 (native currency)",
+                            "example": "1400",
+                            "format": "decimal",
+                            "maxLength": 30,
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "filledAmount": {
+                            "description": "총 체결 금액 (native currency)",
+                            "example": "700000",
+                            "format": "decimal",
+                            "maxLength": 30,
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "filledQuantity": {
+                            "description": "체결 수량",
+                            "example": "10",
+                            "format": "decimal",
+                            "maxLength": 30,
+                            "type": "string"
+                          },
+                          "settlementDate": {
+                            "description": "결제 예정일 (YYYY-MM-DD, KST 기준). 미결제 시 null",
+                            "example": "2026-06-25",
+                            "format": "date",
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "tax": {
+                            "description": "총 체결 세금 (native currency)",
+                            "example": "0",
+                            "format": "decimal",
+                            "maxLength": 30,
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "filledQuantity",
+                          "averageFilledPrice",
+                          "filledAmount",
+                          "commission",
+                          "tax",
+                          "settlementDate"
+                        ],
+                        "type": "object"
+                      },
+                      "orderAmount": {
+                        "description": "주문 금액 (USD). 금액 기반 US 시장가 매수 주문에만 해당. 그 외 null",
+                        "example": null,
+                        "format": "decimal",
+                        "maxLength": 30,
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "orderId": {
+                        "description": "주문 식별자. REST 와 동일한 암호화 식별자로, 주문 상세 조회에 그대로 사용할 수 있습니다.",
+                        "example": "bAGzNvMOOTa5Uy0xVzYNbxDJ3Qpobwau4jDF3hyZZGWbpHm7wha8CFZc7aXVOWAl",
+                        "type": "string"
+                      },
+                      "orderType": {
+                        "description": "호가 유형.\n- `LIMIT`: 지정가\n- `MARKET`: 시장가\n\n클라이언트는 unknown code 를 허용하도록 구현해야 합니다.\n",
+                        "enum": [
+                          "LIMIT",
+                          "MARKET"
+                        ],
+                        "example": "LIMIT",
+                        "type": "string"
+                      },
+                      "orderedAt": {
+                        "description": "주문 시간 (ISO 8601, KST, 밀리초 `.SSS`)",
+                        "example": "2026-06-23T09:30:00.000+09:00",
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "price": {
+                        "description": "주문 가격 (native currency). MARKET 주문 시 null",
+                        "example": "70000",
+                        "format": "decimal",
+                        "maxLength": 30,
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "quantity": {
+                        "description": "주문 수량",
+                        "example": "10",
+                        "format": "decimal",
+                        "maxLength": 30,
+                        "type": "string"
+                      },
+                      "side": {
+                        "description": "주문 방향",
+                        "enum": [
+                          "BUY",
+                          "SELL"
+                        ],
+                        "example": "BUY",
+                        "type": "string"
+                      },
+                      "status": {
+                        "description": "주문 상태.\n- `PENDING`: 체결 대기. 주문이 접수되어 체결을 대기 중인 상태\n- `PENDING_CANCEL`: 취소 대기. 취소 요청이 접수되어 브로커 응답을 대기 중인 상태\n- `PENDING_REPLACE`: 정정 대기. 정정 요청이 접수되어 브로커 응답을 대기 중인 상태\n- `PARTIAL_FILLED`: 부분 체결. 주문 수량 중 일부만 체결된 상태\n- `FILLED`: 체결 완료. 주문 수량이 전량 체결된 상태\n- `CANCELED`: 취소 완료. execution.filledQuantity를 통해 부분 체결 여부를 확인할 수 있음\n- `REJECTED`: 거부됨. 브로커가 주문을 거부한 상태. execution.filledQuantity를 통해 부분 체결 여부를 확인할 수 있음\n- `CANCEL_REJECTED`: 취소 거부. 브로커가 취소 요청을 거부한 경우 별도 주문 레코드로 생성됨. 원주문은 이전 상태로 복귀함\n- `REPLACE_REJECTED`: 정정 거부. 브로커가 정정 요청을 거부한 경우 별도 주문 레코드로 생성됨. 원주문은 이전 상태로 복귀함\n- `REPLACED`: 정정됨. 정정 요청이 수락되어 원주문이 대체된 상태. execution.filledQuantity를 통해 부분 체결 여부를 확인할 수 있음\n\n클라이언트는 unknown code 를 허용하도록 구현해야 합니다.\n",
+                        "enum": [
+                          "PENDING",
+                          "PENDING_CANCEL",
+                          "PENDING_REPLACE",
+                          "PARTIAL_FILLED",
+                          "FILLED",
+                          "CANCELED",
+                          "REJECTED",
+                          "CANCEL_REJECTED",
+                          "REPLACE_REJECTED",
+                          "REPLACED"
+                        ],
+                        "example": "FILLED",
+                        "type": "string"
+                      },
+                      "symbol": {
+                        "description": "종목 심볼. KRX: 6자리 숫자, US: 영문 티커",
+                        "example": "005930",
+                        "type": "string"
+                      },
+                      "timeInForce": {
+                        "description": "주문 유효 조건 (Time In Force). `orderType` 과 결합되어 주문 방식이 결정됩니다 (예: `LIMIT` + `CLS` = LOC).\n- `DAY`: 당일 유효 (Day)\n- `CLS`: 장 마감 주문 (At the Close)\n- `OPG`: 장 개시 주문 (At the Opening). 현재는 지원하지 않습니다.\n\n클라이언트는 unknown code 를 허용하도록 구현해야 합니다.\n",
+                        "enum": [
+                          "DAY",
+                          "CLS",
+                          "OPG"
+                        ],
+                        "example": "DAY",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "orderId",
+                      "symbol",
+                      "side",
+                      "orderType",
+                      "timeInForce",
+                      "status",
+                      "quantity",
+                      "currency",
+                      "orderedAt",
+                      "execution"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "event",
+                  "accountSeq",
+                  "order"
+                ],
+                "type": "object"
+              },
+              "topic": {
+                "description": "`personal:order:{accountSeq}` (예: `personal:order:3`)",
+                "example": "personal:order:3",
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "message"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "topic",
+              "data"
+            ],
+            "type": "object"
+          },
+          "summary": "topic 은 personal:order:{accountSeq}",
+          "title": "[수신] 주문 이벤트 프레임"
+        }
+      },
+      "summary": "본인 계좌의 주문 이벤트를 실시간으로 구독하는 채널입니다. `personal:order` type 에 종목 symbol 이 아닌 계좌 `accountSeq` 를 선언합니다. 주문 데이터는 LOSSLESS 로 연결 세션 내에서 유실 없이 전달되며, REST 주문 상세와 동일한 모양의 payload 를 받습니다.",
+      "title": "Order Event"
+    },
+    "realtime-orderbook": {
+      "address": "/ws/v1",
+      "description": "다른 채널과 하나의 배열에 함께 선언할 수 있으며, 배열이 곧 현재 구독 전체입니다(full-replace —\n**Connection** 참고). 존재하지 않는 symbol 은 `stock-not-found`, 시장 불일치는 `symbol-market-mismatch` 로\n해당 항목만 ack 의 `rejected` 에 담겨 거부됩니다.\n\n구독 직후 초기 스냅샷은 전송되지 않으며 다음 호가 갱신부터 푸시됩니다 — 연결 시점의 상태가 필요하면 REST(`GET /api/v1/orderbook`)로 먼저 조회하세요.\n푸시는 모든 세션에서 제공됩니다. 미국은 프리·정규·애프터·데이마켓, 국내는 KRX 정규장과 NXT 프리·정규·애프터마켓 합산입니다.\n\n유실 시 항상 최신 상태가 우선이며, 유실 감지용 sequence 필드는 제공되지 않습니다.",
+      "messages": {
+        "declare": {
+          "examples": [
+            {
+              "name": "orderbookDeclare",
+              "payload": [
+                {
+                  "codes": [
+                    "005930",
+                    "035420"
+                  ],
+                  "type": "orderbook:kr"
+                }
+              ],
+              "summary": "호가 구독 선언"
+            }
+          ],
+          "name": "orderbookDeclare",
+          "payload": {
+            "description": "구독 선언 — 클라이언트 → 서버 JSON 배열 텍스트 프레임. 배열 1개가 곧 현재 구독 전체입니다(선언형 full-replace).\n새 배열은 기존 구독을 전부 대체하고, 빠진 항목은 자동 해제되며, 빈 배열 `[]` 은 전체 해제입니다.\nsubscribe/unsubscribe 액션은 없습니다.\n\n원소는 아래 4가지 중 하나이며, `type` 에 따라 `codes` 에 넣는 값이 다릅니다:\n\n| type | codes 에 넣는 값 | 예시 |\n|---|---|---|\n| `trade:us` · `orderbook:us` | 미국 종목 symbol (영문 티커) | `{\"type\":\"trade:us\",\"codes\":[\"AAPL\",\"TSLA\"]}` |\n| `trade:kr` · `orderbook:kr` | 국내 종목 symbol (6자리 숫자) | `{\"type\":\"orderbook:kr\",\"codes\":[\"005930\"]}` |\n| `personal:order` | 계좌 `accountSeq` — 종목 symbol 아님 | `{\"type\":\"personal:order\",\"codes\":[\"3\"]}` |\n| (type 없음) | `id` 만 있는 원소 — 응답에 echo 되는 요청 식별자 | `{\"id\":\"req-1\"}` |",
+            "items": {
+              "oneOf": [
+                {
+                  "description": "선택 원소. 배열 어디에나 1개 넣을 수 있으며, 이 선언에 대한 응답(`subscriptions` ack·`error` 프레임)에\n같은 값이 `id` 로 echo 됩니다. 어떤 선언에 대한 응답인지 구분할 때 사용하세요.",
+                  "properties": {
+                    "id": {
+                      "description": "요청 식별자 (임의 문자열)",
+                      "example": "req-1",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "title": "요청 id (선택)",
+                  "type": "object"
+                },
+                {
+                  "description": "실시간 체결을 구독합니다. `type` 은 `trade:{시장}` 형식 — 미국은 `trade:us`, 국내(통합 시세, KRX+NXT)는 `trade:kr`.\n`codes` 에는 해당 시장의 종목 symbol 만 넣습니다 — 시장이 다른 symbol 은 `symbol-market-mismatch` 로 해당 항목만 거부됩니다.",
+                  "properties": {
+                    "codes": {
+                      "description": "종목 symbol 목록. `trade:us` 는 영문 티커(`AAPL`·`TSLA`), `trade:kr` 는 6자리 숫자(`005930`). 표기는 종목 마스터 그대로 사용하세요(미국 티커는 대문자) — 종목 마스터에 없는 symbol 이나 소문자 등 다른 표기는 `stock-not-found` 로 해당 항목만 거부됩니다.",
+                      "example": [
+                        "AAPL",
+                        "TSLA"
+                      ],
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "type": {
+                      "description": "`trade:us` = 미국 체결, `trade:kr` = 국내 체결 (통합 시세)",
+                      "enum": [
+                        "trade:us",
+                        "trade:kr"
+                      ],
+                      "example": "trade:us",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "codes"
+                  ],
+                  "title": "체결 구독 (trade)",
+                  "type": "object"
+                },
+                {
+                  "description": "실시간 호가(매도/매수)를 구독합니다. `type` 은 `orderbook:{시장}` 형식 — 미국은 `orderbook:us`, 국내(통합 시세, KRX+NXT)는 `orderbook:kr`.\n`codes` 에는 해당 시장의 종목 symbol 만 넣습니다 — 시장이 다른 symbol 은 `symbol-market-mismatch` 로 해당 항목만 거부됩니다.",
+                  "properties": {
+                    "codes": {
+                      "description": "종목 symbol 목록. `orderbook:us` 는 영문 티커(`AAPL`·`TSLA`), `orderbook:kr` 는 6자리 숫자(`005930`). 표기는 종목 마스터 그대로 사용하세요(미국 티커는 대문자) — 종목 마스터에 없는 symbol 이나 소문자 등 다른 표기는 `stock-not-found` 로 해당 항목만 거부됩니다.",
+                      "example": [
+                        "005930"
+                      ],
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "type": {
+                      "description": "`orderbook:us` = 미국 호가, `orderbook:kr` = 국내 호가 (통합 시세)",
+                      "enum": [
+                        "orderbook:us",
+                        "orderbook:kr"
+                      ],
+                      "example": "orderbook:kr",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "codes"
+                  ],
+                  "title": "호가 구독 (orderbook)",
+                  "type": "object"
+                },
+                {
+                  "description": "본인 계좌의 주문 이벤트를 구독합니다. `type` 은 고정값 `personal:order` 이며,\n`codes` 에는 종목 symbol 이 아니라 **계좌 `accountSeq`** 를 넣습니다 (`GET /api/v1/accounts` 응답의 `accountSeq` 값 — 응답은 숫자이므로 문자열로 변환해 넣으세요).\n본인 소유가 아니거나 구독 부적격인 계좌는 `account-not-found` 로 해당 계좌만 거부됩니다.",
+                  "properties": {
+                    "codes": {
+                      "description": "계좌 `accountSeq` 목록 (종목 symbol 아님). `GET /api/v1/accounts` 응답의 `accountSeq` 를 문자열로 변환해 사용합니다 (REST 응답은 숫자, `codes` 는 문자열 배열).",
+                      "example": [
+                        "3"
+                      ],
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "type": {
+                      "description": "고정값",
+                      "enum": [
+                        "personal:order"
+                      ],
+                      "example": "personal:order",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "codes"
+                  ],
+                  "title": "주문 이벤트 구독 (personal:order)",
+                  "type": "object"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "summary": "예: [{\"type\":\"orderbook:kr\",\"codes\":[\"005930\"]}]",
+          "title": "[송신] 구독 선언"
+        },
+        "orderbookStream": {
+          "examples": [
+            {
+              "name": "orderbookMessage",
+              "payload": {
+                "data": {
+                  "asks": [
+                    {
+                      "price": "71500",
+                      "volume": "5"
+                    }
+                  ],
+                  "bids": [
+                    {
+                      "price": "71400",
+                      "volume": "10"
+                    }
+                  ],
+                  "currency": "KRW",
+                  "timestamp": "2026-06-18T23:30:00.000+09:00"
+                },
+                "topic": "orderbook:kr:005930",
+                "type": "message"
+              },
+              "summary": "실시간 호가"
+            }
+          ],
+          "name": "orderbookStream",
+          "payload": {
+            "description": "실시간 호가 프레임. `data` 는 REST 호가 조회(`GET /api/v1/orderbook`)의 응답과 동일한 모양입니다.",
+            "properties": {
+              "data": {
+                "properties": {
+                  "asks": {
+                    "description": "매도호가 목록 (낮은 가격순)",
+                    "items": {
+                      "properties": {
+                        "price": {
+                          "description": "호가",
+                          "example": "72100",
+                          "format": "decimal",
+                          "maxLength": 30,
+                          "type": "string"
+                        },
+                        "volume": {
+                          "description": "잔량",
+                          "example": "8500",
+                          "format": "decimal",
+                          "maxLength": 30,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "price",
+                        "volume"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "bids": {
+                    "description": "매수호가 목록 (높은 가격순)",
+                    "items": {
+                      "properties": {
+                        "price": {
+                          "description": "호가",
+                          "example": "72100",
+                          "format": "decimal",
+                          "maxLength": 30,
+                          "type": "string"
+                        },
+                        "volume": {
+                          "description": "잔량",
+                          "example": "8500",
+                          "format": "decimal",
+                          "maxLength": 30,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "price",
+                        "volume"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "currency": {
+                    "description": "통화 코드.\n- KRW: 한국 원화\n- USD: 미국 달러\n\n클라이언트는 unknown enum 값을 허용하도록 구현해야 합니다.\n",
+                    "enum": [
+                      "KRW",
+                      "USD"
+                    ],
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "description": "데이터 시각. 데이터 미제공 시 null",
+                    "example": "2026-03-25T09:30:00.123+09:00",
+                    "format": "date-time",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "currency",
+                  "asks",
+                  "bids"
+                ],
+                "type": "object"
+              },
+              "topic": {
+                "description": "`orderbook:{시장}:{symbol}` (예: `orderbook:kr:005930`)",
+                "example": "orderbook:kr:005930",
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "message"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "topic",
+              "data"
+            ],
+            "type": "object"
+          },
+          "summary": "topic 은 orderbook:{시장}:{symbol}",
+          "title": "[수신] 호가 프레임"
+        }
+      },
+      "summary": "종목의 실시간 호가(매도/매수)를 구독하는 채널입니다. `orderbook:us`·`orderbook:kr` type 에 종목 symbol 을 선언하면 호가가 갱신될 때마다 프레임을 전달받습니다. 시세 데이터는 LOSSY — 수신이 밀리면 중간 프레임이 유실될 수 있습니다.",
+      "title": "Orderbook"
+    },
+    "realtime-trade": {
+      "address": "/ws/v1",
+      "description": "다른 채널과 하나의 배열에 함께 선언할 수 있으며, 배열이 곧 현재 구독 전체입니다(full-replace — **Connection** 참고).\n선언 직후 구독 ack 가 먼저 도착합니다. 존재하지 않는 symbol 은 `stock-not-found`, 시장 불일치는\n`symbol-market-mismatch` 로 해당 항목만 ack 의 `rejected` 에 담겨 거부됩니다.\n\n구독 직후 초기 스냅샷은 전송되지 않으며 다음 체결부터 푸시됩니다 — 연결 시점의 상태가 필요하면 REST(`GET /api/v1/trades`)로 먼저 조회하세요.\n푸시는 모든 세션에서 제공됩니다. 미국은 프리·정규·애프터·데이마켓, 국내는 KRX 정규장과 NXT 프리·정규·애프터마켓 합산입니다.\n\n유실 시 항상 최신 상태가 우선이며, 유실 감지용 sequence 필드는 제공되지 않습니다.\n프레임에는 누적 거래량·매수/매도 구분이 없고 유실 가능성이 있어, 수신 프레임 합산으로 누적 거래량을 재구성할 수 없습니다 —\n누적값이 필요하면 REST 캔들·현재가를 사용하세요.",
+      "messages": {
+        "declare": {
+          "examples": [
+            {
+              "name": "tradeDeclare",
+              "payload": [
+                {
+                  "id": "req-1"
+                },
+                {
+                  "codes": [
+                    "AAPL",
+                    "TSLA"
+                  ],
+                  "type": "trade:us"
+                },
+                {
+                  "codes": [
+                    "005930"
+                  ],
+                  "type": "trade:kr"
+                }
+              ],
+              "summary": "체결 구독 선언 (미국 + 국내 혼합)"
+            }
+          ],
+          "name": "tradeDeclare",
+          "payload": {
+            "description": "구독 선언 — 클라이언트 → 서버 JSON 배열 텍스트 프레임. 배열 1개가 곧 현재 구독 전체입니다(선언형 full-replace).\n새 배열은 기존 구독을 전부 대체하고, 빠진 항목은 자동 해제되며, 빈 배열 `[]` 은 전체 해제입니다.\nsubscribe/unsubscribe 액션은 없습니다.\n\n원소는 아래 4가지 중 하나이며, `type` 에 따라 `codes` 에 넣는 값이 다릅니다:\n\n| type | codes 에 넣는 값 | 예시 |\n|---|---|---|\n| `trade:us` · `orderbook:us` | 미국 종목 symbol (영문 티커) | `{\"type\":\"trade:us\",\"codes\":[\"AAPL\",\"TSLA\"]}` |\n| `trade:kr` · `orderbook:kr` | 국내 종목 symbol (6자리 숫자) | `{\"type\":\"orderbook:kr\",\"codes\":[\"005930\"]}` |\n| `personal:order` | 계좌 `accountSeq` — 종목 symbol 아님 | `{\"type\":\"personal:order\",\"codes\":[\"3\"]}` |\n| (type 없음) | `id` 만 있는 원소 — 응답에 echo 되는 요청 식별자 | `{\"id\":\"req-1\"}` |",
+            "items": {
+              "oneOf": [
+                {
+                  "description": "선택 원소. 배열 어디에나 1개 넣을 수 있으며, 이 선언에 대한 응답(`subscriptions` ack·`error` 프레임)에\n같은 값이 `id` 로 echo 됩니다. 어떤 선언에 대한 응답인지 구분할 때 사용하세요.",
+                  "properties": {
+                    "id": {
+                      "description": "요청 식별자 (임의 문자열)",
+                      "example": "req-1",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "title": "요청 id (선택)",
+                  "type": "object"
+                },
+                {
+                  "description": "실시간 체결을 구독합니다. `type` 은 `trade:{시장}` 형식 — 미국은 `trade:us`, 국내(통합 시세, KRX+NXT)는 `trade:kr`.\n`codes` 에는 해당 시장의 종목 symbol 만 넣습니다 — 시장이 다른 symbol 은 `symbol-market-mismatch` 로 해당 항목만 거부됩니다.",
+                  "properties": {
+                    "codes": {
+                      "description": "종목 symbol 목록. `trade:us` 는 영문 티커(`AAPL`·`TSLA`), `trade:kr` 는 6자리 숫자(`005930`). 표기는 종목 마스터 그대로 사용하세요(미국 티커는 대문자) — 종목 마스터에 없는 symbol 이나 소문자 등 다른 표기는 `stock-not-found` 로 해당 항목만 거부됩니다.",
+                      "example": [
+                        "AAPL",
+                        "TSLA"
+                      ],
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "type": {
+                      "description": "`trade:us` = 미국 체결, `trade:kr` = 국내 체결 (통합 시세)",
+                      "enum": [
+                        "trade:us",
+                        "trade:kr"
+                      ],
+                      "example": "trade:us",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "codes"
+                  ],
+                  "title": "체결 구독 (trade)",
+                  "type": "object"
+                },
+                {
+                  "description": "실시간 호가(매도/매수)를 구독합니다. `type` 은 `orderbook:{시장}` 형식 — 미국은 `orderbook:us`, 국내(통합 시세, KRX+NXT)는 `orderbook:kr`.\n`codes` 에는 해당 시장의 종목 symbol 만 넣습니다 — 시장이 다른 symbol 은 `symbol-market-mismatch` 로 해당 항목만 거부됩니다.",
+                  "properties": {
+                    "codes": {
+                      "description": "종목 symbol 목록. `orderbook:us` 는 영문 티커(`AAPL`·`TSLA`), `orderbook:kr` 는 6자리 숫자(`005930`). 표기는 종목 마스터 그대로 사용하세요(미국 티커는 대문자) — 종목 마스터에 없는 symbol 이나 소문자 등 다른 표기는 `stock-not-found` 로 해당 항목만 거부됩니다.",
+                      "example": [
+                        "005930"
+                      ],
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "type": {
+                      "description": "`orderbook:us` = 미국 호가, `orderbook:kr` = 국내 호가 (통합 시세)",
+                      "enum": [
+                        "orderbook:us",
+                        "orderbook:kr"
+                      ],
+                      "example": "orderbook:kr",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "codes"
+                  ],
+                  "title": "호가 구독 (orderbook)",
+                  "type": "object"
+                },
+                {
+                  "description": "본인 계좌의 주문 이벤트를 구독합니다. `type` 은 고정값 `personal:order` 이며,\n`codes` 에는 종목 symbol 이 아니라 **계좌 `accountSeq`** 를 넣습니다 (`GET /api/v1/accounts` 응답의 `accountSeq` 값 — 응답은 숫자이므로 문자열로 변환해 넣으세요).\n본인 소유가 아니거나 구독 부적격인 계좌는 `account-not-found` 로 해당 계좌만 거부됩니다.",
+                  "properties": {
+                    "codes": {
+                      "description": "계좌 `accountSeq` 목록 (종목 symbol 아님). `GET /api/v1/accounts` 응답의 `accountSeq` 를 문자열로 변환해 사용합니다 (REST 응답은 숫자, `codes` 는 문자열 배열).",
+                      "example": [
+                        "3"
+                      ],
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "type": {
+                      "description": "고정값",
+                      "enum": [
+                        "personal:order"
+                      ],
+                      "example": "personal:order",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "codes"
+                  ],
+                  "title": "주문 이벤트 구독 (personal:order)",
+                  "type": "object"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "summary": "예: [{\"type\":\"trade:us\",\"codes\":[\"AAPL\",\"TSLA\"]}]",
+          "title": "[송신] 구독 선언"
+        },
+        "tradeStream": {
+          "examples": [
+            {
+              "name": "tradeMessage",
+              "payload": {
+                "data": {
+                  "currency": "USD",
+                  "price": "243.26",
+                  "timestamp": "2026-06-18T23:30:00.000+09:00",
+                  "volume": "8"
+                },
+                "topic": "trade:us:AAPL",
+                "type": "message"
+              },
+              "summary": "실시간 체결"
+            }
+          ],
+          "name": "tradeStream",
+          "payload": {
+            "description": "실시간 체결 프레임. `data` 는 REST 체결 조회(`GET /api/v1/trades`)의 체결 항목과 동일한 모양입니다.",
+            "properties": {
+              "data": {
+                "properties": {
+                  "currency": {
+                    "description": "통화 코드.\n- KRW: 한국 원화\n- USD: 미국 달러\n\n클라이언트는 unknown enum 값을 허용하도록 구현해야 합니다.\n",
+                    "enum": [
+                      "KRW",
+                      "USD"
+                    ],
+                    "type": "string"
+                  },
+                  "price": {
+                    "description": "체결가",
+                    "example": "72000",
+                    "format": "decimal",
+                    "maxLength": 30,
+                    "type": "string"
+                  },
+                  "timestamp": {
+                    "description": "체결 시각",
+                    "example": "2026-03-25T09:30:42.000+09:00",
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "volume": {
+                    "description": "체결 수량",
+                    "example": "120",
+                    "format": "decimal",
+                    "maxLength": 30,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "price",
+                  "volume",
+                  "timestamp",
+                  "currency"
+                ],
+                "type": "object"
+              },
+              "topic": {
+                "description": "`trade:{시장}:{symbol}` — `subscribed` 에 echo 된 full key 와 동일 (예: `trade:us:AAPL`)",
+                "example": "trade:us:AAPL",
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "message"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "topic",
+              "data"
+            ],
+            "type": "object"
+          },
+          "summary": "topic 은 trade:{시장}:{symbol} — ack 의 subscribed full key 와 동일",
+          "title": "[수신] 체결 프레임"
+        }
+      },
+      "summary": "종목의 실시간 체결(체결가·체결량)을 구독하는 채널입니다. `trade:us`(미국)·`trade:kr`(국내 통합) type 에 종목 symbol 을 선언하면 체결이 발생할 때마다 프레임을 전달받습니다. 시세 데이터는 LOSSY — 수신이 밀리면 중간 프레임이 유실될 수 있습니다.",
+      "title": "Trade"
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerToken": {
+        "description": "REST 와 동일한 access token (`POST /oauth2/token`, Client Credentials Grant)",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "defaultContentType": "application/json",
+  "info": {
+    "description": "`wss://openapi-ws.tossinvest.com/ws/v1` 연결 위의 선언형 구독 스트림입니다. REST API 와 인증 체계를 공유하며\n(`POST /oauth2/token` 으로 발급한 access token), 실시간 체결·호가·본인 주문 이벤트를 전달받습니다.\n\n연결 절차·구독 모델·한도·에러 코드 전체 가이드는 연동 가이드(overview)의 **웹소켓 연동** 섹션을 참고하세요.\n이 스펙의 `info.version` 은 REST 스펙(openapi.json)과 독립적으로 관리됩니다.",
+    "title": "토스증권 Open API — 실시간 (웹소켓)",
+    "version": "1.2.2",
+    "x-portal": {
+      "groupTitle": "웹소켓"
+    }
+  },
+  "operations": {
+    "receiveError": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/connection"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/connection/messages/errorFrame"
+        }
+      ],
+      "summary": "선언 전체 실패(기존 구독 유지) 또는 서버 배포 시 도착 (모든 채널 공통)",
+      "title": "[수신] 에러"
+    },
+    "receiveOrder": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/realtime-order"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/realtime-order/messages/orderStream"
+        }
+      ],
+      "summary": "본인 계좌 주문 상태 변화마다 푸시",
+      "title": "[수신] 실시간 주문 이벤트"
+    },
+    "receiveOrderbook": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/realtime-orderbook"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/realtime-orderbook/messages/orderbookStream"
+        }
+      ],
+      "summary": "구독 종목의 호가가 갱신될 때마다 푸시",
+      "title": "[수신] 실시간 호가"
+    },
+    "receivePong": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/connection"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/connection/messages/pong"
+        }
+      ],
+      "summary": "텍스트 PING 에 대한 keepalive 응답",
+      "title": "[수신] pong"
+    },
+    "receiveSubscriptionsAck": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/connection"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/connection/messages/subscriptionsAck"
+        }
+      ],
+      "summary": "선언 직후 확정·거부 결과 (모든 채널 공통)",
+      "title": "[수신] 구독 ack"
+    },
+    "receiveTrade": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/realtime-trade"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/realtime-trade/messages/tradeStream"
+        }
+      ],
+      "summary": "구독 종목이 체결될 때마다 푸시",
+      "title": "[수신] 실시간 체결"
+    },
+    "sendPing": {
+      "action": "send",
+      "channel": {
+        "$ref": "#/channels/connection"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/connection/messages/ping"
+        }
+      ],
+      "summary": "keepalive 요청 — JSON 이 아닌 순수 텍스트 프레임 (대문자 4글자, 60초 간격 권장)",
+      "title": "[송신] PING"
+    },
+    "subscribeOrder": {
+      "action": "send",
+      "channel": {
+        "$ref": "#/channels/realtime-order"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/realtime-order/messages/declare"
+        }
+      ],
+      "summary": "personal:order 항목(accountSeq)을 담은 선언 배열 전송 (full-replace)",
+      "title": "[송신] 주문 구독 선언"
+    },
+    "subscribeOrderbook": {
+      "action": "send",
+      "channel": {
+        "$ref": "#/channels/realtime-orderbook"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/realtime-orderbook/messages/declare"
+        }
+      ],
+      "summary": "orderbook:us / orderbook:kr 항목을 담은 선언 배열 전송 (full-replace)",
+      "title": "[송신] 호가 구독 선언"
+    },
+    "subscribeTrade": {
+      "action": "send",
+      "channel": {
+        "$ref": "#/channels/realtime-trade"
+      },
+      "messages": [
+        {
+          "$ref": "#/channels/realtime-trade/messages/declare"
+        }
+      ],
+      "summary": "trade:us / trade:kr 항목을 담은 선언 배열 전송 (full-replace)",
+      "title": "[송신] 체결 구독 선언"
+    }
+  },
+  "servers": {
+    "production": {
+      "description": "연결 요청에 `Authorization: Bearer {access_token}` 헤더가 필요합니다\n(없거나 무효·만료 시 HTTP `401`, 허용 IP 미등록 시 `403`).\nTLS 필수.",
+      "host": "openapi-ws.tossinvest.com",
+      "pathname": "/ws/v1",
+      "protocol": "wss",
+      "security": [
+        {
+          "description": "REST 와 동일한 access token (`POST /oauth2/token`, Client Credentials Grant)",
+          "scheme": "bearer",
+          "type": "http"
+        }
+      ]
+    }
+  }
+}

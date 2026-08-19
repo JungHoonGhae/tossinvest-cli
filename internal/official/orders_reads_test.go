@@ -111,6 +111,24 @@ func TestAdaptOrderNoOrderedAt(t *testing.T) {
 	}
 }
 
+// TestAdaptOrderMillisecondOrderedAt guards the 2026-08-19 spec change: orderedAt·
+// filledAt examples gained a `.SSS` fraction. time.RFC3339 as a *parse* layout accepts
+// it, so this is the check that fails if someone swaps in a stricter layout.
+func TestAdaptOrderMillisecondOrderedAt(t *testing.T) {
+	raw := apiOrder{OrderID: "x", Symbol: "005930", OrderedAt: "2026-03-29T09:30:00.123+09:00"}
+	got := adaptOrder(raw)
+	if got.SubmittedAt == nil {
+		t.Fatal("SubmittedAt: expected non-nil for millisecond orderedAt")
+	}
+	wantUTC := time.Date(2026, 3, 29, 0, 30, 0, 123000000, time.UTC)
+	if !got.SubmittedAt.UTC().Equal(wantUTC) {
+		t.Fatalf("SubmittedAt UTC: want %v, got %v", wantUTC, got.SubmittedAt.UTC())
+	}
+	if got.OrderDate != "2026-03-29" {
+		t.Fatalf("OrderDate: want 2026-03-29, got %q", got.OrderDate)
+	}
+}
+
 // TestAdaptOrdersBatch verifies the slice adapter.
 func TestAdaptOrdersBatch(t *testing.T) {
 	raw := []apiOrder{

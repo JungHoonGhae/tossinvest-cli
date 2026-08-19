@@ -109,11 +109,59 @@ def fmt_param(spec: dict, param: dict) -> str:
     return f"{param.get('name','?')}:{t}({','.join(bits)})"
 
 
+def flatten(node, prefix: str = "") -> dict:
+    """스펙 전체를 `점 경로 → 스칼라` 로 편다. 배열은 인덱스를 경로에 넣는다."""
+    flat = {}
+    if isinstance(node, dict):
+        for k, v in node.items():
+            flat.update(flatten(v, f"{prefix}.{k}" if prefix else str(k)))
+    elif isinstance(node, list):
+        for i, v in enumerate(node):
+            flat.update(flatten(v, f"{prefix}[{i}]"))
+    else:
+        flat[prefix] = node
+    return flat
+
+
+def line_diff(a: str, b: str, indent: str = "    ") -> None:
+    """통짜 비교는 읽을 수 없다. 줄 단위로 갈라 사라진 줄·새로 생긴 줄만 보여준다."""
+    ab, bb = a.split("\n"), b.split("\n")
+    for ln in (x for x in ab if x.strip() and x not in bb):
+        print(f"{indent}- {ln.strip()[:110]}")
+    for ln in (x for x in bb if x.strip() and x not in ab):
+        print(f"{indent}+ {ln.strip()[:110]}")
+
+
+def selfcheck() -> int:
+    """flatten + leftover 필터가 이 도구의 유일한 비자명 로직이라 여기만 검사한다."""
+    flat = flatten({"a": {"b": 1}, "t": [{"n": "x"}], "z": None})
+    assert flat == {"a.b": 1, "t[0].n": "x", "z": None}, flat
+
+    old = {"info": {"version": "1"}, "tags": [{"name": "M", "description": "before"}]}
+    new = {"info": {"version": "2"}, "tags": [{"name": "M", "description": "after"}], "x": 1}
+    of, nf = flatten(old), flatten(new)
+    changed = sorted(k for k in set(of) | set(nf) if of.get(k) != nf.get(k))
+    assert changed == ["info.version", "tags[0].description", "x"], changed
+
+    reported = {"info.version", "tags"}  # tags 는 배열 — 접두사로 걸러져야 한다
+    leftover = [
+        k for k in changed
+        if not any(k == r or k.startswith(r + ".") or k.startswith(r + "[") for r in reported)
+    ]
+    assert leftover == ["x"], leftover
+    print("selfcheck ok")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--rev", help="이 커밋과 그 부모를 대조 (기본: 워킹트리 vs HEAD)")
     ap.add_argument("--schema", help="스키마 한 그루를 allOf 까지 펼쳐 출력")
+    ap.add_argument("--selfcheck", action="store_true", help="내부 로직 자체 검사")
     args = ap.parse_args()
+
+    if args.selfcheck:
+        return selfcheck()
 
     new = load(None if args.rev is None else args.rev)
     if args.schema:
@@ -190,13 +238,79 @@ def main() -> int:
         print(f"\n[오퍼레이션 설명 변경 {len(op_drift)}건] — 동작 규칙이 여기 적힌다")
         for m, path, attr, a, b in op_drift:
             print(f"  {m} {path}  ({attr})")
-            # 통짜 비교는 읽을 수 없다. 줄 단위로 갈라 새로 생긴 줄만 보여준다.
-            added = [ln for ln in b.split("\n") if ln.strip() and ln not in a.split("\n")]
-            removed = [ln for ln in a.split("\n") if ln.strip() and ln not in b.split("\n")]
-            for ln in removed:
-                print(f"    - {ln.strip()[:110]}")
-            for ln in added:
-                print(f"    + {ln.strip()[:110]}")
+            line_diff(a, b)
+
+
+    # 경로·스키마·오퍼레이션 어디에도 안 적히는 자리가 하나 더 있다. 2026-08-19 에
+    # 공식 웹소켓 API 출시가 info.description + externalDocs + tags[Market Data]
+    # .description 세 곳에만 적혀서, 위 세 절이 전부 "변경 없음" 이었다. 새 프로토콜과
+    # 별도 스펙 문서(AsyncAPI) 링크는 스펙 최상단으로만 온다.
+    def tags_of(spec: dict) -> dict:
+        return {t.get("name", "?"): t.get("description", "") for t in spec.get("tags", [])}
+
+    meta_drift = [
+        ("info.title", old.get("info", {}).get("title", ""), new.get("info", {}).get("title", "")),
+        (
+            "info.description",
+            old.get("info", {}).get("description", ""),
+            new.get("info", {}).get("description", ""),
+        ),
+        (
+            "externalDocs",
+            json.dumps(old.get("externalDocs", {}), ensure_ascii=False, indent=1),
+            json.dumps(new.get("externalDocs", {}), ensure_ascii=False, indent=1),
+        ),
+    ]
+    ot, nt = tags_of(old), tags_of(new)
+    meta_drift += [(f"tags[{name}]", ot.get(name, ""), nt.get(name, "")) for name in sorted(set(ot) | set(nt))]
+    meta_drift = [(label, a, b) for label, a, b in meta_drift if a != b]
+    if meta_drift:
+        print(f"\n[스펙 메타 변경 {len(meta_drift)}건] — 신규 프로토콜·별도 스펙 링크가 여기 적힌다")
+        for label, a, b in meta_drift:
+            print(f"  {label}")
+            line_diff(a, b)
+
+
+    # ---- catch-all -------------------------------------------------------
+    # 위 절들은 "지난번에 놓친 자리" 를 하나씩 메워 온 것이고, 그때마다 한 주기를
+    # 통째로 놓친 뒤였다 (2026-08-03 components / 2026-08-12 오퍼레이션 설명 /
+    # 2026-08-19 스펙 메타 — 웹소켓 출시가 tags 설명에만 적혀 세 절이 다 조용했다).
+    # 사고를 따라 절을 늘리는 대신, **어느 절도 보고하지 않은 변경이 남았는지**를
+    # 마지막에 확인한다. 여기가 비어야 비로소 "변경 없음" 이라고 말할 수 있다.
+    reported = {"info.version"}  # 맨 위 헤더에서 이미 찍는다
+    for p in (np - op) | (op - np):
+        reported.add(f"paths.{p}")
+    for name in (ns - os_) | (os_ - ns):
+        reported.add(f"components.schemas.{name}")
+    for name, field, attr, _, _ in drift:
+        reported.add(f"components.schemas.{name}.properties.{field}.{attr}")
+    for m, path, attr, _, _ in op_drift:
+        reported.add(f"paths.{path}.{m.lower()}.{attr}")
+    for label, _, _ in meta_drift:
+        reported.add({"externalDocs": "externalDocs"}.get(label, label).split("[")[0])
+
+    of, nf = flatten(old), flatten(new)
+    changed = sorted(
+        k for k in set(of) | set(nf) if of.get(k) != nf.get(k)
+    )
+    # 이미 보고한 자리(그 하위 경로 포함)는 뺀다. tags 는 배열이라 인덱스가 붙으므로
+    # 접두사 비교로 걸러진다.
+    leftover = [
+        k for k in changed
+        if not any(k == r or k.startswith(r + ".") or k.startswith(r + "[") for r in reported)
+    ]
+    if leftover:
+        print(f"\n[미분류 변경 {len(leftover)}건] — 위 절 어디에도 안 잡힌 자리다. 직접 읽어라")
+        for k in leftover[:40]:
+            a, b = of.get(k, "(없음)"), nf.get(k, "(삭제됨)")
+            print(f"  {k}")
+            print(f"    - {str(a)[:110]}")
+            print(f"    + {str(b)[:110]}")
+        if len(leftover) > 40:
+            print(f"  … 외 {len(leftover) - 40}건 (전체를 보려면 jq 로 직접)")
+    else:
+        # "안 본 것" 과 "보고 없더라" 를 구분한다.
+        print("\n[미분류 변경] 없음 — 위 절이 이번 차분을 전부 덮었다")
 
     if ns - os_:
         print(f"\n[신규 스키마 {len(ns - os_)}개]")

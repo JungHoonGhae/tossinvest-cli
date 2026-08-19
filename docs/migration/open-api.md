@@ -20,7 +20,7 @@ document 입니다. issue [#31](https://github.com/JungHoonGhae/tossinvest-cli/i
 - **OpenAPI spec (source of truth):** `https://openapi.tossinvest.com/openapi-docs/latest/openapi.json` (v1.0.3, 20 endpoints)
 - **Base URL:** `https://openapi.tossinvest.com`
 - **인증:** OAuth 2.0 **Client Credentials Grant** — `POST /oauth2/token` 에 `client_id` + `client_secret` (form-urlencoded) → `access_token` (Bearer, `expires_in` 86400, refresh token 없음, client 당 유효 토큰 1개). 계좌·자산·주문 API 는 `Authorization: Bearer` 외에 `X-Tossinvest-Account` 헤더 필수.
-- **프로토콜:** REST only (마케팅 페이지의 WebSocket 언급은 아직 spec 에 없음)
+- **프로토콜:** REST + **웹소켓**(2026-08-19 출시) — 실시간 체결·호가·본인 주문은 `wss://openapi-ws.tossinvest.com/ws/v1`, 스펙은 별도 AsyncAPI 3.0 문서(`/openapi-docs/latest/asyncapi.json`, version 은 REST 와 독립). 분석: `docs/reverse-engineering/change-analysis/2026-08-19.md`
 - **endpoint 표면 (tossctl 명령과의 매핑):**
 
   | tossctl | 공식 endpoint |

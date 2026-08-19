@@ -61,6 +61,20 @@ jobs:
             FULL_SHA=""
           fi
 
+          # 실시간(웹소켓) 스펙은 REST 와 별개 문서이고 info.version 도 독립으로 굴러간다
+          # (2026-08-19 신설). REST 해시만 보면 실시간 스펙 변경이 통째로 안 보인다.
+          ASYNC_URL="https://openapi.tossinvest.com/openapi-docs/latest/asyncapi.json"
+          ASYNC_FILE=docs/migration/asyncapi.latest.json
+          ASYNC=$(curl -sS --max-time 15 "$ASYNC_URL" || true)
+          if [ -n "$ASYNC" ] && printf '%s' "$ASYNC" | jq -e . >/dev/null 2>&1; then
+            printf '%s' "$ASYNC" | jq -S . > /tmp/asyncapi_norm.json
+            ASYNC_VERSION=$(jq -r '.info.version // ""' /tmp/asyncapi_norm.json)
+            ASYNC_SHA=$(shasum -a 256 /tmp/asyncapi_norm.json | cut -d' ' -f1)
+          else
+            ASYNC_VERSION=""
+            ASYNC_SHA=""
+          fi
+
           DOCS_CODE=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 https://developers.tossinvest.com/docs 2>/dev/null || echo ERR)
           LLMS_CODE=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 https://developers.tossinvest.com/llms.txt 2>/dev/null || echo ERR)
 
@@ -69,6 +83,8 @@ jobs:
           BASE_PATHS_SHA=$(jq -r '.spec_paths_sha256 // ""' "$SNAP" 2>/dev/null || echo "")
           BASE_PATH_COUNT=$(jq -r '.spec_path_count // 0' "$SNAP" 2>/dev/null || echo 0)
           BASE_FULL_SHA=$(jq -r '.spec_full_sha256 // ""' "$SNAP" 2>/dev/null || echo "")
+          BASE_ASYNC_VERSION=$(jq -r '.asyncapi_version // ""' "$SNAP" 2>/dev/null || echo "")
+          BASE_ASYNC_SHA=$(jq -r '.asyncapi_sha256 // ""' "$SNAP" 2>/dev/null || echo "")
           TODAY=$(date -u +%Y-%m-%d)
 
           REASONS=()
@@ -89,6 +105,10 @@ jobs:
             fi
             CHANGED=true
           fi
+          if [ -n "$ASYNC_SHA" ] && [ "$ASYNC_SHA" != "$BASE_ASYNC_SHA" ]; then
+            REASONS+=("🚨 실시간 AsyncAPI 스펙 변경: \`${BASE_ASYNC_VERSION:-없음}\` → \`${ASYNC_VERSION}\` (asyncapi.latest.json diff 확인)")
+            CHANGED=true
+          fi
           # spec fetch 실패는 일시 장애일 수 있어 변경으로 안 봄 (경고만)
           if [ -z "$VERSION" ]; then
             REASONS+=("⚠️ spec fetch 실패 (일시 장애 가능)")
@@ -100,10 +120,11 @@ jobs:
           SNAP_DIRTY=false
           if $CHANGED && [ -n "$VERSION" ]; then
             cp /tmp/spec_norm.json "$SPEC_FILE"
+            if [ -n "$ASYNC_SHA" ]; then cp /tmp/asyncapi_norm.json "$ASYNC_FILE"; fi
             jq -n --arg url "$SPEC_URL" --arg sf "$SPEC_FILE" --arg ver "$VERSION" --argjson pc "$PATH_COUNT" \
               --arg psha "$PATHS_SHA" --arg fsha "$FULL_SHA" --arg docs "$DOCS_CODE" --arg llms "$LLMS_CODE" \
-              --arg ts "$TODAY" --arg lc "$TODAY" \
-              '{phase:"spec-public",spec_url:$url,spec_file:$sf,spec_version:$ver,spec_path_count:$pc,spec_paths_sha256:$psha,spec_full_sha256:$fsha,docs_url:"https://developers.tossinvest.com/docs",docs_status:$docs,llms_txt_status:$llms,updated_at:$ts,last_checked_at:$lc}' \
+              --arg ts "$TODAY" --arg lc "$TODAY" --arg aver "$ASYNC_VERSION" --arg asha "$ASYNC_SHA" \
+              '{phase:"spec-public",spec_url:$url,spec_file:$sf,spec_version:$ver,spec_path_count:$pc,spec_paths_sha256:$psha,spec_full_sha256:$fsha,asyncapi_version:$aver,asyncapi_sha256:$asha,docs_url:"https://developers.tossinvest.com/docs",docs_status:$docs,llms_txt_status:$llms,updated_at:$ts,last_checked_at:$lc}' \
               > "$SNAP"
             printf '%s\n' "${REASONS[@]}" > /tmp/toss_reasons.txt
             SNAP_DIRTY=true
@@ -218,7 +239,7 @@ jobs:
           fi
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add docs/migration/.openapi-snapshot.json docs/migration/openapi.latest.json
+          git add docs/migration/.openapi-snapshot.json docs/migration/openapi.latest.json docs/migration/asyncapi.latest.json
           git diff --cached --quiet && { echo "이미 최신"; exit 0; }
           git commit -m "docs(migration): openapi-snapshot 자동 갱신"
           git push origin HEAD:main
@@ -243,7 +264,7 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          claude_args: '--allowedTools "Read,Grep,Glob,Write,Bash(git log:*),Bash(git show:*),Bash(git diff:*),Bash(grep:*)"'
+          claude_args: '--allowedTools "Read,Grep,Glob,Write,Bash(git log:*),Bash(git show:*),Bash(git diff:*),Bash(grep:*),Bash(python3 tools/openapi_diff.py:*)"'
           prompt: |
             방금 이 실행에서 공식 Toss Open API spec(`docs/migration/openapi.latest.json`) 변경이 커밋되었다.
             이 변경을 분석해 **마크다운 파일 하나만 Write 로 작성**하라.
@@ -251,9 +272,14 @@ jobs:
             너는 오직 분석 + 파일 작성만.)
 
             절차:
-            1. 최신 spec 커밋 diff 확인: `git log -1 --format=%H -- docs/migration/openapi.latest.json`
-               → `git show <sha> -- docs/migration/openapi.latest.json`. 무엇이 바뀌었는지 파악
-               (신규/삭제 엔드포인트, 스키마·에러 문서, 버전 범프).
+            1. 차분은 **`python3 tools/openapi_diff.py --rev <최신 spec 커밋>`** 으로 낸다
+               (`git log -1 --format=%H -- docs/migration/openapi.latest.json`). 텍스트 diff 는
+               스키마 알파벳 재배치 때문에 못 쓴다. 이 도구는 신규·삭제 경로/스키마, 필드 의미 변경,
+               오퍼레이션 설명 변경, 스펙 메타(info·externalDocs·tags) 를 각각 절로 내고,
+               마지막 `[미분류 변경]` 절에 **어느 절도 안 덮은 자리**를 남긴다 — 그 절이 비어야
+               한 바퀴 다 본 것이다. 비어 있지 않으면 그 경로들을 직접 읽어라.
+               실시간 웹소켓 스펙(`docs/migration/asyncapi.latest.json`, REST 와 version 독립)이
+               바뀐 주기면 `git show <sha> -- docs/migration/asyncapi.latest.json` 도 함께 본다.
             2. tossctl 커버리지 대조: 신규 엔드포인트면 `internal/official/`·`internal/mcp/operations.go` grep.
                삭제·변경이면 우리 구현이 영향받는지 확인.
             3. 분류: (a) no-op / (b) 신규 기능 후보 / (c) breaking 위험.
