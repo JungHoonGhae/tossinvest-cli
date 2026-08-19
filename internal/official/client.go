@@ -25,6 +25,7 @@ type Client struct {
 	tm         *tokenManager
 	mu         sync.Mutex // guards accountSeq lazy resolution
 	accountSeq int        // used for X-Tossinvest-Account header (0 = unset, resolved lazily)
+	streamURL  string     // websocket endpoint override (tests); empty = defaultStreamURL
 }
 
 // Option configures a Client.

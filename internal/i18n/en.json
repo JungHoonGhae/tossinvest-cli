@@ -528,6 +528,8 @@
   "root.long": "tossctl is the CLI binary for tossinvest-cli, an unofficial Toss Securities web client with browser-assisted login and a narrow trading beta surface.",
   "root.short": "CLI for Toss Securities web data and trading experiments",
   "search.short": "Unified stock search",
+  "stream.long": "Subscribe to the official Open API websocket and print live execution, order book and own-order events as JSON lines.\n\nAll channels share one connection (the protocol is a declarative full-replace subscription).\nNo snapshot is sent on subscribe — only updates from that point on, so read current state with `quote`/`orders` first.\n6-digit numeric symbols are treated as KRX, everything else as US.\n\nExamples:\n  tossctl stream --trade AAPL,005930\n  tossctl stream --orderbook 005930 --order",
+  "stream.short": "Stream live executions, order book and order events (websocket)",
   "tax.overseas.long": "Show the overseas-stock transfer-income (양도소득) report for a tax year: tax summary (rate, deduction, tax due) plus every sold stock's profit/loss line. For capital-gains tax filing. Amounts in KRW. Use --year to pick the tax year. WTS-only.",
   "tax.overseas.short": "Overseas-stock transfer income (capital gains) for a tax year",
   "tax.ria.long": "Estimated overseas capital-gains tax with the RIA deduction applied, and the resulting saving. For plain filing figures, use `tax overseas`. This surface exists only in the Toss mobile app.",
