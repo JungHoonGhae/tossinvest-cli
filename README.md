@@ -71,7 +71,7 @@
 ---
 
 <p align="center">
-  <a href="https://www.star-history.com/#JungHoonGhae/tossinvest-cli&Date">
+  <a href="https://star-history.dera.page/#JungHoonGhae/tossinvest-cli&Date">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="docs/assets/star-history/star-history-dark.svg" />
       <source media="(prefers-color-scheme: light)" srcset="docs/assets/star-history/star-history-light.svg" />
@@ -81,7 +81,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.star-history.com/?repos=JungHoonGhae%2Ftossinvest-cli">
+  <a href="https://star-history.dera.page/#JungHoonGhae/tossinvest-cli&type=date">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/badge?repo=JungHoonGhae/tossinvest-cli&theme=dark" />
       <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/badge?repo=JungHoonGhae/tossinvest-cli" />
