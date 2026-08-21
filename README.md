@@ -308,7 +308,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | 기능 | 커맨드 | 모바일 앱 | 웹(WTS) | tossctl |
 |------|--------|:--:|:--:|:--:|
 | **🆕 RIA 절세 리포트** | `tax ria` (해외주식 양도세 절세 계좌: 공제 전/후 세액·절세액·분기 가중 손익·매도한도) | ✅ | ❌ (UI 없음) | ✅ (조회) |
-| **🆕 주식모으기 조회** | `accumulate list`, `accumulate status <symbol>` (정기 자동매수: Active/Paused·금액·주기·완료 회차) | ✅ (설정 화면) | ❌ (UI 없음) | ✅ (조회) |
+| **주식모으기 조회** | `accumulate list`, `accumulate status <symbol>` (정기 자동매수: Active/Paused·금액·주기·완료 회차) | ✅ (설정 화면) | ❌ (UI 없음) | ✅ (조회) |
 | **🆕 미국 배당 수령 방식** | `account detail` 의 «미국 배당» 항목 (`CASH` 현금 수령 / `STOCK` 주식 재투자 + 변경일) | ✅ (설정 화면) | ❌ (UI 없음) | ✅ (조회) |
 
 > 이 목록은 토스가 웹에 UI 를 추가하면 위 일반 조회표로 옮겨집니다.

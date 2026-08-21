@@ -264,7 +264,7 @@ tossctl opens even these up, via backend APIs callable with a web session.
 | Feature | Command | Mobile app | Web (WTS) | tossctl |
 |---------|---------|:--:|:--:|:--:|
 | **🆕 RIA tax-saving report** | `tax ria` (overseas capital-gains saving account: tax before/after deduction · saving · weighted quarterly P/L · sell limit) | ✅ | ❌ (no UI) | ✅ (read) |
-| **🆕 Stock accumulation plans** | `accumulate list`, `accumulate status <symbol>` (recurring auto-buy: Active/Paused · amount/frequency · rounds) | ✅ (settings UI) | ❌ (no UI) | ✅ (read) |
+| **Stock accumulation plans** | `accumulate list`, `accumulate status <symbol>` (recurring auto-buy: Active/Paused · amount/frequency · rounds) | ✅ (settings UI) | ❌ (no UI) | ✅ (read) |
 | **🆕 US dividend payout mode** | the «미국 배당» block in `account detail` (`CASH` paid out / `STOCK` reinvested + last change date) | ✅ (settings UI) | ❌ (no UI) | ✅ (read) |
 
 > This list moves rows into the general table above once Toss ships a web UI for them.
