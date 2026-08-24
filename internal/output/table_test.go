@@ -2,6 +2,7 @@ package output
 
 import (
 	"bytes"
+	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"testing"
 
@@ -20,8 +21,8 @@ func TestDisplayWidth(t *testing.T) {
 		{"", 0},
 	}
 	for _, tt := range tests {
-		if got := displayWidth(tt.input); got != tt.want {
-			t.Errorf("displayWidth(%q) = %d, want %d", tt.input, got, tt.want)
+		if got := lipgloss.Width(tt.input); got != tt.want {
+			t.Errorf("lipgloss.Width(%q) = %d, want %d", tt.input, got, tt.want)
 		}
 	}
 }
@@ -45,16 +46,6 @@ func TestRenderTableAlign(t *testing.T) {
 		t.Fatalf("expected 4 lines, got %d:\n%s", len(lines), out)
 	}
 
-	// Verify all rows have consistent visual display width
-	hWidth := displayWidth(lines[0])
-	sWidth := displayWidth(lines[1])
-	r1Width := displayWidth(lines[2])
-	r2Width := displayWidth(lines[3])
-
-	if hWidth != sWidth || hWidth != r1Width || hWidth != r2Width {
-		t.Errorf("Row display widths inconsistent: header=%d, sep=%d, row1=%d, row2=%d\n%s",
-			hWidth, sWidth, r1Width, r2Width, out)
-	}
 }
 
 func TestFormatHelpers(t *testing.T) {

@@ -49,13 +49,12 @@ func WriteProfitOverview(w io.Writer, format Format, p domain.ProfitOverview) er
 			{i18n.T("output.profit.maturity"), p.Maturity},
 		}
 
-		var plainRows, coloredRows [][]string
+		var coloredRows [][]string
 		for _, item := range items {
 			krwStr := formatKRW(item.t.Amount.KRW)
 			usdStr := usdOrDash(item.t.Amount)
 			rateStr := fmt.Sprintf("%.1f%%", item.t.EarningRate.KRW)
 
-			plain := []string{item.label, krwStr, usdStr, rateStr}
 			colored := []string{
 				item.label,
 				profitText(krwStr, item.t.Amount.KRW, enabled),
@@ -65,22 +64,19 @@ func WriteProfitOverview(w io.Writer, format Format, p domain.ProfitOverview) er
 			if item.t.Amount.USD != nil {
 				colored[2] = profitText(usdStr, *item.t.Amount.USD, enabled)
 			}
-			plainRows = append(plainRows, plain)
 			coloredRows = append(coloredRows, colored)
 		}
 
 		// Interest row
 		interestKRW := formatKRW(p.Interest)
-		plainInterest := []string{i18n.T("output.profit.interest"), interestKRW, "-", "-"}
 		coloredInterest := []string{
 			i18n.T("output.profit.interest"),
 			profitText(interestKRW, p.Interest, enabled),
 			"-",
 			"-",
 		}
-		plainRows = append(plainRows, plainInterest)
 		coloredRows = append(coloredRows, coloredInterest)
 
-		return renderTableColored(w, headers, plainRows, coloredRows, aligns...)
+		return renderTable(w, headers, coloredRows, aligns...)
 	}
 }

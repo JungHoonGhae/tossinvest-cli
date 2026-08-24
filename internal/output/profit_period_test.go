@@ -2,6 +2,7 @@ package output
 
 import (
 	"bytes"
+	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"testing"
 	"time"
@@ -141,10 +142,10 @@ func TestWriteDailyProfitAlignsKoreanAndAsciiNames(t *testing.T) {
 	if len(lines) < 6 {
 		t.Fatalf("expected at least 6 lines, got %d:\n%s", len(lines), buf.String())
 	}
-	headerWidth := displayWidth(lines[2])
-	sepWidth := displayWidth(lines[3])
-	row1Width := displayWidth(lines[4])
-	row2Width := displayWidth(lines[5])
+	headerWidth := lipgloss.Width(lines[2])
+	sepWidth := lipgloss.Width(lines[3])
+	row1Width := lipgloss.Width(lines[4])
+	row2Width := lipgloss.Width(lines[5])
 
 	if headerWidth != sepWidth || headerWidth != row1Width || headerWidth != row2Width {
 		t.Errorf("Table column widths misaligned: header=%d sep=%d row1(%s)=%d row2(%s)=%d\n%s",

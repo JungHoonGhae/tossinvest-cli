@@ -8,9 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/lipgloss/table"
-
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
@@ -651,23 +648,7 @@ func WriteEarningCalls(w io.Writer, format Format, ec domain.EarningCalls) error
 			rows = append(rows, []string{when, e.CompanyName, e.Category})
 		}
 
-		t := table.New().
-			Border(lipgloss.NormalBorder()).
-			// BorderRow(false).
-			// BorderColumn(false).
-			// BorderTop(false).
-			// BorderBottom(false).
-			// BorderLeft(false).
-			// BorderRight(false).
-			// BorderHeader(true).
-			StyleFunc(func(row, col int) lipgloss.Style {
-				return lipgloss.NewStyle().PaddingRight(2)
-			}).
-			Headers(headers...).
-			Rows(rows...)
-
-		fmt.Fprintln(w, t)
-		return nil
+		return renderTable(w, headers, rows, AlignLeft, AlignLeft, AlignLeft)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
@@ -828,7 +809,7 @@ func WriteThemeRankings(w io.Writer, format Format, r domain.ThemeRankings) erro
 			plain = append(plain, []string{name, rate, rise})
 			disp = append(disp, []string{name, profitText(rate, t.ChangeRate, enabled), rise})
 		}
-		return renderTableColored(w, headers, plain, disp)
+		return renderTable(w, headers, disp)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
@@ -877,7 +858,7 @@ func WriteSectors(w io.Writer, format Format, sectors domain.Sectors) error {
 				profitText(yStr, s.OneYearRate, enabled),
 			})
 		}
-		return renderTableColored(w, headers, plain, disp, aligns...)
+		return renderTable(w, headers, disp, aligns...)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}

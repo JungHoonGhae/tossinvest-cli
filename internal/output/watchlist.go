@@ -37,7 +37,7 @@ func WriteWatchlist(w io.Writer, format Format, items []domain.WatchlistItem) er
 			i18n.T("output.watchlist.header.changeRate"),
 			i18n.T("output.watchlist.header.currency"),
 		}
-		var plainRows, coloredRows [][]string
+		var coloredRows [][]string
 		for _, item := range items {
 			change := item.Last - item.Base
 			var changeRate float64
@@ -49,16 +49,6 @@ func WriteWatchlist(w io.Writer, format Format, items []domain.WatchlistItem) er
 				changeStr = "+" + changeStr
 			}
 			rateStr := formatPct(changeRate)
-			plain := []string{
-				item.Group,
-				item.Symbol,
-				item.Name,
-				formatKRW(item.Base),
-				formatKRW(item.Last),
-				changeStr,
-				rateStr,
-				item.Currency,
-			}
 			colored := []string{
 				item.Group,
 				item.Symbol,
@@ -69,10 +59,9 @@ func WriteWatchlist(w io.Writer, format Format, items []domain.WatchlistItem) er
 				profitText(rateStr, changeRate, enabled),
 				item.Currency,
 			}
-			plainRows = append(plainRows, plain)
 			coloredRows = append(coloredRows, colored)
 		}
-		return renderTableColored(w, headers, plainRows, coloredRows)
+		return renderTable(w, headers, coloredRows)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}

@@ -68,21 +68,13 @@ func WriteOverseasTransferIncome(w io.Writer, format Format, t domain.OverseasTr
 		}
 		aligns := []Align{AlignLeft, AlignLeft, AlignRight, AlignRight, AlignRight, AlignLeft}
 
-		var plainRows, coloredRows [][]string
+		var coloredRows [][]string
 		for _, s := range t.Stocks {
 			stockPnlStr := formatKRW(s.ProfitLoss)
 			name := truncateName(s.Name, 16)
 			sellStr := formatKRW(s.SellAmount)
 			buyStr := formatKRW(s.BuyAmount)
 
-			plain := []string{
-				s.Symbol,
-				name,
-				stockPnlStr,
-				sellStr,
-				buyStr,
-				s.SettlementDate,
-			}
 			colored := []string{
 				s.Symbol,
 				name,
@@ -91,10 +83,9 @@ func WriteOverseasTransferIncome(w io.Writer, format Format, t domain.OverseasTr
 				buyStr,
 				s.SettlementDate,
 			}
-			plainRows = append(plainRows, plain)
 			coloredRows = append(coloredRows, colored)
 		}
-		return renderTableColored(w, headers, plainRows, coloredRows, aligns...)
+		return renderTable(w, headers, coloredRows, aligns...)
 	}
 }
 

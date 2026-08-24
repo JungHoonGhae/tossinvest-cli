@@ -56,18 +56,13 @@ func WritePeriodProfit(w io.Writer, format Format, p domain.PeriodProfit) error 
 			coloredEarningUSD = profitText(earningUSD, *p.EarningAmount.USD, enabled)
 		}
 
-		plainRows := [][]string{
-			{i18n.T("output.profitPeriod.earningAmount"), earningKRW, earningUSD},
-			{i18n.T("output.profitPeriod.earningRate"), rateStr, "-"},
-			{i18n.T("output.profitPeriod.purchaseAmount"), purchaseKRW, purchaseUSD},
-		}
 		coloredRows := [][]string{
 			{i18n.T("output.profitPeriod.earningAmount"), profitText(earningKRW, p.EarningAmount.KRW, enabled), coloredEarningUSD},
 			{i18n.T("output.profitPeriod.earningRate"), profitText(rateStr, p.EarningRate.KRW, enabled), "-"},
 			{i18n.T("output.profitPeriod.purchaseAmount"), purchaseKRW, purchaseUSD},
 		}
 
-		return renderTableColored(w, headers, plainRows, coloredRows, aligns...)
+		return renderTable(w, headers, coloredRows, aligns...)
 	}
 }
 
@@ -118,7 +113,7 @@ func WriteDailyProfit(w io.Writer, format Format, p domain.DailyProfit) error {
 		}
 		aligns := []Align{AlignLeft, AlignLeft, AlignLeft, AlignRight, AlignRight, AlignRight}
 
-		var plainRows, coloredRows [][]string
+		var coloredRows [][]string
 		var total float64
 		for _, s := range p.Stocks {
 			total += s.ProfitLoss.KRW
@@ -126,14 +121,6 @@ func WriteDailyProfit(w io.Writer, format Format, p domain.DailyProfit) error {
 			rateStr := fmt.Sprintf("%.2f%%", s.ProfitRate)
 			name := truncateName(s.Name, 16)
 
-			plain := []string{
-				s.Date,
-				s.Symbol,
-				name,
-				formatQty(s.Quantity),
-				pnlStr,
-				rateStr,
-			}
 			colored := []string{
 				s.Date,
 				s.Symbol,
@@ -142,11 +129,10 @@ func WriteDailyProfit(w io.Writer, format Format, p domain.DailyProfit) error {
 				profitText(pnlStr, s.ProfitLoss.KRW, enabled),
 				profitText(rateStr, s.ProfitRate, enabled),
 			}
-			plainRows = append(plainRows, plain)
 			coloredRows = append(coloredRows, colored)
 		}
 
-		if err := renderTableColored(w, headers, plainRows, coloredRows, aligns...); err != nil {
+		if err := renderTable(w, headers, coloredRows, aligns...); err != nil {
 			return err
 		}
 
