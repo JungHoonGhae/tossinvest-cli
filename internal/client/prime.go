@@ -65,8 +65,22 @@ func (c *Client) GetPrimeStatus(ctx context.Context) (domain.PrimeStatus, error)
 		return domain.PrimeStatus{}, fmt.Errorf("prime benefits: %w", err)
 	}
 
+	// 누적 혜택. 나머지 두 호출과 같은 기준으로 에러를 올린다 — 조용히 0 으로 두면
+	// "혜택이 없다" 와 "못 가져왔다" 가 구별되지 않는다.
+	var cumEnvelope quoteEnvelope[struct {
+		Exchange    float64 `json:"exchangeBenefit"`
+		InterestKRW float64 `json:"interestBenefitKrw"`
+		InterestUSD float64 `json:"interestBenefitUsd"`
+		TotalKRW    float64 `json:"totalKrw"`
+	}]
+	cumURL := c.certBaseURL + "/api/v1/prime/users/benefits/cumulative"
+	if err := c.getJSONWithAccountKey(ctx, cumURL, key, &cumEnvelope); err != nil {
+		return domain.PrimeStatus{}, fmt.Errorf("prime cumulative: %w", err)
+	}
+
 	info := infoEnvelope.Result
 	benefits := benefitsEnvelope.Result
+	cum := cumEnvelope.Result
 
 	return domain.PrimeStatus{
 		IsMember:        info.IsMember,
@@ -95,6 +109,12 @@ func (c *Client) GetPrimeStatus(ctx context.Context) (domain.PrimeStatus, error)
 		},
 		BaseRate:        benefits.BaseRate,
 		MonthlyTotalKRW: benefits.MonthlyTotalKRW,
-		FetchedAt:       time.Now().UTC(),
+		Cumulative: domain.PrimeCumulative{
+			Exchange:    cum.Exchange,
+			InterestKRW: cum.InterestKRW,
+			InterestUSD: cum.InterestUSD,
+			TotalKRW:    cum.TotalKRW,
+		},
+		FetchedAt: time.Now().UTC(),
 	}, nil
 }

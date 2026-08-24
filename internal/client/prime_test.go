@@ -40,6 +40,15 @@ func TestGetPrimeStatusMember(t *testing.T) {
 					"cycleNumber":     3,
 				},
 			})
+		case "/api/v1/prime/users/benefits/cumulative":
+			json.NewEncoder(w).Encode(map[string]any{
+				"result": map[string]any{
+					"exchangeBenefit":    1000,
+					"interestBenefitKrw": 2000,
+					"interestBenefitUsd": 300,
+					"totalKrw":           3300,
+				},
+			})
 		case "/api/v1/prime/users/benefits":
 			json.NewEncoder(w).Encode(map[string]any{
 				"result": map[string]any{
@@ -89,6 +98,11 @@ func TestGetPrimeStatusMember(t *testing.T) {
 	if status.MonthlyTotalKRW != 12345.6 {
 		t.Errorf("MonthlyTotalKRW = %v, want 12345.6", status.MonthlyTotalKRW)
 	}
+	// 이번 달치와 누적은 다른 값이다 — 섞이면 사용자가 혜택을 두 배로 읽는다.
+	wantCum := domain.PrimeCumulative{Exchange: 1000, InterestKRW: 2000, InterestUSD: 300, TotalKRW: 3300}
+	if status.Cumulative != wantCum {
+		t.Errorf("Cumulative = %+v, want %+v", status.Cumulative, wantCum)
+	}
 	for _, path := range []string{"/api/v1/prime/users/info", "/api/v1/prime/users/benefits"} {
 		if got := gotAccountKeyHeaders[path]; got != "1" {
 			t.Errorf("%s: accountKey header = %q, want %q", path, got, "1")
@@ -123,6 +137,15 @@ func TestGetPrimeStatusNonMember(t *testing.T) {
 					"benefitsStartAt": nil,
 					"benefitsEndAt":   nil,
 					"cycleNumber":     nil,
+				},
+			})
+		case "/api/v1/prime/users/benefits/cumulative":
+			json.NewEncoder(w).Encode(map[string]any{
+				"result": map[string]any{
+					"exchangeBenefit":    1000,
+					"interestBenefitKrw": 2000,
+					"interestBenefitUsd": 300,
+					"totalKrw":           3300,
 				},
 			})
 		case "/api/v1/prime/users/benefits":

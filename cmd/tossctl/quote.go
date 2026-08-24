@@ -336,6 +336,25 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
+	reasonsCmd := &cobra.Command{
+		Use:         "reasons <symbol>[,symbol,...] [...]",
+		Short:       i18n.T("quote.reasons.short"),
+		Long:        i18n.T("quote.reasons.long"),
+		Args:        cobra.MinimumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			r, err := app.client.GetStockReasons(cmd.Context(), parseBatchSymbols(args))
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteStockReasons(cmd.OutOrStdout(), app.format, r)
+		},
+	}
+
 	signalsCmd := &cobra.Command{
 		Use:         "signals <symbol or name>",
 		Short:       i18n.T("quote.signals.short"),
@@ -414,7 +433,7 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 	supplyCmd.Flags().IntVar(&supplyCount, "count", 0, "rows per page (server default 10)")
 	supplyCmd.Flags().StringVar(&supplyUntil, "until", "", "cursor from a previous page's next_until")
 
-	cmd.AddCommand(getCmd, batchCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd, cryptoCmd, reasoningCmd, signalsCmd, optionsCmd, supplyCmd)
+	cmd.AddCommand(getCmd, batchCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd, cryptoCmd, reasoningCmd, reasonsCmd, signalsCmd, optionsCmd, supplyCmd)
 
 	return cmd
 }

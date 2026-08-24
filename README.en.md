@@ -200,6 +200,8 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | Trading hours | `market hours` (today + next session when closed) | ✅ | ✅ |
 | FX | `market fx` (USD rate · dollar index) | ✅ | ✅ |
 | 🆕 Circuit breaker / sidecar | `market halt` (KOSPI · KOSDAQ firing state) | ❌ | ✅ |
+| 🆕 Index anomalies | `market anomalies` (AI signal · keyword · z-score) | ❌ | ✅ |
+| 🆕 Batch AI reasons | `quote reasons <symbols...>` (up to 100 in one call) | ❌ | ✅ |
 | Sellable quantity | `quote sellable <symbol>` (sellable shares for a held symbol) | ✅ | ✅ |
 | Commission / tax rate | `quote commission <symbol>` | ✅ | ✅ |
 | Orders (pending / completed / single) | `orders list`, `orders completed`, `order show <id>` | ✅ | ✅ |

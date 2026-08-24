@@ -51,7 +51,9 @@ IMPLEMENTED = [
     r"^/api/v1/trade-purpose-verification/status$",                    # account detail (거래목적 심사)
     # v2 만 구현했다 — v1 은 미국옵션 티어를 늘 null 로 준다 (2026-08-04 라이브 확인).
     r"^/api/v2/trading/commission-info$",
-    r"^/api/v4/dashboard/wts/overview/indicator$",                     # market halt
+    r"^/api/v4/dashboard/wts/overview/indicator$",                     # market halt · market anomalies
+    r"^/api/v1/dashboard/wts/overview/ai-signals$",                     # quote reasons (batch)
+    r"^/api/v1/prime/users/benefits/cumulative$",                       # account prime (누적)
     r"^/api/v\d+/my-assets/summaries/",
     r"^/api/v\d+/my-assets/transactions/",
     r"^/api/v1/product/stock-prices",

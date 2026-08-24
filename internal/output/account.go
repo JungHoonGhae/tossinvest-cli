@@ -142,6 +142,11 @@ func WriteAccountPrime(w io.Writer, format Format, p domain.PrimeStatus) error {
 			{"exchange_fee", strconv.Itoa(p.Exchange.NonPrimeFee), strconv.Itoa(p.Exchange.PrimeFee), strconv.Itoa(p.Exchange.BenefitFee)},
 			{"interest_krw", strconv.Itoa(p.InterestKRW.NonPrimeInterest), strconv.Itoa(p.InterestKRW.PrimeInterest), strconv.Itoa(p.InterestKRW.BenefitInterest)},
 			{"interest_usd", strconv.Itoa(p.InterestUSD.NonPrimeInterest), strconv.Itoa(p.InterestUSD.PrimeInterest), strconv.Itoa(p.InterestUSD.BenefitInterest)},
+			// 누적은 비교 대상이 없어 benefit 열에만 값이 있다.
+			{"cumulative_exchange", "", "", strconv.FormatFloat(p.Cumulative.Exchange, 'f', -1, 64)},
+			{"cumulative_interest_krw", "", "", strconv.FormatFloat(p.Cumulative.InterestKRW, 'f', -1, 64)},
+			{"cumulative_interest_usd", "", "", strconv.FormatFloat(p.Cumulative.InterestUSD, 'f', -1, 64)},
+			{"cumulative_total_krw", "", "", strconv.FormatFloat(p.Cumulative.TotalKRW, 'f', -1, 64)},
 		}
 		for _, row := range rows {
 			if err := writer.Write(row[:]); err != nil {
@@ -188,6 +193,12 @@ func WriteAccountPrime(w io.Writer, format Format, p domain.PrimeStatus) error {
 			i18n.T("output.accountPrime.interestUsdLabel"),
 			strconv.Itoa(p.InterestUSD.NonPrimeInterest), strconv.Itoa(p.InterestUSD.PrimeInterest), strconv.Itoa(p.InterestUSD.BenefitInterest),
 		); err != nil {
+			return err
+		}
+		// 위 표는 이번 달치다. 가입 이후 누적은 다른 질문이라 따로 적는다.
+		if _, err := fmt.Fprintf(w, i18n.T("output.accountPrime.cumulative"),
+			formatKRW(p.Cumulative.TotalKRW), formatKRW(p.Cumulative.Exchange),
+			formatKRW(p.Cumulative.InterestKRW), formatKRW(p.Cumulative.InterestUSD)); err != nil {
 			return err
 		}
 		return nil

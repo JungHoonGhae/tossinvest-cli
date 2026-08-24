@@ -67,6 +67,24 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
+	anomaliesCmd := &cobra.Command{
+		Use:         "anomalies",
+		Short:       i18n.T("market.anomalies.short"),
+		Long:        i18n.T("market.anomalies.long"),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			a, err := app.client.GetIndexAnomalies(cmd.Context())
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteIndexAnomalies(cmd.OutOrStdout(), app.format, a)
+		},
+	}
+
 	fxCmd := &cobra.Command{
 		Use:         "fx",
 		Short:       i18n.T("market.fx.short"),
@@ -543,6 +561,6 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(hoursCmd, haltCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, filtersCmd, stocksCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, issuesCmd, optionHoursCmd)
+	cmd.AddCommand(hoursCmd, haltCmd, anomaliesCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, filtersCmd, stocksCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, issuesCmd, optionHoursCmd)
 	return cmd
 }

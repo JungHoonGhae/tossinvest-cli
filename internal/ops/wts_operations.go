@@ -315,6 +315,36 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "market_anomalies", Method: "GET", Path: "wts:dashboard/wts/overview/indicator#badged", Backend: "wts",
+			Category: "market", Summary: "Indices Toss flagged as moving unusually, each with its AI signal title, keyword and z-score (how far the move sits from that index's own recent distribution). WTS-only.",
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				return d.WTS.GetIndexAnomalies(ctx)
+			},
+		},
+		{
+			ID: "quote_reasons", Method: "POST", Path: "wts:dashboard/wts/overview/ai-signals", Backend: "wts",
+			Category: "quote", Summary: "One-line AI explanation of why each stock is moving, for many symbols in a single request (web sends up to 100). Use quote_reasoning for the full card on ONE symbol. Symbols with no reasoning are omitted from the response. WTS-only.",
+			Params: []Param{
+				{Name: "symbols", Type: "string[]", Required: true, Desc: "symbols or names, e.g. [\"005930\", \"AAPL\"]"},
+			},
+			Probe: &ProbeSpec{Name: "quote-reasons", Method: "POST",
+				URL:  probeInfo + "/api/v1/dashboard/wts/overview/ai-signals",
+				Body: `{"productCodes":["A005930"]}`,
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.signals", "array")
+				}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				symbols, err := argStringSlice(args, "symbols")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetStockReasons(ctx, symbols)
+			},
+		},
+		{
 			ID: "market_halt", Method: "GET", Path: "wts:dashboard/wts/overview/indicator", Backend: "wts",
 			Category: "market", Summary: "Whether a circuit breaker (서킷브레이커) or sidecar (사이드카) is currently firing on KOSPI/KOSDAQ. Returns all four switches with an activated flag, so a normal market is distinguishable from a failed call. WTS-only.",
 			Probe: &ProbeSpec{Name: "market-halt", Method: "GET",

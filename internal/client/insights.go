@@ -218,3 +218,57 @@ func (c *Client) Search(ctx context.Context, query string) (domain.SearchResults
 	}
 	return out, nil
 }
+
+// GetStockReasons returns Toss's one-line AI explanation for many stocks in a
+// single request (the web sends up to 100 at a time).
+//
+// Endpoint: POST /api/v1/dashboard/wts/overview/ai-signals (info host) with
+// {"productCodes": [...]}. Distinct from GetStockReasoning, which fetches the
+// full card — summary, direction, related stocks — for one symbol. This is the
+// portfolio-wide "why is everything moving today" view, at one request instead
+// of N.
+//
+// The server omits codes it has no reasoning for, so the response is shorter
+// than the request and NOT positionally aligned. Results are matched back by
+// productCode and symbols with no reasoning are simply absent.
+func (c *Client) GetStockReasons(ctx context.Context, symbols []string) (domain.StockReasons, error) {
+	if err := c.requireSession(); err != nil {
+		return domain.StockReasons{}, err
+	}
+	// productCode ← symbol 역인덱스. 응답이 productCode 로만 오므로 사용자가 입력한
+	// 표기를 되돌려주려면 필요하다.
+	bySymbol := make(map[string]string, len(symbols))
+	codes := make([]string, 0, len(symbols))
+	for _, s := range symbols {
+		code, err := c.resolveProductCode(ctx, s)
+		if err != nil {
+			return domain.StockReasons{}, err
+		}
+		bySymbol[code] = s
+		codes = append(codes, code)
+	}
+
+	var envelope quoteEnvelope[struct {
+		Signals []struct {
+			ProductCode string `json:"productCode"`
+			Description string `json:"reasoningDescription"`
+		} `json:"signals"`
+	}]
+	endpoint := c.infoBaseURL + "/api/v1/dashboard/wts/overview/ai-signals"
+	body, err := json.Marshal(map[string]any{"productCodes": codes})
+	if err != nil {
+		return domain.StockReasons{}, err
+	}
+	if err := c.postJSON(ctx, endpoint, body, &envelope); err != nil {
+		return domain.StockReasons{}, err
+	}
+	out := domain.StockReasons{FetchedAt: time.Now().UTC()}
+	for _, s := range envelope.Result.Signals {
+		out.Reasons = append(out.Reasons, domain.StockReason{
+			Symbol:      bySymbol[s.ProductCode],
+			ProductCode: s.ProductCode,
+			Description: s.Description,
+		})
+	}
+	return out, nil
+}

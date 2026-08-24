@@ -1310,3 +1310,91 @@ func haltTypeLabel(t string) string {
 		return t
 	}
 }
+
+// WriteIndexAnomalies renders indices Toss flagged as moving unusually.
+func WriteIndexAnomalies(w io.Writer, format Format, a domain.IndexAnomalies) error {
+	switch format {
+	case FormatJSON:
+		return writeJSON(w, a)
+	case FormatCSV:
+		cw := csv.NewWriter(w)
+		if err := cw.Write([]string{"index_code", "display_name", "category", "direction", "is_anomaly", "change_rate", "zscore", "keyword", "signal_title"}); err != nil {
+			return err
+		}
+		for _, x := range a.Indices {
+			if err := cw.Write([]string{x.IndexCode, x.DisplayName, x.Category, x.Direction,
+				strconv.FormatBool(x.IsAnomaly), strconv.FormatFloat(x.ChangeRate, 'f', -1, 64),
+				strconv.FormatFloat(x.ZScore, 'f', -1, 64), x.Keyword, x.SignalTitle}); err != nil {
+				return err
+			}
+		}
+		cw.Flush()
+		return cw.Error()
+	case FormatTable:
+		if len(a.Indices) == 0 {
+			_, err := fmt.Fprintln(w, i18n.T("output.anomalies.empty"))
+			return err
+		}
+		headers := []string{
+			i18n.T("output.anomalies.header.index"),
+			i18n.T("output.anomalies.header.change"),
+			i18n.T("output.anomalies.header.zscore"),
+			i18n.T("output.anomalies.header.keyword"),
+			i18n.T("output.anomalies.header.signal"),
+		}
+		rows := make([][]string, 0, len(a.Indices))
+		for _, x := range a.Indices {
+			name := x.DisplayName
+			if x.IsAnomaly {
+				// 이상 신호가 붙은 행을 눈으로 먼저 잡을 수 있어야 한다.
+				name = "⚠ " + name
+			}
+			rows = append(rows, []string{
+				name,
+				fmt.Sprintf("%+.2f%%", x.ChangeRate),
+				fmt.Sprintf("%.2f", x.ZScore),
+				x.Keyword,
+				x.SignalTitle,
+			})
+		}
+		return renderTable(w, headers, rows)
+	default:
+		return fmt.Errorf("unsupported output format: %s", format)
+	}
+}
+
+// WriteStockReasons renders the batch AI-reasoning lines.
+func WriteStockReasons(w io.Writer, format Format, r domain.StockReasons) error {
+	switch format {
+	case FormatJSON:
+		return writeJSON(w, r)
+	case FormatCSV:
+		cw := csv.NewWriter(w)
+		if err := cw.Write([]string{"symbol", "product_code", "description"}); err != nil {
+			return err
+		}
+		for _, x := range r.Reasons {
+			if err := cw.Write([]string{x.Symbol, x.ProductCode, x.Description}); err != nil {
+				return err
+			}
+		}
+		cw.Flush()
+		return cw.Error()
+	case FormatTable:
+		if len(r.Reasons) == 0 {
+			_, err := fmt.Fprintln(w, i18n.T("output.reasons.empty"))
+			return err
+		}
+		headers := []string{
+			i18n.T("output.reasons.header.symbol"),
+			i18n.T("output.reasons.header.reason"),
+		}
+		rows := make([][]string, 0, len(r.Reasons))
+		for _, x := range r.Reasons {
+			rows = append(rows, []string{x.Symbol, x.Description})
+		}
+		return renderTable(w, headers, rows)
+	default:
+		return fmt.Errorf("unsupported output format: %s", format)
+	}
+}

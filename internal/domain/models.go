@@ -318,6 +318,51 @@ func (m MarketHalt) Halted() bool {
 	return false
 }
 
+// IndexAnomaly is one index Toss has badged as moving unusually, with the AI
+// signal it attached. ZScore is how far the move sits from the index's own
+// recent distribution — the number behind the badge.
+//
+// Category and Direction are passed through as the server's own strings: Toss
+// does not publish these enums, and guessing a mapping would silently mislabel
+// a value it adds later.
+type IndexAnomaly struct {
+	IndexCode   string  `json:"index_code"`
+	DisplayName string  `json:"display_name"`
+	Category    string  `json:"category"`
+	Direction   string  `json:"direction"`
+	IsAnomaly   bool    `json:"is_anomaly"`
+	ChangeRate  float64 `json:"change_rate"`
+	SignalTitle string  `json:"signal_title,omitempty"`
+	SignalID    string  `json:"signal_id,omitempty"`
+	Keyword     string  `json:"keyword,omitempty"`
+	ZScore      float64 `json:"zscore"`
+}
+
+// IndexAnomalies is the badged-index set for the current session.
+type IndexAnomalies struct {
+	Indices   []IndexAnomaly `json:"indices"`
+	FetchedAt time.Time      `json:"fetched_at"`
+}
+
+// StockReason is one line of Toss's AI explanation for why a stock is moving.
+// The batch endpoint returns only this sentence; GetStockReasoning fetches the
+// full card (summary, direction, related stocks) for a single symbol.
+//
+// Symbol is echoed back from the request so a caller can align results with
+// what it asked for — the server omits codes it has no reasoning for, so the
+// response is shorter than the request and not positionally aligned.
+type StockReason struct {
+	Symbol      string `json:"symbol"`
+	ProductCode string `json:"product_code"`
+	Description string `json:"description"`
+}
+
+// StockReasons is the batch AI-reasoning result.
+type StockReasons struct {
+	Reasons   []StockReason `json:"reasons"`
+	FetchedAt time.Time     `json:"fetched_at"`
+}
+
 // OptionSession is one US-options business day. PreMarket/AfterMarket are
 // nil-able in the feed — options have no extended session the way equities do,
 // so they stay empty rather than being faked to match the regular window.
@@ -807,7 +852,17 @@ type PrimeStatus struct {
 	InterestUSD     PrimeInterestTier `json:"interest_usd"`
 	BaseRate        float64           `json:"base_rate"`
 	MonthlyTotalKRW float64           `json:"monthly_total_krw"`
+	Cumulative      PrimeCumulative   `json:"cumulative"`
 	FetchedAt       time.Time         `json:"fetched_at"`
+}
+
+// PrimeCumulative is the benefit total since joining Prime, as opposed to the
+// surrounding PrimeStatus figures which are all current-month.
+type PrimeCumulative struct {
+	Exchange    float64 `json:"exchange"`
+	InterestKRW float64 `json:"interest_krw"`
+	InterestUSD float64 `json:"interest_usd"`
+	TotalKRW    float64 `json:"total_krw"`
 }
 
 // CommissionTier is the commission schedule for one trading surface. Korean

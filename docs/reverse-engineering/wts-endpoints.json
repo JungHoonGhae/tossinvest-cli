@@ -4,10 +4,10 @@
   "chunk_count": 79,
   "total": 1087,
   "counts": {
-    "implemented": 116,
-    "candidate": 335,
+    "implemented": 118,
+    "candidate": 333,
     "excluded": 636,
-    "candidate_next": 27,
+    "candidate_next": 25,
     "meaningful": 451
   },
   "overrides": {
@@ -2432,9 +2432,7 @@
       }
     },
     "/api/v1/dashboard/wts/overview/ai-signals": {
-      "status": "candidate",
-      "priority": "next",
-      "note": "AI 시그널 확장",
+      "status": "implemented",
       "method": "POST",
       "host": "wts-info-api",
       "first_seen": "2026-06-19",
@@ -4526,9 +4524,7 @@
       "first_seen": "2026-06-29"
     },
     "/api/v1/prime/users/benefits/cumulative": {
-      "status": "candidate",
-      "priority": "next",
-      "note": "토스프라임 혜택·구독 상태",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-29",

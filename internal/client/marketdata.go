@@ -998,3 +998,48 @@ func (c *Client) GetMarketHalt(ctx context.Context) (domain.MarketHalt, error) {
 	}
 	return out, nil
 }
+
+// GetIndexAnomalies returns the indices Toss has badged as moving unusually,
+// with the AI signal attached to each.
+//
+// Endpoint: GET /api/v4/dashboard/wts/overview/indicator (cert host) — the same
+// widget GetMarketHalt reads. Only `badgedIndices` is decoded here. Kept as a
+// separate call rather than one combined fetch because the two answer unrelated
+// questions ("is trading stopped?" vs "which index is moving oddly?") and a
+// caller wanting one should not pay for the other's rendering.
+func (c *Client) GetIndexAnomalies(ctx context.Context) (domain.IndexAnomalies, error) {
+	var envelope quoteEnvelope[struct {
+		BadgedIndices []struct {
+			IndexCode   string  `json:"indexCode"`
+			DisplayName string  `json:"displayName"`
+			Category    string  `json:"category"`
+			Direction   string  `json:"direction"`
+			IsAnomaly   bool    `json:"isAnomaly"`
+			ChangeRate  float64 `json:"changeRate"`
+			SignalTitle string  `json:"aiSignalTitle"`
+			SignalID    string  `json:"aiSignalId"`
+			Keyword     string  `json:"keyword"`
+			ZScore      float64 `json:"zscore"`
+		} `json:"badgedIndices"`
+	}]
+	endpoint := c.certBaseURL + "/api/v4/dashboard/wts/overview/indicator"
+	if err := c.getJSON(ctx, endpoint, &envelope); err != nil {
+		return domain.IndexAnomalies{}, err
+	}
+	out := domain.IndexAnomalies{FetchedAt: time.Now().UTC()}
+	for _, b := range envelope.Result.BadgedIndices {
+		out.Indices = append(out.Indices, domain.IndexAnomaly{
+			IndexCode:   b.IndexCode,
+			DisplayName: b.DisplayName,
+			Category:    b.Category,
+			Direction:   b.Direction,
+			IsAnomaly:   b.IsAnomaly,
+			ChangeRate:  b.ChangeRate,
+			SignalTitle: b.SignalTitle,
+			SignalID:    b.SignalID,
+			Keyword:     b.Keyword,
+			ZScore:      b.ZScore,
+		})
+	}
+	return out, nil
+}
