@@ -2,13 +2,13 @@
   "source": "tossinvest.com web bundles",
   "build_id": "Bbg_UHsMLDTSgvEQh0PBL",
   "chunk_count": 79,
-  "total": 1087,
+  "total": 1088,
   "counts": {
-    "implemented": 119,
-    "candidate": 332,
+    "implemented": 117,
+    "candidate": 335,
     "excluded": 636,
     "candidate_next": 25,
-    "meaningful": 451
+    "meaningful": 452
   },
   "overrides": {
     "/api/v1/asset-snapshot/all-accounts/chart": {
@@ -78,6 +78,10 @@
     "/api/v1/exchange/calculate/for-sell-amount": {
       "status": "candidate",
       "note": "for-buy-amount 와 동일 계열. 보류 (403)"
+    },
+    "/api/v1/exchange/usd/base-exchange-rate/{date}": {
+      "status": "candidate",
+      "note": "날짜 없는 `/api/v1/exchange/usd/base-exchange-rate` 와 **다른 API 다.** 이쪽은 `{usdMidRate, baseDateTime}` 만 주고 `rate` 가 없다. 주문 경로의 getUSDBaseExchangeRate 는 `rate` 를 읽으므로 이 경로로 바꾸면 'usd base exchange rate was empty' 로 깨진다. 번들이 이쪽만 선언해서 날짜 없는 쪽이 그림자로 오인돼 삭제된 적이 있다 — REAL_SHADOWS 참고. (2026-08-25 라이브 확인: 둘 다 200, 응답 스키마 상이)"
     },
     "/api/v1/lending/revenue/account/summary": {
       "status": "candidate",
@@ -2770,7 +2774,7 @@
       }
     },
     "/api/v1/exchange/current-quote": {
-      "status": "implemented",
+      "status": "candidate",
       "first_seen": "2026-06-19"
     },
     "/api/v1/exchange/current-quote/for-buy": {
@@ -2780,13 +2784,18 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/exchange/current-quote/for-sell": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
-    "/api/v1/exchange/usd/base-exchange-rate/{date}": {
+    "/api/v1/exchange/usd/base-exchange-rate": {
       "status": "implemented",
+      "first_seen": "2026-08-25"
+    },
+    "/api/v1/exchange/usd/base-exchange-rate/{date}": {
+      "status": "candidate",
+      "note": "날짜 없는 `/api/v1/exchange/usd/base-exchange-rate` 와 **다른 API 다.** 이쪽은 `{usdMidRate, baseDateTime}` 만 주고 `rate` 가 없다. 주문 경로의 getUSDBaseExchangeRate 는 `rate` 를 읽으므로 이 경로로 바꾸면 'usd base exchange rate was empty' 로 깨진다. 번들이 이쪽만 선언해서 날짜 없는 쪽이 그림자로 오인돼 삭제된 적이 있다 — REAL_SHADOWS 참고. (2026-08-25 라이브 확인: 둘 다 200, 응답 스키마 상이)",
       "method": "GET",
       "host": "wts-api",
       "first_seen": "2026-06-19",
@@ -10210,5 +10219,5 @@
       }
     }
   },
-  "updated_at": "2026-08-24"
+  "updated_at": "2026-08-25"
 }

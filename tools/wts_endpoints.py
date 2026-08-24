@@ -73,7 +73,11 @@ IMPLEMENTED = [
     r"^/api/v1/dashboard/common/cached-orderable-amount",
     r"^/api/v1/lending/revenue/account/expected$",
     r"^/api/v2/dashboard/asset/sections",
-    r"^/api/v1/exchange/(current-quote|usd/base-exchange-rate)",
+    # 정확히 부르는 것만 건다. 접두사로 두면 부르지도 않는 형제 경로까지
+    # implemented 가 된다 — `/usd/base-exchange-rate/{date}`(응답 스키마가 다른
+    # 별개 API)와 `current-quote`·`/for-sell` 이 그렇게 잘못 표시돼 있었다.
+    r"^/api/v1/exchange/current-quote/for-buy$",
+    r"^/api/v1/exchange/usd/base-exchange-rate$",
     r"^/api/v\d+/trading/my-orders/",
     r"^/api/v1/trading/orders/calculate/[^/]+/(orderable-quantity|cost-basis-elements|average-price)",
     r"^/api/v2/trading/orders/calculate/[^/]+/cost-basis-elements",
@@ -214,6 +218,19 @@ TRIPLE_RE = re.compile(r'host:"([a-z\-]+)",method:"([A-Z]+)",path:"(/api/v\d+/[^
 # `/api/v1/profit/overview` 는 토큰이 cert 인데 wts-cert-api 로 나간다.
 HOST_TOKEN = {"launcher": "wts-api", "cert": "wts-cert-api", "info": "wts-info-api"}
 
+# 잘린 형태인데 **실재하는** 엔드포인트. 여기 넣으려면 두 가지를 확인할 것:
+#   1. 라이브로 200 이 오고, `/{param}` 버전과 **응답 스키마가 다르다** (같으면 그냥 그림자다)
+#   2. 우리 코드가 그 경로를 그대로 부른다
+#
+# IMPLEMENTED 패턴으로 자동 판정하려 했으나 그건 가족 접두사라서 과복원한다 —
+# 코드가 v3 만 부르는 my-assets/transactions/markets 의 v1 형태까지 되살아났다.
+REAL_SHADOWS = {
+    # 번들은 `/{date}` 만 선언하지만 날짜 없는 쪽이 별개 API 다. `rate` 필드는
+    # 여기에만 있고 주문 경로가 그걸 읽는다. `/{date}` 는 usdMidRate 만 준다.
+    # (2026-08-25 라이브 확인)
+    "/api/v1/exchange/usd/base-exchange-rate",
+}
+
 # 라우트가 아닌 것들: 에러 페이지, 정적 자산.
 _ROUTE_SKIP = re.compile(r"^/(?:\d{3}|_|api/|assets/|static/)|\.(?:js|css|png|svg|json|webp|ico)$")
 
@@ -286,9 +303,18 @@ def collect_paths():
 
     raw = set(re.findall(r"/api/v[0-9]+/[a-zA-Z0-9/_.\-]+", blob))
     norm = set(meta)
-    # 삼중 경로를 `[` 에서 자른 형태는 스크레이프에도 잡힌다. 그건 실재하는 엔드포인트가
-    # 아니라 같은 정의의 잘린 그림자이므로 버린다 — 남기면 프로브가 그걸 때려 404 를 쌓는다.
-    shadows = {p.split("{")[0].rstrip("/") for p in meta if "{" in p} - set(meta)
+    # 삼중 경로를 `[` 에서 자른 형태는 스크레이프에도 잡힌다. 대개는 실재하는
+    # 엔드포인트가 아니라 같은 정의의 잘린 그림자이므로 버린다 — 남기면 프로브가
+    # 그걸 때려 404 를 쌓는다.
+    #
+    # **단, 우리가 실제로 부르는 경로는 예외다.** 잘린 형태가 진짜 엔드포인트인
+    # 경우가 있다: `/api/v1/exchange/usd/base-exchange-rate` 는 번들에 `/{date}`
+    # 형태로만 선언돼 있지만, 날짜 없는 쪽은 **응답 스키마가 다른 별개 API** 이고
+    # (`rate` 필드는 그쪽에만 있다) 주문 경로가 그걸 부른다. 그림자로 지웠더니
+    # 카탈로그에서 실제 구현이 사라지고, 부르지도 않는 `/{date}` 가 implemented 로
+    # 잘못 표시됐다 (2026-08-25 라이브 확인).
+    #
+    shadows = {p.split("{")[0].rstrip("/") for p in meta if "{" in p} - set(meta) - REAL_SHADOWS
     for p in raw:
         p = _normalize(p)
         if p in shadows:
