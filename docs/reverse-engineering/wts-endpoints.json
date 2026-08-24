@@ -313,7 +313,7 @@
     "/api/v1/account/additional-account-open/kyc/fatca": {
       "status": "excluded",
       "note": "account opening flow",
-      "method": "POST",
+      "method": "DELETE,POST",
       "host": "wts-api",
       "first_seen": "2026-06-19"
     },
@@ -425,7 +425,7 @@
     "/api/v1/account/additional-account-open/product-detail": {
       "status": "excluded",
       "note": "account opening flow",
-      "method": "POST",
+      "method": "GET,POST",
       "host": "wts-api",
       "first_seen": "2026-06-19"
     },
@@ -490,7 +490,7 @@
     "/api/v1/account/fatca": {
       "status": "excluded",
       "note": "account admin / tax / KYC",
-      "method": "POST",
+      "method": "GET,POST",
       "host": "wts-api",
       "first_seen": "2026-06-19"
     },
@@ -965,7 +965,7 @@
     "/api/v1/accounts/fatca": {
       "status": "excluded",
       "note": "account admin / KYC",
-      "method": "POST",
+      "method": "GET,POST",
       "host": "wts-api",
       "first_seen": "2026-06-19",
       "probe": {
@@ -1235,7 +1235,7 @@
     "/api/v1/auto-transfer/registration": {
       "status": "excluded",
       "note": "transfer/document admin",
-      "method": "POST",
+      "method": "GET,POST",
       "host": "wts-api",
       "first_seen": "2026-06-19"
     },
@@ -1632,7 +1632,7 @@
     "/api/v1/common/auth/account/deposit": {
       "status": "excluded",
       "note": "auth/KYC plumbing (handled by auth-helper)",
-      "method": "POST",
+      "method": "GET,POST",
       "host": "wts-api",
       "first_seen": "2026-06-19",
       "probe": {
@@ -1860,7 +1860,7 @@
     "/api/v1/common/auth/id-card/bridge/validation": {
       "status": "excluded",
       "note": "auth/KYC plumbing (handled by auth-helper)",
-      "method": "POST",
+      "method": "GET,POST",
       "host": "wts-api",
       "first_seen": "2026-06-19",
       "probe": {
@@ -1912,7 +1912,7 @@
     "/api/v1/common/auth/id-card/validation": {
       "status": "excluded",
       "note": "auth/KYC plumbing (handled by auth-helper)",
-      "method": "POST",
+      "method": "GET,POST",
       "host": "wts-api",
       "first_seen": "2026-06-19",
       "probe": {
@@ -3757,7 +3757,7 @@
     "/api/v1/multi-account-open/kyc/fatca": {
       "status": "excluded",
       "note": "account opening flow",
-      "method": "POST",
+      "method": "DELETE,POST",
       "host": "wts-api",
       "first_seen": "2026-06-19"
     },
@@ -3893,7 +3893,7 @@
     "/api/v1/multi-account-open/product-detail": {
       "status": "excluded",
       "note": "account opening flow",
-      "method": "POST",
+      "method": "GET,POST",
       "host": "wts-api",
       "first_seen": "2026-06-19"
     },
@@ -4090,7 +4090,7 @@
     },
     "/api/v1/new-watchlists/groups": {
       "status": "implemented",
-      "method": "POST",
+      "method": "GET,POST",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
@@ -4108,7 +4108,7 @@
     },
     "/api/v1/new-watchlists/groups/{id}": {
       "status": "implemented",
-      "method": "DELETE",
+      "method": "DELETE,PATCH",
       "host": "wts-cert-api",
       "first_seen": "2026-08-24"
     },
@@ -5501,7 +5501,7 @@
     },
     "/api/v1/reasoning/agreement": {
       "status": "candidate",
-      "method": "POST",
+      "method": "GET,POST",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
       "probe": {
@@ -5687,7 +5687,7 @@
     "/api/v1/rename-documents/terms": {
       "status": "excluded",
       "note": "transfer/document admin",
-      "method": "POST",
+      "method": "GET,POST",
       "host": "wts-api",
       "first_seen": "2026-06-19"
     },
@@ -6153,7 +6153,7 @@
     "/api/v1/settings/notification/alimy": {
       "status": "excluded",
       "note": "UI personalization/prefs",
-      "method": "POST",
+      "method": "GET,POST",
       "host": "wts-api",
       "first_seen": "2026-06-19"
     },
@@ -7195,7 +7195,7 @@
     },
     "/api/v1/user-price-alimy/{stockCode}": {
       "status": "candidate",
-      "method": "POST",
+      "method": "GET,POST",
       "host": "wts-api",
       "first_seen": "2026-06-19",
       "probe": {
@@ -8289,7 +8289,7 @@
     "/api/v2/minor/multi-account-open/child-name": {
       "status": "excluded",
       "note": "minor-account flow",
-      "method": "POST",
+      "method": "GET,POST",
       "host": "wts-api",
       "first_seen": "2026-06-19"
     },
@@ -8345,7 +8345,7 @@
     "/api/v2/minor/multi-account-open/manual-document": {
       "status": "excluded",
       "note": "minor-account flow",
-      "method": "POST",
+      "method": "GET,POST",
       "host": "wts-api",
       "first_seen": "2026-08-11"
     },
@@ -10071,7 +10071,7 @@
     "/api/v4/comments": {
       "status": "excluded",
       "note": "community/UGC",
-      "method": "POST",
+      "method": "GET,POST",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
       "observed": {

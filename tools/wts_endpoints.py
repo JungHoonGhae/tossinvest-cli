@@ -259,16 +259,27 @@ def collect_paths():
         for html in ex.map(fetch, [r for r in routes if r != "/"]):
             chunks.update(re.findall(CHUNK_RE, html))
 
+    # 정렬해서 받는다 — `chunks` 는 set 이라 순회 순서가 실행마다 달라지고, 그러면
+    # 같은 번들에서 매번 다른 카탈로그가 나온다(한 경로가 PATCH/DELETE 를 둘 다 선언할 때
+    # 먼저 읽힌 쪽이 이겼다). CI 가 매 실행 diff 를 만들어낸다.
+    ordered = sorted(chunks)
     with concurrent.futures.ThreadPoolExecutor(max_workers=12) as ex:
-        blob = "\n".join(ex.map(fetch, chunks))
+        blob = "\n".join(ex.map(fetch, ordered))
     globals()["_ROUTE_COUNT"] = len(routes)
     # 삼중 정의가 있는 것은 그쪽이 진실이다 — 경로가 안 잘리고 호스트·메서드까지 온다.
-    meta = {}
+    # 한 경로가 여러 메서드를 선언하는 일이 있다(REST 리소스면 자연스럽다). 하나만
+    # 남기면 어느 쪽을 골라도 거짓이므로 전부 정렬해 기록한다.
+    methods, hosts = {}, {}
     for token, method, path in TRIPLE_RE.findall(blob):
         p = _normalize(path)
-        m = meta.setdefault(p, {"method": method})
+        methods.setdefault(p, set()).add(method)
         if host := HOST_TOKEN.get(token):
-            m["host"] = host
+            hosts[p] = host
+    meta = {}
+    for p, ms in methods.items():
+        meta[p] = {"method": ",".join(sorted(ms))}
+        if p in hosts:
+            meta[p]["host"] = hosts[p]
 
     raw = set(re.findall(r"/api/v[0-9]+/[a-zA-Z0-9/_.\-]+", blob))
     norm = set(meta)
