@@ -103,6 +103,7 @@ func writeOperations() []Operation {
 				{Name: "amount", Type: "number", Desc: "order amount for fractional US buy"},
 				{Name: "currency_mode", Type: "string", Desc: `"KRW" (default) or "USD" for US price input`},
 				{Name: "fractional", Type: "boolean", Desc: "US fractional market order"},
+				{Name: "time_in_force", Type: "string", Desc: `"DAY" (default) | "CLS" (US limit-on-close) | "OPG" (KR opening single-price; limit or market). Rejected on other combinations and on fractional orders.`},
 			}, executeParams...),
 			handler: placeHandler,
 		},
@@ -167,6 +168,10 @@ func placeHandler(ctx context.Context, d *Deps, args map[string]any) (any, error
 	if err != nil {
 		return nil, err
 	}
+	timeInForce, err := argString(args, "time_in_force")
+	if err != nil {
+		return nil, err
+	}
 	intent, err := orderintent.NormalizePlace(orderintent.PlaceInput{
 		Symbol:       symbol,
 		Market:       market,
@@ -177,6 +182,7 @@ func placeHandler(ctx context.Context, d *Deps, args map[string]any) (any, error
 		Amount:       amount,
 		CurrencyMode: currencyMode,
 		Fractional:   fractional,
+		TimeInForce:  timeInForce,
 	})
 	if err != nil {
 		return nil, err

@@ -20,6 +20,9 @@ type PlaceIntent struct {
 	Amount       float64 `json:"amount,omitempty"`
 	CurrencyMode string  `json:"currency_mode"`
 	Fractional   bool    `json:"fractional"`
+	// TimeInForce is the order's validity condition. Empty means DAY (the
+	// server default) and is what every order used before this field existed.
+	TimeInForce string `json:"time_in_force,omitempty"`
 }
 
 type CancelIntent struct {
@@ -47,6 +50,7 @@ type PlaceInput struct {
 	Amount       float64
 	CurrencyMode string
 	Fractional   bool
+	TimeInForce  string
 }
 
 func NormalizePlace(input PlaceInput) (PlaceIntent, error) {
@@ -77,6 +81,7 @@ func NormalizePlace(input PlaceInput) (PlaceIntent, error) {
 		Amount:       input.Amount,
 		CurrencyMode: normalizeCurrencyMode(input.CurrencyMode),
 		Fractional:   fractional,
+		TimeInForce:  strings.ToUpper(strings.TrimSpace(input.TimeInForce)),
 	}
 
 	// A Korean stock code (6 digits, optionally A-prefixed) is never a valid US
@@ -95,6 +100,9 @@ func NormalizePlace(input PlaceInput) (PlaceIntent, error) {
 	}
 	if intent.OrderType != "limit" && intent.OrderType != "market" {
 		return PlaceIntent{}, fmt.Errorf("unsupported order type %q; expected limit or market", input.OrderType)
+	}
+	if err := validateTimeInForce(&intent); err != nil {
+		return PlaceIntent{}, err
 	}
 	if intent.Fractional {
 		// Fractional orders are US market orders. BUY is amount-based
@@ -168,6 +176,44 @@ func NormalizeAmend(orderID string, quantity *float64, price *float64) (AmendInt
 	}, nil
 }
 
+// validateTimeInForce enforces the official spec's combination rules. They are
+// asymmetric — CLS and OPG belong to different markets — so a single "is it a
+// known code" check would let through orders the ledger rejects.
+//
+//	DAY  every market, every order type (the default when unset)
+//	CLS  US only, LIMIT only          → "LOC" (limit on close)
+//	OPG  KR only, LIMIT or MARKET     → 국내 시가단일가
+//
+// Rejecting here rather than at the API boundary keeps the failure in the same
+// place as the other order-shape rules, and means the preview a user confirms
+// is already known to be well-formed.
+func validateTimeInForce(intent *PlaceIntent) error {
+	switch intent.TimeInForce {
+	case "", "DAY":
+		return nil
+	case "CLS":
+		if intent.Market != "us" {
+			return fmt.Errorf("time-in-force CLS is only supported for US stocks")
+		}
+		if intent.OrderType != "limit" {
+			return fmt.Errorf("time-in-force CLS requires a limit order")
+		}
+	case "OPG":
+		if intent.Market != "kr" {
+			return fmt.Errorf("time-in-force OPG is only supported for KR stocks")
+		}
+	default:
+		return fmt.Errorf("unsupported time-in-force %q; expected DAY, CLS or OPG", intent.TimeInForce)
+	}
+	// 소수점 주문은 금액 기반(orderAmount) 변형으로 나가는데 그 스키마에는
+	// timeInForce 자체가 없다. 조용히 무시되면 사용자가 지정한 조건이 사라진 채
+	// 체결되므로 거절한다.
+	if intent.Fractional {
+		return fmt.Errorf("time-in-force %s is not supported for fractional orders", intent.TimeInForce)
+	}
+	return nil
+}
+
 func CanonicalPlace(intent PlaceIntent) string {
 	fields := map[string]string{
 		"currency_mode": intent.CurrencyMode,
@@ -179,6 +225,12 @@ func CanonicalPlace(intent PlaceIntent) string {
 		"quantity":      formatFloat(intent.Quantity),
 		"side":          intent.Side,
 		"symbol":        intent.Symbol,
+	}
+	// 값이 있을 때만 넣는다. 무조건 넣으면 기존에 발급된 DAY 주문 토큰이 전부
+	// 무효가 된다. 비어 있을 때 생략하면 예전 토큰은 그대로 유효하고, OPG/CLS 는
+	// 자기만의 토큰을 받는다 — DAY 로 미리보기해 얻은 토큰으로 OPG 를 낼 수 없다.
+	if intent.TimeInForce != "" && intent.TimeInForce != "DAY" {
+		fields["time_in_force"] = intent.TimeInForce
 	}
 	return canonicalString("place", fields)
 }

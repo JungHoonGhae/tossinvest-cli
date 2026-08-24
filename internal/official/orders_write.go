@@ -134,6 +134,14 @@ func buildOrderCreate(intent orderintent.PlaceIntent) (any, error) {
 		v0.TimeInForce = "DAY"
 	}
 
+	// An explicit condition wins. MARKET had no timeInForce at all before (the
+	// field is omitempty and the server defaults to DAY), but OPG applies to
+	// MARKET too — 국내 시가단일가 — so it must be set on both paths.
+	// NormalizePlace has already rejected combinations the ledger would refuse.
+	if intent.TimeInForce != "" {
+		v0.TimeInForce = intent.TimeInForce
+	}
+
 	return v0, nil
 }
 

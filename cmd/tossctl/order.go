@@ -45,6 +45,7 @@ type placeFlags struct {
 	amount       float64
 	currencyMode string
 	fractional   bool
+	timeInForce  string
 }
 
 type executeFlags struct {
@@ -185,6 +186,7 @@ func newOrderPreviewCmd(opts *rootOptions) *cobra.Command {
 				Amount:       flags.amount,
 				CurrencyMode: flags.currencyMode,
 				Fractional:   flags.fractional,
+				TimeInForce:  flags.timeInForce,
 			})
 			if err != nil {
 				return err
@@ -222,6 +224,7 @@ func newOrderPlaceCmd(opts *rootOptions) *cobra.Command {
 				Amount:       place.amount,
 				CurrencyMode: place.currencyMode,
 				Fractional:   place.fractional,
+				TimeInForce:  place.timeInForce,
 			})
 			if err != nil {
 				return err
@@ -421,6 +424,9 @@ func bindPlaceFlags(cmd *cobra.Command, flags *placeFlags) {
 	cmd.Flags().Float64Var(&flags.price, "price", 0, "Order price for limit orders — must land on a tick (US: 0.0001 below $1, 0.01 at or above)")
 	cmd.Flags().Float64Var(&flags.amount, "amount", 0, "Order amount in KRW for fractional orders")
 	cmd.Flags().StringVar(&flags.currencyMode, "currency-mode", flags.currencyMode, "Currency mode")
+	// 조합 규칙이 시장별로 갈린다 — CLS 는 미국+지정가, OPG 는 국내 전용.
+	// NormalizePlace 가 거절하므로 여기서는 안내만 한다.
+	cmd.Flags().StringVar(&flags.timeInForce, "time-in-force", "", "Order validity: DAY (default) | CLS (US limit-on-close) | OPG (KR 시가단일가). OPG accepts limit or market; off-session submissions may be rejected by the ledger")
 	// 접수 마감은 정규장 종료가 아니라 그 1시간 전이다 (공식 spec 1.2.9, 2026-08-04).
 	// 서버는 422 amount-order-outside-regular-hours /
 	// fractional-quantity-outside-regular-hours 로 거절한다.
