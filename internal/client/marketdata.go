@@ -1057,19 +1057,13 @@ func (c *Client) GetIndexAnomalies(ctx context.Context) (domain.IndexAnomalies, 
 // response can be shorter than the request; those symbols come back through the
 // returned `missing` slice rather than as empty charts, letting a caller tell
 // "no data for this symbol" from "the whole call failed".
-func (c *Client) GetStockCharts(ctx context.Context, symbols []string) ([]domain.Chart, []string, error) {
+func (c *Client) GetStockCharts(ctx context.Context, symbols []string) (domain.ChartBatch, error) {
 	if err := c.requireSession(); err != nil {
-		return nil, nil, err
+		return domain.ChartBatch{}, err
 	}
-	bySymbol := make(map[string]string, len(symbols))
-	codes := make([]string, 0, len(symbols))
-	for _, s := range symbols {
-		code, err := c.resolveProductCode(ctx, s)
-		if err != nil {
-			return nil, nil, err
-		}
-		bySymbol[code] = s
-		codes = append(codes, code)
+	codes, bySymbol, err := c.resolveProductCodes(ctx, symbols)
+	if err != nil {
+		return domain.ChartBatch{}, err
 	}
 
 	var envelope quoteEnvelope[struct {
@@ -1088,16 +1082,16 @@ func (c *Client) GetStockCharts(ctx context.Context, symbols []string) ([]domain
 	}]
 	body, err := json.Marshal(map[string]any{"codes": codes})
 	if err != nil {
-		return nil, nil, err
+		return domain.ChartBatch{}, err
 	}
 	endpoint := c.certBaseURL + "/api/v1/dashboard/common/stocks/mini-chart"
 	if err := c.postJSON(ctx, endpoint, body, &envelope); err != nil {
-		return nil, nil, err
+		return domain.ChartBatch{}, err
 	}
 
 	now := time.Now().UTC()
 	seen := make(map[string]bool, len(envelope.Result.MiniCharts))
-	out := make([]domain.Chart, 0, len(envelope.Result.MiniCharts))
+	out := domain.ChartBatch{FetchedAt: now}
 	for _, mc := range envelope.Result.MiniCharts {
 		seen[mc.Code] = true
 		chart := domain.Chart{
@@ -1117,13 +1111,32 @@ func (c *Client) GetStockCharts(ctx context.Context, symbols []string) ([]domain
 				Close: cd.Close,
 			})
 		}
-		out = append(out, chart)
+		out.Charts = append(out.Charts, chart)
 	}
-	var missing []string
 	for _, code := range codes {
 		if !seen[code] {
-			missing = append(missing, bySymbol[code])
+			out.Missing = append(out.Missing, bySymbol[code])
 		}
 	}
-	return out, missing, nil
+	return out, nil
+}
+
+// resolveProductCodes turns a caller's symbols into Toss product codes for a
+// batch request and keeps the reverse index back to what the caller typed.
+//
+// Batch WTS endpoints answer with product codes only and omit codes they have
+// no data for, so every caller needs both halves: the codes to send, and the
+// map to match results back by code rather than by position.
+func (c *Client) resolveProductCodes(ctx context.Context, symbols []string) ([]string, map[string]string, error) {
+	bySymbol := make(map[string]string, len(symbols))
+	codes := make([]string, 0, len(symbols))
+	for _, s := range symbols {
+		code, err := c.resolveProductCode(ctx, s)
+		if err != nil {
+			return nil, nil, err
+		}
+		bySymbol[code] = s
+		codes = append(codes, code)
+	}
+	return codes, bySymbol, nil
 }

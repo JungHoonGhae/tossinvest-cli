@@ -40,3 +40,21 @@ func TestWriteMarketHaltCSVCarriesActivated(t *testing.T) {
 		t.Errorf("CSV lost the activated flag:\n%s", out)
 	}
 }
+
+// missing 은 표에서만 보이면 안 된다. JSON·CSV 로 읽는 쪽이 종목 누락을 모르면
+// "데이터 없음" 이 조용한 데이터 손실이 된다.
+func TestWriteChartsCarriesMissingInEveryFormat(t *testing.T) {
+	batch := domain.ChartBatch{
+		Charts:  []domain.Chart{{Symbol: "005930", Interval: "10m", Base: 100, Candles: []domain.Candle{{Close: 105}}}},
+		Missing: []string{"999999"},
+	}
+	for _, f := range []Format{FormatJSON, FormatCSV, FormatTable} {
+		var buf bytes.Buffer
+		if err := WriteCharts(&buf, f, batch); err != nil {
+			t.Fatalf("WriteCharts(%v): %v", f, err)
+		}
+		if !strings.Contains(buf.String(), "999999") {
+			t.Errorf("format %v dropped the missing symbol:\n%s", f, buf.String())
+		}
+	}
+}

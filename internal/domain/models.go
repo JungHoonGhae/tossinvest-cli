@@ -344,6 +344,20 @@ type IndexAnomalies struct {
 	FetchedAt time.Time      `json:"fetched_at"`
 }
 
+// ChartBatch is the answer to one multi-symbol chart request: the charts that
+// came back, plus the symbols the server had no data for.
+//
+// The two travel together because the server omits unknown codes instead of
+// erroring — a caller handed only the charts cannot tell "this symbol has no
+// data" from "I never asked for it". Keeping Missing in the same value means
+// every output format carries it, rather than it existing only in whichever
+// renderer remembered to print a warning.
+type ChartBatch struct {
+	Charts    []Chart   `json:"charts"`
+	Missing   []string  `json:"missing,omitempty"`
+	FetchedAt time.Time `json:"fetched_at"`
+}
+
 // StockReason is one line of Toss's AI explanation for why a stock is moving.
 // The batch endpoint returns only this sentence; GetStockReasoning fetches the
 // full card (summary, direction, related stocks) for a single symbol.

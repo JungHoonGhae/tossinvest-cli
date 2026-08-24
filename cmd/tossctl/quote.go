@@ -347,19 +347,11 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			charts, missing, err := app.client.GetStockCharts(cmd.Context(), parseBatchSymbols(args))
+			batch, err := app.client.GetStockCharts(cmd.Context(), parseBatchSymbols(args))
 			if err != nil {
 				return userFacingCommandError(err)
 			}
-			if err := output.WriteCharts(cmd.OutOrStdout(), app.format, charts); err != nil {
-				return err
-			}
-			// 빠진 종목을 알리지 않으면 "데이터 없음" 과 "미지원" 이 구별되지 않는다.
-			// 표/CSV 를 파싱하는 쪽을 깨지 않도록 stderr 로 낸다.
-			if len(missing) > 0 && app.format == output.FormatTable {
-				fmt.Fprintf(cmd.ErrOrStderr(), i18n.T("output.charts.missing"), strings.Join(missing, ", "))
-			}
-			return nil
+			return output.WriteCharts(cmd.OutOrStdout(), app.format, batch)
 		},
 	}
 

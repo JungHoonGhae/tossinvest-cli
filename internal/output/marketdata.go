@@ -1404,10 +1404,12 @@ func WriteStockReasons(w io.Writer, format Format, r domain.StockReasons) error 
 //
 // A full candle table for many symbols would be unreadable in a terminal; JSON
 // carries every candle for callers that want them.
-func WriteCharts(w io.Writer, format Format, charts []domain.Chart) error {
+func WriteCharts(w io.Writer, format Format, b domain.ChartBatch) error {
+	charts := b.Charts
 	switch format {
 	case FormatJSON:
-		return writeJSON(w, charts)
+		// b 통째로 — missing 이 JSON 에서 빠지면 자동화 쪽은 종목이 누락된 걸 알 수 없다.
+		return writeJSON(w, b)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
 		if err := cw.Write([]string{"symbol", "product_code", "interval", "time", "open", "high", "low", "close", "base"}); err != nil {
@@ -1422,6 +1424,12 @@ func WriteCharts(w io.Writer, format Format, charts []domain.Chart) error {
 					strconv.FormatFloat(c.Base, 'f', -1, 64)}); err != nil {
 					return err
 				}
+			}
+		}
+		// 데이터가 없던 종목도 행으로 남긴다 — CSV 만 읽는 쪽에서 조용히 사라지면 안 된다.
+		for _, m := range b.Missing {
+			if err := cw.Write([]string{m, "", "", "", "", "", "", "", ""}); err != nil {
+				return err
 			}
 		}
 		cw.Flush()
@@ -1446,7 +1454,14 @@ func WriteCharts(w io.Writer, format Format, charts []domain.Chart) error {
 			}
 			rows = append(rows, []string{c.Symbol, c.Interval, strconv.Itoa(len(c.Candles)), last, change})
 		}
-		return renderTable(w, headers, rows)
+		if err := renderTable(w, headers, rows); err != nil {
+			return err
+		}
+		if len(b.Missing) > 0 {
+			_, err := fmt.Fprintf(w, i18n.T("output.charts.missing"), strings.Join(b.Missing, ", "))
+			return err
+		}
+		return nil
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}

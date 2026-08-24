@@ -341,11 +341,7 @@ func wtsOperations() []Operation {
 				if err != nil {
 					return nil, err
 				}
-				charts, missing, err := d.WTS.GetStockCharts(ctx, symbols)
-				if err != nil {
-					return nil, err
-				}
-				return map[string]any{"charts": charts, "missing": missing}, nil
+				return d.WTS.GetStockCharts(ctx, symbols)
 			},
 		},
 		{

@@ -29,7 +29,7 @@ func TestGetStockChartsReportsOmittedSymbols(t *testing.T) {
 
 	c := New(Config{HTTPClient: srv.Client(), CertBaseURL: srv.URL,
 		Session: &session.Session{Cookies: map[string]string{"SESSION": "s"}}})
-	charts, missing, err := c.GetStockCharts(context.Background(), []string{"A000001", "A000002"})
+	batch, err := c.GetStockCharts(context.Background(), []string{"A000001", "A000002"})
 	if err != nil {
 		t.Fatalf("GetStockCharts: %v", err)
 	}
@@ -44,6 +44,7 @@ func TestGetStockChartsReportsOmittedSymbols(t *testing.T) {
 		t.Errorf("both codes must go in ONE request, got %v", sent.Codes)
 	}
 
+	charts := batch.Charts
 	if len(charts) != 1 {
 		t.Fatalf("expected 1 chart, got %d", len(charts))
 	}
@@ -60,7 +61,7 @@ func TestGetStockChartsReportsOmittedSymbols(t *testing.T) {
 		t.Errorf("candle OHLC lost: %+v", charts[0].Candles[0])
 	}
 	// 빠진 종목은 빈 차트가 아니라 missing 으로 나와야 한다.
-	if len(missing) != 1 || missing[0] != "A000002" {
-		t.Errorf("omitted symbol must be reported, got missing=%v", missing)
+	if len(batch.Missing) != 1 || batch.Missing[0] != "A000002" {
+		t.Errorf("omitted symbol must be reported, got missing=%v", batch.Missing)
 	}
 }

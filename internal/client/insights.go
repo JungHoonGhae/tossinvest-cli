@@ -237,15 +237,9 @@ func (c *Client) GetStockReasons(ctx context.Context, symbols []string) (domain.
 	}
 	// productCode ← symbol 역인덱스. 응답이 productCode 로만 오므로 사용자가 입력한
 	// 표기를 되돌려주려면 필요하다.
-	bySymbol := make(map[string]string, len(symbols))
-	codes := make([]string, 0, len(symbols))
-	for _, s := range symbols {
-		code, err := c.resolveProductCode(ctx, s)
-		if err != nil {
-			return domain.StockReasons{}, err
-		}
-		bySymbol[code] = s
-		codes = append(codes, code)
+	codes, bySymbol, err := c.resolveProductCodes(ctx, symbols)
+	if err != nil {
+		return domain.StockReasons{}, err
 	}
 
 	var envelope quoteEnvelope[struct {
