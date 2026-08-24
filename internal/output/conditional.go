@@ -17,17 +17,11 @@ func WriteConditionalOrders(w io.Writer, format Format, l domain.ConditionalOrde
 	case FormatJSON:
 		return writeJSON(w, l)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"id", "type", "status", "symbol", "quantity", "order_type", "expire_date"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, o := range l.Orders {
-			if err := cw.Write([]string{o.ID, o.Type, o.Status, o.Symbol, strconv.FormatFloat(o.Quantity, 'f', -1, 64), o.OrderType, o.ExpireDate}); err != nil {
-				return err
-			}
+			csvRows = append(csvRows, []string{o.ID, o.Type, o.Status, o.Symbol, strconv.FormatFloat(o.Quantity, 'f', -1, 64), o.OrderType, o.ExpireDate})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"id", "type", "status", "symbol", "quantity", "order_type", "expire_date"}, csvRows)
 	case FormatTable:
 		headers := []string{
 			i18n.T("output.conditional.header.id"),

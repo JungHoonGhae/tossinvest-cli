@@ -1,7 +1,6 @@
 package output
 
 import (
-	"encoding/csv"
 	"fmt"
 	"io"
 	"strconv"
@@ -18,12 +17,9 @@ func WriteCommunityBoards(w io.Writer, format Format, b domain.CommunityBoards) 
 	case FormatJSON:
 		return writeJSON(w, b)
 	case FormatCSV:
-		writer := csv.NewWriter(w)
-		if err := writer.Write([]string{"rank", "title", "subject_id", "followers", "comments", "is_member", "created_at"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for i, board := range b.Boards {
-			if err := writer.Write([]string{
+			csvRows = append(csvRows, []string{
 				strconv.Itoa(i + 1),
 				board.Title,
 				board.SubjectID,
@@ -31,12 +27,9 @@ func WriteCommunityBoards(w io.Writer, format Format, b domain.CommunityBoards) 
 				strconv.Itoa(board.CommentCount),
 				strconv.FormatBool(board.IsMember),
 				board.CreatedAt,
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		writer.Flush()
-		return writer.Error()
+		return writeCSV(w, []string{"rank", "title", "subject_id", "followers", "comments", "is_member", "created_at"}, csvRows)
 	case FormatTable:
 		if _, err := fmt.Fprint(w, i18n.T("output.communityBoards.header")); err != nil {
 			return err

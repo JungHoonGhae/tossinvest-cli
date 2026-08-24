@@ -61,17 +61,11 @@ func WriteStockSignals(w io.Writer, format Format, s domain.StockSignals) error 
 	case FormatJSON:
 		return writeJSON(w, s)
 	case FormatCSV:
-		writer := csv.NewWriter(w)
-		if err := writer.Write([]string{"symbol", "label", "info", "signal_id", "datetime"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, sig := range s.Signals {
-			if err := writer.Write([]string{s.Symbol, sig.Label, sig.Info, strconv.FormatInt(sig.SignalID, 10), sig.DateTime}); err != nil {
-				return err
-			}
+			csvRows = append(csvRows, []string{s.Symbol, sig.Label, sig.Info, strconv.FormatInt(sig.SignalID, 10), sig.DateTime})
 		}
-		writer.Flush()
-		return writer.Error()
+		return writeCSV(w, []string{"symbol", "label", "info", "signal_id", "datetime"}, csvRows)
 	case FormatTable:
 		if len(s.Signals) == 0 {
 			_, err := fmt.Fprintln(w, i18n.T("output.stockSignals.empty"))
@@ -141,17 +135,11 @@ func WriteSearchResults(w io.Writer, format Format, s domain.SearchResults) erro
 	case FormatJSON:
 		return writeJSON(w, s)
 	case FormatCSV:
-		writer := csv.NewWriter(w)
-		if err := writer.Write([]string{"keyword", "product_code", "symbol", "company_name", "market"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, h := range s.Results {
-			if err := writer.Write([]string{h.Keyword, h.ProductCode, h.Symbol, h.CompanyName, h.Market}); err != nil {
-				return err
-			}
+			csvRows = append(csvRows, []string{h.Keyword, h.ProductCode, h.Symbol, h.CompanyName, h.Market})
 		}
-		writer.Flush()
-		return writer.Error()
+		return writeCSV(w, []string{"keyword", "product_code", "symbol", "company_name", "market"}, csvRows)
 	case FormatTable:
 		if len(s.Results) == 0 {
 			_, err := fmt.Fprintln(w, i18n.T("output.search.empty"))

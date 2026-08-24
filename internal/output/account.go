@@ -20,24 +20,18 @@ func WriteAccounts(w io.Writer, format Format, accounts []domain.Account, primar
 			"accounts":    accounts,
 		})
 	case FormatCSV:
-		writer := csv.NewWriter(w)
-		if err := writer.Write([]string{"id", "display_name", "name", "type", "markets", "primary"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, account := range accounts {
-			if err := writer.Write([]string{
+			csvRows = append(csvRows, []string{
 				account.ID,
 				account.DisplayName,
 				account.Name,
 				account.Type,
 				strings.Join(account.Markets, "|"),
 				strconv.FormatBool(account.Primary),
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		writer.Flush()
-		return writer.Error()
+		return writeCSV(w, []string{"id", "display_name", "name", "type", "markets", "primary"}, csvRows)
 	case FormatTable:
 		if _, err := fmt.Fprintf(w, i18n.T("output.account.primaryKey"), primaryKey); err != nil {
 			return err
@@ -246,23 +240,17 @@ func WriteAccountCommission(w io.Writer, format Format, s domain.CommissionSched
 	case FormatJSON:
 		return writeJSON(w, s)
 	case FormatCSV:
-		writer := csv.NewWriter(w)
-		if err := writer.Write([]string{"surface", "rate_percent", "per_contract", "has_reduction", "reduction_end_at"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, row := range commissionRows(s) {
-			if err := writer.Write([]string{
+			csvRows = append(csvRows, []string{
 				row.Code,
 				formatFloat(row.Tier.RatePercent),
 				formatFloat(row.Tier.PerContract),
 				strconv.FormatBool(row.Tier.HasReduction),
 				row.Tier.ReductionEndAt,
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		writer.Flush()
-		return writer.Error()
+		return writeCSV(w, []string{"surface", "rate_percent", "per_contract", "has_reduction", "reduction_end_at"}, csvRows)
 	case FormatTable:
 		if _, err := fmt.Fprint(w, i18n.T("output.accountCommission.header")); err != nil {
 			return err

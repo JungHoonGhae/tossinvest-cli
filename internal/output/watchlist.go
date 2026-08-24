@@ -1,7 +1,6 @@
 package output
 
 import (
-	"encoding/csv"
 	"fmt"
 	"io"
 
@@ -14,24 +13,18 @@ func WriteWatchlist(w io.Writer, format Format, items []domain.WatchlistItem) er
 	case FormatJSON:
 		return writeJSON(w, items)
 	case FormatCSV:
-		writer := csv.NewWriter(w)
-		if err := writer.Write([]string{"group", "symbol", "name", "currency", "base", "last"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, item := range items {
-			if err := writer.Write([]string{
+			csvRows = append(csvRows, []string{
 				item.Group,
 				item.Symbol,
 				item.Name,
 				item.Currency,
 				formatFloat(item.Base),
 				formatFloat(item.Last),
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		writer.Flush()
-		return writer.Error()
+		return writeCSV(w, []string{"group", "symbol", "name", "currency", "base", "last"}, csvRows)
 	case FormatTable:
 		enabled := colorEnabled(w, format)
 		headers := []string{
@@ -90,19 +83,13 @@ func WriteWatchlistGroups(w io.Writer, format Format, groups []domain.WatchlistG
 	case FormatJSON:
 		return writeJSON(w, groups)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"id", "name", "type", "item_count"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, g := range groups {
-			if err := cw.Write([]string{
+			csvRows = append(csvRows, []string{
 				fmt.Sprintf("%d", g.ID), g.Name, g.Type, fmt.Sprintf("%d", g.ItemCount),
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"id", "name", "type", "item_count"}, csvRows)
 	case FormatTable:
 		headers := []string{
 			i18n.T("output.watchlist.groups.header.id"),

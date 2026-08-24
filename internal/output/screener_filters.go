@@ -1,7 +1,6 @@
 package output
 
 import (
-	"encoding/csv"
 	"fmt"
 	"io"
 
@@ -15,10 +14,7 @@ func WriteScreenerFilterRanges(w io.Writer, format Format, r domain.ScreenerFilt
 	case FormatJSON:
 		return writeJSON(w, r)
 	case FormatCSV:
-		writer := csv.NewWriter(w)
-		if err := writer.Write([]string{"filter_id", "nation", "min", "max", "based_at", "unavailable_reason"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, f := range r.Filters {
 			min, max := "", ""
 			if f.Min != nil {
@@ -27,12 +23,9 @@ func WriteScreenerFilterRanges(w io.Writer, format Format, r domain.ScreenerFilt
 			if f.Max != nil {
 				max = formatFloat(*f.Max)
 			}
-			if err := writer.Write([]string{f.FilterID, f.Nation, min, max, f.BasedAt, f.Unavailable}); err != nil {
-				return err
-			}
+			csvRows = append(csvRows, []string{f.FilterID, f.Nation, min, max, f.BasedAt, f.Unavailable})
 		}
-		writer.Flush()
-		return writer.Error()
+		return writeCSV(w, []string{"filter_id", "nation", "min", "max", "based_at", "unavailable_reason"}, csvRows)
 	case FormatTable:
 		if len(r.Filters) == 0 {
 			_, err := fmt.Fprintln(w, i18n.T("output.screenerFilters.empty"))

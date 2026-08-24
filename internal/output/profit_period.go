@@ -1,7 +1,6 @@
 package output
 
 import (
-	"encoding/csv"
 	"fmt"
 	"io"
 	"strconv"
@@ -76,27 +75,21 @@ func WriteDailyProfit(w io.Writer, format Format, p domain.DailyProfit) error {
 	case FormatJSON:
 		return writeJSON(w, p)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{
-			"date", "market", "symbol", "name",
-			"quantity", "profit_loss_krw", "profit_rate", "sell_krw", "buy_krw",
-		}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, s := range p.Stocks {
-			if err := cw.Write([]string{
+			csvRows = append(csvRows, []string{
 				s.Date, s.MarketType, s.Symbol, s.Name,
 				strconv.FormatFloat(s.Quantity, 'f', -1, 64),
 				strconv.FormatFloat(s.ProfitLoss.KRW, 'f', -1, 64),
 				strconv.FormatFloat(s.ProfitRate, 'f', -1, 64),
 				strconv.FormatFloat(s.SellAmount.KRW, 'f', -1, 64),
 				strconv.FormatFloat(s.BuyAmount.KRW, 'f', -1, 64),
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{
+			"date", "market", "symbol", "name",
+			"quantity", "profit_loss_krw", "profit_rate", "sell_krw", "buy_krw",
+		}, csvRows)
 	default:
 		if len(p.Stocks) == 0 {
 			_, err := fmt.Fprintf(w, "해당 기간(%s)에 실현손익 내역이 없습니다.\n",

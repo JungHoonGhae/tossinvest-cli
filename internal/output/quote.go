@@ -144,22 +144,16 @@ func WriteQuotesWithCharts(w io.Writer, format Format, quotes []domain.Quote, ch
 	case FormatJSON:
 		return writeJSON(w, quotes)
 	case FormatCSV:
-		writer := csv.NewWriter(w)
-		if err := writer.Write([]string{
-			"symbol", "name", "market", "currency", "last", "change", "change_rate", "volume",
-		}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, q := range quotes {
-			if err := writer.Write([]string{
+			csvRows = append(csvRows, []string{
 				q.Symbol, q.Name, q.Market, q.Currency,
 				formatFloat(q.Last), formatFloat(q.Change), formatFloat(q.ChangeRate), formatFloat(q.Volume),
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		writer.Flush()
-		return writer.Error()
+		return writeCSV(w, []string{
+			"symbol", "name", "market", "currency", "last", "change", "change_rate", "volume",
+		}, csvRows)
 	case FormatTable:
 		enabled := colorEnabled(w, format)
 		showCharts := charts != nil

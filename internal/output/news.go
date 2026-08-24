@@ -1,7 +1,6 @@
 package output
 
 import (
-	"encoding/csv"
 	"fmt"
 	"io"
 	"strconv"
@@ -24,19 +23,13 @@ func WriteMarketNews(w io.Writer, format Format, n domain.MarketNews, full bool)
 		return writeJSON(w, n)
 
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"created_at", "source", "title", "stocks", "summary"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, it := range n.Items {
-			if err := cw.Write([]string{
+			csvRows = append(csvRows, []string{
 				it.CreatedAt, it.Source, it.Title, stocksCSV(it.Stocks), it.Summary,
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"created_at", "source", "title", "stocks", "summary"}, csvRows)
 
 	default:
 		if len(n.Items) == 0 {

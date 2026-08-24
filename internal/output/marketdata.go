@@ -17,20 +17,14 @@ func WriteTrades(w io.Writer, format Format, list domain.TradeList) error {
 	case FormatJSON:
 		return writeJSON(w, list)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"time", "price", "volume", "trade_type", "cumulative_volume"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, t := range list.Trades {
-			if err := cw.Write([]string{
+			csvRows = append(csvRows, []string{
 				t.Time, formatFloat(t.Price), formatFloat(t.Volume),
 				t.TradeType, formatFloat(t.CumulativeVolume),
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"time", "price", "volume", "trade_type", "cumulative_volume"}, csvRows)
 	case FormatTable:
 		headers := []string{
 			i18n.T("output.trades.header.time"),
@@ -90,17 +84,11 @@ func WriteStockWarnings(w io.Writer, format Format, sw domain.StockWarnings) err
 	case FormatJSON:
 		return writeJSON(w, sw)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"type", "title", "text", "level"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, x := range sw.Warnings {
-			if err := cw.Write([]string{x.Type, x.Title, x.Text, x.Level}); err != nil {
-				return err
-			}
+			csvRows = append(csvRows, []string{x.Type, x.Title, x.Text, x.Level})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"type", "title", "text", "level"}, csvRows)
 	case FormatTable:
 		name := sw.Name
 		if name == "" {
@@ -185,17 +173,11 @@ func WriteExchangeRates(w io.Writer, format Format, er domain.ExchangeRates) err
 	case FormatJSON:
 		return writeJSON(w, er)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"code", "name", "base", "close"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, r := range er.Rates {
-			if err := cw.Write([]string{r.Code, r.Name, formatFloat(r.Base), formatFloat(r.Close)}); err != nil {
-				return err
-			}
+			csvRows = append(csvRows, []string{r.Code, r.Name, formatFloat(r.Base), formatFloat(r.Close)})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"code", "name", "base", "close"}, csvRows)
 	case FormatTable:
 		headers := []string{
 			i18n.T("output.fx.header.name"),
@@ -217,17 +199,11 @@ func WriteScreenerPresets(w io.Writer, format Format, sp domain.ScreenerPresets)
 	case FormatJSON:
 		return writeJSON(w, sp)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"id", "name", "description"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, p := range sp.Presets {
-			if err := cw.Write([]string{p.ID, p.Name, p.Description}); err != nil {
-				return err
-			}
+			csvRows = append(csvRows, []string{p.ID, p.Name, p.Description})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"id", "name", "description"}, csvRows)
 	case FormatTable:
 		headers := []string{
 			i18n.T("output.screener.presets.header.id"),
@@ -253,19 +229,13 @@ func WriteScreenerResult(w io.Writer, format Format, sr domain.ScreenerResult) e
 	case FormatJSON:
 		return writeJSON(w, sr)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"product_code", "name", "close", "change", "change_rate"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, s := range sr.Stocks {
-			if err := cw.Write([]string{
+			csvRows = append(csvRows, []string{
 				s.ProductCode, s.Name, formatFloat(s.Close), formatFloat(s.Change), formatFloat(s.ChangeRate),
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"product_code", "name", "close", "change", "change_rate"}, csvRows)
 	case FormatTable:
 		if _, err := fmt.Fprintf(w, i18n.T("output.screener.result.header"),
 			sr.PresetName, sr.Nation, sr.TotalCount, len(sr.Stocks)); err != nil {
@@ -292,17 +262,11 @@ func WriteAISignals(w io.Writer, format Format, sg domain.AISignals) error {
 	case FormatJSON:
 		return writeJSON(w, sg)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"asset_name", "title", "keyword", "fluctuation", "stock_code"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, s := range sg.Signals {
-			if err := cw.Write([]string{s.AssetName, s.Title, s.Keyword, s.Fluctuation, s.StockCode}); err != nil {
-				return err
-			}
+			csvRows = append(csvRows, []string{s.AssetName, s.Title, s.Keyword, s.Fluctuation, s.StockCode})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"asset_name", "title", "keyword", "fluctuation", "stock_code"}, csvRows)
 	case FormatTable:
 		label := sg.Label
 		if label == "" {
@@ -332,19 +296,13 @@ func WriteTradingFlows(w io.Writer, format Format, tf domain.TradingFlows) error
 	case FormatJSON:
 		return writeJSON(w, tf)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"date", "net_individuals", "net_foreigner", "net_institution"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, f := range tf.Flows {
-			if err := cw.Write([]string{
+			csvRows = append(csvRows, []string{
 				f.Date, formatFloat(f.NetIndividuals), formatFloat(f.NetForeigner), formatFloat(f.NetInstitution),
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"date", "net_individuals", "net_foreigner", "net_institution"}, csvRows)
 	case FormatTable:
 		name := tf.Name
 		if name == "" {
@@ -385,20 +343,14 @@ func WriteMarketIndices(w io.Writer, format Format, mi domain.MarketIndices) err
 	case FormatJSON:
 		return writeJSON(w, mi)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"code", "name", "nation", "latest", "base", "change", "change_rate"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, x := range mi.Indices {
-			if err := cw.Write([]string{
+			csvRows = append(csvRows, []string{
 				x.Code, x.Name, x.Nation, formatFloat(x.Latest), formatFloat(x.Base),
 				formatFloat(x.Change), formatFloat(x.ChangeRate),
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"code", "name", "nation", "latest", "base", "change", "change_rate"}, csvRows)
 	case FormatTable:
 		headers := []string{
 			i18n.T("output.indices.header.index"),
@@ -470,19 +422,13 @@ func WriteStockRanking(w io.Writer, format Format, sr domain.StockRanking) error
 	case FormatJSON:
 		return writeJSON(w, sr)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"rank", "symbol", "name", "market", "product_code"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, x := range sr.Stocks {
-			if err := cw.Write([]string{
+			csvRows = append(csvRows, []string{
 				fmt.Sprintf("%d", x.Rank), x.Symbol, x.Name, x.Market, x.ProductCode,
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"rank", "symbol", "name", "market", "product_code"}, csvRows)
 	case FormatTable:
 		headers := []string{
 			i18n.T("output.ranking.header.rank"),
@@ -674,17 +620,11 @@ func WriteEarningCalls(w io.Writer, format Format, ec domain.EarningCalls) error
 	case FormatJSON:
 		return writeJSON(w, ec)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"live_at", "company_name", "company_code", "title", "status", "category"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, e := range ec.Events {
-			if err := cw.Write([]string{e.LiveAt, e.CompanyName, e.CompanyCode, e.Title, e.Status, e.Category}); err != nil {
-				return err
-			}
+			csvRows = append(csvRows, []string{e.LiveAt, e.CompanyName, e.CompanyCode, e.Title, e.Status, e.Category})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"live_at", "company_name", "company_code", "title", "status", "category"}, csvRows)
 	case FormatTable:
 		if len(ec.Events) == 0 {
 			_, err := fmt.Fprint(w, i18n.T("output.earnings.empty"))
@@ -723,17 +663,11 @@ func WriteDividends(w io.Writer, format Format, d domain.Dividends) error {
 	case FormatJSON:
 		return writeJSON(w, d)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"month", "total_krw", "total_usd"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, m := range d.Monthly {
-			if err := cw.Write([]string{fmt.Sprintf("%d", m.Month), formatFloat(m.Summary.Total.KRW), formatFloat(m.Summary.Total.USD)}); err != nil {
-				return err
-			}
+			csvRows = append(csvRows, []string{fmt.Sprintf("%d", m.Month), formatFloat(m.Summary.Total.KRW), formatFloat(m.Summary.Total.USD)})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"month", "total_krw", "total_usd"}, csvRows)
 	case FormatTable:
 		basis := i18n.T("output.dividends.basis.receivedEstimated")
 		if d.ByPaymentDate {
@@ -775,21 +709,15 @@ func WriteCommunityRanking(w io.Writer, format Format, r domain.CommunityRanking
 	case FormatJSON:
 		return writeJSON(w, r)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"rank", "nickname", "user_profile_id", "description", "profit_amount_krw", "profit_rate", "following_count", "following_increase"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, u := range r.Users {
-			if err := cw.Write([]string{
+			csvRows = append(csvRows, []string{
 				fmt.Sprintf("%d", u.Rank), u.Nickname, fmt.Sprintf("%d", u.UserProfileID), u.Description,
 				formatFloat(u.ProfitAmountKRW), formatFloat(u.ProfitRate),
 				fmt.Sprintf("%d", u.FollowingCount), fmt.Sprintf("%d", u.FollowingIncrease),
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"rank", "nickname", "user_profile_id", "description", "profit_amount_krw", "profit_rate", "following_count", "following_increase"}, csvRows)
 	case FormatTable:
 		if len(r.Users) == 0 {
 			_, err := fmt.Fprint(w, i18n.T("output.community.empty"))
@@ -831,20 +759,14 @@ func WriteThemeRankings(w io.Writer, format Format, r domain.ThemeRankings) erro
 	case FormatJSON:
 		return writeJSON(w, r)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"ranking", "tics_id", "title", "change_rate", "rise_company_count", "total_count"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, t := range r.Items {
-			if err := cw.Write([]string{
+			csvRows = append(csvRows, []string{
 				fmt.Sprintf("%d", t.Ranking), t.TicsID, t.Title,
 				formatFloat(t.ChangeRate), fmt.Sprintf("%d", t.RiseCompanyCount), fmt.Sprintf("%d", t.TotalCount),
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"ranking", "tics_id", "title", "change_rate", "rise_company_count", "total_count"}, csvRows)
 	case FormatTable:
 		if len(r.Items) == 0 {
 			_, err := fmt.Fprint(w, i18n.T("output.themes.empty"))
@@ -877,20 +799,14 @@ func WriteSectors(w io.Writer, format Format, sectors domain.Sectors) error {
 	case FormatJSON:
 		return writeJSON(w, sectors)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"id", "title", "company_count", "one_day_rate", "one_month_rate", "one_year_rate"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, s := range list {
-			if err := cw.Write([]string{
+			csvRows = append(csvRows, []string{
 				fmt.Sprintf("%d", s.ID), s.Title, fmt.Sprintf("%d", s.CompanyCount),
 				formatFloat(s.OneDayRate), formatFloat(s.OneMonthRate), formatFloat(s.OneYearRate),
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"id", "title", "company_count", "one_day_rate", "one_month_rate", "one_year_rate"}, csvRows)
 	case FormatTable:
 		if len(list) == 0 {
 			_, err := fmt.Fprint(w, i18n.T("output.sectors.empty"))
@@ -961,24 +877,18 @@ func WriteRanking(w io.Writer, format Format, r domain.Ranking) error {
 	case FormatJSON:
 		return writeJSON(w, r)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"rank", "symbol", "currency", "last_price", "base_price", "change_rate", "trading_volume", "trading_amount"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, x := range r.Items {
-			if err := cw.Write([]string{
+			csvRows = append(csvRows, []string{
 				fmt.Sprintf("%d", x.Rank), x.Symbol, x.Currency,
 				strconv.FormatFloat(x.LastPrice, 'f', -1, 64),
 				strconv.FormatFloat(x.BasePrice, 'f', -1, 64),
 				strconv.FormatFloat(x.ChangeRate, 'f', -1, 64),
 				strconv.FormatFloat(x.TradingVolume, 'f', -1, 64),
 				strconv.FormatFloat(x.TradingAmount, 'f', -1, 64),
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"rank", "symbol", "currency", "last_price", "base_price", "change_rate", "trading_volume", "trading_amount"}, csvRows)
 	case FormatTable:
 		headers := []string{
 			i18n.T("output.officialRanking.header.rank"),
@@ -1009,17 +919,11 @@ func WriteMarketIndicatorPrices(w io.Writer, format Format, p domain.MarketIndic
 	case FormatJSON:
 		return writeJSON(w, p)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"symbol", "last_price", "timestamp"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, x := range p.Indicators {
-			if err := cw.Write([]string{x.Symbol, strconv.FormatFloat(x.LastPrice, 'f', -1, 64), x.Timestamp}); err != nil {
-				return err
-			}
+			csvRows = append(csvRows, []string{x.Symbol, strconv.FormatFloat(x.LastPrice, 'f', -1, 64), x.Timestamp})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"symbol", "last_price", "timestamp"}, csvRows)
 	case FormatTable:
 		headers := []string{
 			i18n.T("output.marketIndicator.header.symbol"),
@@ -1042,24 +946,18 @@ func WriteMarketIndicatorCandles(w io.Writer, format Format, c domain.MarketIndi
 	case FormatJSON:
 		return writeJSON(w, c)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"timestamp", "open", "high", "low", "close", "volume"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, x := range c.Candles {
-			if err := cw.Write([]string{
+			csvRows = append(csvRows, []string{
 				x.Timestamp,
 				strconv.FormatFloat(x.Open, 'f', -1, 64),
 				strconv.FormatFloat(x.High, 'f', -1, 64),
 				strconv.FormatFloat(x.Low, 'f', -1, 64),
 				strconv.FormatFloat(x.Close, 'f', -1, 64),
 				strconv.FormatFloat(x.Volume, 'f', -1, 64),
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"timestamp", "open", "high", "low", "close", "volume"}, csvRows)
 	case FormatTable:
 		headers := []string{
 			i18n.T("output.indicatorCandle.header.time"),
@@ -1092,23 +990,17 @@ func WriteInvestorTrading(w io.Writer, format Format, it domain.InvestorTrading)
 	case FormatJSON:
 		return writeJSON(w, it)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"date", "individual_net", "foreigner_net", "institution_net", "other_net"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, r := range it.Records {
-			if err := cw.Write([]string{
+			csvRows = append(csvRows, []string{
 				r.Date,
 				strconv.FormatFloat(r.Individual.NetAmount, 'f', -1, 64),
 				strconv.FormatFloat(r.Foreigner.NetAmount, 'f', -1, 64),
 				strconv.FormatFloat(r.Institution.NetAmount, 'f', -1, 64),
 				strconv.FormatFloat(r.OtherCorporation.NetAmount, 'f', -1, 64),
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"date", "individual_net", "foreigner_net", "institution_net", "other_net"}, csvRows)
 	case FormatTable:
 		headers := []string{
 			i18n.T("output.investorTrading.header.date"),
@@ -1148,22 +1040,16 @@ func WriteOptionTradingHours(w io.Writer, format Format, oh domain.OptionTrading
 	case FormatJSON:
 		return writeJSON(w, oh)
 	case FormatCSV:
-		writer := csv.NewWriter(w)
-		if err := writer.Write([]string{"day", "date", "start", "end", "pre_market_start", "pre_market_end", "after_market_start", "after_market_end"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, row := range rows {
-			if err := writer.Write([]string{
+			csvRows = append(csvRows, []string{
 				strings.TrimPrefix(row.LabelKey, "output.optionHours."),
 				row.Session.Date, row.Session.Start, row.Session.End,
 				row.Session.PreMarketStart, row.Session.PreMarketEnd,
 				row.Session.AfterMarketStart, row.Session.AfterMarketEnd,
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		writer.Flush()
-		return writer.Error()
+		return writeCSV(w, []string{"day", "date", "start", "end", "pre_market_start", "pre_market_end", "after_market_start", "after_market_end"}, csvRows)
 	case FormatTable:
 		if _, err := fmt.Fprint(w, i18n.T("output.optionHours.header")); err != nil {
 			return err
@@ -1259,17 +1145,11 @@ func WriteMarketHalt(w io.Writer, format Format, m domain.MarketHalt) error {
 	case FormatJSON:
 		return writeJSON(w, m)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"market", "market_name", "type", "activated"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, e := range m.Events {
-			if err := cw.Write([]string{e.Market, e.MarketName, e.Type, strconv.FormatBool(e.Activated)}); err != nil {
-				return err
-			}
+			csvRows = append(csvRows, []string{e.Market, e.MarketName, e.Type, strconv.FormatBool(e.Activated)})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"market", "market_name", "type", "activated"}, csvRows)
 	case FormatTable:
 		headers := []string{
 			i18n.T("output.halt.header.market"),
@@ -1318,19 +1198,13 @@ func WriteIndexAnomalies(w io.Writer, format Format, a domain.IndexAnomalies) er
 	case FormatJSON:
 		return writeJSON(w, a)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"index_code", "display_name", "category", "direction", "is_anomaly", "change_rate", "zscore", "keyword", "signal_title"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, x := range a.Indices {
-			if err := cw.Write([]string{x.IndexCode, x.DisplayName, x.Category, x.Direction,
+			csvRows = append(csvRows, []string{x.IndexCode, x.DisplayName, x.Category, x.Direction,
 				strconv.FormatBool(x.IsAnomaly), strconv.FormatFloat(x.ChangeRate, 'f', -1, 64),
-				strconv.FormatFloat(x.ZScore, 'f', -1, 64), x.Keyword, x.SignalTitle}); err != nil {
-				return err
-			}
+				strconv.FormatFloat(x.ZScore, 'f', -1, 64), x.Keyword, x.SignalTitle})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"index_code", "display_name", "category", "direction", "is_anomaly", "change_rate", "zscore", "keyword", "signal_title"}, csvRows)
 	case FormatTable:
 		if len(a.Indices) == 0 {
 			_, err := fmt.Fprintln(w, i18n.T("output.anomalies.empty"))
@@ -1370,17 +1244,11 @@ func WriteStockReasons(w io.Writer, format Format, r domain.StockReasons) error 
 	case FormatJSON:
 		return writeJSON(w, r)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"symbol", "product_code", "description"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, x := range r.Reasons {
-			if err := cw.Write([]string{x.Symbol, x.ProductCode, x.Description}); err != nil {
-				return err
-			}
+			csvRows = append(csvRows, []string{x.Symbol, x.ProductCode, x.Description})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"symbol", "product_code", "description"}, csvRows)
 	case FormatTable:
 		if len(r.Reasons) == 0 {
 			_, err := fmt.Fprintln(w, i18n.T("output.reasons.empty"))

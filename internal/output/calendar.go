@@ -1,7 +1,6 @@
 package output
 
 import (
-	"encoding/csv"
 	"fmt"
 	"io"
 	"strconv"
@@ -20,26 +19,20 @@ func WriteMarketCalendar(w io.Writer, format Format, c domain.MarketCalendar) er
 		return writeJSON(w, c)
 
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{
-			"date", "kind", "title", "symbol", "note", "forecast", "actual", "historical", "unit",
-		}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, e := range c.Events {
 			var forecast, actual, historical, unit string
 			if e.Indicator != nil {
 				forecast, actual, historical = num(e.Indicator.Forecast), num(e.Indicator.Actual), num(e.Indicator.Historical)
 				unit = e.Indicator.Unit
 			}
-			if err := cw.Write([]string{
+			csvRows = append(csvRows, []string{
 				e.Date, e.Kind, e.Title, e.Symbol, e.Note, forecast, actual, historical, unit,
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{
+			"date", "kind", "title", "symbol", "note", "forecast", "actual", "historical", "unit",
+		}, csvRows)
 	}
 
 	if c.Summary != "" {

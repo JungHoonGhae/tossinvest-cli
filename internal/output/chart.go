@@ -1,7 +1,6 @@
 package output
 
 import (
-	"encoding/csv"
 	"fmt"
 	"io"
 	"math"
@@ -52,24 +51,18 @@ func writeChartJSON(w io.Writer, chart domain.Chart) error {
 }
 
 func writeChartCSV(w io.Writer, chart domain.Chart) error {
-	writer := csv.NewWriter(w)
-	if err := writer.Write([]string{"time", "open", "high", "low", "close", "volume"}); err != nil {
-		return err
-	}
+	var csvRows [][]string
 	for _, c := range chart.Candles {
-		if err := writer.Write([]string{
+		csvRows = append(csvRows, []string{
 			c.Time.Format("2006-01-02T15:04:05Z07:00"),
 			formatFloat(c.Open),
 			formatFloat(c.High),
 			formatFloat(c.Low),
 			formatFloat(c.Close),
 			formatFloat(c.Volume),
-		}); err != nil {
-			return err
-		}
+		})
 	}
-	writer.Flush()
-	return writer.Error()
+	return writeCSV(w, []string{"time", "open", "high", "low", "close", "volume"}, csvRows)
 }
 
 func writeChartTable(w io.Writer, chart domain.Chart) error {

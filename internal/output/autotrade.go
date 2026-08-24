@@ -1,7 +1,6 @@
 package output
 
 import (
-	"encoding/csv"
 	"fmt"
 	"io"
 	"strconv"
@@ -15,23 +14,17 @@ func WriteAutoTrades(w io.Writer, format Format, l domain.AutoTradeList) error {
 	case FormatJSON:
 		return writeJSON(w, l)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"id", "type", "status", "symbol", "market", "quantity", "trigger_price", "order_price", "currency", "created_at"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, a := range l.Items {
-			if err := cw.Write([]string{
+			csvRows = append(csvRows, []string{
 				strconv.FormatInt(a.ID, 10), a.Type, a.Status, a.Symbol, a.Market,
 				strconv.FormatFloat(a.Quantity, 'f', -1, 64),
 				strconv.FormatFloat(a.TriggerPrice, 'f', -1, 64),
 				strconv.FormatFloat(a.OrderPrice, 'f', -1, 64),
 				a.Currency, a.CreatedAt,
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w, []string{"id", "type", "status", "symbol", "market", "quantity", "trigger_price", "order_price", "currency", "created_at"}, csvRows)
 	}
 
 	if len(l.Items) == 0 {

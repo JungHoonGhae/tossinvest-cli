@@ -1,7 +1,6 @@
 package output
 
 import (
-	"encoding/csv"
 	"fmt"
 	"io"
 	"strconv"
@@ -16,17 +15,11 @@ func WriteLendingExpected(w io.Writer, format Format, l domain.LendingExpected) 
 	case FormatJSON:
 		return writeJSON(w, l)
 	case FormatCSV:
-		writer := csv.NewWriter(w)
-		if err := writer.Write([]string{"product_code", "name", "amount_usd"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, s := range l.Stocks {
-			if err := writer.Write([]string{s.ProductCode, s.Name, strconv.FormatFloat(s.AmountUSD, 'f', -1, 64)}); err != nil {
-				return err
-			}
+			csvRows = append(csvRows, []string{s.ProductCode, s.Name, strconv.FormatFloat(s.AmountUSD, 'f', -1, 64)})
 		}
-		writer.Flush()
-		return writer.Error()
+		return writeCSV(w, []string{"product_code", "name", "amount_usd"}, csvRows)
 	default: // table
 		if _, err := fmt.Fprintf(w, "Expected lending income  ·  1M: $%.2f  ·  1Y: $%.2f\n", l.OneMonthUSD, l.OneYearUSD); err != nil {
 			return err

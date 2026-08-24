@@ -1,7 +1,6 @@
 package output
 
 import (
-	"encoding/csv"
 	"fmt"
 	"io"
 	"strconv"
@@ -20,17 +19,11 @@ func WriteStockUniverse(w io.Writer, format Format, u domain.StockUniverse) erro
 	case FormatJSON:
 		return writeJSON(w, u)
 	case FormatCSV:
-		writer := csv.NewWriter(w)
-		if err := writer.Write([]string{"symbol", "name", "isin_code", "security_type", "common_share"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, s := range u.Stocks {
-			if err := writer.Write([]string{s.Symbol, s.Name, s.ISINCode, s.SecurityType, strconv.FormatBool(s.CommonShare)}); err != nil {
-				return err
-			}
+			csvRows = append(csvRows, []string{s.Symbol, s.Name, s.ISINCode, s.SecurityType, strconv.FormatBool(s.CommonShare)})
 		}
-		writer.Flush()
-		return writer.Error()
+		return writeCSV(w, []string{"symbol", "name", "isin_code", "security_type", "common_share"}, csvRows)
 	case FormatTable:
 		if len(u.Stocks) == 0 {
 			_, err := fmt.Fprintln(w, i18n.T("output.universe.empty"))

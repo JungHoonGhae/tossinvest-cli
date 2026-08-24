@@ -1,7 +1,6 @@
 package output
 
 import (
-	"encoding/csv"
 	"fmt"
 	"io"
 	"strconv"
@@ -16,17 +15,11 @@ func WriteOptionExpiries(w io.Writer, format Format, e domain.OptionExpiries) er
 	case FormatJSON:
 		return writeJSON(w, e)
 	case FormatCSV:
-		writer := csv.NewWriter(w)
-		if err := writer.Write([]string{"maturity_date", "maturity_datetime", "liquidation_datetime", "display_liquidation"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, x := range e.Expiries {
-			if err := writer.Write([]string{x.MaturityDate, x.MaturityDateTime, x.LiquidationDateTime, x.DisplayLiquidation}); err != nil {
-				return err
-			}
+			csvRows = append(csvRows, []string{x.MaturityDate, x.MaturityDateTime, x.LiquidationDateTime, x.DisplayLiquidation})
 		}
-		writer.Flush()
-		return writer.Error()
+		return writeCSV(w, []string{"maturity_date", "maturity_datetime", "liquidation_datetime", "display_liquidation"}, csvRows)
 	case FormatTable:
 		if len(e.Expiries) == 0 {
 			_, err := fmt.Fprintln(w, i18n.T("output.optionExpiries.empty"))
@@ -64,20 +57,14 @@ func WriteOptionChain(w io.Writer, format Format, c domain.OptionChain) error {
 	case FormatJSON:
 		return writeJSON(w, c)
 	case FormatCSV:
-		writer := csv.NewWriter(w)
-		if err := writer.Write([]string{"strike_price", "call_guid", "call_open_interest", "put_guid", "put_open_interest"}); err != nil {
-			return err
-		}
+		var csvRows [][]string
 		for _, r := range c.Rows {
-			if err := writer.Write([]string{
+			csvRows = append(csvRows, []string{
 				formatFloat(r.StrikePrice), r.CallGUID, strconv.Itoa(r.CallOpenInterest),
 				r.PutGUID, strconv.Itoa(r.PutOpenInterest),
-			}); err != nil {
-				return err
-			}
+			})
 		}
-		writer.Flush()
-		return writer.Error()
+		return writeCSV(w, []string{"strike_price", "call_guid", "call_open_interest", "put_guid", "put_open_interest"}, csvRows)
 	case FormatTable:
 		if len(c.Rows) == 0 {
 			_, err := fmt.Fprintln(w, i18n.T("output.optionChain.empty"))
