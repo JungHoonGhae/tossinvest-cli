@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 // WriteAccumulationPlans renders "stock accumulation" (주식모으기) plans.
@@ -46,7 +47,15 @@ func WriteAccumulationPlans(w io.Writer, format Format, p domain.AccumulationPla
 			_, err := fmt.Fprintln(w, "(no accumulation plans)")
 			return err
 		}
-		headers := []string{"SYMBOL", "NAME", "STATUS", "TYPE", "SCHEDULE", "AMOUNT", "ROUND"}
+		headers := []string{
+			i18n.T("output.accumulation.header.symbol"),
+			i18n.T("output.accumulation.header.name"),
+			i18n.T("output.accumulation.header.status"),
+			i18n.T("output.accumulation.header.type"),
+			i18n.T("output.accumulation.header.schedule"),
+			i18n.T("output.accumulation.header.amount"),
+			i18n.T("output.accumulation.header.round"),
+		}
 		aligns := []Align{AlignLeft, AlignLeft, AlignLeft, AlignLeft, AlignLeft, AlignRight, AlignRight}
 		var rows [][]string
 		for _, plan := range p.Plans {

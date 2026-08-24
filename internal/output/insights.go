@@ -145,7 +145,12 @@ func WriteSearchResults(w io.Writer, format Format, s domain.SearchResults) erro
 			_, err := fmt.Fprintln(w, i18n.T("output.search.empty"))
 			return err
 		}
-		headers := []string{"SYMBOL", "NAME", "MARKET", "CODE"}
+		headers := []string{
+			i18n.T("output.search.header.symbol"),
+			i18n.T("output.search.header.name"),
+			i18n.T("output.search.header.market"),
+			i18n.T("output.search.header.code"),
+		}
 		var rows [][]string
 		for _, h := range s.Results {
 			rows = append(rows, []string{h.Symbol, h.Keyword, h.Market, h.ProductCode})

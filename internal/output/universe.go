@@ -32,7 +32,11 @@ func WriteStockUniverse(w io.Writer, format Format, u domain.StockUniverse) erro
 		if _, err := fmt.Fprintf(w, i18n.T("output.universe.header"), u.Market, len(u.Stocks)); err != nil {
 			return err
 		}
-		headers := []string{"SYMBOL", "NAME", "TYPE"}
+		headers := []string{
+			i18n.T("output.universe.header.symbol"),
+			i18n.T("output.universe.header.name"),
+			i18n.T("output.universe.header.type"),
+		}
 		aligns := []Align{AlignLeft, AlignLeft, AlignLeft}
 		var rows [][]string
 		for _, s := range u.Stocks {

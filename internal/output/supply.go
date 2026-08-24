@@ -73,44 +73,43 @@ func credit(d *domain.CreditDetail) string {
 	return formatFloat(d.BalanceQuantity)
 }
 
-func supplyCells(kind domain.SupplyKind, r domain.SupplyRecord) []any {
-	switch kind {
-	case domain.SupplyInvestor:
-		return []any{r.Date, vol(r.Individual), vol(r.Foreigner), vol(r.Institution), vol(r.OtherCorporation)}
-	case domain.SupplyShort:
-		return []any{r.Date, supplyNum(r.ShortVolume), supplyNum(r.ShortAmount), supplyNum(r.ShortVolumeRate)}
-	case domain.SupplyCredit:
-		return []any{r.Date, credit(r.MarginLoan), credit(r.StockLoan)}
-	case domain.SupplyLending:
-		return []any{r.Date, supplyNum(r.LendingExecution), supplyNum(r.LendingRepayment), supplyNum(r.LendingBalanceQty)}
-	case domain.SupplyProgram:
-		return []any{r.Date, vol(r.Arbitrage), vol(r.NonArbitrage)}
-	}
-	return []any{r.Date}
-}
-
 // supplyTableLayout returns the header row and column alignments for a given supply kind.
 func supplyTableLayout(kind domain.SupplyKind) ([]string, []Align) {
 	right := AlignRight
 	left := AlignLeft
+	date := i18n.T("output.supply.table.date")
 	switch kind {
 	case domain.SupplyInvestor:
-		return []string{"DATE", "INDIVIDUAL", "FOREIGNER", "INSTITUTION", "OTHER"},
+		return []string{date,
+				i18n.T("output.supply.table.investor.individual"),
+				i18n.T("output.supply.table.investor.foreigner"),
+				i18n.T("output.supply.table.investor.institution"),
+				i18n.T("output.supply.table.investor.other")},
 			[]Align{left, right, right, right, right}
 	case domain.SupplyShort:
-		return []string{"DATE", "VOLUME", "AMOUNT", "RATE(%)"},
+		return []string{date,
+				i18n.T("output.supply.table.short.volume"),
+				i18n.T("output.supply.table.short.amount"),
+				i18n.T("output.supply.table.short.rate")},
 			[]Align{left, right, right, right}
 	case domain.SupplyCredit:
-		return []string{"DATE", "MARGIN LOAN", "STOCK LOAN"},
+		return []string{date,
+				i18n.T("output.supply.table.credit.marginLoan"),
+				i18n.T("output.supply.table.credit.stockLoan")},
 			[]Align{left, right, right}
 	case domain.SupplyLending:
-		return []string{"DATE", "EXECUTION", "REPAYMENT", "BALANCE"},
+		return []string{date,
+				i18n.T("output.supply.table.lending.execution"),
+				i18n.T("output.supply.table.lending.repayment"),
+				i18n.T("output.supply.table.lending.balance")},
 			[]Align{left, right, right, right}
 	case domain.SupplyProgram:
-		return []string{"DATE", "ARBITRAGE", "NON-ARBITRAGE"},
+		return []string{date,
+				i18n.T("output.supply.table.program.arbitrage"),
+				i18n.T("output.supply.table.program.nonArbitrage")},
 			[]Align{left, right, right}
 	}
-	return []string{"DATE"}, []Align{left}
+	return []string{date}, []Align{left}
 }
 
 // supplyRow converts a supply record to a string row matching supplyTableLayout.

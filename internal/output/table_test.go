@@ -9,7 +9,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 )
 
-func TestDisplayWidth(t *testing.T) {
+func TestLipglossWidthSmoke(t *testing.T) {
 	tests := []struct {
 		input string
 		want  int
@@ -41,11 +41,24 @@ func TestRenderTableAlign(t *testing.T) {
 	}
 
 	out := buf.String()
-	lines := strings.Split(strings.TrimSpace(out), "\n")
+	lines := strings.Split(strings.TrimRight(out, "\n"), "\n")
 	if len(lines) != 4 { // header + separator + 2 data rows
 		t.Fatalf("expected 4 lines, got %d:\n%s", len(lines), out)
 	}
 
+	// Verify all lines have equal display width (proper column alignment)
+	headerWidth := lipgloss.Width(lines[0])
+	for i, line := range lines[1:] {
+		if w := lipgloss.Width(line); w != headerWidth {
+			t.Errorf("line %d width=%d, want %d (header width):\n%s", i+1, w, headerWidth, out)
+		}
+	}
+
+	// Verify row 0 (the first data row) correctly right-aligns numeric columns
+	// instead of being erroneously forced to left-align.
+	if !strings.Contains(lines[2], "  10 ") || !strings.Contains(lines[2], " 70,000") {
+		t.Errorf("row 0 (line 2) failed to right-align numeric values:\n%s", out)
+	}
 }
 
 func TestFormatHelpers(t *testing.T) {

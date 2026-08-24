@@ -33,7 +33,13 @@ func WriteCommunityBoards(w io.Writer, format Format, b domain.CommunityBoards) 
 		if _, err := fmt.Fprint(w, i18n.T("output.communityBoards.header")); err != nil {
 			return err
 		}
-		headers := []string{"RANK", "TITLE", "FOLLOWERS", "COMMENTS", ""}
+		headers := []string{
+			i18n.T("output.communityBoards.header.rank"),
+			i18n.T("output.communityBoards.header.title"),
+			i18n.T("output.communityBoards.header.followers"),
+			i18n.T("output.communityBoards.header.comments"),
+			"",
+		}
 		aligns := []Align{AlignRight, AlignLeft, AlignRight, AlignRight, AlignLeft}
 		var rows [][]string
 		for i, board := range b.Boards {
@@ -42,10 +48,10 @@ func WriteCommunityBoards(w io.Writer, format Format, b domain.CommunityBoards) 
 				mark = i18n.T("output.communityBoards.memberMark")
 			}
 			rows = append(rows, []string{
-				strconv.Itoa(i + 1),
+				fmt.Sprintf("%d", i+1),
 				board.Title,
-				strconv.Itoa(board.FollowerCount),
-				strconv.Itoa(board.CommentCount),
+				fmt.Sprintf("%d", board.FollowerCount),
+				fmt.Sprintf("%d", board.CommentCount),
 				mark,
 			})
 		}

@@ -22,8 +22,10 @@ const (
 
 // renderTable writes a formatted table.
 // Cells may contain ANSI escape sequences; lipgloss handles them properly.
-// If no aligns are given, column 0 defaults to AlignLeft and columns 1..N
-// default to AlignRight.
+//
+// Alignment defaults: column 0 = AlignLeft, columns 1..N = AlignRight.
+// When aligns has fewer entries than columns, trailing columns fall back to
+// these defaults.
 func renderTable(w io.Writer, headers []string, rows [][]string, aligns ...Align) error {
 	t := table.New().
 		Border(lipgloss.NormalBorder()).
@@ -39,9 +41,6 @@ func renderTable(w io.Writer, headers []string, rows [][]string, aligns ...Align
 
 	t.StyleFunc(func(row, col int) lipgloss.Style {
 		s := lipgloss.NewStyle().PaddingRight(2)
-		if row == 0 {
-			s = s.Align(lipgloss.Left) // usually headers align left
-		}
 
 		align := AlignRight
 		if col == 0 {
@@ -59,8 +58,8 @@ func renderTable(w io.Writer, headers []string, rows [][]string, aligns ...Align
 		return s
 	})
 
-	fmt.Fprintln(w, t)
-	return nil
+	_, err := fmt.Fprintln(w, t)
+	return err
 }
 
 func formatKRW(v float64) string {

@@ -34,11 +34,16 @@ func WriteScreenerFilterRanges(w io.Writer, format Format, r domain.ScreenerFilt
 		if _, err := fmt.Fprintf(w, i18n.T("output.screenerFilters.header"), r.Nation); err != nil {
 			return err
 		}
-		headers := []string{"FILTER", "MIN", "MAX", "BASED AT"}
+		headers := []string{
+			i18n.T("output.screenerFilters.header.filter"),
+			i18n.T("output.screenerFilters.header.min"),
+			i18n.T("output.screenerFilters.header.max"),
+			i18n.T("output.screenerFilters.header.basedAt"),
+		}
 		var rows [][]string
 		for _, f := range r.Filters {
 			if f.Min == nil || f.Max == nil {
-				rows = append(rows, []string{f.FilterID, "(unavailable: " + f.Unavailable + ")", "", ""})
+				rows = append(rows, []string{f.FilterID + " (" + f.Unavailable + ")", "-", "-", "-"})
 				continue
 			}
 			basedAt := f.BasedAt

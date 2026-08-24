@@ -73,7 +73,11 @@ func WriteOptionChain(w io.Writer, format Format, c domain.OptionChain) error {
 		if _, err := fmt.Fprintf(w, i18n.T("output.optionChain.header"), c.Symbol, c.MaturityDate); err != nil {
 			return err
 		}
-		headers := []string{"CALL OI", "STRIKE", "PUT OI"}
+		headers := []string{
+			i18n.T("output.optionChain.header.callOI"),
+			i18n.T("output.optionChain.header.strike"),
+			i18n.T("output.optionChain.header.putOI"),
+		}
 		var rows [][]string
 		for _, r := range c.Rows {
 			rows = append(rows, []string{
