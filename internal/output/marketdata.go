@@ -6,6 +6,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
@@ -1392,6 +1393,58 @@ func WriteStockReasons(w io.Writer, format Format, r domain.StockReasons) error 
 		rows := make([][]string, 0, len(r.Reasons))
 		for _, x := range r.Reasons {
 			rows = append(rows, []string{x.Symbol, x.Description})
+		}
+		return renderTable(w, headers, rows)
+	default:
+		return fmt.Errorf("unsupported output format: %s", format)
+	}
+}
+
+// WriteCharts renders one row per symbol summarising its intraday session.
+//
+// A full candle table for many symbols would be unreadable in a terminal; JSON
+// carries every candle for callers that want them.
+func WriteCharts(w io.Writer, format Format, charts []domain.Chart) error {
+	switch format {
+	case FormatJSON:
+		return writeJSON(w, charts)
+	case FormatCSV:
+		cw := csv.NewWriter(w)
+		if err := cw.Write([]string{"symbol", "product_code", "interval", "time", "open", "high", "low", "close", "base"}); err != nil {
+			return err
+		}
+		for _, c := range charts {
+			for _, cd := range c.Candles {
+				if err := cw.Write([]string{c.Symbol, c.ProductCode, c.Interval,
+					cd.Time.Format(time.RFC3339),
+					strconv.FormatFloat(cd.Open, 'f', -1, 64), strconv.FormatFloat(cd.High, 'f', -1, 64),
+					strconv.FormatFloat(cd.Low, 'f', -1, 64), strconv.FormatFloat(cd.Close, 'f', -1, 64),
+					strconv.FormatFloat(c.Base, 'f', -1, 64)}); err != nil {
+					return err
+				}
+			}
+		}
+		cw.Flush()
+		return cw.Error()
+	case FormatTable:
+		headers := []string{
+			i18n.T("output.charts.header.symbol"),
+			i18n.T("output.charts.header.interval"),
+			i18n.T("output.charts.header.candles"),
+			i18n.T("output.charts.header.close"),
+			i18n.T("output.charts.header.change"),
+		}
+		rows := make([][]string, 0, len(charts))
+		for _, c := range charts {
+			last, change := "", ""
+			if n := len(c.Candles); n > 0 {
+				cl := c.Candles[n-1].Close
+				last = formatKRW(cl)
+				if c.Base > 0 {
+					change = fmt.Sprintf("%+.2f%%", (cl-c.Base)/c.Base*100)
+				}
+			}
+			rows = append(rows, []string{c.Symbol, c.Interval, strconv.Itoa(len(c.Candles)), last, change})
 		}
 		return renderTable(w, headers, rows)
 	default:

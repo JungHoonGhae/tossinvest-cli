@@ -46,6 +46,7 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"market-calendar":          true,
 		"market-halt":              true,
 		"quote-reasons":            true,
+		"quote-charts":             true,
 		"auto-trades":              true,
 		"market-issues":            true,
 	}

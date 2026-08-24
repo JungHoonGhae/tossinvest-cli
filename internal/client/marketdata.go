@@ -1043,3 +1043,87 @@ func (c *Client) GetIndexAnomalies(ctx context.Context) (domain.IndexAnomalies, 
 	}
 	return out, nil
 }
+
+// GetStockCharts returns one trading day of intraday candles for many symbols
+// in a single request.
+//
+// Endpoint: POST /api/v1/dashboard/common/stocks/mini-chart (cert host) with
+// {"codes": [...]}. Range and step are chosen by the server (observed: 1d / 10m)
+// and echoed back — they are NOT request parameters, so this cannot replace
+// GetChart, which takes an explicit interval.
+//
+// KR and US both work (verified live 2026-08-24 with 005930 and AAPL). The
+// server silently omits any code it has no data for instead of erroring, so the
+// response can be shorter than the request; those symbols come back through the
+// returned `missing` slice rather than as empty charts, letting a caller tell
+// "no data for this symbol" from "the whole call failed".
+func (c *Client) GetStockCharts(ctx context.Context, symbols []string) ([]domain.Chart, []string, error) {
+	if err := c.requireSession(); err != nil {
+		return nil, nil, err
+	}
+	bySymbol := make(map[string]string, len(symbols))
+	codes := make([]string, 0, len(symbols))
+	for _, s := range symbols {
+		code, err := c.resolveProductCode(ctx, s)
+		if err != nil {
+			return nil, nil, err
+		}
+		bySymbol[code] = s
+		codes = append(codes, code)
+	}
+
+	var envelope quoteEnvelope[struct {
+		BaseStep   string `json:"baseStep"`
+		MiniCharts []struct {
+			Code    string `json:"code"`
+			Candles []struct {
+				StartDate time.Time `json:"startDate"`
+				Open      float64   `json:"open"`
+				High      float64   `json:"high"`
+				Low       float64   `json:"low"`
+				Close     float64   `json:"close"`
+				Base      float64   `json:"base"`
+			} `json:"candles"`
+		} `json:"miniCharts"`
+	}]
+	body, err := json.Marshal(map[string]any{"codes": codes})
+	if err != nil {
+		return nil, nil, err
+	}
+	endpoint := c.certBaseURL + "/api/v1/dashboard/common/stocks/mini-chart"
+	if err := c.postJSON(ctx, endpoint, body, &envelope); err != nil {
+		return nil, nil, err
+	}
+
+	now := time.Now().UTC()
+	seen := make(map[string]bool, len(envelope.Result.MiniCharts))
+	out := make([]domain.Chart, 0, len(envelope.Result.MiniCharts))
+	for _, mc := range envelope.Result.MiniCharts {
+		seen[mc.Code] = true
+		chart := domain.Chart{
+			ProductCode: mc.Code,
+			Symbol:      bySymbol[mc.Code],
+			Interval:    envelope.Result.BaseStep,
+			FetchedAt:   now,
+		}
+		for _, cd := range mc.Candles {
+			// base 는 캔들마다 같은 전일 종가다. 차트 단위 값이라 위로 올린다.
+			chart.Base = cd.Base
+			chart.Candles = append(chart.Candles, domain.Candle{
+				Time:  cd.StartDate,
+				Open:  cd.Open,
+				High:  cd.High,
+				Low:   cd.Low,
+				Close: cd.Close,
+			})
+		}
+		out = append(out, chart)
+	}
+	var missing []string
+	for _, code := range codes {
+		if !seen[code] {
+			missing = append(missing, bySymbol[code])
+		}
+	}
+	return out, missing, nil
+}

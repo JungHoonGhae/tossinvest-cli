@@ -202,6 +202,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | 🆕 Circuit breaker / sidecar | `market halt` (KOSPI · KOSDAQ firing state) | ❌ | ✅ |
 | 🆕 Index anomalies | `market anomalies` (AI signal · keyword · z-score) | ❌ | ✅ |
 | 🆕 Batch AI reasons | `quote reasons <symbols...>` (up to 100 in one call) | ❌ | ✅ |
+| 🆕 Batch intraday candles | `quote charts <symbols...>` (many symbols, one call) | ❌ | ✅ |
 | Sellable quantity | `quote sellable <symbol>` (sellable shares for a held symbol) | ✅ | ✅ |
 | Commission / tax rate | `quote commission <symbol>` | ✅ | ✅ |
 | Orders (pending / completed / single) | `orders list`, `orders completed`, `order show <id>` | ✅ | ✅ |

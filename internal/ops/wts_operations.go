@@ -322,6 +322,33 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "quote_charts", Method: "POST", Path: "wts:dashboard/common/stocks/mini-chart", Backend: "wts",
+			Category: "quote", Summary: "Today's intraday candles for MANY symbols in one request. Range and step are chosen by the server (observed 1d/10m) and are NOT parameters — use quote_chart for an explicit interval on one symbol. Symbols with no data are omitted from the response. WTS-only.",
+			Params: []Param{
+				{Name: "symbols", Type: "string[]", Required: true, Desc: "symbols or names, e.g. [\"005930\", \"AAPL\"]"},
+			},
+			Probe: &ProbeSpec{Name: "quote-charts", Method: "POST",
+				URL:  probeCert + "/api/v1/dashboard/common/stocks/mini-chart",
+				Body: `{"codes":["A005930"]}`,
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.miniCharts", "array")
+				}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				symbols, err := argStringSlice(args, "symbols")
+				if err != nil {
+					return nil, err
+				}
+				charts, missing, err := d.WTS.GetStockCharts(ctx, symbols)
+				if err != nil {
+					return nil, err
+				}
+				return map[string]any{"charts": charts, "missing": missing}, nil
+			},
+		},
+		{
 			ID: "quote_reasons", Method: "POST", Path: "wts:dashboard/wts/overview/ai-signals", Backend: "wts",
 			Category: "quote", Summary: "One-line AI explanation of why each stock is moving, for many symbols in a single request (web sends up to 100). Use quote_reasoning for the full card on ONE symbol. Symbols with no reasoning are omitted from the response. WTS-only.",
 			Params: []Param{

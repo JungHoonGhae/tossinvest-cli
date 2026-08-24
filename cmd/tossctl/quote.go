@@ -336,6 +336,33 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
+	chartsCmd := &cobra.Command{
+		Use:         "charts <symbol>[,symbol,...] [...]",
+		Short:       i18n.T("quote.charts.short"),
+		Long:        i18n.T("quote.charts.long"),
+		Args:        cobra.MinimumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			charts, missing, err := app.client.GetStockCharts(cmd.Context(), parseBatchSymbols(args))
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			if err := output.WriteCharts(cmd.OutOrStdout(), app.format, charts); err != nil {
+				return err
+			}
+			// 빠진 종목을 알리지 않으면 "데이터 없음" 과 "미지원" 이 구별되지 않는다.
+			// 표/CSV 를 파싱하는 쪽을 깨지 않도록 stderr 로 낸다.
+			if len(missing) > 0 && app.format == output.FormatTable {
+				fmt.Fprintf(cmd.ErrOrStderr(), i18n.T("output.charts.missing"), strings.Join(missing, ", "))
+			}
+			return nil
+		},
+	}
+
 	reasonsCmd := &cobra.Command{
 		Use:         "reasons <symbol>[,symbol,...] [...]",
 		Short:       i18n.T("quote.reasons.short"),
@@ -433,7 +460,7 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 	supplyCmd.Flags().IntVar(&supplyCount, "count", 0, "rows per page (server default 10)")
 	supplyCmd.Flags().StringVar(&supplyUntil, "until", "", "cursor from a previous page's next_until")
 
-	cmd.AddCommand(getCmd, batchCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd, cryptoCmd, reasoningCmd, reasonsCmd, signalsCmd, optionsCmd, supplyCmd)
+	cmd.AddCommand(getCmd, batchCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd, cryptoCmd, reasoningCmd, reasonsCmd, chartsCmd, signalsCmd, optionsCmd, supplyCmd)
 
 	return cmd
 }

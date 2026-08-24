@@ -54,6 +54,7 @@ IMPLEMENTED = [
     r"^/api/v4/dashboard/wts/overview/indicator$",                     # market halt · market anomalies
     r"^/api/v1/dashboard/wts/overview/ai-signals$",                     # quote reasons (batch)
     r"^/api/v1/prime/users/benefits/cumulative$",                       # account prime (누적)
+    r"^/api/v1/dashboard/common/stocks/mini-chart$",                    # quote charts (batch)
     r"^/api/v\d+/my-assets/summaries/",
     r"^/api/v\d+/my-assets/transactions/",
     r"^/api/v1/product/stock-prices",

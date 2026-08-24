@@ -246,6 +246,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | 🆕 서킷브레이커·사이드카 | `market halt` (코스피·코스닥 발동 여부) | ❌ | ✅ |
 | 🆕 지수 이상 움직임 | `market anomalies` (AI 시그널·키워드·Z점수) | ❌ | ✅ |
 | 🆕 AI 사유 일괄 조회 | `quote reasons <symbols...>` (최대 100종목 1회 호출) | ❌ | ✅ |
+| 🆕 분봉 일괄 조회 | `quote charts <symbols...>` (여러 종목 당일 캔들 1회 호출) | ❌ | ✅ |
 | 매도가능수량 | `quote sellable <symbol>` (보유 종목 매도가능 주수) | ✅ | ✅ |
 | 수수료 / 거래세율 | `quote commission <symbol>` (수수료율·거래세율) | ✅ | ✅ |
 | 미체결 / 체결 / 단건 주문 | `orders list`, `orders completed`, `order show <id>` | ✅ | ✅ |
