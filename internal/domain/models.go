@@ -285,6 +285,39 @@ type TradingHours struct {
 	FetchedAt time.Time     `json:"fetched_at"`
 }
 
+// MarketHaltEvent is one market-wide trading interruption switch and whether it
+// is firing right now. Toss exposes the same four facts twice — as a fixed
+// `haltStatus` object with hardcoded kospi/kosdaq keys, and as this list. The
+// list is the one that survives Toss adding a market or a halt type, so it is
+// the only source read.
+//
+// Market is Toss's code ("KSP" 코스피, "KSQ" 코스닥); MarketName is the readable
+// form. Type is normalized to a lowercase alias, falling back to the raw server
+// string when unrecognized so a newly shipped halt type stays visible instead of
+// silently disappearing.
+type MarketHaltEvent struct {
+	Market     string `json:"market"`
+	MarketName string `json:"market_name"`
+	Type       string `json:"type"`
+	Activated  bool   `json:"activated"`
+}
+
+// MarketHalt is the current 서킷브레이커·사이드카 state across KR markets.
+type MarketHalt struct {
+	Events    []MarketHaltEvent `json:"events"`
+	FetchedAt time.Time         `json:"fetched_at"`
+}
+
+// Halted reports whether any switch is currently firing.
+func (m MarketHalt) Halted() bool {
+	for _, e := range m.Events {
+		if e.Activated {
+			return true
+		}
+	}
+	return false
+}
+
 // OptionSession is one US-options business day. PreMarket/AfterMarket are
 // nil-able in the feed — options have no extended session the way equities do,
 // so they stay empty rather than being faked to match the regular window.

@@ -1247,3 +1247,66 @@ func WriteOrderFunding(w io.Writer, format Format, f domain.OrderFunding) error 
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
 }
+
+// WriteMarketHalt renders the 서킷브레이커·사이드카 state.
+//
+// Every switch is listed, firing or not — a table that shows only active halts
+// is indistinguishable from a failed fetch on a normal day, which is the one
+// day a caller most needs to trust it.
+func WriteMarketHalt(w io.Writer, format Format, m domain.MarketHalt) error {
+	switch format {
+	case FormatJSON:
+		return writeJSON(w, m)
+	case FormatCSV:
+		cw := csv.NewWriter(w)
+		if err := cw.Write([]string{"market", "market_name", "type", "activated"}); err != nil {
+			return err
+		}
+		for _, e := range m.Events {
+			if err := cw.Write([]string{e.Market, e.MarketName, e.Type, strconv.FormatBool(e.Activated)}); err != nil {
+				return err
+			}
+		}
+		cw.Flush()
+		return cw.Error()
+	case FormatTable:
+		headers := []string{
+			i18n.T("output.halt.header.market"),
+			i18n.T("output.halt.header.type"),
+			i18n.T("output.halt.header.status"),
+		}
+		active := i18n.T("output.halt.status.activated")
+		normal := i18n.T("output.halt.status.normal")
+		rows := make([][]string, 0, len(m.Events))
+		for _, e := range m.Events {
+			status := normal
+			if e.Activated {
+				status = active
+			}
+			rows = append(rows, []string{e.MarketName, haltTypeLabel(e.Type), status})
+		}
+		if err := renderTable(w, headers, rows); err != nil {
+			return err
+		}
+		if !m.Halted() {
+			_, err := fmt.Fprintln(w, i18n.T("output.halt.allNormal"))
+			return err
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported output format: %s", format)
+	}
+}
+
+// haltTypeLabel translates a known halt alias, leaving an unrecognized one as-is
+// so a newly shipped type is still readable.
+func haltTypeLabel(t string) string {
+	switch t {
+	case "circuit_breaker":
+		return i18n.T("output.halt.type.circuitBreaker")
+	case "sidecar":
+		return i18n.T("output.halt.type.sidecar")
+	default:
+		return t
+	}
+}

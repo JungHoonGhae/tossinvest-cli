@@ -49,6 +49,24 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
+	haltCmd := &cobra.Command{
+		Use:         "halt",
+		Short:       i18n.T("market.halt.short"),
+		Long:        i18n.T("market.halt.long"),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			h, err := app.client.GetMarketHalt(cmd.Context())
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteMarketHalt(cmd.OutOrStdout(), app.format, h)
+		},
+	}
+
 	fxCmd := &cobra.Command{
 		Use:         "fx",
 		Short:       i18n.T("market.fx.short"),
@@ -525,6 +543,6 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(hoursCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, filtersCmd, stocksCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, issuesCmd, optionHoursCmd)
+	cmd.AddCommand(hoursCmd, haltCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, filtersCmd, stocksCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, issuesCmd, optionHoursCmd)
 	return cmd
 }

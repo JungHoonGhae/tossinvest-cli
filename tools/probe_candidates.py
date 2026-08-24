@@ -118,12 +118,19 @@ def _request(url: str, cookie: str, method: str) -> tuple[int, int]:
             return err.code, 0
 
 
-def probe_one(path: str, cookie: str) -> dict:
+def probe_one(path: str, cookie: str, known: dict | None = None) -> dict:
     if TEMPLATED.search(path):
         return {"verdict": "templated", "note": "경로에 자리표시자가 있어 그대로 호출 불가"}
 
+    # 카탈로그가 번들 삼중에서 얻은 호스트를 알고 있으면 **그것만** 쓴다. 호스트를
+    # 순회하며 추측하면 틀린 호스트의 404 를 정답으로 기록하게 된다 — 2026-08-03
+    # 스윕이 그렇게 33건을 위양성 not-found 로 사장시켰다.
+    hosts = HOSTS
+    if known and (h := known.get("host")):
+        hosts = [f"https://{h}.tossinvest.com"]
+
     last = None
-    for host in HOSTS:
+    for host in hosts:
         try:
             status, size = _request(host + path, cookie, "GET")
             method = "GET"
@@ -182,7 +189,7 @@ def main() -> None:
     done = [0]
 
     def work(path: str) -> None:
-        result = probe_one(path, cookie)
+        result = probe_one(path, cookie, endpoints.get(path))
         result["at"] = today
         with lock:
             endpoints[path]["probe"] = result
