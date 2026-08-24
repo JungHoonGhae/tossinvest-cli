@@ -55,7 +55,10 @@ func newUpdateCmd(opts *rootOptions) *cobra.Command {
 
 			var latest string
 			spinErr := tui.WithSpinner("Checking latest version", func() error {
-				latest = checker.LatestStable(cmd.Context())
+				// 사용자가 직접 부른 확인이므로 24시간 캐시를 건너뛴다 — 캐시는
+				// 배경 알림을 싸게 만들려고 있는 것이고, 여기서 쓰면 릴리즈 직후
+				// 최대 하루 동안 "이미 최신" 이라고 답하게 된다.
+				latest = checker.LatestStableFresh(cmd.Context())
 				return nil
 			})
 			if spinErr != nil {

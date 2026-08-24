@@ -197,3 +197,72 @@ func TestShouldNotifyExpiryHourlyBackoff(t *testing.T) {
 		t.Fatal("after 2h: expected notify=true")
 	}
 }
+
+// `tossctl update` 는 사용자가 명시적으로 "지금 갱신해" 라고 부른 것이다. 24시간
+// 캐시는 **백그라운드 알림**을 싸게 만들려고 있는 것이지, 명시적 요청을 막으라고
+// 있는 게 아니다. 캐시가 이걸 가로막으면 릴리즈 직후 최대 하루 동안 "이미 최신"
+// 이라고 답한다 — 스피너까지 돌리면서.
+func TestLatestStableFreshIgnoresCacheTTL(t *testing.T) {
+	dir := t.TempDir()
+	cachePath := filepath.Join(dir, "update-check.json")
+
+	// 1분 전에 확인했고 그때는 0.40.0 이 최신이었다.
+	seed := cacheEntry{LastCheckedAt: time.Now().Add(-time.Minute), LatestVersion: "0.40.0"}
+	data, _ := json.Marshal(seed)
+	if err := os.WriteFile(cachePath, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// 그 사이 0.42.0 이 나왔다.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"tag_name": "v0.42.0", "prerelease": false})
+	}))
+	defer server.Close()
+
+	c := &Checker{
+		cachePath:  cachePath,
+		httpClient: &http.Client{Transport: redirectTransport{base: server.URL}},
+		repoSlug:   "x/y",
+		interval:   24 * time.Hour,
+		now:        time.Now,
+	}
+
+	// 배경 경로는 캐시를 그대로 쓴다 — 이건 의도된 동작이다.
+	if got := c.LatestStable(context.Background()); got != "0.40.0" {
+		t.Errorf("background path should stay cached, got %q", got)
+	}
+	// 명시적 경로는 지금 확인해야 한다.
+	if got := c.LatestStableFresh(context.Background()); got != "0.42.0" {
+		t.Errorf("explicit check must ignore the TTL, got %q", got)
+	}
+	// 그리고 그 결과가 캐시에 반영돼 배경 경로도 따라와야 한다.
+	if got := c.LatestStable(context.Background()); got != "0.42.0" {
+		t.Errorf("a fresh check should update the cache, got %q", got)
+	}
+}
+
+// 네트워크가 죽었을 때 강제 확인이 빈 값을 돌려주면 update 커맨드가 "최신 버전을
+// 알 수 없음" 으로 오작동한다. 캐시된 값으로 물러나야 한다.
+func TestLatestStableFreshFallsBackToCacheOffline(t *testing.T) {
+	dir := t.TempDir()
+	cachePath := filepath.Join(dir, "update-check.json")
+	seed := cacheEntry{LastCheckedAt: time.Now().Add(-time.Minute), LatestVersion: "0.40.0"}
+	data, _ := json.Marshal(seed)
+	if err := os.WriteFile(cachePath, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	c := &Checker{
+		cachePath:  cachePath,
+		httpClient: &http.Client{Transport: redirectTransport{base: server.URL}},
+		repoSlug:   "x/y",
+		interval:   24 * time.Hour,
+		now:        time.Now,
+	}
+	if got := c.LatestStableFresh(context.Background()); got != "0.40.0" {
+		t.Errorf("offline forced check must fall back to cache, got %q", got)
+	}
+}

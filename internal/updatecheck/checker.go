@@ -57,8 +57,24 @@ func New(cachePath string) *Checker {
 // prefix). Empty string means "no info available" — the caller should treat
 // it as a no-op rather than an error.
 func (c *Checker) LatestStable(ctx context.Context) string {
+	return c.latest(ctx, false)
+}
+
+// LatestStableFresh ignores the cache TTL and asks the release API now, falling
+// back to the cached value when the network fails.
+//
+// Use it for checks the user explicitly asked for (`tossctl update`). The 24h
+// TTL exists to keep the *background* update notice cheap; letting it gate an
+// explicit request means the command reports "already up to date" for up to a
+// day after a release — while showing a "Checking latest version" spinner that
+// never checked anything.
+func (c *Checker) LatestStableFresh(ctx context.Context) string {
+	return c.latest(ctx, true)
+}
+
+func (c *Checker) latest(ctx context.Context, force bool) string {
 	entry, _ := c.readCache()
-	if c.now().Sub(entry.LastCheckedAt) < c.interval && entry.LatestVersion != "" {
+	if !force && c.now().Sub(entry.LastCheckedAt) < c.interval && entry.LatestVersion != "" {
 		return entry.LatestVersion
 	}
 
