@@ -941,3 +941,60 @@ func (c *Client) GetEarningCalls(ctx context.Context) (domain.EarningCalls, erro
 	}
 	return out, nil
 }
+
+// haltMarketNames maps Toss's market code to a readable name. An unmapped code
+// keeps its raw form rather than becoming blank.
+var haltMarketNames = map[string]string{"KSP": "KOSPI", "KSQ": "KOSDAQ"}
+
+// haltTypes maps the server enum to a stable alias. Unmapped types keep the raw
+// server string so a halt type Toss adds later is still reported.
+var haltTypes = map[string]string{
+	"CIRCUIT_BREAKER": "circuit_breaker",
+	"SIDECAR":         "sidecar",
+}
+
+// GetMarketHalt returns the current 서킷브레이커·사이드카 state for KR markets.
+//
+// Endpoint: GET /api/v4/dashboard/wts/overview/indicator (cert host). The
+// response is the whole market-overview widget (~40KB); only `marketEvents` is
+// decoded. There is a dedicated 33-byte endpoint
+// (/api/v1/dashboard/common/market-event/circuit-breaker) but it lists only
+// breakers that are *firing* — it cannot answer "is the market normal?", and it
+// says nothing about sidecars. See docs/reverse-engineering/wts-endpoints.json.
+//
+// ponytail: the oversized payload is fetched and mostly discarded rather than
+// combining two endpoints. Switch to the dedicated endpoint for detail (level,
+// start/end time, index snapshot) once a live firing is observed — the field
+// names are known from the web bundle but the item shape has never been seen
+// populated.
+func (c *Client) GetMarketHalt(ctx context.Context) (domain.MarketHalt, error) {
+	var envelope quoteEnvelope[struct {
+		MarketEvents []struct {
+			Market    string `json:"market"`
+			Type      string `json:"type"`
+			Activated bool   `json:"activated"`
+		} `json:"marketEvents"`
+	}]
+	endpoint := c.certBaseURL + "/api/v4/dashboard/wts/overview/indicator"
+	if err := c.getJSON(ctx, endpoint, &envelope); err != nil {
+		return domain.MarketHalt{}, err
+	}
+	out := domain.MarketHalt{FetchedAt: time.Now().UTC()}
+	for _, e := range envelope.Result.MarketEvents {
+		name, ok := haltMarketNames[e.Market]
+		if !ok {
+			name = e.Market
+		}
+		typ, ok := haltTypes[e.Type]
+		if !ok {
+			typ = e.Type
+		}
+		out.Events = append(out.Events, domain.MarketHaltEvent{
+			Market:     e.Market,
+			MarketName: name,
+			Type:       typ,
+			Activated:  e.Activated,
+		})
+	}
+	return out, nil
+}

@@ -315,6 +315,21 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "market_halt", Method: "GET", Path: "wts:dashboard/wts/overview/indicator", Backend: "wts",
+			Category: "market", Summary: "Whether a circuit breaker (서킷브레이커) or sidecar (사이드카) is currently firing on KOSPI/KOSDAQ. Returns all four switches with an activated flag, so a normal market is distinguishable from a failed call. WTS-only.",
+			Probe: &ProbeSpec{Name: "market-halt", Method: "GET",
+				URL: probeCert + "/api/v4/dashboard/wts/overview/indicator",
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.marketEvents", "array")
+				}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				return d.WTS.GetMarketHalt(ctx)
+			},
+		},
+		{
 			ID: "market_news", Method: "POST", Path: "wts:dashboard/wts/news", Backend: "wts",
 			Category: "market", Summary: "Market news with each article's RELATED STOCKS and how they are moving right now — the part a plain headline list lacks. Scopes: all (widest, general market news, no stock linkage), watchlist / holdings (news about the user's own stocks, with moves), soaring (stocks spiking), recommended, latest. Server caps at 50 items; there is no pagination and no keyword search. WTS-only.",
 			Params: []Param{

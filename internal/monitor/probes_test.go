@@ -44,6 +44,7 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"screener-presets":         true,
 		"watchlist-groups":         true,
 		"market-calendar":          true,
+		"market-halt":              true,
 		"auto-trades":              true,
 		"market-issues":            true,
 	}

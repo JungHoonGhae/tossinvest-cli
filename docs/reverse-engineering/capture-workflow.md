@@ -502,3 +502,57 @@ node tools/capture_post_bodies.mjs /feed/news --get            # GET 도 (조회
 또는 화면이 느려서 `--wait` 을 늘려야 하는 경우다.
 
 전제: Node 18+ (내장 `WebSocket` 사용, npm 설치 불필요) 와 Playwright 브라우저 캐시.
+
+## 번들 삼중 정의가 경로·호스트의 진실이다 (2026-08-24)
+
+카탈로그는 원래 청크에서 `/api/vN/...` **경로만** 정규식으로 긁었다. 그 정규식은 `[`
+에서 멈춘다. 그래서 동적 세그먼트가 있는 엔드포인트가 통째로 잘려 저장됐다:
+
+```
+실제  GET wts-api /api/v1/trading/stocks/[stockCode]/average-price
+저장             /api/v1/trading/stocks              ← `[` 에서 잘림
+```
+
+`probe_candidates.py` 가 그 **잘린 경로**를 때리고 `404 not-found` 를 기록했다. 게다가
+호스트도 몰라서 세 호스트를 순회하며 추측했으므로, 틀린 호스트의 404 까지 정답으로
+남았다. 결과: 85개가 잘린 키로 들어갔고 그중 33개가 위양성 `not-found` 로 사장됐다.
+재확인해보니 6건 중 5건이 살아있었다 (`invalid.stock-code`, `MissingServletRequestParameter`
+같은 **파라미터 검증 에러** = 라우팅 존재).
+
+번들은 애초에 셋을 같이 준다:
+
+```js
+host:"cert",method:"GET",path:"/api/v1/asset-snapshot/chart/[range]/[stepUnit]"
+```
+
+`tools/wts_endpoints.py` 의 `TRIPLE_RE` 가 이걸 읽고, `[x]` → `{x}` 로 정규화해 카탈로그
+키로 쓴다. 호스트 토큰은 `HOST_TOKEN` 으로 실제 호스트에 매핑한다:
+
+| 토큰 | 호스트 |
+|---|---|
+| `launcher` | `wts-api` |
+| `cert` | `wts-cert-api` |
+| `info` | `wts-info-api` |
+
+이 매핑은 두 개의 독립 관측으로 확정했다 — `/api/v1/account/list` 는 토큰이 `launcher`
+인데 `wts-api` 로 나가고, `/api/v1/profit/overview` 는 토큰이 `cert` 인데 `wts-cert-api`
+로 나간다. **경로만 보고 호스트를 짐작하지 말 것.**
+
+따라서:
+
+- 프로버는 카탈로그의 `host` 를 그대로 쓴다(순회 금지). 모를 때만 순회한다.
+- `wts_endpoints.py` 는 재생성 시 **번들 호스트와 다른 호스트로 잰 프로브 기록을 버린다.**
+  그건 다른 URL 을 잰 값이라 트리아지 상태로 물려받으면 안 된다.
+
+## 숨은 spec 엔드포인트는 없다 (2026-08-24 확인)
+
+WTS 백엔드는 Spring 이다(`MissingServletRequestParameterException`,
+`MethodArgumentTypeMismatchException`). 그래서 springdoc/actuator 가 열려 있으면 번들
+스크레이핑이 통째로 필요 없어진다. 확인해봤고, **전부 막혀 있다.**
+
+세 호스트(`wts-api`·`wts-info-api`·`wts-cert-api`) × 15개 표준 경로 —
+`/v3/api-docs`, `/v3/api-docs/swagger-config`, `/v2/api-docs`, `/swagger-ui.html`,
+`/swagger-ui/index.html`, `/swagger-resources`, `/openapi.json`, `/api-docs`,
+`/api/v3/api-docs`, `/actuator`, `/actuator/mappings`, `/actuator/health`,
+`/graphql`, `/api/graphql`, `/.well-known/openapi.json` — 45개 조합이 전부 401/404 다.
+GraphQL 도 없다. **다시 뒤지지 말 것.** 번들 스크레이핑이 유일한 경로다.

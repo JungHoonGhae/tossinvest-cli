@@ -199,6 +199,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | Trade warnings | `quote warnings <symbol>` (liquidation · alert · VI …) | ✅ | ✅ |
 | Trading hours | `market hours` (today + next session when closed) | ✅ | ✅ |
 | FX | `market fx` (USD rate · dollar index) | ✅ | ✅ |
+| 🆕 Circuit breaker / sidecar | `market halt` (KOSPI · KOSDAQ firing state) | ❌ | ✅ |
 | Sellable quantity | `quote sellable <symbol>` (sellable shares for a held symbol) | ✅ | ✅ |
 | Commission / tax rate | `quote commission <symbol>` | ✅ | ✅ |
 | Orders (pending / completed / single) | `orders list`, `orders completed`, `order show <id>` | ✅ | ✅ |
@@ -226,7 +227,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **Net-buy ranking by investor** | `market investors` (foreign · institution · retail top net-buy) | ❌ | ✅ |
 | **Earnings calendar** | `market earnings` (`--major` for curated majors) | ❌ | ✅ |
 | **Dividend report** | `portfolio dividends` (annual total · region · monthly, `--by-payment-date` tax) | ❌ | ✅ |
-| **🆕 Cumulative realized profit** | `profit` (trading gains · dividends · lending · maturity · deposit interest, KRW/USD — a cumulative view distinct from account summary) | ❌ | ✅ |
+| **Cumulative realized profit** | `profit` (trading gains · dividends · lending · maturity · deposit interest, KRW/USD — a cumulative view distinct from account summary) | ❌ | ✅ |
 | **🆕 Account detail** | `account detail [--full]` (number · open date + **withdrawable cash and caps** + credit-trading status + **US dividend payout mode** — number and name masked by default) | ❌ | ✅ |
 | **🆕 Automated trading** | `order autotrade` (stop-loss / target-profit / OCO / OTO rules with trigger and order prices — read-only) | ❌ | ✅ |
 | **🆕 Market news** | `market news [--type all\|watchlist\|holdings\|soaring\|latest\|recommended] [--limit N] [--full]` (each article's **related stocks and their moves** — what a headline list lacks) | ❌ | ✅ |
@@ -234,7 +235,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **🆕 Market calendar** | `market calendar [--month YYYY-MM]` (releases with **forecast / actual / prior**, KR+US **earnings** with symbol and call time, holidays — by month) | ❌ | ✅ |
 | **🆕 Realized profit by period** | `profit summary --type sales\|dividend\|lending\|account-interest [--from --to]` (one category's earned amount, return rate, purchase basis in KRW/USD) | ❌ | ✅ |
 | **🆕 Per-stock daily realized profit** | `profit daily [--from --to] [--currency KRW\|USD]` (symbol · quantity · P/L · rate · sell/buy amounts, every page merged — CSV for tax prep) | ❌ | ✅ |
-| **🆕 Overseas transfer income (tax)** | `tax overseas --year YYYY` (capital-gains filing: rate · deduction · per-stock P/L) | ❌ | ✅ |
+| **Overseas transfer income (tax)** | `tax overseas --year YYYY` (capital-gains filing: rate · deduction · per-stock P/L) | ❌ | ✅ |
 | **Toss Prime status & benefits** | `account prime` (fee/interest across three tiers: standard, Prime, your rate) | ❌ | ✅ |
 | **🆕 Deposit interest (예탁금 이용료)** | `account interest --year YYYY` (per payment: pre-tax · tax · net · accrual period · estimated flag) | ❌ | ✅ |
 | **🆕 Commission schedule** | `account commission` (KR/US equity rates, US options per-contract fee, reduced-rate status) | ❌ | ✅ |
@@ -264,7 +265,7 @@ tossctl opens even these up, via backend APIs callable with a web session.
 | Feature | Command | Mobile app | Web (WTS) | tossctl |
 |---------|---------|:--:|:--:|:--:|
 | **🆕 RIA tax-saving report** | `tax ria` (overseas capital-gains saving account: tax before/after deduction · saving · weighted quarterly P/L · sell limit) | ✅ | ❌ (no UI) | ✅ (read) |
-| **🆕 Stock accumulation plans** | `accumulate list`, `accumulate status <symbol>` (recurring auto-buy: Active/Paused · amount/frequency · rounds) | ✅ (settings UI) | ❌ (no UI) | ✅ (read) |
+| **Stock accumulation plans** | `accumulate list`, `accumulate status <symbol>` (recurring auto-buy: Active/Paused · amount/frequency · rounds) | ✅ (settings UI) | ❌ (no UI) | ✅ (read) |
 | **🆕 US dividend payout mode** | the «미국 배당» block in `account detail` (`CASH` paid out / `STOCK` reinvested + last change date) | ✅ (settings UI) | ❌ (no UI) | ✅ (read) |
 
 > This list moves rows into the general table above once Toss ships a web UI for them.
