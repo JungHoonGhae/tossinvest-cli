@@ -46,6 +46,9 @@ func WriteAccumulationPlans(w io.Writer, format Format, p domain.AccumulationPla
 			_, err := fmt.Fprintln(w, "(no accumulation plans)")
 			return err
 		}
+		headers := []string{"SYMBOL", "NAME", "STATUS", "TYPE", "SCHEDULE", "AMOUNT", "ROUND"}
+		aligns := []Align{AlignLeft, AlignLeft, AlignLeft, AlignLeft, AlignLeft, AlignRight, AlignRight}
+		var rows [][]string
 		for _, plan := range p.Plans {
 			amount := plan.InvestQuantity
 			unit := "주"
@@ -53,14 +56,17 @@ func WriteAccumulationPlans(w io.Writer, format Format, p domain.AccumulationPla
 				amount = plan.InvestAmount
 				unit = plan.Currency
 			}
-			if _, err := fmt.Fprintf(w, "  %-6s %-18s %-8s %-8s every %-8s %.2f %s (%d회 완료)\n",
-				plan.Symbol, plan.StockName, accumulationStatus(plan), plan.PlanType,
-				plan.Iteration, amount, unit, plan.SucceededRound,
-			); err != nil {
-				return err
-			}
+			rows = append(rows, []string{
+				plan.Symbol,
+				plan.StockName,
+				accumulationStatus(plan),
+				plan.PlanType,
+				"every " + plan.Iteration,
+				fmt.Sprintf("%.2f %s", amount, unit),
+				fmt.Sprintf("%d회", plan.SucceededRound),
+			})
 		}
-		return nil
+		return renderTable(w, headers, rows, aligns...)
 	}
 }
 

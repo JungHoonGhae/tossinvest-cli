@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 func dummyTransferIncome() domain.OverseasTransferIncome {
@@ -44,6 +45,10 @@ func TestWriteTransferIncomeCSV(t *testing.T) {
 }
 
 func TestWriteTransferIncomeTableEmpty(t *testing.T) {
+	restore := setTestLang(t)
+	defer restore()
+
+	i18n.SetLang("ko")
 	var buf bytes.Buffer
 	empty := domain.OverseasTransferIncome{Year: 2024, TaxRate: 20}
 	if err := WriteOverseasTransferIncome(&buf, FormatTable, empty); err != nil {
@@ -51,5 +56,22 @@ func TestWriteTransferIncomeTableEmpty(t *testing.T) {
 	}
 	if !strings.Contains(buf.String(), "매도 종목 없음") {
 		t.Errorf("expected empty-state, got %q", buf.String())
+	}
+}
+
+func TestWriteTransferIncomeTable(t *testing.T) {
+	restore := setTestLang(t)
+	defer restore()
+
+	i18n.SetLang("ko")
+	var buf bytes.Buffer
+	if err := WriteOverseasTransferIncome(&buf, FormatTable, dummyTransferIncome()); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	out := buf.String()
+	for _, want := range []string{"2025", "DUMA", "Dummy A", "DUMB", "Dummy B"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("table output missing %q:\n%s", want, out)
+		}
 	}
 }

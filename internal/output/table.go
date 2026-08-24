@@ -6,20 +6,31 @@ import (
 	"math"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 )
 
-// renderTable writes a formatted table with the first column left-aligned
-// and all other columns right-aligned.
-func renderTable(w io.Writer, headers []string, rows [][]string) error {
-	return renderTableColored(w, headers, rows, nil)
+// Align defines the text alignment for a table column.
+type Align int
+
+const (
+	AlignLeft Align = iota
+	AlignRight
+)
+
+// renderTable writes a formatted table.
+// If no aligns are given, column 0 defaults to AlignLeft and columns 1..N
+// default to AlignRight.
+func renderTable(w io.Writer, headers []string, rows [][]string, aligns ...Align) error {
+	return renderTableColored(w, headers, rows, nil, aligns...)
 }
 
-// renderTableColored is like renderTable but accepts a separate displayRows slice
-// whose cells may contain ANSI escape sequences.  plainRows is always used for
-// column-width computation (so ANSI codes never distort padding), while
-// displayRows is used for the actual cell content that is written to w.
+// renderTableColored is like renderTable but accepts a separate displayRows
+// slice whose cells may contain ANSI escape sequences.  plainRows is always
+// used for column-width computation (so ANSI codes never distort padding),
+// while displayRows is used for the actual cell content written to w.
 // When displayRows is nil the function behaves identically to renderTable.
-func renderTableColored(w io.Writer, headers []string, plainRows [][]string, displayRows [][]string) error {
+func renderTableColored(w io.Writer, headers []string, plainRows [][]string, displayRows [][]string, aligns ...Align) error {
 	if displayRows == nil {
 		displayRows = plainRows
 	}
@@ -53,7 +64,16 @@ func renderTableColored(w io.Writer, headers []string, plainRows [][]string, dis
 			if pad < 0 {
 				pad = 0
 			}
+
+			align := AlignRight
 			if i == 0 {
+				align = AlignLeft
+			}
+			if i < len(aligns) {
+				align = aligns[i]
+			}
+
+			if align == AlignLeft {
 				fmt.Fprint(w, cell+strings.Repeat(" ", pad))
 			} else {
 				fmt.Fprint(w, strings.Repeat(" ", pad)+cell)
@@ -168,4 +188,11 @@ func truncateName(name string, maxRunes int) string {
 		return name
 	}
 	return string(runes[:maxRunes-1]) + "…"
+}
+
+func usdOrDash(d domain.DualCurrency) string {
+	if d.USD == nil {
+		return "-"
+	}
+	return formatUSD(*d.USD)
 }

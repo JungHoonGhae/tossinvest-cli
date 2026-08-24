@@ -73,17 +73,17 @@ func WriteOptionChain(w io.Writer, format Format, c domain.OptionChain) error {
 		if _, err := fmt.Fprintf(w, i18n.T("output.optionChain.header"), c.Symbol, c.MaturityDate); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, i18n.T("output.optionChain.columns")); err != nil {
-			return err
-		}
-		// 서버가 준 행사가 오름차순을 유지한다 — 앱과 같은 순서다.
+		headers := []string{"CALL OI", "STRIKE", "PUT OI"}
+		var rows [][]string
 		for _, r := range c.Rows {
-			if _, err := fmt.Fprintf(w, i18n.T("output.optionChain.line"),
-				r.CallOpenInterest, formatFloat(r.StrikePrice), r.PutOpenInterest); err != nil {
-				return err
-			}
+			rows = append(rows, []string{
+				fmt.Sprintf("%d", r.CallOpenInterest),
+				formatFloat(r.StrikePrice),
+				fmt.Sprintf("%d", r.PutOpenInterest),
+			})
 		}
-		return nil
+		aligns := []Align{AlignRight, AlignRight, AlignRight}
+		return renderTable(w, headers, rows, aligns...)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}

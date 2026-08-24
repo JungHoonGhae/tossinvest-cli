@@ -32,12 +32,13 @@ func WriteStockUniverse(w io.Writer, format Format, u domain.StockUniverse) erro
 		if _, err := fmt.Fprintf(w, i18n.T("output.universe.header"), u.Market, len(u.Stocks)); err != nil {
 			return err
 		}
+		headers := []string{"SYMBOL", "NAME", "TYPE"}
+		aligns := []Align{AlignLeft, AlignLeft, AlignLeft}
+		var rows [][]string
 		for _, s := range u.Stocks {
-			if _, err := fmt.Fprintf(w, i18n.T("output.universe.line"), s.Symbol, s.Name, s.SecurityType); err != nil {
-				return err
-			}
+			rows = append(rows, []string{s.Symbol, s.Name, s.SecurityType})
 		}
-		return nil
+		return renderTable(w, headers, rows, aligns...)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}

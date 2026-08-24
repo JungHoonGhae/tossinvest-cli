@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 func f64(v float64) *float64 { return &v }
@@ -31,14 +32,30 @@ func TestWriteProfitOverviewJSON(t *testing.T) {
 }
 
 func TestWriteProfitOverviewTable(t *testing.T) {
-	var buf bytes.Buffer
-	if err := WriteProfitOverview(&buf, FormatTable, dummyProfit()); err != nil {
-		t.Fatalf("err: %v", err)
+	restore := setTestLang(t)
+	defer restore()
+
+	i18n.SetLang("ko")
+	var koBuf bytes.Buffer
+	if err := WriteProfitOverview(&koBuf, FormatTable, dummyProfit()); err != nil {
+		t.Fatalf("err (ko): %v", err)
 	}
-	out := buf.String()
-	for _, want := range []string{"매매손익", "배당", "예탁금이자", "Total assets"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("table missing %q: %s", want, out)
+	koOut := koBuf.String()
+	for _, want := range []string{"매매손익", "배당", "예탁금이자", "총 자산"} {
+		if !strings.Contains(koOut, want) {
+			t.Errorf("table (ko) missing %q:\n%s", want, koOut)
+		}
+	}
+
+	i18n.SetLang("en")
+	var enBuf bytes.Buffer
+	if err := WriteProfitOverview(&enBuf, FormatTable, dummyProfit()); err != nil {
+		t.Fatalf("err (en): %v", err)
+	}
+	enOut := enBuf.String()
+	for _, want := range []string{"Trading", "Dividend", "Deposit Interest", "Total assets"} {
+		if !strings.Contains(enOut, want) {
+			t.Errorf("table (en) missing %q:\n%s", want, enOut)
 		}
 	}
 }

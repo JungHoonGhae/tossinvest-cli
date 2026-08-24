@@ -8,6 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
+
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
@@ -602,10 +605,18 @@ func WriteInvestorRankings(w io.Writer, format Format, ir domain.InvestorRanking
 			if _, err := fmt.Fprintf(w, i18n.T("output.investorRankings.header"), r.InvestorType); err != nil {
 				return err
 			}
+			headers := []string{"RANK", "NAME", "NET BUY"}
+			var rows [][]string
 			for _, s := range r.Stocks {
-				if _, err := fmt.Fprintf(w, "%2d   %-18s  %s\n", s.Rank, s.Name, formatKRW(s.NetBuyAmount)); err != nil {
-					return err
-				}
+				rows = append(rows, []string{
+					fmt.Sprintf("%d", s.Rank),
+					s.Name,
+					formatKRW(s.NetBuyAmount),
+				})
+			}
+			aligns := []Align{AlignRight, AlignLeft, AlignRight}
+			if err := renderTable(w, headers, rows, aligns...); err != nil {
+				return err
 			}
 		}
 		return nil
@@ -630,18 +641,32 @@ func WriteEarningCalls(w io.Writer, format Format, ec domain.EarningCalls) error
 			_, err := fmt.Fprint(w, i18n.T("output.earnings.empty"))
 			return err
 		}
-		if _, err := fmt.Fprint(w, i18n.T("output.earnings.header")); err != nil {
-			return err
-		}
+		headers := []string{"DATE/TIME", "COMPANY", "CATEGORY"}
+		var rows [][]string
 		for _, e := range ec.Events {
 			when := e.LiveAt
 			if len(when) >= 16 {
-				when = when[:16] // YYYY-MM-DDTHH:MM
+				when = when[:16]
 			}
-			if _, err := fmt.Fprintf(w, "%-17s  %-14s  %s\n", when, e.CompanyName, e.Category); err != nil {
-				return err
-			}
+			rows = append(rows, []string{when, e.CompanyName, e.Category})
 		}
+
+		t := table.New().
+			Border(lipgloss.NormalBorder()).
+			// BorderRow(false).
+			// BorderColumn(false).
+			// BorderTop(false).
+			// BorderBottom(false).
+			// BorderLeft(false).
+			// BorderRight(false).
+			// BorderHeader(true).
+			StyleFunc(func(row, col int) lipgloss.Style {
+				return lipgloss.NewStyle().PaddingRight(2)
+			}).
+			Headers(headers...).
+			Rows(rows...)
+
+		fmt.Fprintln(w, t)
 		return nil
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
@@ -725,15 +750,31 @@ func WriteCommunityRanking(w io.Writer, format Format, r domain.CommunityRanking
 		}
 		switch r.Type {
 		case "TOP_10_PROFIT_ROSS_AMOUNT":
-			fmt.Fprint(w, i18n.T("output.community.profitHeader"))
+			headers := []string{"RANK", "NICKNAME", "PROFIT", "RATE"}
+			aligns := []Align{AlignRight, AlignLeft, AlignRight, AlignRight}
+			var rows [][]string
 			for _, u := range r.Users {
-				fmt.Fprintf(w, "%2d   %-16s  %12s%s  %.1f%%\n", u.Rank, u.Nickname, formatKRW(u.ProfitAmountKRW), i18n.T("output.community.krwSuffix"), u.ProfitRate*100)
+				rows = append(rows, []string{
+					fmt.Sprintf("%d", u.Rank),
+					u.Nickname,
+					formatKRW(u.ProfitAmountKRW) + i18n.T("output.community.krwSuffix"),
+					fmt.Sprintf("%.1f%%", u.ProfitRate*100),
+				})
 			}
+			return renderTable(w, headers, rows, aligns...)
 		case "TOP_10_FOLLOWING_INCREASE":
-			fmt.Fprint(w, i18n.T("output.community.followingHeader"))
+			headers := []string{"RANK", "NICKNAME", "FOLLOWERS", "CHANGE"}
+			aligns := []Align{AlignRight, AlignLeft, AlignRight, AlignRight}
+			var rows [][]string
 			for _, u := range r.Users {
-				fmt.Fprintf(w, "%2d   %-16s  %7d  +%d\n", u.Rank, u.Nickname, u.FollowingCount, u.FollowingIncrease)
+				rows = append(rows, []string{
+					fmt.Sprintf("%d", u.Rank),
+					u.Nickname,
+					fmt.Sprintf("%d", u.FollowingCount),
+					fmt.Sprintf("+%d", u.FollowingIncrease),
+				})
 			}
+			return renderTable(w, headers, rows, aligns...)
 		default: // INFLUENCER
 			fmt.Fprint(w, i18n.T("output.community.influencerHeader"))
 			for _, u := range r.Users {
@@ -812,16 +853,31 @@ func WriteSectors(w io.Writer, format Format, sectors domain.Sectors) error {
 			_, err := fmt.Fprint(w, i18n.T("output.sectors.empty"))
 			return err
 		}
-		if _, err := fmt.Fprint(w, i18n.T("output.sectors.header")); err != nil {
-			return err
+		enabled := colorEnabled(w, format)
+		headers := []string{
+			i18n.T("output.sectors.header.sector"),
+			i18n.T("output.sectors.header.count"),
+			i18n.T("output.sectors.header.oneDay"),
+			i18n.T("output.sectors.header.oneMonth"),
+			i18n.T("output.sectors.header.oneYear"),
 		}
+		aligns := []Align{AlignLeft, AlignRight, AlignRight, AlignRight, AlignRight}
+		plain := make([][]string, 0, len(list))
+		disp := make([][]string, 0, len(list))
 		for _, s := range list {
-			if _, err := fmt.Fprintf(w, "%-14s  %5d  %7.2f%%  %7.2f%%  %7.2f%%\n",
-				s.Title, s.CompanyCount, s.OneDayRate, s.OneMonthRate, s.OneYearRate); err != nil {
-				return err
-			}
+			dStr := fmt.Sprintf("%+.2f%%", s.OneDayRate)
+			mStr := fmt.Sprintf("%+.2f%%", s.OneMonthRate)
+			yStr := fmt.Sprintf("%+.2f%%", s.OneYearRate)
+			plain = append(plain, []string{s.Title, fmt.Sprintf("%d", s.CompanyCount), dStr, mStr, yStr})
+			disp = append(disp, []string{
+				s.Title,
+				fmt.Sprintf("%d", s.CompanyCount),
+				profitText(dStr, s.OneDayRate, enabled),
+				profitText(mStr, s.OneMonthRate, enabled),
+				profitText(yStr, s.OneYearRate, enabled),
+			})
 		}
-		return nil
+		return renderTableColored(w, headers, plain, disp, aligns...)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}

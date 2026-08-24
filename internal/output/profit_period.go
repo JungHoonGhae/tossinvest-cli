@@ -6,20 +6,14 @@ import (
 	"strconv"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
-
-func usdOrDash(d domain.DualCurrency) string {
-	if d.USD == nil {
-		return "-"
-	}
-	return fmt.Sprintf("$%.2f", *d.USD)
-}
 
 // periodLabel describes the window a period query covered, for the table
 // header. Dates arrive in the API's YYYYMMDD; humans read YYYY-MM-DD.
 func periodLabel(from, to string) string {
 	if from == "" && to == "" {
-		return "전체 기간"
+		return i18n.T("output.profitPeriod.allTime")
 	}
 	return fmt.Sprintf("%s ~ %s", dashDate(from), dashDate(to))
 }
@@ -39,31 +33,41 @@ func WritePeriodProfit(w io.Writer, format Format, p domain.PeriodProfit) error 
 	case FormatJSON:
 		return writeJSON(w, p)
 	default:
+		enabled := colorEnabled(w, format)
 		if _, err := fmt.Fprintf(w, "%s  (%s)\n\n", p.Type, periodLabel(p.From, p.To)); err != nil {
 			return err
 		}
-		rows := []struct {
-			label string
-			v     domain.DualCurrency
-			pct   bool
-		}{
-			{"수익금", p.EarningAmount, false},
-			{"수익률", p.EarningRate, true},
-			{"매입금액", p.PurchaseAmount, false},
+
+		headers := []string{
+			i18n.T("output.profitPeriod.header.item"),
+			i18n.T("output.profitPeriod.header.amountKRW"),
+			i18n.T("output.profitPeriod.header.amountUSD"),
 		}
-		for _, r := range rows {
-			if r.pct {
-				if _, err := fmt.Fprintf(w, "  %-8s %14.2f %%\n", r.label, r.v.KRW); err != nil {
-					return err
-				}
-				continue
-			}
-			if _, err := fmt.Fprintf(w, "  %-8s %14.0f KRW  %10s\n",
-				r.label, r.v.KRW, usdOrDash(r.v)); err != nil {
-				return err
-			}
+		aligns := []Align{AlignLeft, AlignRight, AlignRight}
+
+		earningKRW := formatKRW(p.EarningAmount.KRW)
+		earningUSD := usdOrDash(p.EarningAmount)
+		rateStr := fmt.Sprintf("%.2f%%", p.EarningRate.KRW)
+		purchaseKRW := formatKRW(p.PurchaseAmount.KRW)
+		purchaseUSD := usdOrDash(p.PurchaseAmount)
+
+		coloredEarningUSD := earningUSD
+		if p.EarningAmount.USD != nil {
+			coloredEarningUSD = profitText(earningUSD, *p.EarningAmount.USD, enabled)
 		}
-		return nil
+
+		plainRows := [][]string{
+			{i18n.T("output.profitPeriod.earningAmount"), earningKRW, earningUSD},
+			{i18n.T("output.profitPeriod.earningRate"), rateStr, "-"},
+			{i18n.T("output.profitPeriod.purchaseAmount"), purchaseKRW, purchaseUSD},
+		}
+		coloredRows := [][]string{
+			{i18n.T("output.profitPeriod.earningAmount"), profitText(earningKRW, p.EarningAmount.KRW, enabled), coloredEarningUSD},
+			{i18n.T("output.profitPeriod.earningRate"), profitText(rateStr, p.EarningRate.KRW, enabled), "-"},
+			{i18n.T("output.profitPeriod.purchaseAmount"), purchaseKRW, purchaseUSD},
+		}
+
+		return renderTableColored(w, headers, plainRows, coloredRows, aligns...)
 	}
 }
 
@@ -92,39 +96,63 @@ func WriteDailyProfit(w io.Writer, format Format, p domain.DailyProfit) error {
 		}, csvRows)
 	default:
 		if len(p.Stocks) == 0 {
-			_, err := fmt.Fprintf(w, "해당 기간(%s)에 실현손익 내역이 없습니다.\n",
+			_, err := fmt.Fprintf(w, i18n.T("output.profitDaily.empty"),
 				periodLabel(p.From, p.To))
 			return err
 		}
+		enabled := colorEnabled(w, format)
 		// The currency is a property of the whole query (the rate basis), so it
 		// belongs in the header rather than repeated down a column.
-		if _, err := fmt.Fprintf(w, "종목별 실현손익  (%s)  %d건  ·  수익률 기준 %s\n\n",
+		if _, err := fmt.Fprintf(w, i18n.T("output.profitDaily.title"),
 			periodLabel(p.From, p.To), len(p.Stocks), p.Currency); err != nil {
 			return err
 		}
-		if _, err := fmt.Fprintf(w, "%-12s %-10s %-20s %10s %14s %9s\n",
-			"DATE", "SYMBOL", "NAME", "QTY", "P/L (KRW)", "RATE"); err != nil {
-			return err
+
+		headers := []string{
+			i18n.T("output.profitDaily.header.date"),
+			i18n.T("output.profitDaily.header.symbol"),
+			i18n.T("output.profitDaily.header.name"),
+			i18n.T("output.profitDaily.header.quantity"),
+			i18n.T("output.profitDaily.header.pnl"),
+			i18n.T("output.profitDaily.header.rate"),
 		}
+		aligns := []Align{AlignLeft, AlignLeft, AlignLeft, AlignRight, AlignRight, AlignRight}
+
+		var plainRows, coloredRows [][]string
 		var total float64
 		for _, s := range p.Stocks {
 			total += s.ProfitLoss.KRW
-			if _, err := fmt.Fprintf(w, "%-12s %-10s %-20s %10.4g %14.0f %8.2f%%\n",
-				s.Date, s.Symbol, truncate(s.Name, 20),
-				s.Quantity, s.ProfitLoss.KRW, s.ProfitRate); err != nil {
-				return err
+			pnlStr := formatKRW(s.ProfitLoss.KRW)
+			rateStr := fmt.Sprintf("%.2f%%", s.ProfitRate)
+			name := truncateName(s.Name, 16)
+
+			plain := []string{
+				s.Date,
+				s.Symbol,
+				name,
+				formatQty(s.Quantity),
+				pnlStr,
+				rateStr,
 			}
+			colored := []string{
+				s.Date,
+				s.Symbol,
+				name,
+				formatQty(s.Quantity),
+				profitText(pnlStr, s.ProfitLoss.KRW, enabled),
+				profitText(rateStr, s.ProfitRate, enabled),
+			}
+			plainRows = append(plainRows, plain)
+			coloredRows = append(coloredRows, colored)
 		}
-		_, err := fmt.Fprintf(w, "\n%-44s %14.0f KRW\n", "합계", total)
+
+		if err := renderTableColored(w, headers, plainRows, coloredRows, aligns...); err != nil {
+			return err
+		}
+
+		totalStr := formatKRW(total)
+		coloredTotal := profitText(totalStr, total, enabled)
+		_, err := fmt.Fprintf(w, "\n%s: %s KRW\n", i18n.T("output.profitDaily.total"), coloredTotal)
 		return err
 	}
-}
-
-// truncate keeps wide product names from breaking the column layout.
-func truncate(s string, n int) string {
-	r := []rune(s)
-	if len(r) <= n {
-		return s
-	}
-	return string(r[:n-1]) + "…"
 }
