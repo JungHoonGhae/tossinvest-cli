@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 )
@@ -22,23 +23,65 @@ type newWatchlistEnvelope struct {
 		Watchlists        []struct {
 			ID        int64  `json:"id"`
 			Name      string `json:"name"`
+			Ordering  int    `json:"ordering"`
 			Type      string `json:"type"`
 			ItemCount int    `json:"itemCount"`
 			Items     []struct {
 				Code     string `json:"code"`
+				Symbol   string `json:"symbol"`
 				Name     string `json:"name"`
 				ItemType string `json:"itemType"`
+				Ordering int    `json:"ordering"`
 				Prices   struct {
-					Base  *float64 `json:"base"`
-					Close *float64 `json:"close"`
+					Base     *float64 `json:"base"`
+					Close    *float64 `json:"close"`
+					Currency string   `json:"currency"`
 				} `json:"prices"`
 			} `json:"items"`
 		} `json:"watchlists"`
 	} `json:"result"`
 }
 
-// ListWatchlistGroups returns watchlist folders with their items (관심종목 폴더 목록).
+// ListWatchlistGroups returns watchlist folders (관심종목 폴더 목록).
+// Uses GET /api/v1/new-watchlists/groups/simple?includeItemInfo=true for lightweight
+// metadata with item counts. Without includeItemInfo=true, the itemCount field is omitted.
 func (c *Client) ListWatchlistGroups(ctx context.Context) ([]domain.WatchlistGroup, error) {
+	if err := c.requireSession(); err != nil {
+		return nil, err
+	}
+	var env newWatchlistEnvelope
+	url := c.certBaseURL + watchlistBase + "/groups/simple?includeItemInfo=true"
+	if err := c.getJSON(ctx, url, &env); err != nil {
+		return nil, err
+	}
+	return mapWatchlistGroups(env), nil
+}
+
+// GetWatchlistGroupItems returns items for a specific folder (per-group lazy loading).
+// Uses GET /api/v1/new-watchlists/groups?ids={id}&includePrice=true — the same
+// endpoint the web frontend calls when a user selects a folder.
+func (c *Client) GetWatchlistGroupItems(ctx context.Context, groupID int64) ([]domain.WatchlistItem, error) {
+	if err := c.requireSession(); err != nil {
+		return nil, err
+	}
+	var env newWatchlistEnvelope
+	url := fmt.Sprintf("%s%s/groups?ids=%d&includePrice=true", c.certBaseURL, watchlistBase, groupID)
+	if err := c.getJSON(ctx, url, &env); err != nil {
+		return nil, err
+	}
+	groups := mapWatchlistGroups(env)
+	for _, g := range groups {
+		if g.ID == groupID {
+			return g.Items, nil
+		}
+	}
+	return nil, fmt.Errorf("watchlist folder %d not found", groupID)
+}
+
+// ListAllWatchlistItems returns all watchlist items from every folder, flattened
+// and ordered by group ordering then item ordering.
+// Uses the bulk endpoint GET /api/v1/new-watchlists?includePrice=true&lazyLoad=false.
+func (c *Client) ListAllWatchlistItems(ctx context.Context) ([]domain.WatchlistItem, error) {
 	if err := c.requireSession(); err != nil {
 		return nil, err
 	}
@@ -47,18 +90,47 @@ func (c *Client) ListWatchlistGroups(ctx context.Context) ([]domain.WatchlistGro
 	if err := c.getJSON(ctx, url, &env); err != nil {
 		return nil, err
 	}
+	groups := mapWatchlistGroups(env)
+	items := make([]domain.WatchlistItem, 0)
+	for _, g := range groups {
+		items = append(items, g.Items...)
+	}
+	return items, nil
+}
+
+// mapWatchlistGroups converts the raw API envelope into domain objects,
+// fixing symbol/currency mapping and enforcing ordering.
+func mapWatchlistGroups(env newWatchlistEnvelope) []domain.WatchlistGroup {
 	out := make([]domain.WatchlistGroup, 0, len(env.Result.Watchlists))
 	for _, g := range env.Result.Watchlists {
-		grp := domain.WatchlistGroup{ID: g.ID, Name: g.Name, Type: g.Type, ItemCount: g.ItemCount}
+		grp := domain.WatchlistGroup{
+			ID: g.ID, Name: g.Name, Ordering: g.Ordering,
+			Type: g.Type, ItemCount: g.ItemCount,
+			Items: make([]domain.WatchlistItem, 0, len(g.Items)),
+		}
+		// Sort items by ordering before mapping.
+		sort.SliceStable(g.Items, func(i, j int) bool {
+			return g.Items[i].Ordering < g.Items[j].Ordering
+		})
 		for _, it := range g.Items {
+			sym := it.Symbol
+			if sym == "" {
+				sym = it.Code
+			}
 			grp.Items = append(grp.Items, domain.WatchlistItem{
-				Group: g.Name, Symbol: it.Code, Name: it.Name,
-				Base: coalesceMoney(it.Prices.Base), Last: coalesceMoney(it.Prices.Close),
+				Group: g.Name, Symbol: sym, Name: it.Name,
+				Currency: it.Prices.Currency,
+				Base:     coalesceMoney(it.Prices.Base),
+				Last:     coalesceMoney(it.Prices.Close),
 			})
 		}
 		out = append(out, grp)
 	}
-	return out, nil
+	// Sort groups by ordering.
+	sort.SliceStable(out, func(i, j int) bool {
+		return out[i].Ordering < out[j].Ordering
+	})
+	return out
 }
 
 // CreateWatchlistGroup creates a new folder and returns it.

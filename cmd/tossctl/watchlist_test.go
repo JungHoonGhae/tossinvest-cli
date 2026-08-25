@@ -112,6 +112,65 @@ func TestGroupRenameNonTTYOneArgError(t *testing.T) {
 	}
 }
 
+// TestWatchlistListNonTTYNoArgsError checks that `watchlist list` with no args
+// and a non-TTY stdin returns a clean error without blocking.
+func TestWatchlistListNonTTYNoArgsError(t *testing.T) {
+	// Not parallel: temporarily replaces os.Stdin.
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Close()
+	old := os.Stdin
+	os.Stdin = r
+	t.Cleanup(func() {
+		os.Stdin = old
+		r.Close()
+	})
+
+	opts := &rootOptions{}
+	listCmd := newWatchlistListCmd(opts)
+
+	gotErr := listCmd.RunE(listCmd, []string{})
+	if gotErr == nil {
+		t.Fatal("expected error for no args in non-TTY mode, got nil")
+	}
+	if !strings.Contains(gotErr.Error(), "folder id") && !strings.Contains(gotErr.Error(), "--all") {
+		t.Fatalf("error should mention 'folder id' or '--all', got: %v", gotErr)
+	}
+}
+
+// TestWatchlistListArgAndAllExclusiveError checks that passing both a folder ID
+// argument and the --all flag returns an error.
+func TestWatchlistListArgAndAllExclusiveError(t *testing.T) {
+	opts := &rootOptions{}
+	listCmd := newWatchlistListCmd(opts)
+	_ = listCmd.Flags().Set("all", "true")
+
+	gotErr := listCmd.RunE(listCmd, []string{"123"})
+	if gotErr == nil {
+		t.Fatal("expected error when both folder id and --all are specified, got nil")
+	}
+	if !strings.Contains(gotErr.Error(), "both a folder id and --all") {
+		t.Fatalf("unexpected error message: %v", gotErr)
+	}
+}
+
+// TestWatchlistListInvalidIDError checks that passing a non-numeric folder ID
+// returns an early error before creating an app context.
+func TestWatchlistListInvalidIDError(t *testing.T) {
+	opts := &rootOptions{}
+	listCmd := newWatchlistListCmd(opts)
+
+	gotErr := listCmd.RunE(listCmd, []string{"not-a-number"})
+	if gotErr == nil {
+		t.Fatal("expected error when folder id is non-numeric, got nil")
+	}
+	if !strings.Contains(gotErr.Error(), "folder id must be a number") {
+		t.Fatalf("unexpected error message: %v", gotErr)
+	}
+}
+
 // findSubCmd returns the named subcommand of parent, or nil.
 func findSubCmd(parent *cobra.Command, name string) *cobra.Command {
 	for _, c := range parent.Commands() {

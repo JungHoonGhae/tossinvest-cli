@@ -677,7 +677,7 @@
   "watchlist.group.rename.short": "관심종목 폴더 이름 변경",
   "watchlist.group.short": "관심종목 폴더 관리 (생성, 이름 변경, 삭제)",
   "watchlist.groups.short": "관심종목 폴더 목록 조회",
-  "watchlist.list.short": "관심종목 목록 조회",
+  "watchlist.list.short": "관심종목 폴더별 종목 조회",
   "watchlist.remove.short": "관심종목에서 종목 제거",
   "watchlist.short": "관심종목 조회 및 관리"
 }

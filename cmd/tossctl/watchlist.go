@@ -52,22 +52,7 @@ func newWatchlistCmd(opts *rootOptions) *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		&cobra.Command{
-			Use:         "list",
-			Short:       i18n.T("watchlist.list.short"),
-			Annotations: map[string]string{"source": "wts"},
-			RunE: func(cmd *cobra.Command, _ []string) error {
-				app, err := newAppContext(opts)
-				if err != nil {
-					return err
-				}
-				items, err := app.client.ListWatchlist(cmd.Context())
-				if err != nil {
-					return userFacingCommandError(err)
-				}
-				return output.WriteWatchlist(cmd.OutOrStdout(), app.format, items)
-			},
-		},
+		newWatchlistListCmd(opts),
 		&cobra.Command{
 			Use:         "groups",
 			Short:       i18n.T("watchlist.groups.short"),
@@ -250,4 +235,60 @@ func newWatchlistAddRemoveCmd(opts *rootOptions, verb, short string) *cobra.Comm
 	}
 	c.Flags().Int64Var(&groupID, "group", 0, "target folder id (see `watchlist groups`)")
 	return c
+}
+
+func newWatchlistListCmd(opts *rootOptions) *cobra.Command {
+	var all bool
+	cmd := &cobra.Command{
+		Use:         "list [<group-id>]",
+		Short:       i18n.T("watchlist.list.short"),
+		Args:        cobra.MaximumNArgs(1),
+		Annotations: map[string]string{"source": "wts"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if all && len(args) > 0 {
+				return fmt.Errorf("cannot specify both a folder id and --all")
+			}
+			var groupID int64
+			if len(args) == 1 {
+				var parseErr error
+				groupID, parseErr = strconv.ParseInt(args[0], 10, 64)
+				if parseErr != nil {
+					return fmt.Errorf("folder id must be a number: %s", args[0])
+				}
+			} else if !all && !tui.IsInteractive(os.Stdin, os.Stdout) {
+				// Early validation: non-TTY without group-id or --all should fail
+				// before attempting to create an app context (which requires config).
+				return fmt.Errorf("specify a folder id, or pass --all to list all folders (see `watchlist groups`)")
+			}
+
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+
+			if all {
+				items, err := app.client.ListAllWatchlistItems(cmd.Context())
+				if err != nil {
+					return userFacingCommandError(err)
+				}
+				return output.WriteWatchlist(cmd.OutOrStdout(), app.format, items)
+			}
+
+			if len(args) == 0 {
+				// TTY mode: interactive picker (non-TTY case already handled above).
+				groupID, err = pickFolderID(cmd.Context(), app)
+				if err != nil {
+					return err
+				}
+			}
+
+			items, err := app.client.GetWatchlistGroupItems(cmd.Context(), groupID)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteWatchlist(cmd.OutOrStdout(), app.format, items)
+		},
+	}
+	cmd.Flags().BoolVar(&all, "all", false, "list items from all folders (flat)")
+	return cmd
 }

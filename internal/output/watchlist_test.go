@@ -45,3 +45,43 @@ func TestWatchlistPlainWhenNotTTY(t *testing.T) {
 		t.Fatal("non-TTY WriteWatchlist table output must contain no ANSI escape sequences")
 	}
 }
+
+var testWatchlistGroups = []domain.WatchlistGroup{
+	{ID: 1, Name: "미국주식", Type: "USER_MADE", ItemCount: 5},
+	{ID: 2, Name: "국내주식", Type: "USER_MADE", ItemCount: 10},
+}
+
+func TestWriteWatchlistGroupsTable(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteWatchlistGroups(&buf, FormatTable, testWatchlistGroups); err != nil {
+		t.Fatalf("WriteWatchlistGroups table error: %v", err)
+	}
+	output := buf.String()
+	if !strings.Contains(output, "미국주식") || !strings.Contains(output, "국내주식") {
+		t.Fatalf("expected folder names in table output, got %q", output)
+	}
+}
+
+func TestWriteWatchlistGroupsJSON(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteWatchlistGroups(&buf, FormatJSON, testWatchlistGroups); err != nil {
+		t.Fatalf("WriteWatchlistGroups JSON error: %v", err)
+	}
+	if !strings.Contains(buf.String(), `"name": "미국주식"`) {
+		t.Fatalf("expected JSON output with folder name, got %q", buf.String())
+	}
+}
+
+func TestWriteWatchlistGroupsCSV(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteWatchlistGroups(&buf, FormatCSV, testWatchlistGroups); err != nil {
+		t.Fatalf("WriteWatchlistGroups CSV error: %v", err)
+	}
+	output := buf.String()
+	if !strings.Contains(output, "id,name,type,item_count") {
+		t.Fatalf("expected CSV header, got %q", output)
+	}
+	if !strings.Contains(output, "1,미국주식,USER_MADE,5") {
+		t.Fatalf("expected CSV row, got %q", output)
+	}
+}

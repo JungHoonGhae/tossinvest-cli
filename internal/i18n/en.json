@@ -677,7 +677,7 @@
   "watchlist.group.rename.short": "Rename a watchlist folder",
   "watchlist.group.short": "Manage watchlist folders (create, rename, delete)",
   "watchlist.groups.short": "List watchlist folders",
-  "watchlist.list.short": "List watchlist entries",
+  "watchlist.list.short": "List watchlist entries for a folder",
   "watchlist.remove.short": "Remove a symbol from the watchlist",
   "watchlist.short": "Read and manage the watchlist"
 }
