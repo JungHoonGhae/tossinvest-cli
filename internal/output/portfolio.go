@@ -125,7 +125,7 @@ func writePositionsTable(w io.Writer, positions []domain.Position, enabled bool)
 		headers = append(headers, i18n.T("output.positions.header.usdPnl"), i18n.T("output.positions.header.usdRate"))
 	}
 
-	var plainRows, coloredRows [][]string
+	var coloredRows [][]string
 	for _, p := range positions {
 		label := fmt.Sprintf("%s (%s)", truncateName(p.Name, 16), p.Symbol)
 		pnlStr := formatKRW(p.UnrealizedPnL)
@@ -133,17 +133,6 @@ func writePositionsTable(w io.Writer, positions []domain.Position, enabled bool)
 		dailyStr := formatKRW(p.DailyProfitLoss)
 		dailyRateStr := formatPct(p.DailyProfitRate)
 
-		plain := []string{
-			label,
-			formatQty(p.Quantity),
-			formatKRW(p.AveragePrice),
-			formatKRW(p.CurrentPrice),
-			formatKRW(p.MarketValue),
-			pnlStr,
-			rateStr,
-			dailyStr,
-			dailyRateStr,
-		}
 		colored := []string{
 			label,
 			formatQty(p.Quantity),
@@ -159,21 +148,20 @@ func writePositionsTable(w io.Writer, positions []domain.Position, enabled bool)
 			if p.MarketType == "US_STOCK" {
 				usdPnlStr := formatUSD(p.UnrealizedPnLUSD)
 				usdRateStr := formatPct(p.ProfitRateUSD)
-				plain = append(plain, usdPnlStr, usdRateStr)
+
 				colored = append(colored,
 					profitText(usdPnlStr, p.UnrealizedPnLUSD, enabled),
 					profitText(usdRateStr, p.ProfitRateUSD, enabled),
 				)
 			} else {
-				plain = append(plain, "", "")
+
 				colored = append(colored, "", "")
 			}
 		}
-		plainRows = append(plainRows, plain)
 		coloredRows = append(coloredRows, colored)
 	}
 
-	return renderTableColored(w, headers, plainRows, coloredRows)
+	return renderTable(w, headers, coloredRows)
 }
 
 func sortedMarketKeys(markets map[string]domain.AccountMarketSummary) []string {

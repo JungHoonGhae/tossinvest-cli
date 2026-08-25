@@ -31,13 +31,13 @@ func WriteSupplySeries(w io.Writer, format Format, s domain.SupplySeries) error 
 			i18n.T("output.supply.kind."+string(s.Kind)), s.Symbol); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, i18n.T("output.supply.columns."+string(s.Kind))); err != nil {
-			return err
-		}
+		headers, aligns := supplyTableLayout(s.Kind)
+		var rows [][]string
 		for _, r := range s.Records {
-			if _, err := fmt.Fprintf(w, i18n.T("output.supply.line."+string(s.Kind)), supplyCells(s.Kind, r)...); err != nil {
-				return err
-			}
+			rows = append(rows, supplyRow(s.Kind, r))
+		}
+		if err := renderTable(w, headers, rows, aligns...); err != nil {
+			return err
 		}
 		// 커서가 있으면 알려준다 — 없으면 사용자가 더 볼 수 있는지 알 방법이 없다.
 		if s.NextUntil != "" {
@@ -73,20 +73,60 @@ func credit(d *domain.CreditDetail) string {
 	return formatFloat(d.BalanceQuantity)
 }
 
-func supplyCells(kind domain.SupplyKind, r domain.SupplyRecord) []any {
+// supplyTableLayout returns the header row and column alignments for a given supply kind.
+func supplyTableLayout(kind domain.SupplyKind) ([]string, []Align) {
+	right := AlignRight
+	left := AlignLeft
+	date := i18n.T("output.supply.table.date")
 	switch kind {
 	case domain.SupplyInvestor:
-		return []any{r.Date, vol(r.Individual), vol(r.Foreigner), vol(r.Institution), vol(r.OtherCorporation)}
+		return []string{date,
+				i18n.T("output.supply.table.investor.individual"),
+				i18n.T("output.supply.table.investor.foreigner"),
+				i18n.T("output.supply.table.investor.institution"),
+				i18n.T("output.supply.table.investor.other")},
+			[]Align{left, right, right, right, right}
 	case domain.SupplyShort:
-		return []any{r.Date, supplyNum(r.ShortVolume), supplyNum(r.ShortAmount), supplyNum(r.ShortVolumeRate)}
+		return []string{date,
+				i18n.T("output.supply.table.short.volume"),
+				i18n.T("output.supply.table.short.amount"),
+				i18n.T("output.supply.table.short.rate")},
+			[]Align{left, right, right, right}
 	case domain.SupplyCredit:
-		return []any{r.Date, credit(r.MarginLoan), credit(r.StockLoan)}
+		return []string{date,
+				i18n.T("output.supply.table.credit.marginLoan"),
+				i18n.T("output.supply.table.credit.stockLoan")},
+			[]Align{left, right, right}
 	case domain.SupplyLending:
-		return []any{r.Date, supplyNum(r.LendingExecution), supplyNum(r.LendingRepayment), supplyNum(r.LendingBalanceQty)}
+		return []string{date,
+				i18n.T("output.supply.table.lending.execution"),
+				i18n.T("output.supply.table.lending.repayment"),
+				i18n.T("output.supply.table.lending.balance")},
+			[]Align{left, right, right, right}
 	case domain.SupplyProgram:
-		return []any{r.Date, vol(r.Arbitrage), vol(r.NonArbitrage)}
+		return []string{date,
+				i18n.T("output.supply.table.program.arbitrage"),
+				i18n.T("output.supply.table.program.nonArbitrage")},
+			[]Align{left, right, right}
 	}
-	return []any{r.Date}
+	return []string{date}, []Align{left}
+}
+
+// supplyRow converts a supply record to a string row matching supplyTableLayout.
+func supplyRow(kind domain.SupplyKind, r domain.SupplyRecord) []string {
+	switch kind {
+	case domain.SupplyInvestor:
+		return []string{r.Date, vol(r.Individual), vol(r.Foreigner), vol(r.Institution), vol(r.OtherCorporation)}
+	case domain.SupplyShort:
+		return []string{r.Date, supplyNum(r.ShortVolume), supplyNum(r.ShortAmount), supplyNum(r.ShortVolumeRate)}
+	case domain.SupplyCredit:
+		return []string{r.Date, credit(r.MarginLoan), credit(r.StockLoan)}
+	case domain.SupplyLending:
+		return []string{r.Date, supplyNum(r.LendingExecution), supplyNum(r.LendingRepayment), supplyNum(r.LendingBalanceQty)}
+	case domain.SupplyProgram:
+		return []string{r.Date, vol(r.Arbitrage), vol(r.NonArbitrage)}
+	}
+	return []string{r.Date}
 }
 
 var supplyCSVHeaders = map[domain.SupplyKind][]string{

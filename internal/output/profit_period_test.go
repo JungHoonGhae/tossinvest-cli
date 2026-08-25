@@ -2,29 +2,50 @@ package output
 
 import (
 	"bytes"
+	"github.com/charmbracelet/lipgloss"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 func usdPtr(v float64) *float64 { return &v }
 
 // 날짜는 API 의 YYYYMMDD 로 들어오고 사람에게는 YYYY-MM-DD 로 보여야 한다.
 func TestPeriodLabelFormatsDates(t *testing.T) {
-	cases := map[[2]string]string{
+	restore := setTestLang(t)
+	defer restore()
+
+	i18n.SetLang("ko")
+	casesKO := map[[2]string]string{
 		{"", ""}:                 "전체 기간",
 		{"20260101", "20260725"}: "2026-01-01 ~ 2026-07-25",
 	}
-	for in, want := range cases {
+	for in, want := range casesKO {
 		if got := periodLabel(in[0], in[1]); got != want {
-			t.Errorf("periodLabel(%q,%q) = %q, want %q", in[0], in[1], got, want)
+			t.Errorf("periodLabel(%q,%q) [ko] = %q, want %q", in[0], in[1], got, want)
+		}
+	}
+
+	i18n.SetLang("en")
+	casesEN := map[[2]string]string{
+		{"", ""}:                 "All time",
+		{"20260101", "20260725"}: "2026-01-01 ~ 2026-07-25",
+	}
+	for in, want := range casesEN {
+		if got := periodLabel(in[0], in[1]); got != want {
+			t.Errorf("periodLabel(%q,%q) [en] = %q, want %q", in[0], in[1], got, want)
 		}
 	}
 }
 
 func TestWritePeriodProfit(t *testing.T) {
+	restore := setTestLang(t)
+	defer restore()
+
+	i18n.SetLang("ko")
 	p := domain.PeriodProfit{
 		Type: "sales", From: "20260101", To: "20260725",
 		EarningAmount:  domain.DualCurrency{KRW: -1421, USD: usdPtr(-1.02)},
@@ -55,6 +76,10 @@ func TestWritePeriodProfit(t *testing.T) {
 
 // 통화는 행마다가 아니라 헤더에 한 번 — 조회 전체의 기준이기 때문.
 func TestWriteDailyProfitShowsBasisInHeader(t *testing.T) {
+	restore := setTestLang(t)
+	defer restore()
+
+	i18n.SetLang("ko")
 	d := domain.DailyProfit{
 		From: "20260101", To: "20260725", Currency: "KRW",
 		Stocks: []domain.DailyProfitStock{
@@ -83,6 +108,10 @@ func TestWriteDailyProfitShowsBasisInHeader(t *testing.T) {
 }
 
 func TestWriteDailyProfitEmpty(t *testing.T) {
+	restore := setTestLang(t)
+	defer restore()
+
+	i18n.SetLang("ko")
 	var buf bytes.Buffer
 	if err := WriteDailyProfit(&buf, FormatTable,
 		domain.DailyProfit{From: "20260101", To: "20260131", Currency: "KRW"}); err != nil {
@@ -90,5 +119,36 @@ func TestWriteDailyProfitEmpty(t *testing.T) {
 	}
 	if !strings.Contains(buf.String(), "없습니다") {
 		t.Errorf("빈 결과 안내가 없다: %s", buf.String())
+	}
+}
+
+func TestWriteDailyProfitAlignsKoreanAndAsciiNames(t *testing.T) {
+	d := domain.DailyProfit{
+		From: "20260101", To: "20260725", Currency: "KRW",
+		Stocks: []domain.DailyProfitStock{
+			{Date: "2026-07-15", Symbol: "005930", Name: "삼성전자", Quantity: 10,
+				ProfitLoss: domain.DualCurrency{KRW: -1000}, ProfitRate: -12.13},
+			{Date: "2026-06-11", Symbol: "AAPL", Name: "Apple Inc.", Quantity: 46,
+				ProfitLoss: domain.DualCurrency{KRW: 500}, ProfitRate: 3.2},
+		},
+		FetchedAt: time.Now(),
+	}
+	var buf bytes.Buffer
+	if err := WriteDailyProfit(&buf, FormatTable, d); err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	// Header is at line 2, sep at line 3, row1 at line 4, row2 at line 5
+	if len(lines) < 6 {
+		t.Fatalf("expected at least 6 lines, got %d:\n%s", len(lines), buf.String())
+	}
+	headerWidth := lipgloss.Width(lines[2])
+	sepWidth := lipgloss.Width(lines[3])
+	row1Width := lipgloss.Width(lines[4])
+	row2Width := lipgloss.Width(lines[5])
+
+	if headerWidth != sepWidth || headerWidth != row1Width || headerWidth != row2Width {
+		t.Errorf("Table column widths misaligned: header=%d sep=%d row1(%s)=%d row2(%s)=%d\n%s",
+			headerWidth, sepWidth, lines[4], row1Width, lines[5], row2Width, buf.String())
 	}
 }

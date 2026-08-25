@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 )
 
 // WriteLendingExpected renders projected share-lending income. JSON/CSV are
@@ -28,11 +29,16 @@ func WriteLendingExpected(w io.Writer, format Format, l domain.LendingExpected) 
 			_, err := fmt.Fprintln(w, "(no lendable holdings)")
 			return err
 		}
-		for _, s := range l.Stocks {
-			if _, err := fmt.Fprintf(w, "  %-12s %-20s $%.4f\n", s.ProductCode, s.Name, s.AmountUSD); err != nil {
-				return err
-			}
+		headers := []string{
+			i18n.T("output.lending.header.code"),
+			i18n.T("output.lending.header.name"),
+			i18n.T("output.lending.header.amount"),
 		}
-		return nil
+		aligns := []Align{AlignLeft, AlignLeft, AlignRight}
+		var rows [][]string
+		for _, s := range l.Stocks {
+			rows = append(rows, []string{s.ProductCode, s.Name, fmt.Sprintf("$%.4f", s.AmountUSD)})
+		}
+		return renderTable(w, headers, rows, aligns...)
 	}
 }

@@ -167,20 +167,13 @@ func WriteQuotesWithCharts(w io.Writer, format Format, quotes []domain.Quote, ch
 		if showCharts {
 			headers = append(headers, i18n.T("output.quotes.header.chart"))
 		}
-		var plainRows, coloredRows [][]string
+		var coloredRows [][]string
 		for i, q := range quotes {
 			changeStr := formatKRW(q.Change)
 			if q.Change > 0 {
 				changeStr = "+" + changeStr
 			}
 			rateStr := formatPct(q.ChangeRate)
-			plain := []string{
-				q.Symbol,
-				q.Name,
-				formatKRW(q.Last),
-				changeStr,
-				rateStr,
-			}
 			colored := []string{
 				q.Symbol,
 				q.Name,
@@ -193,13 +186,11 @@ func WriteQuotesWithCharts(w io.Writer, format Format, quotes []domain.Quote, ch
 				if i < len(charts) && len(charts[i].Candles) > 0 {
 					sparkline = renderSparkline(charts[i].Candles, 20)
 				}
-				plain = append(plain, sparkline)
 				colored = append(colored, sparkline)
 			}
-			plainRows = append(plainRows, plain)
 			coloredRows = append(coloredRows, colored)
 		}
-		return renderTableColored(w, headers, plainRows, coloredRows)
+		return renderTable(w, headers, coloredRows)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}

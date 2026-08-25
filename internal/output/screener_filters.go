@@ -34,35 +34,26 @@ func WriteScreenerFilterRanges(w io.Writer, format Format, r domain.ScreenerFilt
 		if _, err := fmt.Fprintf(w, i18n.T("output.screenerFilters.header"), r.Nation); err != nil {
 			return err
 		}
-		for _, f := range r.Filters {
-			// 조건이 더 필요해 서버가 거절한 필터는 범위 대신 사유를 낸다. 빈 범위를
-			// 0~0 으로 찍으면 "값이 없는 필터" 로 오독된다.
-			if f.Min == nil || f.Max == nil {
-				if _, err := fmt.Fprintf(w, i18n.T("output.screenerFilters.unavailable"),
-					f.FilterID, f.Unavailable); err != nil {
-					return err
-				}
-				continue
-			}
-			// 표에서는 유효숫자를 줄인다: 서버가 float32 정밀도를 그대로 흘려
-			// -8021.2705078125 처럼 나오는데, 범위를 눈으로 가늠하는 데 쓰는
-			// 숫자라 자릿수가 길수록 읽히지 않는다. JSON/CSV 는 원값을 유지한다.
-			line, basedAt := i18n.T("output.screenerFilters.line"), f.BasedAt
-			if basedAt == "" {
-				// 기준일을 못 받았으면 꼬리에 "기준 " 만 남는다 — 값이 있는데
-				// 못 읽은 것처럼 보인다.
-				line = i18n.T("output.screenerFilters.lineNoDate")
-				if _, err := fmt.Fprintf(w, line, f.FilterID, compactNum(*f.Min), compactNum(*f.Max)); err != nil {
-					return err
-				}
-				continue
-			}
-			if _, err := fmt.Fprintf(w, line,
-				f.FilterID, compactNum(*f.Min), compactNum(*f.Max), basedAt); err != nil {
-				return err
-			}
+		headers := []string{
+			i18n.T("output.screenerFilters.header.filter"),
+			i18n.T("output.screenerFilters.header.min"),
+			i18n.T("output.screenerFilters.header.max"),
+			i18n.T("output.screenerFilters.header.basedAt"),
 		}
-		return nil
+		var rows [][]string
+		for _, f := range r.Filters {
+			if f.Min == nil || f.Max == nil {
+				rows = append(rows, []string{f.FilterID + " (" + f.Unavailable + ")", "-", "-", "-"})
+				continue
+			}
+			basedAt := f.BasedAt
+			if basedAt == "" {
+				basedAt = "-"
+			}
+			rows = append(rows, []string{f.FilterID, compactNum(*f.Min), compactNum(*f.Max), basedAt})
+		}
+		aligns := []Align{AlignLeft, AlignRight, AlignLeft, AlignLeft}
+		return renderTable(w, headers, rows, aligns...)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}

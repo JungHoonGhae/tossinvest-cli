@@ -111,6 +111,30 @@ func TestJSONOutputLanguageInvariant(t *testing.T) {
 				return WriteCommunityRanking(w, FormatJSON, testInvarianceCommunityRanking)
 			},
 		},
+		{
+			name: "profitOverview",
+			render: func(w *bytes.Buffer) error {
+				return WriteProfitOverview(w, FormatJSON, dummyProfit())
+			},
+		},
+		{
+			name: "profitPeriod",
+			render: func(w *bytes.Buffer) error {
+				return WritePeriodProfit(w, FormatJSON, testInvariancePeriodProfit)
+			},
+		},
+		{
+			name: "profitDaily",
+			render: func(w *bytes.Buffer) error {
+				return WriteDailyProfit(w, FormatJSON, testInvarianceDailyProfit)
+			},
+		},
+		{
+			name: "overseasTransferIncome",
+			render: func(w *bytes.Buffer) error {
+				return WriteOverseasTransferIncome(w, FormatJSON, dummyTransferIncome())
+			},
+		},
 	}
 
 	for _, r := range renderers {
@@ -221,6 +245,18 @@ func TestCSVOutputLanguageInvariant(t *testing.T) {
 			name: "communityRanking",
 			render: func(w *bytes.Buffer) error {
 				return WriteCommunityRanking(w, FormatCSV, testInvarianceCommunityRanking)
+			},
+		},
+		{
+			name: "profitDaily",
+			render: func(w *bytes.Buffer) error {
+				return WriteDailyProfit(w, FormatCSV, testInvarianceDailyProfit)
+			},
+		},
+		{
+			name: "overseasTransferIncome",
+			render: func(w *bytes.Buffer) error {
+				return WriteOverseasTransferIncome(w, FormatCSV, dummyTransferIncome())
 			},
 		},
 	}
@@ -453,6 +489,23 @@ var testInvarianceCommunityRanking = domain.CommunityRanking{
 	Users: []domain.CommunityUser{
 		{Rank: 1, Nickname: "test-user-1", UserProfileID: 1001, ProfitAmountKRW: 9876543, ProfitRate: 0.256},
 		{Rank: 2, Nickname: "test-user-2", UserProfileID: 1002, ProfitAmountKRW: 5432100, ProfitRate: 0.123},
+	},
+	FetchedAt: time.Unix(0, 0).UTC(),
+}
+
+var testInvariancePeriodProfit = domain.PeriodProfit{
+	Type: "sales", From: "20260101", To: "20260725",
+	EarningAmount:  domain.DualCurrency{KRW: -1421, USD: usdPtr(-1.02)},
+	EarningRate:    domain.DualCurrency{KRW: -66.9},
+	PurchaseAmount: domain.DualCurrency{KRW: 2124},
+	FetchedAt:      time.Unix(0, 0).UTC(),
+}
+
+var testInvarianceDailyProfit = domain.DailyProfit{
+	From: "20260101", To: "20260725", Currency: "KRW",
+	Stocks: []domain.DailyProfitStock{
+		{Date: "2026-07-15", Symbol: "005930", Name: "삼성전자", Quantity: 10,
+			ProfitLoss: domain.DualCurrency{KRW: -1000}, ProfitRate: -12.13, SellAmount: domain.DualCurrency{KRW: 1000}, BuyAmount: domain.DualCurrency{KRW: 2000}},
 	},
 	FetchedAt: time.Unix(0, 0).UTC(),
 }

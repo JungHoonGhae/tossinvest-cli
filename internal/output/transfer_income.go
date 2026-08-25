@@ -41,25 +41,51 @@ func WriteOverseasTransferIncome(w io.Writer, format Format, t domain.OverseasTr
 		writer.Flush()
 		return writer.Error()
 	default: // table
-		if _, err := fmt.Fprintf(w, "%d년 해외주식 양도소득  ·  세율 %.0f%% (+지방세 %.0f%%)  ·  기본공제 %.0f원\n",
-			t.Year, t.TaxRate, t.LocalTaxRate, t.BaseDeduction); err != nil {
+		enabled := colorEnabled(w, format)
+		if _, err := fmt.Fprintf(w, i18n.T("output.transferIncome.header"),
+			t.Year, t.TaxRate, t.LocalTaxRate, formatKRW(t.BaseDeduction)); err != nil {
 			return err
 		}
-		if _, err := fmt.Fprintf(w, "총 양도손익 %.0f원  ·  양도소득세 %.0f원  ·  총 세액 %.0f원\n\n",
-			t.TotalProfitLoss, t.TransferIncomeTax, t.TotalTax); err != nil {
+		pnlStr := profitText(formatKRW(t.TotalProfitLoss), t.TotalProfitLoss, enabled)
+		taxStr := formatKRW(t.TransferIncomeTax)
+		totalTaxStr := formatKRW(t.TotalTax)
+		if _, err := fmt.Fprintf(w, i18n.T("output.transferIncome.summary"),
+			pnlStr, taxStr, totalTaxStr); err != nil {
 			return err
 		}
 		if len(t.Stocks) == 0 {
-			_, err := fmt.Fprintln(w, "(매도 종목 없음)")
+			_, err := fmt.Fprint(w, i18n.T("output.transferIncome.empty"))
 			return err
 		}
-		for _, s := range t.Stocks {
-			if _, err := fmt.Fprintf(w, "  %-6s %-18s 손익 %14.0f원  (매도 %.0f · 매수 %.0f)  %s\n",
-				s.Symbol, s.Name, s.ProfitLoss, s.SellAmount, s.BuyAmount, s.SettlementDate); err != nil {
-				return err
-			}
+
+		headers := []string{
+			i18n.T("output.transferIncome.header.symbol"),
+			i18n.T("output.transferIncome.header.name"),
+			i18n.T("output.transferIncome.header.pnl"),
+			i18n.T("output.transferIncome.header.sell"),
+			i18n.T("output.transferIncome.header.buy"),
+			i18n.T("output.transferIncome.header.settlement"),
 		}
-		return nil
+		aligns := []Align{AlignLeft, AlignLeft, AlignRight, AlignRight, AlignRight, AlignLeft}
+
+		var coloredRows [][]string
+		for _, s := range t.Stocks {
+			stockPnlStr := formatKRW(s.ProfitLoss)
+			name := truncateName(s.Name, 16)
+			sellStr := formatKRW(s.SellAmount)
+			buyStr := formatKRW(s.BuyAmount)
+
+			colored := []string{
+				s.Symbol,
+				name,
+				profitText(stockPnlStr, s.ProfitLoss, enabled),
+				sellStr,
+				buyStr,
+				s.SettlementDate,
+			}
+			coloredRows = append(coloredRows, colored)
+		}
+		return renderTable(w, headers, coloredRows, aligns...)
 	}
 }
 

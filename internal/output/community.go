@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
@@ -34,18 +33,29 @@ func WriteCommunityBoards(w io.Writer, format Format, b domain.CommunityBoards) 
 		if _, err := fmt.Fprint(w, i18n.T("output.communityBoards.header")); err != nil {
 			return err
 		}
+		headers := []string{
+			i18n.T("output.communityBoards.header.rank"),
+			i18n.T("output.communityBoards.header.title"),
+			i18n.T("output.communityBoards.header.followers"),
+			i18n.T("output.communityBoards.header.comments"),
+			"",
+		}
+		aligns := []Align{AlignRight, AlignLeft, AlignRight, AlignRight, AlignLeft}
+		var rows [][]string
 		for i, board := range b.Boards {
 			mark := ""
 			if board.IsMember {
 				mark = i18n.T("output.communityBoards.memberMark")
 			}
-			line := fmt.Sprintf(i18n.T("output.communityBoards.row"),
-				i+1, board.Title, board.FollowerCount, board.CommentCount, mark)
-			if _, err := fmt.Fprintln(w, strings.TrimRight(line, " \n")); err != nil {
-				return err
-			}
+			rows = append(rows, []string{
+				fmt.Sprintf("%d", i+1),
+				board.Title,
+				fmt.Sprintf("%d", board.FollowerCount),
+				fmt.Sprintf("%d", board.CommentCount),
+				mark,
+			})
 		}
-		return nil
+		return renderTable(w, headers, rows, aligns...)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}

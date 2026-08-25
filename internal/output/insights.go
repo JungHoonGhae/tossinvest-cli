@@ -145,13 +145,18 @@ func WriteSearchResults(w io.Writer, format Format, s domain.SearchResults) erro
 			_, err := fmt.Fprintln(w, i18n.T("output.search.empty"))
 			return err
 		}
-		for _, h := range s.Results {
-			if _, err := fmt.Fprintf(w, i18n.T("output.search.line"),
-				h.Symbol, h.Keyword, h.Market, h.ProductCode); err != nil {
-				return err
-			}
+		headers := []string{
+			i18n.T("output.search.header.symbol"),
+			i18n.T("output.search.header.name"),
+			i18n.T("output.search.header.market"),
+			i18n.T("output.search.header.code"),
 		}
-		return nil
+		var rows [][]string
+		for _, h := range s.Results {
+			rows = append(rows, []string{h.Symbol, h.Keyword, h.Market, h.ProductCode})
+		}
+		aligns := []Align{AlignLeft, AlignLeft, AlignLeft, AlignLeft}
+		return renderTable(w, headers, rows, aligns...)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}

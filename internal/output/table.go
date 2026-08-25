@@ -5,109 +5,67 @@ import (
 	"io"
 	"math"
 	"strings"
-	"unicode/utf8"
+
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
+
+	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 )
 
-// renderTable writes a formatted table with the first column left-aligned
-// and all other columns right-aligned.
-func renderTable(w io.Writer, headers []string, rows [][]string) error {
-	return renderTableColored(w, headers, rows, nil)
-}
+// Align defines the text alignment for a table column.
+type Align int
 
-// renderTableColored is like renderTable but accepts a separate displayRows slice
-// whose cells may contain ANSI escape sequences.  plainRows is always used for
-// column-width computation (so ANSI codes never distort padding), while
-// displayRows is used for the actual cell content that is written to w.
-// When displayRows is nil the function behaves identically to renderTable.
-func renderTableColored(w io.Writer, headers []string, plainRows [][]string, displayRows [][]string) error {
-	if displayRows == nil {
-		displayRows = plainRows
-	}
-	colWidths := make([]int, len(headers))
-	for i, h := range headers {
-		colWidths[i] = displayWidth(h)
-	}
-	for _, row := range plainRows {
-		for i, cell := range row {
-			if i < len(colWidths) {
-				if dw := displayWidth(cell); dw > colWidths[i] {
-					colWidths[i] = dw
-				}
-			}
+const (
+	AlignLeft Align = iota
+	AlignRight
+)
+
+// renderTable writes a formatted table.
+// Cells may contain ANSI escape sequences; lipgloss handles them properly.
+//
+// Alignment defaults: column 0 = AlignLeft, columns 1..N = AlignRight.
+// When aligns has fewer entries than columns, trailing columns fall back to
+// these defaults.
+func renderTable(w io.Writer, headers []string, rows [][]string, aligns ...Align) error {
+	t := table.New().
+		Border(lipgloss.NormalBorder()).
+		BorderRow(false).
+		BorderColumn(false).
+		BorderTop(false).
+		BorderBottom(false).
+		BorderLeft(false).
+		BorderRight(false).
+		BorderHeader(true).
+		Headers(headers...).
+		Rows(rows...)
+
+	lastCol := len(headers) - 1
+	t.StyleFunc(func(row, col int) lipgloss.Style {
+		s := lipgloss.NewStyle()
+		// 열 사이 간격일 뿐이므로 마지막 열에는 주지 않는다. 주면 모든 행 끝에
+		// 공백 2칸이 남아 복사·diff·리다이렉트 결과를 더럽힌다.
+		if col < lastCol {
+			s = s.PaddingRight(2)
 		}
-	}
 
-	writeRow := func(cells []string, plainCells []string) {
-		for i, cell := range cells {
-			if i >= len(colWidths) {
-				break
-			}
-			if i > 0 {
-				fmt.Fprint(w, "  ")
-			}
-			plain := cell
-			if i < len(plainCells) {
-				plain = plainCells[i]
-			}
-			pad := colWidths[i] - displayWidth(plain)
-			if pad < 0 {
-				pad = 0
-			}
-			if i == 0 {
-				fmt.Fprint(w, cell+strings.Repeat(" ", pad))
-			} else {
-				fmt.Fprint(w, strings.Repeat(" ", pad)+cell)
-			}
+		align := AlignRight
+		if col == 0 {
+			align = AlignLeft
 		}
-		fmt.Fprint(w, "\n")
-	}
-
-	writeRow(headers, headers)
-
-	sep := make([]string, len(headers))
-	for i, cw := range colWidths {
-		sep[i] = strings.Repeat("─", cw)
-	}
-	writeRow(sep, sep)
-
-	for i, row := range displayRows {
-		var plain []string
-		if i < len(plainRows) {
-			plain = plainRows[i]
+		if col < len(aligns) {
+			align = aligns[col]
 		}
-		writeRow(row, plain)
-	}
 
-	return nil
-}
-
-func displayWidth(s string) int {
-	w := 0
-	for _, r := range s {
-		if r >= 0x1100 && isWide(r) {
-			w += 2
+		if align == AlignRight {
+			s = s.Align(lipgloss.Right)
 		} else {
-			w++
+			s = s.Align(lipgloss.Left)
 		}
-	}
-	_ = utf8.RuneCountInString
-	return w
-}
+		return s
+	})
 
-func isWide(r rune) bool {
-	return (r >= 0x1100 && r <= 0x115F) ||
-		(r >= 0x2E80 && r <= 0x303E) ||
-		(r >= 0x3040 && r <= 0x33BF) ||
-		(r >= 0x3400 && r <= 0x4DBF) ||
-		(r >= 0x4E00 && r <= 0xA4CF) ||
-		(r >= 0xA960 && r <= 0xA97C) ||
-		(r >= 0xAC00 && r <= 0xD7A3) ||
-		(r >= 0xF900 && r <= 0xFAFF) ||
-		(r >= 0xFE30 && r <= 0xFE6F) ||
-		(r >= 0xFF01 && r <= 0xFF60) ||
-		(r >= 0xFFE0 && r <= 0xFFE6) ||
-		(r >= 0x20000 && r <= 0x2FFFD) ||
-		(r >= 0x30000 && r <= 0x3FFFD)
+	_, err := fmt.Fprintln(w, t)
+	return err
 }
 
 func formatKRW(v float64) string {
@@ -168,4 +126,11 @@ func truncateName(name string, maxRunes int) string {
 		return name
 	}
 	return string(runes[:maxRunes-1]) + "…"
+}
+
+func usdOrDash(d domain.DualCurrency) string {
+	if d.USD == nil {
+		return "-"
+	}
+	return formatUSD(*d.USD)
 }
