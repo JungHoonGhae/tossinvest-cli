@@ -4,6 +4,8 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 
 ## [Unreleased]
 
+## [0.43.1] - 2026-08-25
+
 ### 버그 수정
 - **한글 종목명이 섞이면 표 정렬이 어긋나던 문제** (16개 커맨드). 열 너비를 글자 수로 세고 있어서, 화면에서 두 칸을 차지하는 한글이 들어가면 오른쪽 열이 밀렸습니다. `market investors`·`market sectors`·`profit daily`·`accumulate list`·`tax overseas`·`quote supply` 등이 영향을 받았습니다.
 
