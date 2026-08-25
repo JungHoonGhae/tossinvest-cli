@@ -39,8 +39,14 @@ func renderTable(w io.Writer, headers []string, rows [][]string, aligns ...Align
 		Headers(headers...).
 		Rows(rows...)
 
+	lastCol := len(headers) - 1
 	t.StyleFunc(func(row, col int) lipgloss.Style {
-		s := lipgloss.NewStyle().PaddingRight(2)
+		s := lipgloss.NewStyle()
+		// 열 사이 간격일 뿐이므로 마지막 열에는 주지 않는다. 주면 모든 행 끝에
+		// 공백 2칸이 남아 복사·diff·리다이렉트 결과를 더럽힌다.
+		if col < lastCol {
+			s = s.PaddingRight(2)
+		}
 
 		align := AlignRight
 		if col == 0 {
