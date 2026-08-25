@@ -457,3 +457,43 @@ func TestBuildOrderCreateErrors(t *testing.T) {
 		})
 	}
 }
+
+// 검증만 통과하고 바디에 안 실리면 사용자가 지정한 조건 없이 주문이 나간다.
+// MARKET 은 원래 timeInForce 를 아예 안 보냈으므로(omitempty) 특히 중요하다.
+func TestBuildOrderCreateCarriesTimeInForce(t *testing.T) {
+	cases := []struct {
+		name   string
+		intent orderintent.PlaceIntent
+		want   string
+	}{
+		{"지정가 기본은 DAY 유지", orderintent.PlaceIntent{
+			Symbol: "AAPL", Market: "us", Side: "buy", OrderType: "limit", Quantity: 1, Price: 10,
+		}, "DAY"},
+		{"CLS 가 실린다", orderintent.PlaceIntent{
+			Symbol: "AAPL", Market: "us", Side: "buy", OrderType: "limit", Quantity: 1, Price: 10,
+			TimeInForce: "CLS",
+		}, "CLS"},
+		{"시장가에도 OPG 가 실린다", orderintent.PlaceIntent{
+			Symbol: "005930", Market: "kr", Side: "buy", OrderType: "market", Quantity: 1,
+			TimeInForce: "OPG",
+		}, "OPG"},
+		{"시장가 기본은 종전대로 비운다", orderintent.PlaceIntent{
+			Symbol: "005930", Market: "kr", Side: "buy", OrderType: "market", Quantity: 1,
+		}, ""},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got, err := buildOrderCreate(c.intent)
+			if err != nil {
+				t.Fatalf("buildOrderCreate: %v", err)
+			}
+			v0, ok := got.(orderCreateV0)
+			if !ok {
+				t.Fatalf("expected quantity-based variant, got %T", got)
+			}
+			if v0.TimeInForce != c.want {
+				t.Errorf("TimeInForce = %q, want %q", v0.TimeInForce, c.want)
+			}
+		})
+	}
+}

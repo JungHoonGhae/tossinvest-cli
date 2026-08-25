@@ -29,6 +29,7 @@ FEATURE_DATES = {
     "market anomalies": "2026-08-24",
     "quote reasons": "2026-08-24",
     "quote charts": "2026-08-24",
+    "order place --time-in-force": "2026-08-25",
     "stream": "2026-08-19",
     "market stocks": "2026-08-11",
     "quote supply": "2026-08-07",

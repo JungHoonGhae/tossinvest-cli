@@ -2241,7 +2241,7 @@
             "type": "string"
           },
           "timeInForce": {
-            "description": "주문 유효 조건 (Time In Force). `orderType` 과 결합되어 주문 방식이 결정됩니다 (예: `LIMIT` + `CLS` = LOC).\n- `DAY`: 당일 유효 (Day)\n- `CLS`: 장 마감 주문 (At the Close)\n- `OPG`: 장 개시 주문 (At the Opening). 현재는 지원하지 않습니다.\n\n클라이언트는 unknown code 를 허용하도록 구현해야 합니다.\n",
+            "description": "주문 유효 조건 (Time In Force). `orderType` 과 결합되어 주문 방식이 결정됩니다 (예: `LIMIT` + `CLS` = LOC).\n- `DAY`: 당일 유효 (Day)\n- `CLS`: 장 마감 주문 (At the Close)\n- `OPG`: 장 개시 주문 (At the Opening, 국내 시가단일가)\n\n클라이언트는 unknown code 를 허용하도록 구현해야 합니다.\n",
             "enum": [
               "DAY",
               "CLS",
@@ -2324,10 +2324,11 @@
               },
               "timeInForce": {
                 "default": "DAY",
-                "description": "주문 유효 조건 (Time In Force). 미전달 시 `DAY`. `orderType` 과 결합되어 주문 방식이 결정됩니다 (예: `LIMIT` + `CLS` = LOC).\n- `DAY`: 당일 유효 (Day). 정규장 종료까지 미체결분은 자동 취소됩니다.\n- `CLS`: 장 마감 주문 (At the Close). 현재 미국 주식 + `orderType=LIMIT` 조합만 지원합니다.\n",
+                "description": "주문 유효 조건 (Time In Force). 미전달 시 `DAY`. `orderType` 과 결합되어 주문 방식이 결정됩니다 (예: `LIMIT` + `CLS` = LOC).\n- `DAY`: 당일 유효 (Day). 정규장 종료까지 미체결분은 자동 취소됩니다.\n- `CLS`: 장 마감 주문 (At the Close). 현재 미국 주식 + `orderType=LIMIT` 조합만 지원합니다.\n- `OPG`: 장 개시 주문 (At the Opening, 국내 시가단일가). 현재 국내 주식 전용이며 `orderType` 은 `LIMIT`/`MARKET` 모두 지원합니다. 세션 시간(장전 사전접수) 외 접수는 원장에서 거절될 수 있습니다.\n",
                 "enum": [
                   "DAY",
-                  "CLS"
+                  "CLS",
+                  "OPG"
                 ],
                 "example": "DAY",
                 "type": "string"
