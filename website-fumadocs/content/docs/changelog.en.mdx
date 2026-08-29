@@ -9,6 +9,27 @@ Version history below (source: the Korean-language [CHANGELOG.md](https://github
 
 ## [Unreleased]
 
+## [0.44.0] - 2026-08-29
+
+### 버그 수정
+- **`watchlist list` 가 빈 표만 출력하던 문제.** 토스가 대시보드 경로(`sections/all`)로 관심종목을 더 이상 내려주지 않게 되면서(`data: null`) 목록이 비어 보였습니다. 웹·앱이 이미 쓰고 있는 관심종목 전용 API 로 전환했습니다. (@anthonyminyungi, #175)
+
+### 새 기능
+- **`watchlist list <폴더ID>`** — 폴더 하나의 종목만 봅니다. 대화형 터미널에서 인자 없이 실행하면 폴더 선택 화면이 뜹니다. 인자 없이 파이프·스크립트에서 실행하면 종전대로 전체 폴더를 평탄화해 출력합니다. 폴더 ID 는 `watchlist groups` 로 확인합니다.
+
+  ```
+  $ tossctl watchlist groups
+  ID        폴더         종목수  구분
+  ───────────────────────────────────────────
+  19735190  최근 본           3  RECENT_WATCH
+  46533678  낸시 펠로시       4  USER_MADE
+
+  $ tossctl watchlist list 46533678
+  ```
+
+  MCP 의 `watchlist` 오퍼레이션도 `group_id` 를 받습니다. 생략하면 종전대로 전체를 돌려줍니다.
+
+
 ## [0.43.1] - 2026-08-25
 
 ### 버그 수정
