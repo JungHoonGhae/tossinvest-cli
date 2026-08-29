@@ -176,17 +176,23 @@ func (c *Client) DeleteWatchlistGroup(ctx context.Context, groupID int64) error 
 	return c.mutateJSON(ctx, http.MethodDelete, url, nil, nil)
 }
 
+type watchlistItemSpec struct {
+	Code     string `json:"code"`
+	ItemType string `json:"itemType"`
+}
+
+type addWatchlistItemsRequest struct {
+	WatchlistIDs []int64             `json:"watchlistIds"`
+	Items        []watchlistItemSpec `json:"items"`
+}
+
+type removeWatchlistItemsRequest struct {
+	WatchlistID int64               `json:"watchlistId"`
+	Items       []watchlistItemSpec `json:"items"`
+}
+
 // AddWatchlistItem adds a stock to a folder (symbol or product code).
 func (c *Client) AddWatchlistItem(ctx context.Context, groupID int64, symbol string) error {
-	return c.watchlistItemOp(ctx, c.certBaseURL+watchlistItemsPath, groupID, symbol)
-}
-
-// RemoveWatchlistItem removes a stock from a folder.
-func (c *Client) RemoveWatchlistItem(ctx context.Context, groupID int64, symbol string) error {
-	return c.watchlistItemOp(ctx, c.certBaseURL+watchlistItemsRemovePath, groupID, symbol)
-}
-
-func (c *Client) watchlistItemOp(ctx context.Context, endpoint string, groupID int64, symbol string) error {
 	if err := c.requireSession(); err != nil {
 		return err
 	}
@@ -194,11 +200,27 @@ func (c *Client) watchlistItemOp(ctx context.Context, endpoint string, groupID i
 	if err != nil {
 		return err
 	}
-	body, _ := json.Marshal(map[string]any{
-		"watchlistId": groupID,
-		"items":       []map[string]string{{"code": code, "itemType": "STOCK"}},
+	body, _ := json.Marshal(addWatchlistItemsRequest{
+		WatchlistIDs: []int64{groupID},
+		Items:        []watchlistItemSpec{{Code: code, ItemType: "STOCK"}},
 	})
-	return c.mutateJSON(ctx, http.MethodPost, endpoint, body, nil)
+	return c.mutateJSON(ctx, http.MethodPost, c.certBaseURL+watchlistItemsPath, body, nil)
+}
+
+// RemoveWatchlistItem removes a stock from a folder.
+func (c *Client) RemoveWatchlistItem(ctx context.Context, groupID int64, symbol string) error {
+	if err := c.requireSession(); err != nil {
+		return err
+	}
+	code, err := c.resolveProductCode(ctx, symbol)
+	if err != nil {
+		return err
+	}
+	body, _ := json.Marshal(removeWatchlistItemsRequest{
+		WatchlistID: groupID,
+		Items:       []watchlistItemSpec{{Code: code, ItemType: "STOCK"}},
+	})
+	return c.mutateJSON(ctx, http.MethodPost, c.certBaseURL+watchlistItemsRemovePath, body, nil)
 }
 
 // mutateJSON issues a non-GET request with session auth (X-XSRF-TOKEN included
