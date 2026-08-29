@@ -286,9 +286,22 @@ def collect_paths():
     with concurrent.futures.ThreadPoolExecutor(max_workers=12) as ex:
         blob = "\n".join(ex.map(fetch, ordered))
     globals()["_ROUTE_COUNT"] = len(routes)
-    # 삼중 정의가 있는 것은 그쪽이 진실이다 — 경로가 안 잘리고 호스트·메서드까지 온다.
-    # 한 경로가 여러 메서드를 선언하는 일이 있다(REST 리소스면 자연스럽다). 하나만
-    # 남기면 어느 쪽을 골라도 거짓이므로 전부 정렬해 기록한다.
+    norm, meta = derive_paths(blob)
+    return build_id, len(chunks), norm, meta
+
+
+
+def derive_paths(blob):
+    """번들 텍스트에서 (정규화된 경로 집합, 경로별 메타) 를 뽑는다.
+
+    네트워크와 분리된 순수 함수다. 이 안의 두 규칙 — 삼중 정의 우선, 그림자 제거 —
+    에서 실제로 사고가 두 번 났다(실재 경로 삭제, 실행마다 다른 결과). 테스트가
+    가능하려면 fetch 와 떨어져 있어야 한다.
+
+    **입력 순서에 의존하지 않는다.** 청크를 읽는 순서가 달라도 결과가 같아야 한다 —
+    한 경로가 여러 메서드를 선언할 때 먼저 읽힌 쪽이 이기면 같은 번들에서 매번
+    다른 카탈로그가 나온다.
+    """
     methods, hosts = {}, {}
     for token, method, path in TRIPLE_RE.findall(blob):
         p = _normalize(path)
@@ -296,7 +309,7 @@ def collect_paths():
         if host := HOST_TOKEN.get(token):
             hosts[p] = host
     meta = {}
-    for p, ms in methods.items():
+    for p, ms in sorted(methods.items()):
         meta[p] = {"method": ",".join(sorted(ms))}
         if p in hosts:
             meta[p]["host"] = hosts[p]
@@ -307,20 +320,15 @@ def collect_paths():
     # 엔드포인트가 아니라 같은 정의의 잘린 그림자이므로 버린다 — 남기면 프로브가
     # 그걸 때려 404 를 쌓는다.
     #
-    # **단, 우리가 실제로 부르는 경로는 예외다.** 잘린 형태가 진짜 엔드포인트인
-    # 경우가 있다: `/api/v1/exchange/usd/base-exchange-rate` 는 번들에 `/{date}`
-    # 형태로만 선언돼 있지만, 날짜 없는 쪽은 **응답 스키마가 다른 별개 API** 이고
-    # (`rate` 필드는 그쪽에만 있다) 주문 경로가 그걸 부른다. 그림자로 지웠더니
-    # 카탈로그에서 실제 구현이 사라지고, 부르지도 않는 `/{date}` 가 implemented 로
-    # 잘못 표시됐다 (2026-08-25 라이브 확인).
-    #
+    # **단, REAL_SHADOWS 는 예외다.** 잘린 형태가 진짜 엔드포인트인 경우가 있다 —
+    # 그렇게 지웠다가 실제 구현이 카탈로그에서 사라진 적이 있다(2026-08-25).
     shadows = {p.split("{")[0].rstrip("/") for p in meta if "{" in p} - set(meta) - REAL_SHADOWS
     for p in raw:
         p = _normalize(p)
         if p in shadows:
             continue
         norm.add(p)
-    return build_id, len(chunks), norm, meta
+    return norm, meta
 
 
 def _normalize(p):

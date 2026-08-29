@@ -39,3 +39,13 @@ jobs:
 
       - name: WTS 카탈로그 분류기 sanity
         run: python -m py_compile tools/wts_endpoints.py tools/update_new_markers.py
+
+      # 카탈로그는 "무엇을 구현했고 무엇이 다음 후보인가" 의 단일 진실 원천이라
+      # 도구가 틀리면 잘못된 판단이 연쇄된다. 실제로 2026-08 에 두 번 났다
+      # (실재 경로 삭제, 실행마다 다른 결과). py_compile 은 문법만 본다.
+      #
+      # 해시 시드를 바꿔 두 번 돌린다 — 비결정성 사고가 프로세스 간 차이였다.
+      - name: 카탈로그 도구 테스트
+        run: |
+          PYTHONHASHSEED=0 python3 -m unittest discover -s tools/tests
+          PYTHONHASHSEED=1 python3 -m unittest discover -s tools/tests
