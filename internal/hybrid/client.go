@@ -20,6 +20,7 @@ import (
 	"io"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
@@ -131,6 +132,35 @@ func (c *Client) ListPositions(ctx context.Context) ([]domain.Position, error) {
 	return route(c,
 		func() ([]domain.Position, error) { return c.off.Holdings(ctx, "") },
 		func() ([]domain.Position, error) { return c.Client.ListPositions(ctx) })
+}
+
+// GetExchangeRates is the one override that prefers WTS.
+//
+// Every other route tries official first. Here that would be a downgrade: WTS
+// returns the whole feed (USD/KRW, DXY, …) while the official endpoint answers
+// one base/quote pair at a time. Routing official-first would silently drop
+// rows for users who hold both credentials.
+//
+// So WTS leads, and official serves as the floor — a user with only an official
+// key used to get nothing at all from `market fx`, which made the command's
+// "both" annotation untrue. One pair is less than the full feed, but the table
+// shows exactly what came back, so the reduction is visible rather than silent.
+func (c *Client) GetExchangeRates(ctx context.Context) (domain.ExchangeRates, error) {
+	rates, err := c.Client.GetExchangeRates(ctx)
+	if err == nil {
+		return rates, nil
+	}
+	if c.off == nil {
+		return domain.ExchangeRates{}, err
+	}
+	one, offErr := c.off.ExchangeRate(ctx, "USD", "KRW")
+	if offErr != nil {
+		// 원래(WTS) 에러를 살린다 — 세션이 없다는 사실이 사용자가 고칠 수 있는
+		// 정보이고, 폴백이 실패했다는 사실은 그 다음이다.
+		return domain.ExchangeRates{}, err
+	}
+	fmt.Fprintf(c.stderr, "tossctl: web session unavailable, showing USD/KRW from the official API only (%v)\n", err)
+	return domain.ExchangeRates{Rates: []domain.ExchangeRate{one}, FetchedAt: time.Now().UTC()}, nil
 }
 
 // GetQuote routes to off.Prices for a single symbol. An empty official result
@@ -314,8 +344,8 @@ func officialLeg(l orderintent.ConditionLeg) official.ConditionLegBody {
 //
 //   - GetAccountSummary: official exposes BuyingPower, a different type/concept
 //     than the WTS account summary — not a drop-in substitute.
-//   - GetExchangeRates: WTS returns the full set (plural); official ExchangeRate
-//     is a single base/quote pair, so it cannot satisfy the plural signature.
+//   - (GetExchangeRates moved out of this list in 2026-08 — see the override
+//     below. The blocker was the plural/singular signature, not semantics.)
 //   - Order reads (ListPendingOrders / ListCompletedOrders / FindOrder): the
 //     official status-enum mapping is still uncertain, so routing them risks
 //     silently wrong statuses. Measured 2026-08-03: the official API answers
