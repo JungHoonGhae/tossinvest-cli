@@ -252,7 +252,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **Personalized news briefing** | `market briefing` (headlines grouped by theme) | ❌ | ✅ |
 | **Toss AI signals** | `market signals` (per-symbol AI signal · keywords · move) | ❌ | ✅ |
 | **Stock screener** | `market screener [id]` (preset) · `--filter '<json>'` (custom) `--nation kr\|us` | ❌ | ✅ |
-| **Watchlist read & management** | `watchlist list`·`groups`, `watchlist group create\|rename\|delete`, `watchlist add\|remove --group <id>` | ❌ | ✅ |
+| **Watchlist read & management** | `watchlist list [<group-id>] [--all]`·`groups`, `watchlist group create\|rename\|delete`, `watchlist add\|remove --group <id>` | ❌ | ✅ |
 | **Transaction ledger** | `transactions list --market us\|kr` (trades · transfers · dividends) | ❌ | ✅ |
 | **Cash overview** | `transactions overview --market us\|kr` (orderable · withdrawable · incoming) | ❌ | ✅ |
 | **CSV export** | `export positions\|orders --market`, `transactions list --output csv` | ❌ | ✅ |
@@ -661,7 +661,8 @@ tossctl search <name|ticker>
 tossctl account receivable --currency KRW|USD
 tossctl market hours|fx|index|ranking|signals|investors|earnings
 tossctl market screener [id] --nation kr|us
-tossctl watchlist list|groups
+tossctl watchlist list [<group-id>] [--all]
+tossctl watchlist groups
 tossctl transactions list|overview --market us|kr
 tossctl export positions|orders --market us|kr|all
 ```

@@ -52,6 +52,12 @@ func TestJSONOutputLanguageInvariant(t *testing.T) {
 			},
 		},
 		{
+			name: "watchlistGroups",
+			render: func(w *bytes.Buffer) error {
+				return WriteWatchlistGroups(w, FormatJSON, testWatchlistGroups)
+			},
+		},
+		{
 			name: "accounts",
 			render: func(w *bytes.Buffer) error {
 				return WriteAccounts(w, FormatJSON, testInvarianceAccounts, "acct-primary")
@@ -185,6 +191,18 @@ func TestCSVOutputLanguageInvariant(t *testing.T) {
 			name: "orders",
 			render: func(w *bytes.Buffer) error {
 				return WriteOrders(w, FormatCSV, testInvarianceOrders)
+			},
+		},
+		{
+			name: "watchlist",
+			render: func(w *bytes.Buffer) error {
+				return WriteWatchlist(w, FormatCSV, testWatchlistItems)
+			},
+		},
+		{
+			name: "watchlistGroups",
+			render: func(w *bytes.Buffer) error {
+				return WriteWatchlistGroups(w, FormatCSV, testWatchlistGroups)
 			},
 		},
 		{

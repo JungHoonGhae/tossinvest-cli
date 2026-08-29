@@ -1,0 +1,82 @@
+{
+  "result": {
+    "maxWatchlistCount": 30,
+    "watchlists": [
+      {
+        "id": 100,
+        "name": "미국 빅테크",
+        "ordering": -100,
+        "type": "USER_MADE",
+        "itemCount": 2,
+        "items": [
+          {
+            "code": "US19990122001",
+            "symbol": "NVDA",
+            "name": "엔비디아",
+            "itemType": "STOCK",
+            "ordering": -2,
+            "prices": {
+              "base": 120.5,
+              "close": 125.3,
+              "currency": "USD"
+            }
+          },
+          {
+            "code": "US20040819001",
+            "symbol": "GOOG",
+            "name": "알파벳 A",
+            "itemType": "STOCK",
+            "ordering": -1,
+            "prices": {
+              "base": 170.0,
+              "close": 172.5,
+              "currency": "USD"
+            }
+          }
+        ]
+      },
+      {
+        "id": 200,
+        "name": "국내 대형주",
+        "ordering": 0,
+        "type": "USER_MADE",
+        "itemCount": 1,
+        "items": [
+          {
+            "code": "A005930",
+            "symbol": "005930",
+            "name": "삼성전자",
+            "itemType": "STOCK",
+            "ordering": -1,
+            "prices": {
+              "base": 72000,
+              "close": 73500,
+              "currency": "KRW"
+            }
+          }
+        ]
+      },
+      {
+        "id": 300,
+        "name": "코드만 있는 폴더",
+        "ordering": 100,
+        "type": "USER_MADE",
+        "itemCount": 1,
+        "items": [
+          {
+            "code": "FALLBACK_CODE",
+            "symbol": "",
+            "name": "심볼없는종목",
+            "itemType": "STOCK",
+            "ordering": -1,
+            "prices": {
+              "base": 100,
+              "close": 110,
+              "currency": "KRW"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

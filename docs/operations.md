@@ -32,7 +32,8 @@
 | `account-list` | `GET /api/v1/account/list` | `account list` |
 | `account-summary-overview` | `GET /api/v3/my-assets/summaries/markets/all/overview` | `account summary` |
 | `portfolio-positions` | `POST /api/v2/dashboard/asset/sections/all` (`SORTED_OVERVIEW`) | `portfolio positions` |
-| `watchlist` | `POST /api/v2/dashboard/asset/sections/all` (`WATCHLIST`) | `watchlist list` |
+| `watchlist` | `GET /api/v1/new-watchlists` | `watchlist list` |
+| `watchlist-groups` | `GET /api/v1/new-watchlists/groups/simple` | `watchlist groups` |
 | `quote-stock-infos` | `GET /api/v2/stock-infos/A005930` | `quote get` |
 | `pending-orders` | `GET /api/v1/trading/orders/histories/all/pending` | `orders list` |
 

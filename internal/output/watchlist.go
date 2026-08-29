@@ -37,6 +37,7 @@ func WriteWatchlist(w io.Writer, format Format, items []domain.WatchlistItem) er
 			i18n.T("output.watchlist.header.changeRate"),
 			i18n.T("output.watchlist.header.currency"),
 		}
+		aligns := []Align{AlignLeft, AlignLeft, AlignLeft, AlignRight, AlignRight, AlignRight, AlignRight, AlignRight}
 		var coloredRows [][]string
 		for _, item := range items {
 			change := item.Last - item.Base
@@ -61,7 +62,7 @@ func WriteWatchlist(w io.Writer, format Format, items []domain.WatchlistItem) er
 			}
 			coloredRows = append(coloredRows, colored)
 		}
-		return renderTable(w, headers, coloredRows)
+		return renderTable(w, headers, coloredRows, aligns...)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
@@ -86,11 +87,12 @@ func WriteWatchlistGroups(w io.Writer, format Format, groups []domain.WatchlistG
 			i18n.T("output.watchlist.groups.header.count"),
 			i18n.T("output.watchlist.groups.header.type"),
 		}
+		aligns := []Align{AlignLeft, AlignLeft, AlignRight, AlignLeft}
 		rows := make([][]string, 0, len(groups))
 		for _, g := range groups {
 			rows = append(rows, []string{fmt.Sprintf("%d", g.ID), g.Name, fmt.Sprintf("%d", g.ItemCount), g.Type})
 		}
-		return renderTable(w, headers, rows)
+		return renderTable(w, headers, rows, aligns...)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}

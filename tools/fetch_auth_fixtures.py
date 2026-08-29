@@ -98,6 +98,11 @@ def specs() -> list[tuple[str, str, bytes | None]]:
     return [
         ("account-list.json", "https://wts-api.tossinvest.com/api/v1/account/list", None),
         (
+            "new-watchlists.json",
+            "https://wts-cert-api.tossinvest.com/api/v1/new-watchlists?includePrice=true&lazyLoad=false",
+            None,
+        ),
+        (
             "asset-overview.json",
             "https://wts-cert-api.tossinvest.com/api/v3/my-assets/summaries/markets/all/overview",
             None,

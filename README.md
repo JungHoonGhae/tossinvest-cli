@@ -296,7 +296,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **개인화 뉴스 브리핑** | `market briefing` (테마별 뉴스 묶음) | ❌ | ✅ |
 | **토스 AI 시그널** | `market signals` (종목별 AI 시그널·키워드·등락) | ❌ | ✅ |
 | **조건 검색 (스크리너)** | `market screener [id]` (프리셋) · `--filter '<json>'` (커스텀 조건) `--nation kr\|us` | ❌ | ✅ |
-| **관심 종목 조회·관리** | `watchlist list`·`groups`, `watchlist group create\|rename\|delete`, `watchlist add\|remove --group <id>` (폴더 CRUD + 종목 추가/제거) | ❌ | ✅ |
+| **관심 종목 조회·관리** | `watchlist list [<group-id>] [--all]`·`groups`, `watchlist group create\|rename\|delete`, `watchlist add\|remove --group <id>` (폴더별 조회 + CRUD + 종목 추가/제거) | ❌ | ✅ |
 | **거래내역 ledger** | `transactions list --market us\|kr` (매매·입출금·배당·입출고) | ❌ | ✅ |
 | **현금 overview** | `transactions overview --market us\|kr` (주문가능·출금가능·예정입금) | ❌ | ✅ |
 | **CSV 내보내기** | `export positions\|orders --market`, `transactions list --output csv` | ❌ | ✅ |
@@ -776,7 +776,8 @@ tossctl quote supply 005930 --type short --count 20
 tossctl market stocks KOSPI --security-type ETF
 tossctl search <이름|티커>
 tossctl account receivable --currency KRW|USD
-tossctl watchlist list
+tossctl watchlist list [<group-id>] [--all]
+tossctl watchlist groups
 tossctl export positions --market us|kr|all
 tossctl export orders --market us|kr|all
 ```

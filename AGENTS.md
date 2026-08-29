@@ -81,7 +81,8 @@ Rules for agents:
 - `account-list` — `GET /api/v1/account/list`
 - `account-summary-overview` — `GET /api/v3/my-assets/summaries/markets/all/overview`
 - `portfolio-positions` — `POST /api/v2/dashboard/asset/sections/all` (`SORTED_OVERVIEW`)
-- `watchlist` — `POST /api/v2/dashboard/asset/sections/all` (`WATCHLIST`)
+- `watchlist` — `GET /api/v1/new-watchlists`
+- `watchlist-groups` — `GET /api/v1/new-watchlists/groups/simple`
 - `quote-stock-infos` — `GET /api/v2/stock-infos/A005930`
 - `pending-orders` — `GET /api/v1/trading/orders/histories/all/pending`
 

@@ -945,41 +945,40 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "watchlist", Method: "GET", Path: "wts:watchlist", Backend: "wts",
-			Category: "watchlist", Summary: "Watchlist items (with change/change-rate). WTS-only.",
-			Probe: &ProbeSpec{Name: "watchlist", Method: "POST",
-				URL:  probeCert + "/api/v2/dashboard/asset/sections/all",
-				Body: `{"types":["WATCHLIST"]}`,
-				Check: func(status int, body []byte) error {
-					if err := ExpectStatus(status, 200); err != nil {
-						return err
-					}
-					var env struct {
-						Result struct {
-							Sections []struct {
-								Type string `json:"type"`
-							} `json:"sections"`
-						} `json:"result"`
-					}
-					if err := json.Unmarshal(body, &env); err != nil {
-						return fmt.Errorf("decode sections: %v", err)
-					}
-					if len(env.Result.Sections) == 0 {
-						return fmt.Errorf("result.sections is empty — likely body-contract regression")
-					}
-					if env.Result.Sections[0].Type != "WATCHLIST" {
-						return fmt.Errorf("expected section[0].type=WATCHLIST, got %q", env.Result.Sections[0].Type)
-					}
-					return nil
-				}},
-			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
-				return d.WTS.ListWatchlist(ctx)
+			Category: "watchlist", Summary: "Watchlist items. Pass group_id for one folder (see watchlist_groups); with no arguments it returns every folder's items, flat. WTS-only.",
+			Params: []Param{
+				{Name: "group_id", Type: "integer", Desc: "folder id (see watchlist_groups); omit to get all folders"},
+				{Name: "all", Type: "boolean", Desc: "force the flat all-folders list (the default when group_id is omitted)"},
+			},
+			Probe: &ProbeSpec{Name: "watchlist", Method: "GET",
+				URL:   probeCert + "/api/v1/new-watchlists?includePrice=true&lazyLoad=false",
+				Check: statusAndPath("result.watchlists", "array")},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				allFlag, err := argBool(args, "all")
+				if err != nil {
+					return nil, err
+				}
+				if allFlag {
+					return d.WTS.ListAllWatchlistItems(ctx)
+				}
+				groupID, err := argInt(args, "group_id")
+				if err != nil {
+					return nil, fmt.Errorf("group_id: %w", err)
+				}
+				if groupID == 0 {
+					// 인자 없이 부르는 것이 이 오퍼레이션의 원래 동작이었다. 폴더를
+					// 요구하면 에이전트가 watchlist_groups 를 먼저 부르도록 강제되고,
+					// 기존 호출은 전부 깨진다.
+					return d.WTS.ListAllWatchlistItems(ctx)
+				}
+				return d.WTS.GetWatchlistGroupItems(ctx, int64(groupID))
 			},
 		},
 		{
 			ID: "watchlist_groups", Method: "GET", Path: "wts:watchlist/groups", Backend: "wts",
 			Category: "watchlist", Summary: "Watchlist folders/groups. WTS-only.",
 			Probe: &ProbeSpec{Name: "watchlist-groups", Method: "GET",
-				URL:   probeCert + "/api/v1/new-watchlists?includePrice=false&lazyLoad=true",
+				URL:   probeCert + "/api/v1/new-watchlists/groups/simple?includeItemInfo=true",
 				Check: statusAndPath("result.watchlists", "array")},
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.ListWatchlistGroups(ctx)

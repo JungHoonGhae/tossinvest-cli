@@ -112,6 +112,72 @@ func TestGroupRenameNonTTYOneArgError(t *testing.T) {
 	}
 }
 
+// TestWatchlistListNonTTYNoArgsListsAll checks that `watchlist list` with no
+// args and a non-TTY stdin falls back to the flat all-folders list instead of
+// erroring or blocking on the interactive picker.
+//
+// 이 커맨드의 원래 동작이고 스크립트·MCP 가 그대로 쓴다. 폴더를 요구하면 피커가
+// 행(hang)되는 것은 막지만 자동화가 깨진다.
+func TestWatchlistListNonTTYNoArgsListsAll(t *testing.T) {
+	// Not parallel: temporarily replaces os.Stdin.
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Close()
+	old := os.Stdin
+	os.Stdin = r
+	t.Cleanup(func() {
+		os.Stdin = old
+		r.Close()
+	})
+
+	opts := &rootOptions{}
+	listCmd := newWatchlistListCmd(opts)
+
+	// 세션이 없으므로 config/네트워크 단계에서 실패한다. 확인하려는 것은 "폴더를
+	// 고르라는 요구로 거절당하지 않는다" 는 것뿐이다.
+	gotErr := listCmd.RunE(listCmd, []string{})
+	if gotErr != nil {
+		for _, refusal := range []string{"folder id", "--all", "interactive terminal"} {
+			if strings.Contains(gotErr.Error(), refusal) {
+				t.Fatalf("non-TTY with no args must fall back to all folders, got refusal: %v", gotErr)
+			}
+		}
+	}
+}
+
+// TestWatchlistListArgAndAllExclusiveError checks that passing both a folder ID
+// argument and the --all flag returns an error.
+func TestWatchlistListArgAndAllExclusiveError(t *testing.T) {
+	opts := &rootOptions{}
+	listCmd := newWatchlistListCmd(opts)
+	_ = listCmd.Flags().Set("all", "true")
+
+	gotErr := listCmd.RunE(listCmd, []string{"123"})
+	if gotErr == nil {
+		t.Fatal("expected error when both folder id and --all are specified, got nil")
+	}
+	if !strings.Contains(gotErr.Error(), "both a folder id and --all") {
+		t.Fatalf("unexpected error message: %v", gotErr)
+	}
+}
+
+// TestWatchlistListInvalidIDError checks that passing a non-numeric folder ID
+// returns an early error before creating an app context.
+func TestWatchlistListInvalidIDError(t *testing.T) {
+	opts := &rootOptions{}
+	listCmd := newWatchlistListCmd(opts)
+
+	gotErr := listCmd.RunE(listCmd, []string{"not-a-number"})
+	if gotErr == nil {
+		t.Fatal("expected error when folder id is non-numeric, got nil")
+	}
+	if !strings.Contains(gotErr.Error(), "folder id must be a number") {
+		t.Fatalf("unexpected error message: %v", gotErr)
+	}
+}
+
 // findSubCmd returns the named subcommand of parent, or nil.
 func findSubCmd(parent *cobra.Command, name string) *cobra.Command {
 	for _, c := range parent.Commands() {

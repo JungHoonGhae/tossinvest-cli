@@ -442,6 +442,7 @@ type CommunityBoards struct {
 type WatchlistGroup struct {
 	ID        int64           `json:"id"`
 	Name      string          `json:"name"`
+	Ordering  int             `json:"ordering,omitempty"`
 	Type      string          `json:"type,omitempty"` // USER_MADE 등
 	ItemCount int             `json:"item_count"`
 	Items     []WatchlistItem `json:"items,omitempty"`
