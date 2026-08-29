@@ -16,6 +16,7 @@ func newAccountCmd(opts *rootOptions) *cobra.Command {
 	cmd.AddCommand(
 		newAccountDetailCmd(opts),
 		newAccountInterestCmd(opts),
+		newAccountBuyingPowerCmd(opts),
 		&cobra.Command{
 			Use:         "list",
 			Short:       i18n.T("account.list.short"),
@@ -185,4 +186,34 @@ func hasInterestPayment(ai domain.AccountInterest) bool {
 		}
 	}
 	return false
+}
+
+// newAccountBuyingPowerCmd exposes the official API's cash buying power.
+//
+// Its own command rather than a field on `account summary`: the official
+// 매수여력 and the WTS summary's orderable amounts are different concepts, and
+// merging them would let one be read as the other. Keeping them apart is also
+// what makes this usable with an official key and no web session — the summary
+// is WTS-only. See issue #136.
+func newAccountBuyingPowerCmd(opts *rootOptions) *cobra.Command {
+	var currency string
+	cmd := &cobra.Command{
+		Use:         "buying-power",
+		Short:       i18n.T("account.buyingPower.short"),
+		Long:        i18n.T("account.buyingPower.long"),
+		Annotations: map[string]string{"source": "official"},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			bp, err := app.client.Official().BuyingPower(cmd.Context(), currency)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteBuyingPower(cmd.OutOrStdout(), app.format, bp)
+		},
+	}
+	cmd.Flags().StringVar(&currency, "currency", "KRW", "KRW or USD")
+	return cmd
 }

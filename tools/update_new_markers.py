@@ -30,6 +30,7 @@ FEATURE_DATES = {
     "quote reasons": "2026-08-24",
     "quote charts": "2026-08-24",
     "market business-days": "2026-08-29",
+    "account buying-power": "2026-08-29",
     "order place --time-in-force": "2026-08-25",
     "stream": "2026-08-19",
     "market stocks": "2026-08-11",

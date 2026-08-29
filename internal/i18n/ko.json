@@ -1,5 +1,7 @@
 {
   "_meta.lang": "ko",
+  "account.buyingPower.long": "공식 Open API 로 통화별 현금 매수여력을 봅니다.\n\n`account summary` 의 주문가능금액과는 **다른 개념**이라 별도 커맨드로 둡니다.\n웹 세션 없이 공식 키만으로 쓸 수 있는 유일한 매수여력 경로입니다.",
+  "account.buyingPower.short": "공식 API 매수여력 (현금 기준)",
   "account.commission.long": "이 계좌에 적용되는 거래 수수료를 시장별로 보여준다. 종목별 수수료·세금은 `quote commission` 을 쓸 것.",
   "account.commission.short": "계좌 수수료 체계 조회 (국내주식·미국주식·미국옵션)",
   "account.detail.long": "웹 계좌관리 화면의 조회 부분입니다: 계좌가 무엇인지(번호·이름·상태·개설일·최종거래일), 오늘과 결제일별로 얼마를 출금할 수 있는지(1회·1일 한도 포함), 시장별로 미수거래가 가능한지.\n\n계좌번호는 기본적으로 가려집니다 — 이 출력이 이슈나 채팅에 붙여넣어지기 때문입니다. 전체를 보려면 --full 을 쓰세요. 일부 항목을 못 불러오면 커맨드를 실패시키지 않고 경고로 알립니다. 같은 화면의 계좌 변경 동작(계좌 해지·비밀번호 변경·송금)은 의도적으로 노출하지 않습니다. 웹앱(WTS) 전용.",
@@ -214,6 +216,8 @@
   "output.anomalies.header.signal": "AI 시그널",
   "output.anomalies.header.zscore": "Z점수",
   "output.briefing.empty": "브리핑이 없습니다\n",
+  "output.buyingPower.header.cash": "현금 매수여력",
+  "output.buyingPower.header.currency": "통화",
   "output.chart.noData": "캔들 데이터가 없습니다\n",
   "output.charts.header.candles": "캔들",
   "output.charts.header.change": "기준가대비",

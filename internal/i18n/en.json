@@ -1,5 +1,7 @@
 {
   "_meta.lang": "en",
+  "account.buyingPower.long": "Cash buying power per currency via the official Open API.\n\nA different concept from the orderable amounts in `account summary`, which is why\nit is its own command. This is the only route to buying power with an official\nkey and no web session.",
+  "account.buyingPower.short": "Cash buying power (official API)",
   "account.commission.long": "Reports the trading commission this account is charged, per market. For a single symbol's commission and tax, use `quote commission`.",
   "account.commission.short": "Show the account's commission schedule (KR equities, US equities, US options)",
   "account.detail.long": "The read-only half of the web's 계좌관리 screen: what the account is (number, name, status, open date, last trade), what can be withdrawn today and as settlement completes (with per-transaction and daily caps), and whether 미수거래 (buying on receivable credit) is open per market.\n\nThe account number is masked by default because this output gets pasted into issues and chat — pass --full to show it. Sections that fail to load are reported as warnings rather than failing the command. Account-changing actions from that screen (closing the account, changing the PIN, moving money) are deliberately not exposed. WTS-only.",
@@ -214,6 +216,8 @@
   "output.anomalies.header.signal": "AI SIGNAL",
   "output.anomalies.header.zscore": "Z-SCORE",
   "output.briefing.empty": "No briefing available\n",
+  "output.buyingPower.header.cash": "CASH BUYING POWER",
+  "output.buyingPower.header.currency": "CURRENCY",
   "output.chart.noData": "no candle data\n",
   "output.charts.header.candles": "CANDLES",
   "output.charts.header.change": "VS BASE",

@@ -350,3 +350,31 @@ func WriteAccountInterest(w io.Writer, format Format, ai domain.AccountInterest)
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
 }
+
+// WriteBuyingPower renders the official API's cash buying power.
+//
+// Deliberately its own view rather than a row inside `account summary`: the
+// official 매수여력 is a different concept from the WTS account summary's
+// orderable amounts, and folding them into one table would invite reading one
+// as the other. See issue #136.
+func WriteBuyingPower(w io.Writer, format Format, b domain.BuyingPower) error {
+	switch format {
+	case FormatJSON:
+		return writeJSON(w, b)
+	case FormatCSV:
+		return writeCSV(w, []string{"currency", "cash_buying_power"},
+			[][]string{{b.Currency, strconv.FormatFloat(b.CashBuyingPower, 'f', -1, 64)}})
+	case FormatTable:
+		headers := []string{
+			i18n.T("output.buyingPower.header.currency"),
+			i18n.T("output.buyingPower.header.cash"),
+		}
+		amount := formatKRW(b.CashBuyingPower)
+		if strings.EqualFold(b.Currency, "USD") {
+			amount = formatUSD(b.CashBuyingPower)
+		}
+		return renderTable(w, headers, [][]string{{b.Currency, amount}}, AlignLeft)
+	default:
+		return fmt.Errorf("unsupported output format: %s", format)
+	}
+}

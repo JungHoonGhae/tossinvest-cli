@@ -192,6 +192,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | Feature | Command | Official API (planned) | tossctl |
 |------|--------|:--:|:--:|
 | Accounts / summary | `account list`, `account summary` | ✅ | ✅ |
+| 🆕 Buying power (official) | `account buying-power [--currency KRW\|USD]` (cash-based; distinct from account summary) | ✅ | ❌ |
 | Portfolio | `portfolio positions`, `portfolio allocation` (USD for US) | ✅ | ✅ |
 | Trade ticks | `quote trades <symbol> --count N` | ✅ | ✅ |
 | Orderbook (10-level bid/ask) | `quote orderbook <symbol>` | ✅ | ✅ |
