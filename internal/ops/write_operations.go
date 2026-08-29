@@ -43,11 +43,17 @@ func argFloat(args map[string]any, name string) (float64, error) {
 	if !ok {
 		return 0, nil
 	}
-	f, ok := v.(float64)
-	if !ok {
+	// JSON 으로 오는 숫자는 늘 float64 지만, Go 쪽 호출자는 int 를 넘긴다.
+	// argInt 가 이미 둘 다 받으므로 같은 계열끼리 관용도를 맞춘다 — 한쪽만
+	// 엄격하면 읽는 사람이 반대로 짐작한다.
+	switch n := v.(type) {
+	case float64:
+		return n, nil
+	case int:
+		return float64(n), nil
+	default:
 		return 0, fmt.Errorf("parameter %q must be a number", name)
 	}
-	return f, nil
 }
 
 // argFloatPtr returns a *float64 that is nil when the argument is absent,
