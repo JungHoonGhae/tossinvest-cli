@@ -198,6 +198,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | Price limits | `quote limits <symbol>` (KR) | ✅ | ✅ |
 | Trade warnings | `quote warnings <symbol>` (liquidation · alert · VI …) | ✅ | ✅ |
 | Trading hours | `market hours` (today + next session when closed) | ✅ | ✅ |
+| 🆕 Trading calendar | `market business-days <KR\|US>` (previous/today/next session times, KR auctions) | ✅ | ❌ |
 | FX | `market fx` (USD rate · dollar index) | ✅ | ✅ |
 | 🆕 Circuit breaker / sidecar | `market halt` (KOSPI · KOSDAQ firing state) | ❌ | ✅ |
 | 🆕 Index anomalies | `market anomalies` (AI signal · keyword · z-score) | ❌ | ✅ |

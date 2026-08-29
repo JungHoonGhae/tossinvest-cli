@@ -1392,3 +1392,108 @@ func WriteCharts(w io.Writer, format Format, b domain.ChartBatch) error {
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
 }
+
+// WriteTradingCalendar renders previous/today/next business days as one row per
+// session.
+//
+// Flattening to (day × session) is what lets one table hold both markets: KR
+// nests its sessions and adds a 단일가 column, US puts them flat and adds a day
+// market. A row per session keeps the shared part aligned and leaves the
+// market-specific extra as an empty cell rather than a second table.
+func WriteTradingCalendar(w io.Writer, format Format, c domain.TradingCalendar) error {
+	type row struct {
+		when string
+		day  domain.BusinessDay
+	}
+	days := []row{
+		{i18n.T("output.tradingCalendar.previous"), c.Previous},
+		{i18n.T("output.tradingCalendar.today"), c.Today},
+		{i18n.T("output.tradingCalendar.next"), c.Next},
+	}
+	switch format {
+	case FormatJSON:
+		return writeJSON(w, c)
+	case FormatCSV:
+		var rows [][]string
+		for _, d := range days {
+			if d.day.Holiday {
+				rows = append(rows, []string{c.Country, d.day.Date, "", "", "", "", "", "true"})
+				continue
+			}
+			for _, s := range d.day.Sessions {
+				rows = append(rows, []string{
+					c.Country, d.day.Date, s.Name, s.Start, s.End,
+					s.SinglePriceAuctionStart, s.SinglePriceAuctionEnd, "false",
+				})
+			}
+		}
+		return writeCSV(w, []string{
+			"country", "date", "session", "start", "end",
+			"single_price_auction_start", "single_price_auction_end", "holiday",
+		}, rows)
+	case FormatTable:
+		headers := []string{
+			i18n.T("output.tradingCalendar.header.when"),
+			i18n.T("output.tradingCalendar.header.date"),
+			i18n.T("output.tradingCalendar.header.session"),
+			i18n.T("output.tradingCalendar.header.open"),
+			i18n.T("output.tradingCalendar.header.close"),
+			i18n.T("output.tradingCalendar.header.auction"),
+		}
+		var rows [][]string
+		for _, d := range days {
+			if d.day.Holiday {
+				rows = append(rows, []string{
+					d.when, d.day.Date, i18n.T("output.tradingCalendar.holiday"), "", "", "",
+				})
+				continue
+			}
+			for i, s := range d.day.Sessions {
+				when := ""
+				if i == 0 {
+					when = d.when
+				}
+				date := ""
+				if i == 0 {
+					date = d.day.Date
+				}
+				rows = append(rows, []string{
+					when, date, tradingSessionLabel(s.Name),
+					clockOf(s.Start), clockOf(s.End), auctionWindow(s),
+				})
+			}
+		}
+		return renderTable(w, headers, rows, AlignLeft, AlignLeft, AlignLeft)
+	default:
+		return fmt.Errorf("unsupported output format: %s", format)
+	}
+}
+
+// clockOf trims an RFC3339 timestamp to wall-clock time. The date already sits
+// in its own column, so repeating it in every cell only makes the table wider.
+func clockOf(ts string) string {
+	if t, err := time.Parse(time.RFC3339, ts); err == nil {
+		return t.Format("15:04")
+	}
+	return ts
+}
+
+func auctionWindow(s domain.TradingSession) string {
+	start, end := clockOf(s.SinglePriceAuctionStart), clockOf(s.SinglePriceAuctionEnd)
+	switch {
+	case start != "" && end != "":
+		return start + "–" + end
+	case start != "":
+		return start + "–"
+	case end != "":
+		return "–" + end
+	}
+	return ""
+}
+
+func tradingSessionLabel(name string) string {
+	if s := i18n.T("output.tradingCalendar.session." + name); s != "" && !strings.HasPrefix(s, "output.") {
+		return s
+	}
+	return name
+}

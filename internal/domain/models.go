@@ -285,6 +285,46 @@ type TradingHours struct {
 	FetchedAt time.Time     `json:"fetched_at"`
 }
 
+// TradingSession is one named window within a business day (pre-market,
+// regular, after-hours, and — US only — the day market).
+//
+// SinglePriceAuction* are KR-only: the 단일가 auction windows the KRX runs at
+// the edges of a session. They stay empty for US days rather than being faked,
+// so an empty value means "this market has no such auction", not "unknown".
+type TradingSession struct {
+	Name                    string `json:"name"`
+	Start                   string `json:"start,omitempty"`
+	End                     string `json:"end,omitempty"`
+	SinglePriceAuctionStart string `json:"single_price_auction_start,omitempty"`
+	SinglePriceAuctionEnd   string `json:"single_price_auction_end,omitempty"`
+}
+
+// BusinessDay is one calendar day and the sessions it runs.
+//
+// Holiday is what the two markets express differently — KR nulls the whole
+// `integrated` object, US leaves every session empty — normalized to one flag
+// so a caller does not have to know which market it asked about.
+type BusinessDay struct {
+	Date     string           `json:"date"`
+	Holiday  bool             `json:"holiday"`
+	Sessions []TradingSession `json:"sessions,omitempty"`
+}
+
+// TradingCalendar is the official API's previous/today/next business-day view
+// for one market.
+//
+// Distinct from MarketCalendar, which is the WTS month of scheduled market
+// *events* (earnings, holidays, economic releases). This one answers "when does
+// trading actually open and close", and is the only path to session times for
+// users who hold an official key but no web session.
+type TradingCalendar struct {
+	Country   string      `json:"country"`
+	Previous  BusinessDay `json:"previous"`
+	Today     BusinessDay `json:"today"`
+	Next      BusinessDay `json:"next"`
+	FetchedAt time.Time   `json:"fetched_at"`
+}
+
 // MarketHaltEvent is one market-wide trading interruption switch and whether it
 // is firing right now. Toss exposes the same four facts twice — as a fixed
 // `haltStatus` object with hardcoded kospi/kosdaq keys, and as this list. The

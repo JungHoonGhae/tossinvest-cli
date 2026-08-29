@@ -405,7 +405,7 @@ func readOperations() []Operation {
 		},
 		{
 			ID: "market_calendar", Method: "GET", Path: "/api/v1/market-calendar/{country}",
-			Category: "market", Summary: "Trading-hours calendar (prev/today/next business day) for KR or US.",
+			Category: "market", Summary: "Trading-hours calendar (previous/today/next business day) for KR or US, normalized to one shape across both markets: each day carries a holiday flag and a session list (pre_market, day_market for US, regular_market, after_market) with KR single-price auction windows where they apply. Also available as `tossctl market business-days`.",
 			Params: []Param{
 				{Name: "country", Type: "string", Required: true, Desc: `"KR" or "US"`},
 				{Name: "date", Type: "string", Desc: "reference date YYYY-MM-DD (default: today)"},

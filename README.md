@@ -242,6 +242,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | 상/하한가 | `quote limits <symbol>` (KR) | ✅ | ✅ |
 | 매수 유의사항 | `quote warnings <symbol>` (정리매매·투자경고·VI 등) | ✅ | ✅ |
 | 장 운영 시간 | `market hours` (오늘 + 휴장 시 다음 영업일) | ✅ | ✅ |
+| 🆕 거래일 캘린더 | `market business-days <KR\|US>` (전일·오늘·익일 세션 시각, 국내 단일가 포함) | ✅ | ❌ |
 | 환율 | `market fx` (달러 환율·달러 인덱스) | ✅ | ✅ |
 | 🆕 서킷브레이커·사이드카 | `market halt` (코스피·코스닥 발동 여부) | ❌ | ✅ |
 | 🆕 지수 이상 움직임 | `market anomalies` (AI 시그널·키워드·Z점수) | ❌ | ✅ |

@@ -67,6 +67,27 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
+	var businessDaysDate string
+	businessDaysCmd := &cobra.Command{
+		Use:         "business-days <KR|US>",
+		Short:       i18n.T("market.businessDays.short"),
+		Long:        i18n.T("market.businessDays.long"),
+		Args:        cobra.ExactArgs(1),
+		Annotations: map[string]string{"source": "official"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			c, err := app.client.Official().MarketCalendar(cmd.Context(), args[0], businessDaysDate)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteTradingCalendar(cmd.OutOrStdout(), app.format, c)
+		},
+	}
+	businessDaysCmd.Flags().StringVar(&businessDaysDate, "date", "", "reference date YYYY-MM-DD (default: today)")
+
 	anomaliesCmd := &cobra.Command{
 		Use:         "anomalies",
 		Short:       i18n.T("market.anomalies.short"),
@@ -561,6 +582,6 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(hoursCmd, haltCmd, anomaliesCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, filtersCmd, stocksCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, issuesCmd, optionHoursCmd)
+	cmd.AddCommand(hoursCmd, haltCmd, businessDaysCmd, anomaliesCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, themesCmd, screenerCmd, filtersCmd, stocksCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, issuesCmd, optionHoursCmd)
 	return cmd
 }
