@@ -112,9 +112,13 @@ func TestGroupRenameNonTTYOneArgError(t *testing.T) {
 	}
 }
 
-// TestWatchlistListNonTTYNoArgsError checks that `watchlist list` with no args
-// and a non-TTY stdin returns a clean error without blocking.
-func TestWatchlistListNonTTYNoArgsError(t *testing.T) {
+// TestWatchlistListNonTTYNoArgsListsAll checks that `watchlist list` with no
+// args and a non-TTY stdin falls back to the flat all-folders list instead of
+// erroring or blocking on the interactive picker.
+//
+// 이 커맨드의 원래 동작이고 스크립트·MCP 가 그대로 쓴다. 폴더를 요구하면 피커가
+// 행(hang)되는 것은 막지만 자동화가 깨진다.
+func TestWatchlistListNonTTYNoArgsListsAll(t *testing.T) {
 	// Not parallel: temporarily replaces os.Stdin.
 	r, w, err := os.Pipe()
 	if err != nil {
@@ -131,12 +135,15 @@ func TestWatchlistListNonTTYNoArgsError(t *testing.T) {
 	opts := &rootOptions{}
 	listCmd := newWatchlistListCmd(opts)
 
+	// 세션이 없으므로 config/네트워크 단계에서 실패한다. 확인하려는 것은 "폴더를
+	// 고르라는 요구로 거절당하지 않는다" 는 것뿐이다.
 	gotErr := listCmd.RunE(listCmd, []string{})
-	if gotErr == nil {
-		t.Fatal("expected error for no args in non-TTY mode, got nil")
-	}
-	if !strings.Contains(gotErr.Error(), "folder id") && !strings.Contains(gotErr.Error(), "--all") {
-		t.Fatalf("error should mention 'folder id' or '--all', got: %v", gotErr)
+	if gotErr != nil {
+		for _, refusal := range []string{"folder id", "--all", "interactive terminal"} {
+			if strings.Contains(gotErr.Error(), refusal) {
+				t.Fatalf("non-TTY with no args must fall back to all folders, got refusal: %v", gotErr)
+			}
+		}
 	}
 }
 

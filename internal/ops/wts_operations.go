@@ -945,10 +945,10 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "watchlist", Method: "GET", Path: "wts:watchlist", Backend: "wts",
-			Category: "watchlist", Summary: "Watchlist items for a folder, or all folders with all=true. WTS-only.",
+			Category: "watchlist", Summary: "Watchlist items. Pass group_id for one folder (see watchlist_groups); with no arguments it returns every folder's items, flat. WTS-only.",
 			Params: []Param{
-				{Name: "group_id", Type: "integer", Desc: "folder id (see watchlist_groups); required unless all=true"},
-				{Name: "all", Type: "boolean", Desc: "list items from all folders (flat)"},
+				{Name: "group_id", Type: "integer", Desc: "folder id (see watchlist_groups); omit to get all folders"},
+				{Name: "all", Type: "boolean", Desc: "force the flat all-folders list (the default when group_id is omitted)"},
 			},
 			Probe: &ProbeSpec{Name: "watchlist", Method: "GET",
 				URL:   probeCert + "/api/v1/new-watchlists?includePrice=true&lazyLoad=false",
@@ -966,7 +966,10 @@ func wtsOperations() []Operation {
 					return nil, fmt.Errorf("group_id: %w", err)
 				}
 				if groupID == 0 {
-					return nil, fmt.Errorf("group_id is required (or pass all=true)")
+					// 인자 없이 부르는 것이 이 오퍼레이션의 원래 동작이었다. 폴더를
+					// 요구하면 에이전트가 watchlist_groups 를 먼저 부르도록 강제되고,
+					// 기존 호출은 전부 깨진다.
+					return d.WTS.ListAllWatchlistItems(ctx)
 				}
 				return d.WTS.GetWatchlistGroupItems(ctx, int64(groupID))
 			},

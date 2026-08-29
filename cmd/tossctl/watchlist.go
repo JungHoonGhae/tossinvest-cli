@@ -256,9 +256,11 @@ func newWatchlistListCmd(opts *rootOptions) *cobra.Command {
 					return fmt.Errorf("folder id must be a number: %s", args[0])
 				}
 			} else if !all && !tui.IsInteractive(os.Stdin, os.Stdout) {
-				// Early validation: non-TTY without group-id or --all should fail
-				// before attempting to create an app context (which requires config).
-				return fmt.Errorf("specify a folder id, or pass --all to list all folders (see `watchlist groups`)")
+				// 폴더를 고르지 않았고 물어볼 터미널도 없으면 전체를 낸다. 이것이
+				// 이 커맨드의 원래 동작이고, 스크립트와 MCP 가 그대로 쓰고 있다.
+				// 여기서 에러를 내면 대화형 피커가 행(hang)되는 것은 막지만, 대신
+				// 자동화를 깨뜨린다 — 고치려던 것보다 넓은 파손이다.
+				all = true
 			}
 
 			app, err := newAppContext(opts)
