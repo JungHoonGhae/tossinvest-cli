@@ -122,6 +122,13 @@ func TestNewDefaultsStderr(t *testing.T) {
 	}
 }
 
+func TestPinnedWTSHidesOfficialClient(t *testing.T) {
+	c := New(nil, &official.Client{}, Policy{Prefer: "wts"}, nil)
+	if c.Official() != nil {
+		t.Fatal("Official must be nil when policy pins the client to WTS")
+	}
+}
+
 // Integration-style: with off==nil, an overridden method must pass through to
 // the embedded WTS client. We back the WTS client with httptest and assert the
 // orderbook value comes from the web-session path.
@@ -154,60 +161,49 @@ func TestGetOrderBookPassthroughWhenOfficialAbsent(t *testing.T) {
 
 func TestOfficialOnlyReadsRequireKey(t *testing.T) {
 	// off == nil simulates "no official credentials connected".
-	c := New(nil, nil, Policy{}, nil)
-
-	if _, err := c.BuyingPower(context.Background(), "KRW"); !errors.Is(err, ErrOfficialKeyRequired) {
-		t.Errorf("BuyingPower: want ErrOfficialKeyRequired, got %v", err)
-	}
-	if _, err := c.MarketCalendar(context.Background(), "KR", ""); !errors.Is(err, ErrOfficialKeyRequired) {
-		t.Errorf("MarketCalendar: want ErrOfficialKeyRequired, got %v", err)
-	}
-	if _, err := c.Stocks(context.Background(), []string{"AAPL"}); !errors.Is(err, ErrOfficialKeyRequired) {
-		t.Errorf("Stocks: want ErrOfficialKeyRequired, got %v", err)
-	}
-	if _, err := c.Rankings(context.Background(), "MARKET_TRADING_AMOUNT", "KR", "1d", false, 0); !errors.Is(err, ErrOfficialKeyRequired) {
-		t.Errorf("Rankings: want ErrOfficialKeyRequired, got %v", err)
-	}
-	if _, err := c.MarketIndicatorPrices(context.Background(), []string{"KOSPI"}); !errors.Is(err, ErrOfficialKeyRequired) {
-		t.Errorf("MarketIndicatorPrices: want ErrOfficialKeyRequired, got %v", err)
-	}
-	if _, err := c.MarketIndicatorCandles(context.Background(), "KOSPI", "1d", 5, ""); !errors.Is(err, ErrOfficialKeyRequired) {
-		t.Errorf("MarketIndicatorCandles: want ErrOfficialKeyRequired, got %v", err)
-	}
-	if _, err := c.MarketInvestorTrading(context.Background(), "KOSPI", "1d", 0, ""); !errors.Is(err, ErrOfficialKeyRequired) {
-		t.Errorf("MarketInvestorTrading: want ErrOfficialKeyRequired, got %v", err)
-	}
-	if _, err := c.ConditionalOrders(context.Background(), "", "", "", 0); !errors.Is(err, ErrOfficialKeyRequired) {
-		t.Errorf("ConditionalOrders: want ErrOfficialKeyRequired, got %v", err)
-	}
-	if _, err := c.ConditionalOrder(context.Background(), "co-1"); !errors.Is(err, ErrOfficialKeyRequired) {
-		t.Errorf("ConditionalOrder: want ErrOfficialKeyRequired, got %v", err)
-	}
-	if err := c.CancelConditionalOrder(context.Background(), orderintent.ConditionalCancelIntent{ID: "co-1"}); !errors.Is(err, ErrOfficialKeyRequired) {
-		t.Errorf("CancelConditionalOrder: want ErrOfficialKeyRequired, got %v", err)
-	}
-	if _, err := c.CreateConditionalOrder(context.Background(), orderintent.ConditionalPlaceIntent{Symbol: "005930", Type: "SINGLE"}); !errors.Is(err, ErrOfficialKeyRequired) {
-		t.Errorf("CreateConditionalOrder: want ErrOfficialKeyRequired, got %v", err)
-	}
-	if err := c.ModifyConditionalOrder(context.Background(), orderintent.ConditionalModifyIntent{ID: "co-1", Type: "SINGLE"}); !errors.Is(err, ErrOfficialKeyRequired) {
-		t.Errorf("ModifyConditionalOrder: want ErrOfficialKeyRequired, got %v", err)
-	}
+	assertOfficialOnlyUnavailable(t, New(nil, nil, Policy{}, nil))
 }
 
-func TestNewOfficialOnlyReadsRespectPinnedWTS(t *testing.T) {
+func TestOfficialOnlyReadsRespectPinnedWTS(t *testing.T) {
 	// A caller can construct the router with an official adapter and still pin
 	// this run to WTS. Official-only reads must respect the policy rather than
 	// escaping through the raw adapter.
-	c := New(nil, &official.Client{}, Policy{Prefer: "wts"}, nil)
+	assertOfficialOnlyUnavailable(t, New(nil, &official.Client{}, Policy{Prefer: "wts"}, nil))
+}
 
-	if _, err := c.BuyingPower(context.Background(), "KRW"); !errors.Is(err, ErrOfficialKeyRequired) {
-		t.Errorf("BuyingPower: want ErrOfficialKeyRequired, got %v", err)
+func assertOfficialOnlyUnavailable(t *testing.T, c *Client) {
+	t.Helper()
+	ctx := context.Background()
+	calls := []struct {
+		name string
+		call func() error
+	}{
+		{"BuyingPower", func() error { _, err := c.BuyingPower(ctx, "KRW"); return err }},
+		{"MarketCalendar", func() error { _, err := c.MarketCalendar(ctx, "KR", ""); return err }},
+		{"Stocks", func() error { _, err := c.Stocks(ctx, []string{"AAPL"}); return err }},
+		{"Rankings", func() error { _, err := c.Rankings(ctx, "MARKET_TRADING_AMOUNT", "KR", "1d", false, 0); return err }},
+		{"MarketIndicatorPrices", func() error { _, err := c.MarketIndicatorPrices(ctx, []string{"KOSPI"}); return err }},
+		{"MarketIndicatorCandles", func() error { _, err := c.MarketIndicatorCandles(ctx, "KOSPI", "1d", 5, ""); return err }},
+		{"MarketInvestorTrading", func() error { _, err := c.MarketInvestorTrading(ctx, "KOSPI", "1d", 0, ""); return err }},
+		{"ConditionalOrders", func() error { _, err := c.ConditionalOrders(ctx, "", "", "", 0); return err }},
+		{"ConditionalOrder", func() error { _, err := c.ConditionalOrder(ctx, "co-1"); return err }},
+		{"CancelConditionalOrder", func() error { return c.CancelConditionalOrder(ctx, orderintent.ConditionalCancelIntent{ID: "co-1"}) }},
+		{"CreateConditionalOrder", func() error {
+			_, err := c.CreateConditionalOrder(ctx, orderintent.ConditionalPlaceIntent{Symbol: "005930", Type: "SINGLE"})
+			return err
+		}},
+		{"ModifyConditionalOrder", func() error {
+			return c.ModifyConditionalOrder(ctx, orderintent.ConditionalModifyIntent{ID: "co-1", Type: "SINGLE"})
+		}},
+		{"Supply", func() error { _, err := c.Supply(ctx, "005930", domain.SupplyInvestor, 0, ""); return err }},
+		{"ListStocks", func() error { _, err := c.ListStocks(ctx, "KOSPI", "", "", false); return err }},
 	}
-	if _, err := c.MarketCalendar(context.Background(), "KR", ""); !errors.Is(err, ErrOfficialKeyRequired) {
-		t.Errorf("MarketCalendar: want ErrOfficialKeyRequired, got %v", err)
-	}
-	if _, err := c.Stocks(context.Background(), []string{"AAPL"}); !errors.Is(err, ErrOfficialKeyRequired) {
-		t.Errorf("Stocks: want ErrOfficialKeyRequired, got %v", err)
+	for _, tc := range calls {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := tc.call(); !errors.Is(err, ErrOfficialAccessRequired) {
+				t.Errorf("want ErrOfficialAccessRequired, got %v", err)
+			}
+		})
 	}
 }
 
@@ -254,6 +250,42 @@ func TestNewOfficialOnlyReadsDelegateToOfficial(t *testing.T) {
 	stocks, err := c.Stocks(context.Background(), []string{"AAPL", "005930"})
 	if err != nil || len(stocks) != 1 || stocks[0].ISINCode != "US0378331005" {
 		t.Fatalf("Stocks delegation = %+v, %v", stocks, err)
+	}
+}
+
+func TestExchangeRatesPinnedToWTSNeverFallsBackToOfficial(t *testing.T) {
+	officialRequests := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		officialRequests++
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = io.WriteString(w, `{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`)
+		case "/api/v1/exchange-rates":
+			_, _ = io.WriteString(w, `{"result":{"baseCurrency":"USD","quoteCurrency":"KRW","rate":"1300"}}`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	wtsSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "forced WTS failure", http.StatusInternalServerError)
+	}))
+	defer wtsSrv.Close()
+	wts := client.New(client.Config{InfoBaseURL: wtsSrv.URL, HTTPClient: wtsSrv.Client()})
+	off := official.New(
+		official.Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "token.json"),
+		official.WithBaseURL(srv.URL),
+		official.WithHTTPClient(srv.Client()),
+	)
+	c := New(wts, off, Policy{Prefer: "wts"}, nil)
+
+	if _, err := c.GetExchangeRates(context.Background()); err == nil {
+		t.Fatal("pinned WTS failure must be returned instead of using official")
+	}
+	if officialRequests != 0 {
+		t.Fatalf("pinned WTS must make zero official requests, got %d", officialRequests)
 	}
 }
 

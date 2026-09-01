@@ -20,7 +20,7 @@ func TestAccountBuyingPowerWithoutOfficialKeyReturnsLoginHint(t *testing.T) {
 	if err == nil {
 		t.Fatal("official key가 없는데 성공했다")
 	}
-	if !strings.Contains(err.Error(), "requires a Toss official Open API key") ||
+	if !strings.Contains(err.Error(), "requires Toss official Open API access") ||
 		!strings.Contains(err.Error(), "tossctl openapi login") {
 		t.Fatalf("로그인 방법을 안내해야 한다: %v", err)
 	}
@@ -43,7 +43,7 @@ func TestMarketBusinessDaysWithoutOfficialKeyReturnsLoginHint(t *testing.T) {
 	if err == nil {
 		t.Fatal("official key가 없는데 성공했다")
 	}
-	if !strings.Contains(err.Error(), "requires a Toss official Open API key") ||
+	if !strings.Contains(err.Error(), "requires Toss official Open API access") ||
 		!strings.Contains(err.Error(), "tossctl openapi login") {
 		t.Fatalf("로그인 방법을 안내해야 한다: %v", err)
 	}

@@ -59,7 +59,12 @@ func New(wts *client.Client, off *official.Client, pol Policy, stderr io.Writer)
 // needs it directly: official-backend operations call typed official methods
 // the hybrid router does not front. Nil is meaningful — Catalog.Call turns it
 // into "run `tossctl openapi login`".
-func (c *Client) Official() *official.Client { return c.off }
+func (c *Client) Official() *official.Client {
+	if c.pol.Prefer == "wts" {
+		return nil
+	}
+	return c.off
+}
 
 // route is the single decision point. It is intentionally backend-agnostic
 // (takes two closures, never touches c.off itself beyond the nil check) so the
@@ -150,10 +155,11 @@ func (c *Client) GetExchangeRates(ctx context.Context) (domain.ExchangeRates, er
 	if err == nil {
 		return rates, nil
 	}
-	if c.off == nil {
+	off := c.Official()
+	if off == nil {
 		return domain.ExchangeRates{}, err
 	}
-	one, offErr := c.off.ExchangeRate(ctx, "USD", "KRW")
+	one, offErr := off.ExchangeRate(ctx, "USD", "KRW")
 	if offErr != nil {
 		// 원래(WTS) 에러를 살린다 — 세션이 없다는 사실이 사용자가 고칠 수 있는
 		// 정보이고, 폴백이 실패했다는 사실은 그 다음이다.
@@ -229,105 +235,113 @@ func (c *Client) GetCommission(ctx context.Context, symbol string) (domain.Commi
 		func() (domain.Commission, error) { return c.Client.GetCommission(ctx, symbol) })
 }
 
-// ErrOfficialKeyRequired signals a feature that only the official Open API can
-// serve (no WTS equivalent). cmd/tossctl converts it into a friendly hint.
-var ErrOfficialKeyRequired = errors.New("official Open API key required")
+// ErrOfficialAccessRequired signals a feature that only the routed official
+// Open API client can serve. Credentials may be missing, or policy may have
+// deliberately disabled official access. cmd/tossctl converts it into a hint.
+var ErrOfficialAccessRequired = errors.New("official Open API access required")
+
+// officialOnly centralizes the policy gate and zero-value error contract for
+// reads that have no WTS equivalent. Callers only describe the typed official
+// operation; they cannot accidentally bypass a pinned-WTS policy.
+func officialOnly[T any](c *Client, call func(*official.Client) (T, error)) (T, error) {
+	off := c.Official()
+	if off == nil {
+		var zero T
+		return zero, ErrOfficialAccessRequired
+	}
+	return call(off)
+}
+
+func officialOnlyDo(c *Client, call func(*official.Client) error) error {
+	off := c.Official()
+	if off == nil {
+		return ErrOfficialAccessRequired
+	}
+	return call(off)
+}
 
 // BuyingPower serves the official cash buying-power read. The WTS account
 // summary exposes different orderable-amount concepts, so this read must not
 // fall back or silently substitute one for the other.
 func (c *Client) BuyingPower(ctx context.Context, currency string) (domain.BuyingPower, error) {
-	if c.off == nil || c.pol.Prefer == "wts" {
-		return domain.BuyingPower{}, ErrOfficialKeyRequired
-	}
-	return c.off.BuyingPower(ctx, currency)
+	return officialOnly(c, func(off *official.Client) (domain.BuyingPower, error) {
+		return off.BuyingPower(ctx, currency)
+	})
 }
 
 // MarketCalendar serves the official trading-day calendar. WTS exposes a
 // different monthly market-events calendar, so this read has no valid fallback.
 func (c *Client) MarketCalendar(ctx context.Context, country, date string) (domain.TradingCalendar, error) {
-	if c.off == nil || c.pol.Prefer == "wts" {
-		return domain.TradingCalendar{}, ErrOfficialKeyRequired
-	}
-	return c.off.MarketCalendar(ctx, country, date)
+	return officialOnly(c, func(off *official.Client) (domain.TradingCalendar, error) {
+		return off.MarketCalendar(ctx, country, date)
+	})
 }
 
 // Stocks serves the official batch stock-metadata read. WTS has quote and
 // universe endpoints, but neither is an equivalent metadata contract, so this
 // read must not fall back or silently substitute another dataset.
 func (c *Client) Stocks(ctx context.Context, symbols []string) ([]domain.StockMetadata, error) {
-	if c.off == nil || c.pol.Prefer == "wts" {
-		return nil, ErrOfficialKeyRequired
-	}
-	return c.off.Stocks(ctx, symbols)
+	return officialOnly(c, func(off *official.Client) ([]domain.StockMetadata, error) {
+		return off.Stocks(ctx, symbols)
+	})
 }
 
 // Rankings serves the official /rankings ranking. official-only: no WTS
 // fallback (WTS "popularity" ranking is a different dataset), so a missing key
-// returns ErrOfficialKeyRequired rather than degrading.
+// returns ErrOfficialAccessRequired rather than degrading.
 func (c *Client) Rankings(ctx context.Context, typ, marketCountry, duration string, excludeCaution bool, count int) (domain.Ranking, error) {
-	if c.off == nil {
-		return domain.Ranking{}, ErrOfficialKeyRequired
-	}
-	return c.off.Rankings(ctx, typ, marketCountry, duration, excludeCaution, count)
+	return officialOnly(c, func(off *official.Client) (domain.Ranking, error) {
+		return off.Rankings(ctx, typ, marketCountry, duration, excludeCaution, count)
+	})
 }
 
 // MarketIndicatorPrices serves official market-indicator current prices.
 // official-only (see Rankings).
 func (c *Client) MarketIndicatorPrices(ctx context.Context, symbols []string) (domain.MarketIndicatorPrices, error) {
-	if c.off == nil {
-		return domain.MarketIndicatorPrices{}, ErrOfficialKeyRequired
-	}
-	return c.off.MarketIndicatorPrices(ctx, symbols)
+	return officialOnly(c, func(off *official.Client) (domain.MarketIndicatorPrices, error) {
+		return off.MarketIndicatorPrices(ctx, symbols)
+	})
 }
 
 // MarketIndicatorCandles serves official market-indicator candles.
 // official-only (see Rankings).
 func (c *Client) MarketIndicatorCandles(ctx context.Context, symbol, interval string, count int, before string) (domain.MarketIndicatorCandles, error) {
-	if c.off == nil {
-		return domain.MarketIndicatorCandles{}, ErrOfficialKeyRequired
-	}
-	return c.off.MarketIndicatorCandles(ctx, symbol, interval, count, before)
+	return officialOnly(c, func(off *official.Client) (domain.MarketIndicatorCandles, error) {
+		return off.MarketIndicatorCandles(ctx, symbol, interval, count, before)
+	})
 }
 
 // MarketInvestorTrading serves official market-wide investor trading.
 // official-only (see Rankings).
 func (c *Client) MarketInvestorTrading(ctx context.Context, symbol, interval string, count int, until string) (domain.InvestorTrading, error) {
-	if c.off == nil {
-		return domain.InvestorTrading{}, ErrOfficialKeyRequired
-	}
-	return c.off.MarketInvestorTrading(ctx, symbol, interval, count, until)
+	return officialOnly(c, func(off *official.Client) (domain.InvestorTrading, error) {
+		return off.MarketInvestorTrading(ctx, symbol, interval, count, until)
+	})
 }
 
 // ConditionalOrders serves the official conditional-order list. official-only.
 func (c *Client) ConditionalOrders(ctx context.Context, status, symbol, cursor string, limit int) (domain.ConditionalOrderList, error) {
-	if c.off == nil {
-		return domain.ConditionalOrderList{}, ErrOfficialKeyRequired
-	}
-	return c.off.ConditionalOrders(ctx, status, symbol, cursor, limit)
+	return officialOnly(c, func(off *official.Client) (domain.ConditionalOrderList, error) {
+		return off.ConditionalOrders(ctx, status, symbol, cursor, limit)
+	})
 }
 
 // ConditionalOrder serves one official conditional order by id. official-only.
 func (c *Client) ConditionalOrder(ctx context.Context, id string) (domain.ConditionalOrder, error) {
-	if c.off == nil {
-		return domain.ConditionalOrder{}, ErrOfficialKeyRequired
-	}
-	return c.off.ConditionalOrder(ctx, id)
+	return officialOnly(c, func(off *official.Client) (domain.ConditionalOrder, error) {
+		return off.ConditionalOrder(ctx, id)
+	})
 }
 
 // CancelConditionalOrder cancels a conditional order. official-only.
 func (c *Client) CancelConditionalOrder(ctx context.Context, intent orderintent.ConditionalCancelIntent) error {
-	if c.off == nil {
-		return ErrOfficialKeyRequired
-	}
-	return c.off.CancelConditionalOrder(ctx, intent.ID)
+	return officialOnlyDo(c, func(off *official.Client) error {
+		return off.CancelConditionalOrder(ctx, intent.ID)
+	})
 }
 
 // CreateConditionalOrder creates a conditional order. official-only.
 func (c *Client) CreateConditionalOrder(ctx context.Context, intent orderintent.ConditionalPlaceIntent) (domain.ConditionalOrderRef, error) {
-	if c.off == nil {
-		return domain.ConditionalOrderRef{}, ErrOfficialKeyRequired
-	}
 	body := official.ConditionalCreateBody{
 		Symbol: intent.Symbol, Type: intent.Type, Quantity: fmtDec(intent.Quantity),
 		OrderType: intent.OrderType, ClientOrderID: intent.ClientOrderID, ExpireDate: intent.ExpireDate,
@@ -337,14 +351,13 @@ func (c *Client) CreateConditionalOrder(ctx context.Context, intent orderintent.
 		s := officialLeg(*intent.Second)
 		body.Second = &s
 	}
-	return c.off.CreateConditionalOrder(ctx, body)
+	return officialOnly(c, func(off *official.Client) (domain.ConditionalOrderRef, error) {
+		return off.CreateConditionalOrder(ctx, body)
+	})
 }
 
 // ModifyConditionalOrder modifies a conditional order. official-only.
 func (c *Client) ModifyConditionalOrder(ctx context.Context, intent orderintent.ConditionalModifyIntent) error {
-	if c.off == nil {
-		return ErrOfficialKeyRequired
-	}
 	body := official.ConditionalModifyBody{
 		Type: intent.Type, Quantity: fmtDec(intent.Quantity), OrderType: intent.OrderType,
 		ExpireDate: intent.ExpireDate, First: officialLeg(intent.First), ConfirmHighValueOrder: intent.ConfirmHighValue,
@@ -353,7 +366,9 @@ func (c *Client) ModifyConditionalOrder(ctx context.Context, intent orderintent.
 		s := officialLeg(*intent.Second)
 		body.Second = &s
 	}
-	return c.off.ModifyConditionalOrder(ctx, intent.ID, body)
+	return officialOnlyDo(c, func(off *official.Client) error {
+		return off.ModifyConditionalOrder(ctx, intent.ID, body)
+	})
 }
 
 func fmtDec(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }
@@ -389,12 +404,11 @@ func officialLeg(l orderintent.ConditionLeg) official.ConditionLegBody {
 // Supply exposes the official supply series. There is no WTS equivalent for
 // short-selling/credit/lending/program, and the one overlapping series
 // (investor-trading) is routed by GetTradingFlows instead — so this is
-// official-only and says so plainly when no key is configured.
+// official-only and reports the shared access error when unavailable.
 func (c *Client) Supply(ctx context.Context, symbol string, kind domain.SupplyKind, count int, until string) (domain.SupplySeries, error) {
-	if c.off == nil || c.pol.Prefer == "wts" {
-		return domain.SupplySeries{}, fmt.Errorf("종목 수급은 공식 Open API 전용입니다 — `tossctl openapi login` 으로 키를 연결하세요")
-	}
-	return c.off.Supply(ctx, symbol, kind, count, until)
+	return officialOnly(c, func(off *official.Client) (domain.SupplySeries, error) {
+		return off.Supply(ctx, symbol, kind, count, until)
+	})
 }
 
 // GetTradingFlows prefers the official investor-trading series and falls back
@@ -439,8 +453,7 @@ func supplyToFlows(symbol string, s domain.SupplySeries) domain.TradingFlows {
 // ListStocks exposes the official universe endpoint. WTS has no equivalent —
 // its catalogue surfaces are search-shaped, not enumerable.
 func (c *Client) ListStocks(ctx context.Context, market, status, securityType string, commonShareOnly bool) (domain.StockUniverse, error) {
-	if c.off == nil || c.pol.Prefer == "wts" {
-		return domain.StockUniverse{}, fmt.Errorf("종목 유니버스는 공식 Open API 전용입니다 — `tossctl openapi login` 으로 키를 연결하세요")
-	}
-	return c.off.ListStocks(ctx, market, status, securityType, commonShareOnly)
+	return officialOnly(c, func(off *official.Client) (domain.StockUniverse, error) {
+		return off.ListStocks(ctx, market, status, securityType, commonShareOnly)
+	})
 }
