@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -161,31 +160,12 @@ func newAccountInterestCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return userFacingCommandError(err)
 			}
-
-			// 빈 해는 흔하다(계좌 개설 전, 이자 미발생). 그때만 연도 목록을
-			// 덧붙인다 — 매번 부르면 요청이 두 배가 된다. 목록 조회가 실패해도
-			// 본 결과는 그대로 낸다.
-			if len(interest.Monthly) == 0 || !hasInterestPayment(interest) {
-				if years, yErr := app.client.GetInterestYears(cmd.Context()); yErr == nil {
-					interest.AvailableYears = years
-				}
-			}
-
 			return output.WriteAccountInterest(cmd.OutOrStdout(), app.format, interest)
 		},
 	}
 
 	cmd.Flags().IntVar(&year, "year", 0, i18n.T("account.interest.yearFlag"))
 	return cmd
-}
-
-func hasInterestPayment(ai domain.AccountInterest) bool {
-	for _, m := range ai.Monthly {
-		if len(m.Payments) > 0 {
-			return true
-		}
-	}
-	return false
 }
 
 // newAccountBuyingPowerCmd exposes the official API's cash buying power.
@@ -207,7 +187,7 @@ func newAccountBuyingPowerCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			bp, err := app.client.Official().BuyingPower(cmd.Context(), currency)
+			bp, err := app.client.BuyingPower(cmd.Context(), currency)
 			if err != nil {
 				return userFacingCommandError(err)
 			}

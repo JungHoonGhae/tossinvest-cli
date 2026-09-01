@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
@@ -60,6 +61,10 @@ type Client struct {
 	tradingPolicy config.Trading
 	browserTabID  string
 	appVersion    string
+
+	interestYearsMu    sync.Mutex
+	interestYearsCache map[string]interestYearsCacheEntry
+	interestYearsCalls map[string]*interestYearsCall
 }
 
 func New(cfg Config) *Client {
@@ -82,14 +87,16 @@ func New(cfg Config) *Client {
 	}
 
 	return &Client{
-		httpClient:    httpClient,
-		apiBaseURL:    apiBaseURL,
-		infoBaseURL:   infoBaseURL,
-		certBaseURL:   certBaseURL,
-		session:       cfg.Session,
-		tradingPolicy: cfg.TradingPolicy,
-		browserTabID:  inferBrowserTabID(cfg.Session),
-		appVersion:    inferAppVersion(cfg.Session),
+		httpClient:         httpClient,
+		apiBaseURL:         apiBaseURL,
+		infoBaseURL:        infoBaseURL,
+		certBaseURL:        certBaseURL,
+		session:            cfg.Session,
+		tradingPolicy:      cfg.TradingPolicy,
+		browserTabID:       inferBrowserTabID(cfg.Session),
+		appVersion:         inferAppVersion(cfg.Session),
+		interestYearsCache: make(map[string]interestYearsCacheEntry),
+		interestYearsCalls: make(map[string]*interestYearsCall),
 	}
 }
 

@@ -1,10 +1,17 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
+
+	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 )
 
 // 더미 값 — 실계좌 데이터 아님.
@@ -110,5 +117,356 @@ func TestGetInterestYears(t *testing.T) {
 	}
 	if len(got) != 3 || got[0] != 2024 || got[2] != 2026 {
 		t.Errorf("years = %v, want [2024 2025 2026]", got)
+	}
+}
+
+func TestGetAccountInterestEnrichesEmptyYearWithAvailableYears(t *testing.T) {
+	accountListCalls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/account/list":
+			accountListCalls++
+			json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"accountList": []map[string]any{{"key": "1", "type": "BROKERAGE"}},
+				"primaryKey":  "1",
+			}})
+		case "/api/v1/interest/accounts/annual/history/by-payment-date":
+			json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"year": 2023, "totalInterest": 0, "monthlySchedule": []any{},
+			}})
+		case "/api/v1/interest/accounts/annual/history/years":
+			if got := r.Header.Get("accountKey"); got != "1" {
+				t.Errorf("years accountKey = %q, want 1", got)
+			}
+			json.NewEncoder(w).Encode(map[string]any{"result": []int{2024, 2025, 2026}})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	got, err := testClientFor(server).GetAccountInterest(t.Context(), 2023)
+	if err != nil {
+		t.Fatalf("GetAccountInterest() error = %v", err)
+	}
+	if len(got.AvailableYears) != 3 || got.AvailableYears[0] != 2024 || got.AvailableYears[2] != 2026 {
+		t.Fatalf("AvailableYears = %v, want [2024 2025 2026]", got.AvailableYears)
+	}
+	if accountListCalls != 1 {
+		t.Fatalf("account list calls = %d, want 1 shared account lookup", accountListCalls)
+	}
+}
+
+func TestGetAccountInterestKeepsEmptyReportWhenYearEnrichmentFails(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/account/list":
+			json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"accountList": []map[string]any{{"key": "1", "type": "BROKERAGE"}},
+				"primaryKey":  "1",
+			}})
+		case "/api/v1/interest/accounts/annual/history/by-payment-date":
+			json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"year": 2023, "totalInterest": 0, "monthlySchedule": []any{},
+			}})
+		case "/api/v1/interest/accounts/annual/history/years":
+			http.Error(w, "temporary failure", http.StatusServiceUnavailable)
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	got, err := testClientFor(server).GetAccountInterest(t.Context(), 2023)
+	if err != nil {
+		t.Fatalf("main interest report must survive optional year lookup: %v", err)
+	}
+	if got.Year != 2023 || got.Total != 0 || len(got.AvailableYears) != 0 {
+		t.Fatalf("interest report = %+v, want empty 2023 report without available years", got)
+	}
+}
+
+func TestGetAccountInterestEnrichesMonthsWithoutPayments(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/account/list":
+			json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"accountList": []map[string]any{{"key": "1", "type": "BROKERAGE"}},
+				"primaryKey":  "1",
+			}})
+		case "/api/v1/interest/accounts/annual/history/by-payment-date":
+			json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"year": 2023, "totalInterest": 0,
+				"monthlySchedule": []map[string]any{{"month": 1, "totalInterest": 0, "details": []any{}}},
+			}})
+		case "/api/v1/interest/accounts/annual/history/years":
+			json.NewEncoder(w).Encode(map[string]any{"result": []int{2023, 2024}})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	got, err := testClientFor(server).GetAccountInterest(t.Context(), 2023)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Monthly) != 1 || len(got.Monthly[0].Payments) != 0 {
+		t.Fatalf("empty monthly row changed: %+v", got.Monthly)
+	}
+	if len(got.AvailableYears) != 2 || got.AvailableYears[1] != 2024 {
+		t.Fatalf("months without payments must still enrich available years: %v", got.AvailableYears)
+	}
+}
+
+func TestGetAccountInterestCachesSuccessfulYearEnrichment(t *testing.T) {
+	yearCalls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/account/list":
+			json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"accountList": []map[string]any{{"key": "1", "type": "BROKERAGE"}},
+				"primaryKey":  "1",
+			}})
+		case "/api/v1/interest/accounts/annual/history/by-payment-date":
+			json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"year": 2023, "totalInterest": 0, "monthlySchedule": []any{},
+			}})
+		case "/api/v1/interest/accounts/annual/history/years":
+			yearCalls++
+			json.NewEncoder(w).Encode(map[string]any{"result": []int{2023, 2024}})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	c := testClientFor(server)
+	for range 2 {
+		got, err := c.GetAccountInterest(t.Context(), 2023)
+		if err != nil || len(got.AvailableYears) != 2 {
+			t.Fatalf("cached enrichment failed: got=%+v err=%v", got, err)
+		}
+	}
+	if yearCalls != 1 {
+		t.Fatalf("year endpoint calls = %d, want 1 successful cached lookup", yearCalls)
+	}
+}
+
+func TestGetAccountInterestBoundsOptionalYearEnrichmentLatency(t *testing.T) {
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/account/list":
+			json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"accountList": []map[string]any{{"key": "1", "type": "BROKERAGE"}},
+				"primaryKey":  "1",
+			}})
+		case "/api/v1/interest/accounts/annual/history/by-payment-date":
+			json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"year": 2023, "totalInterest": 0, "monthlySchedule": []any{},
+			}})
+		case "/api/v1/interest/accounts/annual/history/years":
+			select {
+			case <-release:
+				json.NewEncoder(w).Encode(map[string]any{"result": []int{2023}})
+			case <-r.Context().Done():
+			}
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	httpClient := server.Client()
+	httpClient.Timeout = 2 * time.Second
+	c := New(Config{
+		HTTPClient: httpClient, APIBaseURL: server.URL, InfoBaseURL: server.URL, CertBaseURL: server.URL,
+		Session: &session.Session{Cookies: map[string]string{"SESSION": "x"}},
+	})
+	started := time.Now()
+	got, err := c.GetAccountInterest(t.Context(), 2023)
+	close(release)
+	if err != nil {
+		t.Fatalf("main report must survive slow optional enrichment: %v", err)
+	}
+	if elapsed := time.Since(started); elapsed >= 1500*time.Millisecond {
+		t.Fatalf("optional enrichment delayed main report for %s", elapsed)
+	}
+	if got.Year != 2023 || len(got.AvailableYears) != 0 {
+		t.Fatalf("unexpected empty report after enrichment timeout: %+v", got)
+	}
+}
+
+type interestYearsCallResult struct {
+	years []int
+	err   error
+}
+
+func blockingInterestServer(t *testing.T) (*httptest.Server, <-chan struct{}, chan<- struct{}, *atomic.Int32) {
+	t.Helper()
+	started := make(chan struct{})
+	release := make(chan struct{})
+	var startedOnce sync.Once
+	var yearCalls atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/account/list":
+			json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"accountList": []map[string]any{{"key": "1", "type": "BROKERAGE"}},
+				"primaryKey":  "1",
+			}})
+		case "/api/v1/interest/accounts/annual/history/by-payment-date":
+			json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"year": 2023, "totalInterest": 0, "monthlySchedule": []any{},
+			}})
+		case "/api/v1/interest/accounts/annual/history/years":
+			yearCalls.Add(1)
+			startedOnce.Do(func() { close(started) })
+			select {
+			case <-release:
+				json.NewEncoder(w).Encode(map[string]any{"result": []int{2023, 2024}})
+			case <-r.Context().Done():
+			}
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	return server, started, release, &yearCalls
+}
+
+func TestInterestYearSingleflightKeepsOptionalWaiterDeadlineIndependent(t *testing.T) {
+	server, started, release, calls := blockingInterestServer(t)
+	defer server.Close()
+	c := testClientFor(server)
+
+	explicitDone := make(chan interestYearsCallResult, 1)
+	go func() {
+		years, err := c.GetInterestYears(context.Background())
+		explicitDone <- interestYearsCallResult{years: years, err: err}
+	}()
+	<-started
+
+	optionalDone := make(chan error, 1)
+	go func() {
+		_, err := c.GetAccountInterest(context.Background(), 2023)
+		optionalDone <- err
+	}()
+	select {
+	case err := <-optionalDone:
+		if err != nil {
+			t.Fatalf("optional report failed: %v", err)
+		}
+	case <-time.After(1500 * time.Millisecond):
+		close(release)
+		<-explicitDone
+		t.Fatal("optional waiter inherited the explicit lookup's longer wait")
+	}
+	select {
+	case result := <-explicitDone:
+		close(release)
+		t.Fatalf("explicit lookup finished before its shared request was released: %+v", result)
+	default:
+	}
+	close(release)
+	result := <-explicitDone
+	if result.err != nil || len(result.years) != 2 {
+		t.Fatalf("explicit lookup after release = %+v", result)
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("year endpoint calls = %d, want one shared request", calls.Load())
+	}
+}
+
+func TestInterestYearSingleflightDoesNotImposeOptionalTimeoutOnExplicitWaiter(t *testing.T) {
+	server, started, release, calls := blockingInterestServer(t)
+	defer server.Close()
+	c := testClientFor(server)
+
+	optionalDone := make(chan error, 1)
+	go func() {
+		_, err := c.GetAccountInterest(context.Background(), 2023)
+		optionalDone <- err
+	}()
+	<-started
+	explicitDone := make(chan interestYearsCallResult, 1)
+	go func() {
+		years, err := c.GetInterestYears(context.Background())
+		explicitDone <- interestYearsCallResult{years: years, err: err}
+	}()
+
+	select {
+	case err := <-optionalDone:
+		if err != nil {
+			t.Fatalf("optional report failed: %v", err)
+		}
+	case <-time.After(1500 * time.Millisecond):
+		close(release)
+		t.Fatal("optional waiter exceeded its enrichment deadline")
+	}
+	select {
+	case result := <-explicitDone:
+		close(release)
+		t.Fatalf("explicit waiter inherited the optional timeout: %+v", result)
+	default:
+	}
+	close(release)
+	result := <-explicitDone
+	if result.err != nil || len(result.years) != 2 {
+		t.Fatalf("explicit lookup after release = %+v", result)
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("year endpoint calls = %d, want one shared request", calls.Load())
+	}
+}
+
+func TestInterestYearSharedRequestCancelsAfterLastWaiterLeaves(t *testing.T) {
+	started := make(chan struct{})
+	requestCanceled := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/account/list":
+			json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
+				"accountList": []map[string]any{{"key": "1", "type": "BROKERAGE"}},
+				"primaryKey":  "1",
+			}})
+		case "/api/v1/interest/accounts/annual/history/years":
+			close(started)
+			<-r.Context().Done()
+			close(requestCanceled)
+		default:
+			t.Errorf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		_, err := testClientFor(server).GetInterestYears(ctx)
+		done <- err
+	}()
+	<-started
+	cancel()
+
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("GetInterestYears error = %v, want context canceled", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("caller did not return after cancellation")
+	}
+	select {
+	case <-requestCanceled:
+	case <-time.After(time.Second):
+		t.Fatal("shared HTTP request survived after its last waiter left")
 	}
 }

@@ -12,21 +12,6 @@ import (
 
 // 전부 합성 더미다.
 
-// 마스킹은 이 출력이 이슈·채팅에 붙여넣어진다는 전제의 방어선이다.
-func TestMaskAccountNumber(t *testing.T) {
-	cases := map[string]string{
-		"137-01-000930": "137-01-***930",
-		"12345678901":   "123456**901",
-		"1234567":       "1234567", // 너무 짧으면 가릴 게 없다
-		"":              "",
-	}
-	for in, want := range cases {
-		if got := MaskAccountNumber(in); got != want {
-			t.Errorf("MaskAccountNumber(%q) = %q, want %q", in, got, want)
-		}
-	}
-}
-
 // 미국 배당 수령 방식은 계좌 설정인데 웹 화면이 없어서(모바일 전용) 눈으로
 // 확인할 방법이 없었다. 현금으로 받는지 주식으로 재투자되는지는 세금과 보유
 // 수량이 갈리는 선택이라 조회 가치가 있다.

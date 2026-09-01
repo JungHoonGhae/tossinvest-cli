@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -155,6 +156,12 @@ func TestOfficialOnlyReadsRequireKey(t *testing.T) {
 	// off == nil simulates "no official credentials connected".
 	c := New(nil, nil, Policy{}, nil)
 
+	if _, err := c.BuyingPower(context.Background(), "KRW"); !errors.Is(err, ErrOfficialKeyRequired) {
+		t.Errorf("BuyingPower: want ErrOfficialKeyRequired, got %v", err)
+	}
+	if _, err := c.MarketCalendar(context.Background(), "KR", ""); !errors.Is(err, ErrOfficialKeyRequired) {
+		t.Errorf("MarketCalendar: want ErrOfficialKeyRequired, got %v", err)
+	}
 	if _, err := c.Rankings(context.Background(), "MARKET_TRADING_AMOUNT", "KR", "1d", false, 0); !errors.Is(err, ErrOfficialKeyRequired) {
 		t.Errorf("Rankings: want ErrOfficialKeyRequired, got %v", err)
 	}
@@ -181,6 +188,57 @@ func TestOfficialOnlyReadsRequireKey(t *testing.T) {
 	}
 	if err := c.ModifyConditionalOrder(context.Background(), orderintent.ConditionalModifyIntent{ID: "co-1", Type: "SINGLE"}); !errors.Is(err, ErrOfficialKeyRequired) {
 		t.Errorf("ModifyConditionalOrder: want ErrOfficialKeyRequired, got %v", err)
+	}
+}
+
+func TestNewOfficialOnlyReadsRespectPinnedWTS(t *testing.T) {
+	// A caller can construct the router with an official adapter and still pin
+	// this run to WTS. Official-only reads must respect the policy rather than
+	// escaping through the raw adapter.
+	c := New(nil, &official.Client{}, Policy{Prefer: "wts"}, nil)
+
+	if _, err := c.BuyingPower(context.Background(), "KRW"); !errors.Is(err, ErrOfficialKeyRequired) {
+		t.Errorf("BuyingPower: want ErrOfficialKeyRequired, got %v", err)
+	}
+	if _, err := c.MarketCalendar(context.Background(), "KR", ""); !errors.Is(err, ErrOfficialKeyRequired) {
+		t.Errorf("MarketCalendar: want ErrOfficialKeyRequired, got %v", err)
+	}
+}
+
+func TestNewOfficialOnlyReadsDelegateToOfficial(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = io.WriteString(w, `{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`)
+		case "/api/v1/buying-power":
+			if got := r.Header.Get("X-Tossinvest-Account"); got != "7" {
+				t.Errorf("account header = %q, want 7", got)
+			}
+			_, _ = io.WriteString(w, `{"result":{"cashBuyingPower":"12345.5","currency":"KRW"}}`)
+		case "/api/v1/market-calendar/KR":
+			_, _ = io.WriteString(w, `{"result":{"today":{"date":"2026-09-01","integrated":{"regularMarket":{"startTime":"2026-09-01T09:00:00+09:00","endTime":"2026-09-01T15:30:00+09:00"}}}}}`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	off := official.New(
+		official.Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "token.json"),
+		official.WithBaseURL(srv.URL),
+		official.WithHTTPClient(srv.Client()),
+		official.WithAccountSeq(7),
+	)
+	c := New(nil, off, Policy{Prefer: "auto"}, nil)
+
+	power, err := c.BuyingPower(context.Background(), "KRW")
+	if err != nil || power.Currency != "KRW" || power.CashBuyingPower != 12345.5 {
+		t.Fatalf("BuyingPower delegation = %+v, %v", power, err)
+	}
+	calendar, err := c.MarketCalendar(context.Background(), "KR", "")
+	if err != nil || calendar.Today.Date != "2026-09-01" || calendar.Today.Holiday {
+		t.Fatalf("MarketCalendar delegation = %+v, %v", calendar, err)
 	}
 }
 

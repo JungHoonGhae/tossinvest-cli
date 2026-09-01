@@ -198,28 +198,6 @@ func (c *Client) GetAccountDetail(ctx context.Context) (domain.AccountDetail, er
 	return out, nil
 }
 
-// MaskAccountNumber hides the middle of an account number, keeping enough to
-// recognise it. Output lands in terminals that get pasted into issues, so the
-// full number is opt-in (see CLAUDE.md: no real account data in public output).
-func MaskAccountNumber(no string) string {
-	r := []rune(no)
-	if len(r) <= 7 {
-		return no
-	}
-	keepHead, keepTail := 6, 3
-	masked := make([]rune, 0, len(r))
-	masked = append(masked, r[:keepHead]...)
-	for _, ch := range r[keepHead : len(r)-keepTail] {
-		if ch == '-' {
-			masked = append(masked, '-')
-			continue
-		}
-		masked = append(masked, '*')
-	}
-	masked = append(masked, r[len(r)-keepTail:]...)
-	return string(masked)
-}
-
 // tradePurposeRaw mirrors /api/v1/trade-purpose-verification/status.
 // accountNo and passDetail are deliberately not mapped: the account number is
 // already carried (and masked) by the parent detail, and passDetail was null

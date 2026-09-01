@@ -83,6 +83,66 @@ func TestAccountDetailJSONHonoursMasking(t *testing.T) {
 	}
 }
 
+func TestAccountDetailMasksShortIdentityValues(t *testing.T) {
+	for input, want := range map[string]string{
+		"":           "",
+		"1":          "*",
+		"12":         "**",
+		"123":        "***",
+		"1234":       "*234",
+		"1234567":    "****567",
+		"12345678":   "*****678",
+		"123456789":  "******789",
+		"1234567890": "*******890",
+		"가나다라마바아자차":  "******아자차",
+	} {
+		t.Run(input, func(t *testing.T) {
+			d := sampleDetail()
+			d.Number = input
+			d.Name = "홍"
+
+			var buf bytes.Buffer
+			if err := WriteAccountDetail(&buf, FormatJSON, d, false); err != nil {
+				t.Fatal(err)
+			}
+			var got domain.AccountDetail
+			if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			if got.Number != want {
+				t.Errorf("short account number = %q, want %q", got.Number, want)
+			}
+			if got.Name != "*" {
+				t.Errorf("single-rune holder name = %q, want %q", got.Name, "*")
+			}
+		})
+	}
+}
+
+func TestAccountDetailDefaultMaskOnlyRevealsLastThreeAccountDigits(t *testing.T) {
+	for input, want := range map[string]string{
+		"137-01-000930": "***-**-***930",
+		"1234567890":    "*******890",
+	} {
+		t.Run(input, func(t *testing.T) {
+			d := sampleDetail()
+			d.Number = input
+
+			var buf bytes.Buffer
+			if err := WriteAccountDetail(&buf, FormatJSON, d, false); err != nil {
+				t.Fatal(err)
+			}
+			var got domain.AccountDetail
+			if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			if got.Number != want {
+				t.Fatalf("masked account number = %q, want %q", got.Number, want)
+			}
+		})
+	}
+}
+
 // 의미를 모르는 상태 코드는 사람이 읽는 출력에 넣지 않는다(JSON 에는 남긴다).
 func TestAccountDetailHidesOpaqueStatusFromTable(t *testing.T) {
 	d := sampleDetail() // Status: "00"
