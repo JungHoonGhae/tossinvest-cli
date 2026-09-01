@@ -9,6 +9,21 @@ description: tossctl 버전별 변경 사항 (사용자 관점)
 
 ## [Unreleased]
 
+## [0.47.0] - 2026-09-01
+
+### 변경
+- **`call_operation`·`tossctl ops call` 인자 계약을 엄격하게 검사합니다.** 선언되지 않은 인자, 명시적 `null`·빈 `--params`, 잘못된 primitive 타입, 소수로 전달된 정수, `float64` 변환에서 정밀도를 잃는 큰 정수는 backend 호출 전에 오류가 납니다. superset/stale 파라미터 객체를 보내던 자동화는 `describe_operation` 의 현재 스키마에 맞춰야 합니다.
+- **`quote charts`·`quote reasons` 의 누락 계약을 모든 기계 출력에 보존합니다.** 결과는 요청 순서로 정렬되고, 서버가 생략한 종목은 JSON `missing` 배열과 CSV 의 빈 행으로 표시됩니다. 캔들이 0개인 정상 응답도 CSV 에서 사라지지 않습니다.
+
+### 버그 수정
+- 공식 키가 없거나 WTS 로 고정된 상태에서 `account buying-power`·`market business-days` 를 실행하면 panic 대신 Open API 로그인 안내를 반환합니다.
+- MCP 가 `openapi.enabled=false` 또는 `--backend wts` 설정을 무시하고 저장된 공식 키와 주문 서비스를 활성화하던 문제를 수정했습니다.
+- MCP 대형 응답을 30KB 이하로 줄이는 과정에서 `2^53` 보다 큰 정수가 반올림되던 문제를 수정했습니다.
+- 지급 내역이 없는 `account interest` 결과가 CLI 와 operation 에서 같은 사용 가능 연도 정보를 돌려줍니다. 연도 조회는 성공 결과를 캐시하고 동시 요청을 공유하되, 마지막 대기자가 취소되면 실제 HTTP 요청도 취소하며, 보강 실패가 본 보고서를 막지 않습니다.
+- 짧거나 비정상 형태의 계좌번호와 한 글자 예금주명도 `account detail` 기본 출력에서 노출되지 않도록 마스킹합니다.
+- 관심종목 대화형 폴더 선택이 Cobra 에 주입된 입력·출력 스트림을 사용하도록 바꿔 임베디드 실행과 PTY 테스트에서 프로세스 전역 터미널에 잘못 연결되지 않게 했습니다.
+- WTS endpoint 인벤토리가 Go AST 의 문자열 상수·`fmt.Sprintf` 조립 경로와 런타임 monitor probe 를 함께 읽고 host·method·소유권 불일치를 테스트에서 fail-closed로 감지합니다.
+
 ## [0.46.0] - 2026-08-29
 
 ### 새 기능
