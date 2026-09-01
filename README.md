@@ -255,6 +255,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | 시세 | `quote get <symbol>` (OHLC·52주 고저·시총·거래대금·체결강도) | 🔸 *(체결강도·52주 등 제외)* | ✅ |
 | 캔들 차트 | `quote chart --interval 1m\|3m\|5m\|10m\|15m\|30m\|60m` | 🔸 *(1분·일봉만)* | ✅ |
 | **멀티 시세 / 실시간 갱신** | `quote batch <sym>[,sym,...]` (`--chart`·`--live`) | ❌ | ✅ |
+| **🆕 종목 메타데이터 일괄 조회** | `quote metadata <sym>[,sym,...]` (ISIN·시장·유형·상장 상태·상장주식수, 최대 200개) | ✅ | ✅ |
 | **🆕 가상자산 시세 + 김프** | `quote crypto BTC,ETH,SOL,XRP` (OHLC·52주·김치 프리미엄) | ❌ | ✅ |
 | **🆕 마켓 전체 종목 (유니버스)** | `market stocks KOSPI\|NASDAQ\|…` (필터: `--status`·`--security-type`·`--common-share`) | ✅ | ✅ |
 | **🆕 종목 수급 (5종)** | `quote supply <symbol> --type investor\|short\|credit\|lending\|program` | ✅ | ✅ |

@@ -26,7 +26,6 @@ var opsOnlyByDesign = map[string]string{
 		"보일 수 있다 — 백엔드를 사용자가 고르게 하는 것보다 나쁘다. 트리거: " +
 		"같은 달 완료 주문이 생겨 WTS/공식 상태값을 나란히 관측할 때.",
 	"OrderByID": "Orders 와 같은 이유 (status enum 미확정).",
-	"Stocks":    "종목 메타 일괄 조회(최대 200). `market stocks`(ListStocks, 상장 유니버스)와 다른 엔드포인트이고, 단건은 `quote` 가 이미 덮는다.",
 }
 
 var officialMethodRE = regexp.MustCompile(`func \(c \*Client\) ([A-Z]\w+)\(`)

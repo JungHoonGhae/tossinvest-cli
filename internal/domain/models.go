@@ -620,6 +620,36 @@ type Quote struct {
 	FetchedAt       time.Time `json:"fetched_at"`
 }
 
+// KoreanMarketDetail contains KRX/NXT availability flags returned only for
+// Korean stock metadata. NXTTradingSuspended is nil when NXT is unsupported.
+type KoreanMarketDetail struct {
+	LiquidationTrading  bool  `json:"liquidation_trading"`
+	NXTSupported        bool  `json:"nxt_supported"`
+	KRXTradingSuspended bool  `json:"krx_trading_suspended"`
+	NXTTradingSuspended *bool `json:"nxt_trading_suspended"`
+}
+
+// StockMetadata is the official Open API's batch stock-description record.
+// Decimal and date fields stay as strings so identifiers and large share
+// counts are never rounded by machine-readable output.
+type StockMetadata struct {
+	Symbol             string              `json:"symbol"`
+	Name               string              `json:"name"`
+	EnglishName        string              `json:"english_name"`
+	ISINCode           string              `json:"isin_code"`
+	MarketCode         string              `json:"market_code"`
+	SecurityType       string              `json:"security_type"`
+	CommonShare        bool                `json:"common_share"`
+	Status             string              `json:"status"`
+	Currency           string              `json:"currency"`
+	SharesOutstanding  string              `json:"shares_outstanding"`
+	ListDate           *string             `json:"list_date"`
+	DelistDate         *string             `json:"delist_date"`
+	LeverageFactor     *string             `json:"leverage_factor"`
+	KoreanMarketDetail *KoreanMarketDetail `json:"korean_market_detail"`
+	FetchedAt          time.Time           `json:"fetched_at"`
+}
+
 // OrderBookLevel is a single price level (호가) with its resting volume.
 type OrderBookLevel struct {
 	Price  float64 `json:"price"`

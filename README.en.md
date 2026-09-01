@@ -211,6 +211,7 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | Quote | `quote get <symbol>` (OHLC · 52w · market cap · trading value · strength) | 🔸 *(no strength/52w etc.)* | ✅ |
 | Candle chart | `quote chart --interval 1m\|3m\|5m\|10m\|15m\|30m\|60m` | 🔸 *(1m / daily only)* | ✅ |
 | **Multi-quote / live refresh** | `quote batch <sym>[,sym,...]` (`--chart` · `--live`) | ❌ | ✅ |
+| **🆕 Batch stock metadata** | `quote metadata <sym>[,sym,...]` (ISIN · market · type · listing status · shares, up to 200) | ✅ | ✅ |
 | **🆕 Crypto prices + premium** | `quote crypto BTC,ETH,SOL,XRP` (OHLC · 52w · Korea premium) | ❌ | ✅ |
 | **🆕 Market universe** | `market stocks KOSPI\|NASDAQ\|…` (filters: `--status`·`--security-type`·`--common-share`) | ✅ | ✅ |
 | **🆕 Stock supply (5 series)** | `quote supply <symbol> --type investor\|short\|credit\|lending\|program` | ✅ | ✅ |

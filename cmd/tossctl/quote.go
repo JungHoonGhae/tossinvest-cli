@@ -141,6 +141,24 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 	batchCmd.Flags().BoolVar(&batchLive, "live", false, "continuously refresh (like watch/viddy)")
 	batchCmd.Flags().IntVar(&batchInterval, "interval", 2, "refresh interval in seconds (used with --live)")
 
+	metadataCmd := &cobra.Command{
+		Use:         "metadata <symbol>[,symbol,...] [...]",
+		Short:       i18n.T("quote.metadata.short"),
+		Args:        cobra.MinimumNArgs(1),
+		Annotations: map[string]string{"source": "official"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			stocks, err := app.client.Stocks(cmd.Context(), parseBatchSymbols(args))
+			if err != nil {
+				return err
+			}
+			return output.WriteStockMetadata(cmd.OutOrStdout(), app.format, stocks)
+		},
+	}
+
 	var (
 		chartInterval string
 		chartCount    int
@@ -452,7 +470,7 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 	supplyCmd.Flags().IntVar(&supplyCount, "count", 0, "rows per page (server default 10)")
 	supplyCmd.Flags().StringVar(&supplyUntil, "until", "", "cursor from a previous page's next_until")
 
-	cmd.AddCommand(getCmd, batchCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd, cryptoCmd, reasoningCmd, reasonsCmd, chartsCmd, signalsCmd, optionsCmd, supplyCmd)
+	cmd.AddCommand(getCmd, batchCmd, metadataCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd, cryptoCmd, reasoningCmd, reasonsCmd, chartsCmd, signalsCmd, optionsCmd, supplyCmd)
 
 	return cmd
 }
