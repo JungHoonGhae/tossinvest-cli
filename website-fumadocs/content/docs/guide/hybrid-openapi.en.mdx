@@ -216,8 +216,8 @@ tossctl openapi logout
 ### Global flag `--backend`
 
 ```bash
-tossctl account summary --backend openapi   # force the official path
-tossctl account summary --backend wts        # force the WTS path
+tossctl account summary --backend openapi   # prefer official (keeps fallback setting)
+tossctl account summary --backend wts        # pin WTS (disables official)
 tossctl account summary --backend auto       # default: auto-routing
 ```
 
@@ -238,7 +238,7 @@ tossctl account summary --backend auto       # default: auto-routing
 | Key | Description |
 |---|---|
 | `openapi.enabled` | Use the official route (default `true`; only active when a key is present) |
-| `openapi.prefer` | `"openapi"` \| `"wts"` — default routing for officially-supported features |
+| `openapi.prefer` | `"auto"` \| `"openapi"` \| `"wts"` — starting route for officially-supported features (`auto`/`openapi` prefer official; `wts` disables it) |
 | `openapi.fallback` | Allow WTS fallback when the official route fails (default `true`; always `false` for orders) |
 
 ## Fallback and source display

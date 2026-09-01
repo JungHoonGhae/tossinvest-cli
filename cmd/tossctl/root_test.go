@@ -8,6 +8,7 @@ import (
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 )
 
@@ -17,7 +18,7 @@ import (
 
 func TestResolveBackendEmptyFlagUsesConfig(t *testing.T) {
 	t.Parallel()
-	for _, prefer := range []string{"auto", "wts", "openapi"} {
+	for _, prefer := range []routing.Preference{routing.Auto, routing.WTS, routing.OpenAPI} {
 		cfg := config.OpenAPI{Enabled: true, Prefer: prefer, Fallback: true}
 		got, err := resolveBackend(cfg, "")
 		if err != nil {
@@ -32,13 +33,13 @@ func TestResolveBackendEmptyFlagUsesConfig(t *testing.T) {
 func TestResolveBackendFlagOverridesConfig(t *testing.T) {
 	t.Parallel()
 	cfg := config.OpenAPI{Enabled: true, Prefer: "auto", Fallback: true}
-	for _, flag := range []string{"auto", "wts", "openapi"} {
-		got, err := resolveBackend(cfg, flag)
+	for _, want := range []routing.Preference{routing.Auto, routing.WTS, routing.OpenAPI} {
+		got, err := resolveBackend(cfg, string(want))
 		if err != nil {
-			t.Fatalf("flag=%q: unexpected error: %v", flag, err)
+			t.Fatalf("flag=%q: unexpected error: %v", want, err)
 		}
-		if got != flag {
-			t.Fatalf("flag=%q: want %q, got %q", flag, flag, got)
+		if got != want {
+			t.Fatalf("flag=%q: want %q, got %q", want, want, got)
 		}
 	}
 }
@@ -50,8 +51,20 @@ func TestResolveBackendOfficialAliasMapsToOpenapi(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if got != "openapi" {
+	if got != routing.OpenAPI {
 		t.Fatalf(`alias "official" should resolve to "openapi", got %q`, got)
+	}
+}
+
+func TestResolveBackendRejectsInvalidConfigPreference(t *testing.T) {
+	t.Parallel()
+	cfg := config.OpenAPI{Prefer: routing.Preference("invalid")}
+	_, err := resolveBackend(cfg, "")
+	if err == nil {
+		t.Fatal("expected invalid config preference to be rejected")
+	}
+	if !strings.Contains(err.Error(), "openapi.prefer") {
+		t.Fatalf("error should identify the invalid config field, got: %v", err)
 	}
 }
 
@@ -70,12 +83,12 @@ func TestResolveBackendInvalidFlagReturnsError(t *testing.T) {
 func TestResolveBackendWTSFlagOverridesOfficialConfig(t *testing.T) {
 	t.Parallel()
 	// Config prefers official, but --backend wts should override.
-	cfg := config.OpenAPI{Enabled: true, Prefer: "official", Fallback: false}
+	cfg := config.OpenAPI{Enabled: true, Prefer: routing.OpenAPI, Fallback: false}
 	got, err := resolveBackend(cfg, "wts")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != "wts" {
+	if got != routing.WTS {
 		t.Fatalf("want %q, got %q", "wts", got)
 	}
 }

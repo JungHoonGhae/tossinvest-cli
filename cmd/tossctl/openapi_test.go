@@ -15,6 +15,7 @@ import (
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
 )
 
 // ── login: flags-only error paths ──────────────────────────────────────────
@@ -563,7 +564,7 @@ func TestBuildStatusReportJSONFields(t *testing.T) {
 		keyInfo:     &keyInfo,
 		allowedIPs:  []string{"203.0.113.5"},
 		probe:       probeResult{OK: true, Message: "ok"},
-		prefer:      "official",
+		prefer:      routing.OpenAPI,
 		fallback:    false,
 	}
 

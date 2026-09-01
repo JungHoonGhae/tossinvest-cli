@@ -13,6 +13,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/mcp"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderlineage"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/updatecheck"
@@ -20,8 +21,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func mcpOfficialBackends(cfg config.File, creds *official.Credentials, tokenFile, lineageFile, prefer string) (*official.Client, *trading.Service) {
-	if creds == nil || !cfg.OpenAPI.Enabled || prefer == "wts" {
+func mcpOfficialBackends(cfg config.File, creds *official.Credentials, tokenFile, lineageFile string, prefer routing.Preference) (*official.Client, *trading.Service) {
+	if creds == nil || !cfg.OpenAPI.Enabled || prefer == routing.WTS {
 		return nil, nil
 	}
 	officialClient := official.New(*creds, tokenFile)

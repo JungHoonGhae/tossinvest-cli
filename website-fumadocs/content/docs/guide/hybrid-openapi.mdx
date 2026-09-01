@@ -217,8 +217,8 @@ tossctl openapi logout
 ### 전역 플래그 `--backend`
 
 ```bash
-tossctl account summary --backend openapi   # 공식 경로 강제
-tossctl account summary --backend wts        # WTS 경로 강제
+tossctl account summary --backend openapi   # 공식 경로 우선 (fallback 설정 유지)
+tossctl account summary --backend wts        # WTS 고정 (공식 경로 비활성화)
 tossctl account summary --backend auto       # 기본값: 자동 라우팅
 ```
 
@@ -239,7 +239,7 @@ tossctl account summary --backend auto       # 기본값: 자동 라우팅
 | 키 | 설명 |
 |---|---|
 | `openapi.enabled` | 공식 경로 사용 여부 (기본 `true`, 키 있을 때만 실제 활성화) |
-| `openapi.prefer` | `"openapi"` \| `"wts"` — 공식이 지원하는 기능의 기본 라우팅 |
+| `openapi.prefer` | `"auto"` \| `"openapi"` \| `"wts"` — 공식이 지원하는 기능의 시작 경로 (`auto`·`openapi`는 공식 우선, `wts`는 공식 비활성화) |
 | `openapi.fallback` | 공식 경로 실패 시 WTS 폴백 허용 (기본 `true`; 주문은 항상 `false`) |
 
 ## 폴백 · 소스 표시

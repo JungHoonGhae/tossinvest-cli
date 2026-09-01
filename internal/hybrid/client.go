@@ -6,8 +6,8 @@
 // decision to route().
 //
 // Routing policy (route):
-//   - off==nil OR Prefer=="wts"  -> pure WTS passthrough (identical to today).
-//   - Prefer auto/official       -> try official; on success return it silently;
+//   - off==nil OR Prefer==routing.WTS -> pure WTS passthrough (identical to today).
+//   - Prefer auto/openapi        -> try official; on success return it silently;
 //     on a fallback-eligible failure (official.ShouldFallback && Fallback) emit a
 //     one-line stderr notice and retry via WTS; on a domain error (e.g. 404)
 //     return it as-is with NO fallback.
@@ -26,13 +26,14 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
 )
 
 // Policy controls how the hybrid router chooses between official and WTS.
-//   - Prefer: "auto" (try official, fall back), "wts" (always WTS), "official".
+//   - Prefer: auto/openapi try official first; wts disables the official path.
 //   - Fallback: whether a fallback-eligible official failure retries via WTS.
 type Policy struct {
-	Prefer   string
+	Prefer   routing.Preference
 	Fallback bool
 }
 
@@ -60,7 +61,7 @@ func New(wts *client.Client, off *official.Client, pol Policy, stderr io.Writer)
 // the hybrid router does not front. Nil is meaningful — Catalog.Call turns it
 // into "run `tossctl openapi login`".
 func (c *Client) Official() *official.Client {
-	if c.pol.Prefer == "wts" {
+	if c.pol.Prefer == routing.WTS {
 		return nil
 	}
 	return c.off
@@ -70,7 +71,7 @@ func (c *Client) Official() *official.Client {
 // (takes two closures, never touches c.off itself beyond the nil check) so the
 // routing logic is unit-testable without any real client.
 func route[T any](c *Client, official func() (T, error), wts func() (T, error)) (T, error) {
-	if c.off == nil || c.pol.Prefer == "wts" {
+	if c.off == nil || c.pol.Prefer == routing.WTS {
 		return wts()
 	}
 	v, err := official()

@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/version"
 )
 
@@ -80,24 +82,9 @@ type UpdateCheck struct {
 // OpenAPI holds routing preferences for the official Toss Open API.
 // Credential secrets are stored in a separate file (see paths.CredentialsFile).
 type OpenAPI struct {
-	Enabled  bool   `json:"enabled"`
-	Prefer   string `json:"prefer"` // auto | wts | openapi
-	Fallback bool   `json:"fallback"`
-}
-
-// NormalizeBackend canonicalizes a routing-backend value used by the
-// `--backend` flag and `openapi.prefer`. "official" is accepted as a
-// deprecated alias for "openapi" (the official Open API path). Returns
-// ("", false) for unknown values.
-func NormalizeBackend(v string) (string, bool) {
-	switch v {
-	case "auto", "wts", "openapi":
-		return v, true
-	case "official": // deprecated alias → openapi
-		return "openapi", true
-	default:
-		return "", false
-	}
+	Enabled  bool               `json:"enabled"`
+	Prefer   routing.Preference `json:"prefer"`
+	Fallback bool               `json:"fallback"`
 }
 
 type File struct {
@@ -159,9 +146,9 @@ type rawUpdateCheck struct {
 }
 
 type rawOpenAPI struct {
-	Enabled  *bool  `json:"enabled"`
-	Prefer   string `json:"prefer"`
-	Fallback *bool  `json:"fallback"`
+	Enabled  *bool           `json:"enabled"`
+	Prefer   json.RawMessage `json:"prefer"`
+	Fallback *bool           `json:"fallback"`
 }
 
 type rawFile struct {
@@ -182,7 +169,7 @@ func DefaultFile() File {
 		SchemaVersion: SchemaVersion,
 		Trading:       Trading{},
 		UpdateCheck:   UpdateCheck{Enabled: true},
-		OpenAPI:       OpenAPI{Enabled: true, Prefer: "auto", Fallback: true},
+		OpenAPI:       OpenAPI{Enabled: true, Prefer: routing.Auto, Fallback: true},
 	}
 }
 
@@ -309,7 +296,7 @@ func (s *Service) load() (File, bool, legacyMetadata, error) {
 	}
 
 	// OpenAPI: absent block → defaults (Enabled=true, Prefer="auto", Fallback=true).
-	// Present block: merge per-field defaults, then normalize invalid Prefer to "auto".
+	// Present block: merge per-field defaults and reject an explicitly invalid Prefer.
 	if raw.OpenAPI != nil {
 		if raw.OpenAPI.Enabled != nil {
 			cfg.OpenAPI.Enabled = *raw.OpenAPI.Enabled
@@ -317,10 +304,19 @@ func (s *Service) load() (File, bool, legacyMetadata, error) {
 		if raw.OpenAPI.Fallback != nil {
 			cfg.OpenAPI.Fallback = *raw.OpenAPI.Fallback
 		}
-		if norm, ok := NormalizeBackend(raw.OpenAPI.Prefer); ok {
+		if raw.OpenAPI.Prefer != nil {
+			var value *string
+			if err := json.Unmarshal(raw.OpenAPI.Prefer, &value); err != nil {
+				return File{}, true, meta, fmt.Errorf("invalid openapi.prefer: %w", err)
+			}
+			if value == nil {
+				return File{}, true, meta, fmt.Errorf("invalid openapi.prefer value %s: must be one of auto, wts, openapi", raw.OpenAPI.Prefer)
+			}
+			norm, ok := routing.ParsePreference(*value)
+			if !ok {
+				return File{}, true, meta, fmt.Errorf("invalid openapi.prefer value %q: must be one of auto, wts, openapi", *value)
+			}
 			cfg.OpenAPI.Prefer = norm
-		} else {
-			cfg.OpenAPI.Prefer = "auto"
 		}
 	}
 
