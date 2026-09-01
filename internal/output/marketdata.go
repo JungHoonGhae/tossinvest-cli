@@ -1303,24 +1303,50 @@ func WriteStockReasons(w io.Writer, format Format, r domain.StockReasons) error 
 		return writeJSON(w, r)
 	case FormatCSV:
 		var csvRows [][]string
-		for _, x := range r.Reasons {
-			csvRows = append(csvRows, []string{x.Symbol, x.ProductCode, x.Description})
+		if len(r.Sequence) == 0 {
+			for _, x := range r.Reasons {
+				csvRows = append(csvRows, []string{x.Symbol, x.ProductCode, x.Description})
+			}
+			for _, missing := range r.Missing {
+				csvRows = append(csvRows, []string{missing, "", ""})
+			}
+		} else {
+			if err := replayBatchSequence(r.Sequence, r.Reasons,
+				func(x domain.StockReason) error {
+					csvRows = append(csvRows, []string{x.Symbol, x.ProductCode, x.Description})
+					return nil
+				},
+				func(symbol string) error {
+					csvRows = append(csvRows, []string{symbol, "", ""})
+					return nil
+				}); err != nil {
+				return fmt.Errorf("stock reasons: %w", err)
+			}
 		}
 		return writeCSV(w, []string{"symbol", "product_code", "description"}, csvRows)
 	case FormatTable:
 		if len(r.Reasons) == 0 {
-			_, err := fmt.Fprintln(w, i18n.T("output.reasons.empty"))
+			if _, err := fmt.Fprintln(w, i18n.T("output.reasons.empty")); err != nil {
+				return err
+			}
+		} else {
+			headers := []string{
+				i18n.T("output.reasons.header.symbol"),
+				i18n.T("output.reasons.header.reason"),
+			}
+			rows := make([][]string, 0, len(r.Reasons))
+			for _, x := range r.Reasons {
+				rows = append(rows, []string{x.Symbol, x.Description})
+			}
+			if err := renderTable(w, headers, rows); err != nil {
+				return err
+			}
+		}
+		if len(r.Missing) > 0 {
+			_, err := fmt.Fprintf(w, i18n.T("output.reasons.missing"), strings.Join(r.Missing, ", "))
 			return err
 		}
-		headers := []string{
-			i18n.T("output.reasons.header.symbol"),
-			i18n.T("output.reasons.header.reason"),
-		}
-		rows := make([][]string, 0, len(r.Reasons))
-		for _, x := range r.Reasons {
-			rows = append(rows, []string{x.Symbol, x.Description})
-		}
-		return renderTable(w, headers, rows)
+		return nil
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
@@ -1341,7 +1367,14 @@ func WriteCharts(w io.Writer, format Format, b domain.ChartBatch) error {
 		if err := cw.Write([]string{"symbol", "product_code", "interval", "time", "open", "high", "low", "close", "base"}); err != nil {
 			return err
 		}
-		for _, c := range charts {
+		writeChart := func(c domain.Chart) error {
+			if len(c.Candles) == 0 {
+				base := ""
+				if c.Base != 0 {
+					base = strconv.FormatFloat(c.Base, 'f', -1, 64)
+				}
+				return cw.Write([]string{c.Symbol, c.ProductCode, c.Interval, "", "", "", "", "", base})
+			}
 			for _, cd := range c.Candles {
 				if err := cw.Write([]string{c.Symbol, c.ProductCode, c.Interval,
 					cd.Time.Format(time.RFC3339),
@@ -1351,11 +1384,26 @@ func WriteCharts(w io.Writer, format Format, b domain.ChartBatch) error {
 					return err
 				}
 			}
+			return nil
 		}
-		// 데이터가 없던 종목도 행으로 남긴다 — CSV 만 읽는 쪽에서 조용히 사라지면 안 된다.
-		for _, m := range b.Missing {
-			if err := cw.Write([]string{m, "", "", "", "", "", "", "", ""}); err != nil {
-				return err
+		if len(b.Sequence) == 0 {
+			for _, c := range charts {
+				if err := writeChart(c); err != nil {
+					return err
+				}
+			}
+			// 데이터가 없던 종목도 행으로 남긴다 — CSV 만 읽는 쪽에서 조용히 사라지면 안 된다.
+			for _, m := range b.Missing {
+				if err := cw.Write([]string{m, "", "", "", "", "", "", "", ""}); err != nil {
+					return err
+				}
+			}
+		} else {
+			if err := replayBatchSequence(b.Sequence, charts, writeChart,
+				func(symbol string) error {
+					return cw.Write([]string{symbol, "", "", "", "", "", "", "", ""})
+				}); err != nil {
+				return fmt.Errorf("charts: %w", err)
 			}
 		}
 		cw.Flush()
@@ -1391,6 +1439,29 @@ func WriteCharts(w io.Writer, format Format, b domain.ChartBatch) error {
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}
+}
+
+func replayBatchSequence[T any](sequence []domain.BatchSequenceEntry, items []T, emitItem func(T) error, emitMissing func(string) error) error {
+	itemIndex := 0
+	for _, entry := range sequence {
+		if entry.Missing {
+			if err := emitMissing(entry.Symbol); err != nil {
+				return err
+			}
+			continue
+		}
+		if itemIndex >= len(items) {
+			return fmt.Errorf("sequence has more found entries than items")
+		}
+		if err := emitItem(items[itemIndex]); err != nil {
+			return err
+		}
+		itemIndex++
+	}
+	if itemIndex != len(items) {
+		return fmt.Errorf("sequence has fewer found entries than items")
+	}
+	return nil
 }
 
 // WriteTradingCalendar renders previous/today/next business days as one row per

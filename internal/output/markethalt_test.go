@@ -58,3 +58,94 @@ func TestWriteChartsCarriesMissingInEveryFormat(t *testing.T) {
 		}
 	}
 }
+
+func TestWriteStockReasonsCarriesMissingInEveryFormat(t *testing.T) {
+	batch := domain.StockReasons{
+		Reasons: []domain.StockReason{{Symbol: "005930", ProductCode: "A005930", Description: "사유"}},
+		Missing: []string{"999999"},
+	}
+	for _, f := range []Format{FormatJSON, FormatCSV, FormatTable} {
+		var buf bytes.Buffer
+		if err := WriteStockReasons(&buf, f, batch); err != nil {
+			t.Fatalf("WriteStockReasons(%v): %v", f, err)
+		}
+		if !strings.Contains(buf.String(), "999999") {
+			t.Errorf("format %v dropped the missing symbol:\n%s", f, buf.String())
+		}
+	}
+}
+
+func TestWriteStockReasonsCarriesMissingWhenEveryReasonIsMissing(t *testing.T) {
+	batch := domain.StockReasons{Missing: []string{"111111", "222222"}}
+	for _, f := range []Format{FormatJSON, FormatCSV, FormatTable} {
+		var buf bytes.Buffer
+		if err := WriteStockReasons(&buf, f, batch); err != nil {
+			t.Fatalf("WriteStockReasons(%v): %v", f, err)
+		}
+		for _, symbol := range batch.Missing {
+			if !strings.Contains(buf.String(), symbol) {
+				t.Errorf("format %v dropped all-missing symbol %q:\n%s", f, symbol, buf.String())
+			}
+		}
+	}
+}
+
+func TestWriteStockReasonsCSVPreservesBatchSequence(t *testing.T) {
+	batch := domain.StockReasons{
+		Reasons: []domain.StockReason{
+			{Symbol: "A", ProductCode: "A000001", Description: "first"},
+			{Symbol: "C", ProductCode: "A000003", Description: "third"},
+		},
+		Missing: []string{"B"},
+		Sequence: []domain.BatchSequenceEntry{
+			{Symbol: "A"},
+			{Symbol: "B", Missing: true},
+			{Symbol: "C"},
+		},
+	}
+	var buf bytes.Buffer
+	if err := WriteStockReasons(&buf, FormatCSV, batch); err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	if len(lines) != 4 || !strings.HasPrefix(lines[1], "A,") || !strings.HasPrefix(lines[2], "B,,") || !strings.HasPrefix(lines[3], "C,") {
+		t.Fatalf("CSV lost request sequence: %v", lines)
+	}
+}
+
+func TestWriteChartsCSVPreservesBatchSequence(t *testing.T) {
+	batch := domain.ChartBatch{
+		Charts: []domain.Chart{
+			{Symbol: "A", ProductCode: "A000001", Candles: []domain.Candle{{Close: 1}}},
+			{Symbol: "C", ProductCode: "A000003", Candles: []domain.Candle{{Close: 3}}},
+		},
+		Missing: []string{"B"},
+		Sequence: []domain.BatchSequenceEntry{
+			{Symbol: "A"},
+			{Symbol: "B", Missing: true},
+			{Symbol: "C"},
+		},
+	}
+	var buf bytes.Buffer
+	if err := WriteCharts(&buf, FormatCSV, batch); err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	if len(lines) != 4 || !strings.HasPrefix(lines[1], "A,") || !strings.HasPrefix(lines[2], "B,,") || !strings.HasPrefix(lines[3], "C,") {
+		t.Fatalf("chart CSV lost request sequence: %v", lines)
+	}
+}
+
+func TestWriteChartsCSVPreservesFoundChartWithoutCandles(t *testing.T) {
+	batch := domain.ChartBatch{
+		Charts:   []domain.Chart{{Symbol: "A", ProductCode: "A000001", Interval: "10m"}},
+		Sequence: []domain.BatchSequenceEntry{{Symbol: "A"}},
+	}
+	var buf bytes.Buffer
+	if err := WriteCharts(&buf, FormatCSV, batch); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(buf.String(), "A,A000001,10m") {
+		t.Fatalf("found zero-candle chart disappeared from CSV: %q", buf.String())
+	}
+}

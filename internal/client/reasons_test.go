@@ -23,9 +23,11 @@ func TestGetStockReasonsMatchesByCodeNotPosition(t *testing.T) {
 			return
 		}
 		gotBody, _ = io.ReadAll(r.Body)
-		// 요청은 A000001, A000002, A000003 순. 응답은 하나가 빠지고 순서도 뒤집혔다.
+		// 요청은 A000001, A000002, A000003 순. 응답은 하나가 빠지고 순서도
+		// 뒤집혔으며, 요청하지 않은 행도 섞였다.
 		_, _ = w.Write([]byte(`{"result":{"signals":[
  {"productCode":"A000003","reasoningDescription":"세 번째 사유"},
+ {"productCode":"A999999","reasoningDescription":"요청하지 않은 사유"},
  {"productCode":"A000001","reasoningDescription":"첫 번째 사유"}
 ]}}`))
 	}))
@@ -52,6 +54,12 @@ func TestGetStockReasonsMatchesByCodeNotPosition(t *testing.T) {
 	if len(got.Reasons) != 2 {
 		t.Fatalf("expected 2 reasons (server omits one), got %d", len(got.Reasons))
 	}
+	if got.Reasons[0].ProductCode != "A000001" || got.Reasons[1].ProductCode != "A000003" {
+		t.Fatalf("reasons must follow request order, got %v then %v", got.Reasons[0].ProductCode, got.Reasons[1].ProductCode)
+	}
+	if len(got.Missing) != 1 || got.Missing[0] != "A000002" {
+		t.Fatalf("omitted symbol must be reported, got missing=%v", got.Missing)
+	}
 	for _, r := range got.Reasons {
 		switch r.ProductCode {
 		case "A000001":
@@ -65,5 +73,32 @@ func TestGetStockReasonsMatchesByCodeNotPosition(t *testing.T) {
 		default:
 			t.Errorf("unexpected code in result: %+v", r)
 		}
+	}
+}
+
+func TestGetStockReasonsPreservesAliasesResolvingToSameCode(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v2/search/stocks":
+			_, _ = w.Write([]byte(`{"result":{"stocks":[{"stockCode":"A000001"}]}}`))
+		case "/api/v1/dashboard/wts/overview/ai-signals":
+			_, _ = w.Write([]byte(`{"result":{"signals":[{"productCode":"A000001","reasoningDescription":"same stock"}]}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(Config{HTTPClient: srv.Client(), InfoBaseURL: srv.URL,
+		Session: &session.Session{Cookies: map[string]string{"SESSION": "s"}}})
+	got, err := c.GetStockReasons(context.Background(), []string{"A000001", "첫번째"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Reasons) != 2 {
+		t.Fatalf("aliases resolving to one code must preserve two request positions: %+v", got)
+	}
+	if got.Reasons[0].Symbol != "A000001" || got.Reasons[1].Symbol != "첫번째" {
+		t.Fatalf("request identities were overwritten: %+v", got.Reasons)
 	}
 }

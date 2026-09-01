@@ -469,6 +469,7 @@
   "output.reasoning.relatedPlain": "    · %-8s %s\n",
   "output.reasoning.summary": "  %s\n",
   "output.reasons.empty": "사유가 있는 종목이 없습니다.",
+  "output.reasons.missing": "\n사유가 오지 않은 종목: %s\n",
   "output.reasons.header.reason": "사유",
   "output.reasons.header.symbol": "종목",
   "output.riaReport.deductionLine": "  공제     기본 %s원 + RIA %s원 (공제율 %s)\n",

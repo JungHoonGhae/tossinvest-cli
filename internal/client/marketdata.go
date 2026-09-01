@@ -1061,10 +1061,11 @@ func (c *Client) GetStockCharts(ctx context.Context, symbols []string) (domain.C
 	if err := c.requireSession(); err != nil {
 		return domain.ChartBatch{}, err
 	}
-	codes, bySymbol, err := c.resolveProductCodes(ctx, symbols)
+	requests, err := c.resolveProductCodes(ctx, symbols)
 	if err != nil {
 		return domain.ChartBatch{}, err
 	}
+	codes := batchCodes(requests)
 
 	var envelope quoteEnvelope[struct {
 		BaseStep   string `json:"baseStep"`
@@ -1090,13 +1091,10 @@ func (c *Client) GetStockCharts(ctx context.Context, symbols []string) (domain.C
 	}
 
 	now := time.Now().UTC()
-	seen := make(map[string]bool, len(envelope.Result.MiniCharts))
-	out := domain.ChartBatch{FetchedAt: now}
+	chartsByCode := make(map[string]domain.Chart, len(envelope.Result.MiniCharts))
 	for _, mc := range envelope.Result.MiniCharts {
-		seen[mc.Code] = true
 		chart := domain.Chart{
 			ProductCode: mc.Code,
-			Symbol:      bySymbol[mc.Code],
 			Interval:    envelope.Result.BaseStep,
 			FetchedAt:   now,
 		}
@@ -1111,32 +1109,30 @@ func (c *Client) GetStockCharts(ctx context.Context, symbols []string) (domain.C
 				Close: cd.Close,
 			})
 		}
-		out.Charts = append(out.Charts, chart)
+		chartsByCode[mc.Code] = chart
 	}
-	for _, code := range codes {
-		if !seen[code] {
-			out.Missing = append(out.Missing, bySymbol[code])
-		}
-	}
+	charts, missing, sequence := reconcileBatch(requests, chartsByCode, func(chart domain.Chart, symbol string) domain.Chart {
+		chart.Symbol = symbol
+		return chart
+	})
+	out := domain.ChartBatch{Charts: charts, Missing: missing, Sequence: sequence, FetchedAt: now}
 	return out, nil
 }
 
 // resolveProductCodes turns a caller's symbols into Toss product codes for a
-// batch request and keeps the reverse index back to what the caller typed.
+// batch request while preserving the original spelling at every position.
 //
 // Batch WTS endpoints answer with product codes only and omit codes they have
-// no data for, so every caller needs both halves: the codes to send, and the
-// map to match results back by code rather than by position.
-func (c *Client) resolveProductCodes(ctx context.Context, symbols []string) ([]string, map[string]string, error) {
-	bySymbol := make(map[string]string, len(symbols))
-	codes := make([]string, 0, len(symbols))
+// no data for, so every caller needs ordered code/symbol pairs. A reverse map
+// is insufficient because two aliases can resolve to the same product code.
+func (c *Client) resolveProductCodes(ctx context.Context, symbols []string) ([]batchRequest, error) {
+	requests := make([]batchRequest, 0, len(symbols))
 	for _, s := range symbols {
 		code, err := c.resolveProductCode(ctx, s)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		bySymbol[code] = s
-		codes = append(codes, code)
+		requests = append(requests, batchRequest{code: code, symbol: s})
 	}
-	return codes, bySymbol, nil
+	return requests, nil
 }
