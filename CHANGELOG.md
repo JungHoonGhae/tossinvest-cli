@@ -20,6 +20,7 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 
 ### 기여자용
 - WTS endpoint 인벤토리가 Go AST 의 문자열 상수·`fmt.Sprintf` 조립 경로와 런타임 monitor probe 를 함께 읽고 host·method·소유권 불일치를 테스트에서 fail-closed로 감지합니다.
+- `@anthonyminyungi` 님이 관심종목 add 요청의 실제 `watchlistIds` 계약을 제보하고 수정안을 제공했습니다([#177](https://github.com/JungHoonGhae/tossinvest-cli/pull/177)).
 
 ## [0.46.0] - 2026-08-29
 

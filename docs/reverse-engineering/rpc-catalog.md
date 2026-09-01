@@ -96,8 +96,10 @@ This file is the source of truth for endpoint discovery. It should grow before t
 | `auth` | `POST` | `wts-cert-api.tossinvest.com` | `/api/v1/new-watchlists/groups` | 폴더 생성 | `{"name":"..."}` → `.result.{id,name,...}` | `watchlist group create` |
 | `auth` | `PATCH` | `wts-cert-api.tossinvest.com` | `/api/v1/new-watchlists/groups/{id}` | 폴더 리네임 | `{"name":"..."}` | `watchlist group rename` |
 | `auth` | `DELETE` | `wts-cert-api.tossinvest.com` | `/api/v1/new-watchlists/groups/{id}` | 폴더 삭제 | — | `watchlist group delete` |
-| `auth` | `POST` | `wts-cert-api.tossinvest.com` | `/api/v1/new-watchlists/items` | 종목 추가 | `{"watchlistId":id,"items":[{"code":"A005930","itemType":"STOCK"}]}` | `watchlist add` |
-| `auth` | `POST` | `wts-cert-api.tossinvest.com` | `/api/v1/new-watchlists/items/remove` | 종목 제거 | 위와 동일 | `watchlist remove` |
+| `auth` | `POST` | `wts-cert-api.tossinvest.com` | `/api/v1/new-watchlists/items` | 종목 추가 | `{"watchlistIds":[id],"items":[{"code":"...","itemType":"STOCK"}]}` | `watchlist add` |
+| `auth` | `POST` | `wts-cert-api.tossinvest.com` | `/api/v1/new-watchlists/items/remove` | 종목 제거 | `{"watchlistId":id,"items":[{"code":"...","itemType":"STOCK"}]}` | `watchlist remove` |
+
+> **주의**: add 는 `watchlistIds` (복수, `[]int64`), remove 는 `watchlistId` (단수, `int64`). 서버 API 가 비일관적이지만 이것이 실제 스펙이다 (브라우저 DevTools 캡처로 확인).
 
 ## Account, Portfolio, Orders, Watchlist
 
