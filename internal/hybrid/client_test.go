@@ -162,6 +162,9 @@ func TestOfficialOnlyReadsRequireKey(t *testing.T) {
 	if _, err := c.MarketCalendar(context.Background(), "KR", ""); !errors.Is(err, ErrOfficialKeyRequired) {
 		t.Errorf("MarketCalendar: want ErrOfficialKeyRequired, got %v", err)
 	}
+	if _, err := c.Stocks(context.Background(), []string{"AAPL"}); !errors.Is(err, ErrOfficialKeyRequired) {
+		t.Errorf("Stocks: want ErrOfficialKeyRequired, got %v", err)
+	}
 	if _, err := c.Rankings(context.Background(), "MARKET_TRADING_AMOUNT", "KR", "1d", false, 0); !errors.Is(err, ErrOfficialKeyRequired) {
 		t.Errorf("Rankings: want ErrOfficialKeyRequired, got %v", err)
 	}
@@ -203,6 +206,9 @@ func TestNewOfficialOnlyReadsRespectPinnedWTS(t *testing.T) {
 	if _, err := c.MarketCalendar(context.Background(), "KR", ""); !errors.Is(err, ErrOfficialKeyRequired) {
 		t.Errorf("MarketCalendar: want ErrOfficialKeyRequired, got %v", err)
 	}
+	if _, err := c.Stocks(context.Background(), []string{"AAPL"}); !errors.Is(err, ErrOfficialKeyRequired) {
+		t.Errorf("Stocks: want ErrOfficialKeyRequired, got %v", err)
+	}
 }
 
 func TestNewOfficialOnlyReadsDelegateToOfficial(t *testing.T) {
@@ -217,6 +223,11 @@ func TestNewOfficialOnlyReadsDelegateToOfficial(t *testing.T) {
 			_, _ = io.WriteString(w, `{"result":{"cashBuyingPower":"12345.5","currency":"KRW"}}`)
 		case "/api/v1/market-calendar/KR":
 			_, _ = io.WriteString(w, `{"result":{"today":{"date":"2026-09-01","integrated":{"regularMarket":{"startTime":"2026-09-01T09:00:00+09:00","endTime":"2026-09-01T15:30:00+09:00"}}}}}`)
+		case "/api/v1/stocks":
+			if got := r.URL.Query().Get("symbols"); got != "AAPL,005930" {
+				t.Errorf("symbols query = %q, want AAPL,005930", got)
+			}
+			_, _ = io.WriteString(w, `{"result":[{"symbol":"AAPL","name":"애플","englishName":"Apple Inc.","isinCode":"US0378331005","market":"NASDAQ","securityType":"STOCK","isCommonShare":true,"status":"ACTIVE","currency":"USD","sharesOutstanding":"14702703000"}]}`)
 		default:
 			http.NotFound(w, r)
 		}
@@ -239,6 +250,10 @@ func TestNewOfficialOnlyReadsDelegateToOfficial(t *testing.T) {
 	calendar, err := c.MarketCalendar(context.Background(), "KR", "")
 	if err != nil || calendar.Today.Date != "2026-09-01" || calendar.Today.Holiday {
 		t.Fatalf("MarketCalendar delegation = %+v, %v", calendar, err)
+	}
+	stocks, err := c.Stocks(context.Background(), []string{"AAPL", "005930"})
+	if err != nil || len(stocks) != 1 || stocks[0].ISINCode != "US0378331005" {
+		t.Fatalf("Stocks delegation = %+v, %v", stocks, err)
 	}
 }
 

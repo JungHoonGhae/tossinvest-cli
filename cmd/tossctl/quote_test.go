@@ -2,8 +2,29 @@ package main
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
+
+func TestQuoteMetadataCommandContract(t *testing.T) {
+	quote := newQuoteCmd(&rootOptions{})
+	cmd, _, err := quote.Find([]string{"metadata"})
+	if err != nil || cmd == quote || cmd.Name() != "metadata" {
+		t.Fatalf("metadata command not registered: cmd=%q err=%v", cmd.Name(), err)
+	}
+	if cmd.Annotations["source"] != "official" {
+		t.Fatalf("source = %q, want official", cmd.Annotations["source"])
+	}
+	if !strings.Contains(cmd.Use, "<symbol>") {
+		t.Fatalf("Use = %q, want symbol contract", cmd.Use)
+	}
+	if err := cmd.Args(cmd, nil); err == nil {
+		t.Fatal("metadata must reject an empty symbol list")
+	}
+	if err := cmd.Args(cmd, []string{"AAPL,005930"}); err != nil {
+		t.Fatalf("metadata rejected valid symbols: %v", err)
+	}
+}
 
 func TestParseBatchSymbols(t *testing.T) {
 	cases := []struct {

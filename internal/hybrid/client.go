@@ -252,6 +252,16 @@ func (c *Client) MarketCalendar(ctx context.Context, country, date string) (doma
 	return c.off.MarketCalendar(ctx, country, date)
 }
 
+// Stocks serves the official batch stock-metadata read. WTS has quote and
+// universe endpoints, but neither is an equivalent metadata contract, so this
+// read must not fall back or silently substitute another dataset.
+func (c *Client) Stocks(ctx context.Context, symbols []string) ([]domain.StockMetadata, error) {
+	if c.off == nil || c.pol.Prefer == "wts" {
+		return nil, ErrOfficialKeyRequired
+	}
+	return c.off.Stocks(ctx, symbols)
+}
+
 // Rankings serves the official /rankings ranking. official-only: no WTS
 // fallback (WTS "popularity" ranking is a different dataset), so a missing key
 // returns ErrOfficialKeyRequired rather than degrading.

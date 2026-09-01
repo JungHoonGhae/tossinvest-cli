@@ -29,11 +29,12 @@ document 입니다. issue [#31](https://github.com/JungHoonGhae/tossinvest-cli/i
   | `portfolio positions` | `GET /api/v1/holdings` |
   | `quote get` | `GET /api/v1/prices` · `/orderbook` · `/trades` |
   | `quote chart` | `GET /api/v1/candles` (1분봉·일봉) |
+  | `quote metadata` | `GET /api/v1/stocks` (심볼 최대 200개) |
   | `order place` | `POST /api/v1/orders` |
   | `order amend` | `POST /api/v1/orders/{orderId}/modify` |
   | `order cancel` | `POST /api/v1/orders/{orderId}/cancel` |
   | `orders list` / `order show` | `GET /api/v1/orders` · `/orders/{orderId}` |
-  | (신규) | `buying-power` · `sellable-quantity` · `commissions` · `exchange-rate` · `market-calendar/{KR,US}` · `stocks` · `price-limits` |
+  | (신규) | `buying-power` · `sellable-quantity` · `commissions` · `exchange-rate` · `market-calendar/{KR,US}` · `price-limits` |
 
 - **미검증:** client_id/secret 발급 콘솔 절차, 거래 권한 scope 모델, candle 이 1분봉·일봉만이라 기존 tossctl 의 3/5/15/30/60분봉과 차이 있음 (rate limit 은 [공식 문서에 명시 + 실측 검증 완료 ↓](#rate-limit-실측))
 

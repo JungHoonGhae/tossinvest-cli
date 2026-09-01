@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -49,22 +50,9 @@ func TestAdaptStocksUnit(t *testing.T) {
 	if kr.Status != "ACTIVE" {
 		t.Fatalf("Status: want ACTIVE, got %q", kr.Status)
 	}
-	// Price fields not in /stocks response
-	if kr.Last != 0 {
-		t.Fatalf("Last: expected 0, got %v", kr.Last)
-	}
-	if kr.Volume != 0 {
-		t.Fatalf("Volume: expected 0, got %v", kr.Volume)
-	}
-
 	us := got[1]
 	if us.Symbol != "AAPL" {
 		t.Fatalf("Symbol: want AAPL, got %q", us.Symbol)
-	}
-	// market maps to MarketCode; the display-name Market field stays empty (/stocks
-	// does not provide it).
-	if us.Market != "" {
-		t.Fatalf("Market: want empty, got %q", us.Market)
 	}
 	if us.MarketCode != "NASDAQ" {
 		t.Fatalf("MarketCode: want NASDAQ, got %q", us.MarketCode)
@@ -92,7 +80,7 @@ func TestStocksIntegration(t *testing.T) {
 			if r.URL.Query().Get("symbols") != "005930,AAPL" {
 				t.Errorf("symbols: want 005930,AAPL, got %q", r.URL.Query().Get("symbols"))
 			}
-			_, _ = w.Write([]byte(`{"result":[{"symbol":"005930","name":"삼성전자","englishName":"SamsungElec","isinCode":"KR7005930003","market":"KOSPI","securityType":"STOCK","isCommonShare":true,"status":"ACTIVE","currency":"KRW","sharesOutstanding":"5919637922"},{"symbol":"AAPL","name":"애플","englishName":"APPLE INC","isinCode":"US0378331005","market":"NASDAQ","securityType":"STOCK","isCommonShare":true,"status":"ACTIVE","currency":"USD","sharesOutstanding":"14702703000"}]}`))
+			_, _ = w.Write([]byte(`{"result":[{"symbol":"005930","name":"삼성전자","englishName":"SamsungElec","isinCode":"KR7005930003","market":"KOSPI","securityType":"STOCK","isCommonShare":true,"status":"ACTIVE","currency":"KRW","sharesOutstanding":"5919637922","listDate":"1975-06-11","delistDate":null,"leverageFactor":null,"koreanMarketDetail":{"liquidationTrading":false,"nxtSupported":true,"krxTradingSuspended":false,"nxtTradingSuspended":false}},{"symbol":"AAPL","name":"애플","englishName":"APPLE INC","isinCode":"US0378331005","market":"NASDAQ","securityType":"FOREIGN_STOCK","isCommonShare":true,"status":"ACTIVE","currency":"USD","sharesOutstanding":"14702703000","listDate":"1980-12-12","delistDate":null,"leverageFactor":null,"koreanMarketDetail":null}]}`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -118,5 +106,69 @@ func TestStocksIntegration(t *testing.T) {
 	}
 	if got[1].Symbol != "AAPL" || got[1].MarketCode != "NASDAQ" {
 		t.Fatalf("second: %+v", got[1])
+	}
+	if got[0].EnglishName != "SamsungElec" || got[0].ISINCode != "KR7005930003" {
+		t.Fatalf("first metadata: %+v", got[0])
+	}
+	if got[0].SecurityType != "STOCK" || !got[0].CommonShare || got[0].SharesOutstanding != "5919637922" {
+		t.Fatalf("first security metadata: %+v", got[0])
+	}
+	if got[0].KoreanMarketDetail == nil || !got[0].KoreanMarketDetail.NXTSupported {
+		t.Fatalf("first Korean market detail: %+v", got[0])
+	}
+	if got[1].KoreanMarketDetail != nil {
+		t.Fatalf("US stock must not have Korean market detail: %+v", got[1])
+	}
+}
+
+func TestStocksRejectsMoreThanTwoHundredSymbolsBeforeHTTP(t *testing.T) {
+	requests := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		http.Error(w, "unexpected request", http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	c := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+	)
+	symbols := make([]string, 201)
+	for i := range symbols {
+		symbols[i] = "AAPL"
+	}
+
+	_, err := c.Stocks(context.Background(), symbols)
+	if err == nil || !strings.Contains(err.Error(), "at most 200") {
+		t.Fatalf("want max-200 validation error, got %v", err)
+	}
+	if requests != 0 {
+		t.Fatalf("validation must happen before HTTP, got %d requests", requests)
+	}
+}
+
+func TestStocksRejectsEmptyOrMalformedSymbolsBeforeHTTP(t *testing.T) {
+	requests := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		http.Error(w, "unexpected request", http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+	c := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+	)
+
+	for _, symbols := range [][]string{nil, {"AAPL", "삼성전자"}, {"AAPL/USD"}} {
+		if _, err := c.Stocks(context.Background(), symbols); err == nil {
+			t.Errorf("Stocks(%q): want validation error", symbols)
+		}
+	}
+	if requests != 0 {
+		t.Fatalf("validation must happen before HTTP, got %d requests", requests)
 	}
 }
