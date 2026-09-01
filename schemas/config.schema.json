@@ -83,7 +83,8 @@
         },
         "prefer": {
           "type": "string",
-          "enum": ["auto", "wts", "official"],
+          "enum": ["auto", "wts", "openapi", "official"],
+          "description": "Hybrid routing preference. 'official' is a deprecated alias for 'openapi'.",
           "default": "auto"
         },
         "fallback": {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
 )
 
 func TestMCPOfficialBackendsRespectEffectiveRouting(t *testing.T) {
@@ -14,12 +15,12 @@ func TestMCPOfficialBackendsRespectEffectiveRouting(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
 		cfg    config.File
-		prefer string
+		prefer routing.Preference
 		want   bool
 	}{
-		{name: "auto enabled", cfg: enabled, prefer: "auto", want: true},
-		{name: "wts pin", cfg: enabled, prefer: "wts", want: false},
-		{name: "config disabled", cfg: config.File{}, prefer: "auto", want: false},
+		{name: "auto enabled", cfg: enabled, prefer: routing.Auto, want: true},
+		{name: "wts pin", cfg: enabled, prefer: routing.WTS, want: false},
+		{name: "config disabled", cfg: config.File{}, prefer: routing.Auto, want: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			officialClient, tradingSvc := mcpOfficialBackends(tc.cfg, creds, "token.json", "lineage.json", tc.prefer)

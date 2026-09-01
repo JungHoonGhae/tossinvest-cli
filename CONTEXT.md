@@ -15,14 +15,18 @@
 없이 바뀔 수 있다**.
 
 **hybrid routing** — 하나의 조회를 두 백엔드 중 어디로 보낼지 런타임에 정하는 것.
-`internal/hybrid` 가 담당한다. 정책은 `Policy{Prefer, Fallback}`:
+정책은 **backend preference**와 fallback 허용 여부로 구성된다:
+
+**backend preference** — hybrid routing의 시작 경로. canonical 값은 `auto`, `openapi`,
+`wts` 세 가지다. `auto`와 `openapi`는 공식 경로를 먼저 시도하고, 실제 WTS 재시도 여부는
+fallback 설정이 정한다. `official`은 입력 호환용 deprecated 별칭이며 `openapi`로 정규화된다.
 
 - 읽기: official 을 먼저 시도하고, 폴백 대상 실패(전송·인증·IP·레이트리밋·서버 오류)
   면 WTS 로 재시도한다. 도메인 오류(404 등)는 폴백하지 않고 그대로 돌려준다.
 - 쓰기(주문): **절대 교차 재시도하지 않는다.** 한 백엔드로만 보내고 실패하면 거기서
   멈춘다. 중복 주문을 막기 위한 규칙이다.
-- `Prefer: "wts"`는 우선순위 힌트가 아니라 **공식 경로 비활성화**다. `Official()`도 nil을
-  반환하므로 ops의 직접 공식 호출과 WTS 우선 조회의 역방향 폴백까지 같은 정책을 따른다.
+- `wts`는 우선순위 힌트가 아니라 **공식 경로 비활성화**다. ops의 직접 공식 호출과 WTS
+  우선 조회의 역방향 폴백까지 같은 정책을 따른다.
 
 CLI 와 MCP 는 **같은 라우터를 공유한다** — 사람이 부르든 에이전트가 부르든 같은 조회는
 같은 방식으로 해석된다.

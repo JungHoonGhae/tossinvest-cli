@@ -20,6 +20,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/ops"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderlineage"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/selfupdate"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
@@ -450,14 +451,17 @@ func configFilePath(opts *rootOptions) (string, error) {
 // resolveBackend returns the effective routing backend preference.
 // The --backend flag takes precedence over cfg.Prefer.
 // An empty flag means "use config". Invalid flag values are rejected.
-func resolveBackend(cfg config.OpenAPI, flag string) (string, error) {
-	if flag == "" {
-		return cfg.Prefer, nil
+func resolveBackend(cfg config.OpenAPI, flag string) (routing.Preference, error) {
+	value := flag
+	source := "--backend"
+	if value == "" {
+		value = string(cfg.Prefer)
+		source = "openapi.prefer"
 	}
-	if norm, ok := config.NormalizeBackend(flag); ok {
-		return norm, nil
+	if prefer, ok := routing.ParsePreference(value); ok {
+		return prefer, nil
 	}
-	return "", fmt.Errorf("invalid --backend value %q: must be one of auto, wts, openapi", flag)
+	return "", fmt.Errorf("invalid %s value %q: must be one of auto, wts, openapi", source, value)
 }
 
 func humanizeDuration(d time.Duration) string {
@@ -534,7 +538,7 @@ func newAppContext(opts *rootOptions) (*appContext, error) {
 	}
 
 	var off *official.Client
-	if creds != nil && cfg.OpenAPI.Enabled && prefer != "wts" {
+	if creds != nil && cfg.OpenAPI.Enabled && prefer != routing.WTS {
 		off = official.New(*creds, tokenFile)
 	}
 

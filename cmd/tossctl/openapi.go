@@ -16,6 +16,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
 	"github.com/spf13/cobra"
 )
 
@@ -127,7 +128,7 @@ type statusInputs struct {
 
 	probe probeResult
 
-	prefer   string
+	prefer   routing.Preference
 	fallback bool
 }
 
@@ -167,7 +168,7 @@ func buildStatusReport(in statusInputs) statusReport {
 	r := statusReport{
 		CredentialsConfigured: in.creds != nil,
 		AllowedIPs:            in.allowedIPs,
-		RoutingPrefer:         in.prefer,
+		RoutingPrefer:         string(in.prefer),
 		RoutingFallback:       in.fallback,
 		EligibleOpsCount:      officialEligibleOpsCount,
 		ConnectionOK:          in.probe.OK,
@@ -490,7 +491,7 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 			probe, _ := validateOpenAPICredentials(cmd.Context(), *creds, tokenFile)
 
 			// Read config for routing info.
-			prefer := "auto"
+			prefer := routing.Auto
 			fallback := true
 			if app, appErr := newAppContext(opts); appErr == nil {
 				prefer = app.config.OpenAPI.Prefer
