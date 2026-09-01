@@ -236,14 +236,14 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | 기능 | 커맨드 | 공식 API (예정) | tossctl |
 |------|--------|:--:|:--:|
 | 계좌 목록 / 요약 | `account list`, `account summary` | ✅ | ✅ |
-| 🆕 매수여력 (공식) | `account buying-power [--currency KRW\|USD]` (현금 기준, 계좌요약과 다른 개념) | ✅ | ❌ |
+| 🆕 매수여력 (공식) | `account buying-power [--currency KRW\|USD]` (현금 기준, 계좌요약과 다른 개념) | ✅ | ✅ |
 | 포트폴리오 | `portfolio positions`, `portfolio allocation` (US: USD 병기) | ✅ | ✅ |
 | 체결 내역 (틱) | `quote trades <symbol> --count N` | ✅ | ✅ |
 | 호가 (bid/ask 10단계) | `quote orderbook <symbol>` (매도·매수 잔량) | ✅ | ✅ |
 | 상/하한가 | `quote limits <symbol>` (KR) | ✅ | ✅ |
 | 매수 유의사항 | `quote warnings <symbol>` (정리매매·투자경고·VI 등) | ✅ | ✅ |
 | 장 운영 시간 | `market hours` (오늘 + 휴장 시 다음 영업일) | ✅ | ✅ |
-| 🆕 거래일 캘린더 | `market business-days <KR\|US>` (전일·오늘·익일 세션 시각, 국내 단일가 포함) | ✅ | ❌ |
+| 🆕 거래일 캘린더 | `market business-days <KR\|US>` (전일·오늘·익일 세션 시각, 국내 단일가 포함) | ✅ | ✅ |
 | 환율 | `market fx` (달러 환율·달러 인덱스) | ✅ | ✅ |
 | 🆕 서킷브레이커·사이드카 | `market halt` (코스피·코스닥 발동 여부) | ❌ | ✅ |
 | 🆕 지수 이상 움직임 | `market anomalies` (AI 시그널·키워드·Z점수) | ❌ | ✅ |
@@ -503,7 +503,7 @@ Claude Desktop·Codex 등 **JSON 설정 방식** 호스트는 아래 [설정 예
 
 MCP 의 고질적 비용은 **툴 스키마가 모델 컨텍스트에 상시 상주**한다는 점입니다. API 하나당 툴
 하나로 등록하면, 그 툴의 이름·설명·파라미터 스키마 전부가 대화 내내 컨텍스트를 차지합니다.
-tossctl 의 API 표면은 **40여 개 오퍼레이션**(공식 조회 16 + 주문 3 + WTS 전용 조회 20여 + 시스템 1,
+tossctl 의 API 표면은 **76개 오퍼레이션**(공식·WTS 조회, 주문, 시스템 오퍼레이션,
 계속 증가) — 이걸 개별 툴로 노출하면 **그만큼의 스키마가 항상 떠 있게** 되어 토큰을 먹고, 툴 선택
 노이즈(비슷한 툴 사이 오판)도 커집니다.
 
@@ -684,7 +684,8 @@ tossctl order place \
 ### 국내주식 매수
 
 ```bash
-# config.json: place, kr, allow_live_order_actions → true
+# config.json: place, allow_live_order_actions → true
+# (6자리 코드는 KR로 자동 인식 — --market kr 생략 가능)
 
 tossctl order place \
   --symbol 005930 --market kr --side buy --qty 1 --price 200000 \
@@ -853,11 +854,11 @@ tossctl openapi logout      # 자격증명 파일 삭제
 ### API 회귀 감시
 
 ```bash
-tossctl monitor api           # 25개 endpoint schema probe (병렬); exit 0 통과, 1 실패
+tossctl monitor api           # 42개 endpoint schema probe (병렬); exit 0 통과, 1 실패
 tossctl monitor api --quiet   # cron 용
 ```
 
-본인 머신에서 본인 세션으로 16개 read-only endpoint 응답 schema 를 병렬 점검합니다. [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) 같은 토스 서버측 body 계약 변경을 조기 감지할 목적. exit code 만 반환하므로 알림 채널 (Discord / Slack / ntfy / macOS / 이메일) 은 cron 라인의 `|| <command>` 우항에서 사용자가 합성합니다. 합성 recipe: [`AGENTS.md`](AGENTS.md). 설정 가이드: [`docs/operations.md`](docs/operations.md).
+본인 머신에서 본인 세션으로 42개 read-only endpoint 응답 schema 를 병렬 점검합니다. [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) 같은 토스 서버측 body 계약 변경을 조기 감지할 목적. exit code 만 반환하므로 알림 채널 (Discord / Slack / ntfy / macOS / 이메일) 은 cron 라인의 `|| <command>` 우항에서 사용자가 합성합니다. 합성 recipe: [`AGENTS.md`](AGENTS.md). 설정 가이드: [`docs/operations.md`](docs/operations.md).
 
 ## 주문 ref rollover
 
@@ -892,11 +893,23 @@ US/KR 지정가 매수/매도, US 소수점 매수, 당일 미체결 취소가 l
 
 ## 문서
 
+- [`CHANGELOG.md`](CHANGELOG.md)
+- [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+- [`MAINTAINERS.md`](MAINTAINERS.md)
+- [`SECURITY.md`](SECURITY.md)
+- [`AGENTS.md`](AGENTS.md)
+- [`CONTEXT.md`](CONTEXT.md)
+- [`STATS.md`](STATS.md)
+- [`TODOS.md`](TODOS.md)
+- [`.github/pull_request_template.md`](.github/pull_request_template.md)
 - [`docs/architecture.md`](docs/architecture.md)
 - [`docs/configuration.md`](docs/configuration.md)
+- [`docs/operations.md`](docs/operations.md)
 - [`docs/reverse-engineering/`](docs/reverse-engineering/)
 - [`docs/trading/`](docs/trading/)
 - [`auth-helper/README.md`](auth-helper/README.md)
+- [`website-fumadocs/README.md`](website-fumadocs/README.md)
 
 ## 로컬 저장 경로
 

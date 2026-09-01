@@ -22,6 +22,8 @@ Version history below (source: the Korean-language [CHANGELOG.md](https://github
 - 지급 내역이 없는 `account interest` 결과가 CLI 와 operation 에서 같은 사용 가능 연도 정보를 돌려줍니다. 연도 조회는 성공 결과를 캐시하고 동시 요청을 공유하되, 마지막 대기자가 취소되면 실제 HTTP 요청도 취소하며, 보강 실패가 본 보고서를 막지 않습니다.
 - 짧거나 비정상 형태의 계좌번호와 한 글자 예금주명도 `account detail` 기본 출력에서 노출되지 않도록 마스킹합니다.
 - 관심종목 대화형 폴더 선택이 Cobra 에 주입된 입력·출력 스트림을 사용하도록 바꿔 임베디드 실행과 PTY 테스트에서 프로세스 전역 터미널에 잘못 연결되지 않게 했습니다.
+
+### 기여자용
 - WTS endpoint 인벤토리가 Go AST 의 문자열 상수·`fmt.Sprintf` 조립 경로와 런타임 monitor probe 를 함께 읽고 host·method·소유권 불일치를 테스트에서 fail-closed로 감지합니다.
 
 ## [0.46.0] - 2026-08-29
