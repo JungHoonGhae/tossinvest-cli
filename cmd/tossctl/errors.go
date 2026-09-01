@@ -28,8 +28,8 @@ func userFacingCommandError(err error) error {
 		return fmt.Errorf("canceled")
 	}
 
-	if errors.Is(err, hybrid.ErrOfficialKeyRequired) {
-		return fmt.Errorf("this feature requires a Toss official Open API key\n  run `tossctl openapi login` to connect one\n  (issue a key: https://corp.tossinvest.com/ko/open-api)")
+	if errors.Is(err, hybrid.ErrOfficialAccessRequired) {
+		return fmt.Errorf("this feature requires Toss official Open API access\n  connect a key with `tossctl openapi login` and use `--backend auto|openapi`\n  (issue a key: https://corp.tossinvest.com/ko/open-api)")
 	}
 
 	if errors.Is(err, session.ErrNoSession) || errors.Is(err, tossclient.ErrNoSession) {
