@@ -8,7 +8,7 @@ import (
 
 func TestPickFromListNonInteractive(t *testing.T) {
 	r, _, _ := os.Pipe()
-	_, err := pickFromListWith(r, os.Stdout, "주문 선택", []Item{{ID: "1", Label: "a"}})
+	_, err := PickFromListWith(r, os.Stdout, "주문 선택", []Item{{ID: "1", Label: "a"}})
 	if !errors.Is(err, ErrNotInteractive) {
 		t.Fatalf("want ErrNotInteractive, got %v", err)
 	}

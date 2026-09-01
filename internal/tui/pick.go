@@ -18,10 +18,13 @@ type Item struct {
 // the ID of the selected Item. Returns an error for empty lists; returns
 // ErrNotInteractive when Stdin/Stdout are not a TTY.
 func PickFromList(title string, items []Item) (string, error) {
-	return pickFromListWith(os.Stdin, os.Stdout, title, items)
+	return PickFromListWith(os.Stdin, os.Stdout, title, items)
 }
 
-func pickFromListWith(in, out *os.File, title string, items []Item) (string, error) {
+// PickFromListWith presents the picker on explicit terminal files. Cobra
+// adapters use this form so tests and embedded callers do not have to replace
+// process-global stdin/stdout.
+func PickFromListWith(in, out *os.File, title string, items []Item) (string, error) {
 	if len(items) == 0 {
 		return "", fmt.Errorf("선택할 항목이 없습니다")
 	}
@@ -35,7 +38,7 @@ func pickFromListWith(in, out *os.File, title string, items []Item) (string, err
 	var selected string
 	form := huh.NewForm(huh.NewGroup(
 		huh.NewSelect[string]().Title(title).Options(opts...).Value(&selected),
-	))
+	)).WithInput(in).WithOutput(out)
 	if err := form.Run(); err != nil {
 		return "", err
 	}

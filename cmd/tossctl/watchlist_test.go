@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -51,25 +50,13 @@ func TestGroupItemsEmpty(t *testing.T) {
 // TestGroupDeleteNonTTYNoArgsError checks that `watchlist group delete` with
 // no arguments and a non-TTY stdin returns a clean error without blocking.
 func TestGroupDeleteNonTTYNoArgsError(t *testing.T) {
-	// Not parallel: temporarily replaces os.Stdin.
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	w.Close()
-	old := os.Stdin
-	os.Stdin = r
-	t.Cleanup(func() {
-		os.Stdin = old
-		r.Close()
-	})
-
 	opts := &rootOptions{}
 	groupCmd := newWatchlistGroupCmd(opts)
 	deleteCmd := findSubCmd(groupCmd, "delete")
 	if deleteCmd == nil {
 		t.Fatal("delete subcommand not found")
 	}
+	deleteCmd.SetIn(strings.NewReader(""))
 
 	gotErr := deleteCmd.RunE(deleteCmd, []string{})
 	if gotErr == nil {
@@ -83,25 +70,13 @@ func TestGroupDeleteNonTTYNoArgsError(t *testing.T) {
 // TestGroupRenameNonTTYOneArgError checks that `watchlist group rename <name>`
 // with exactly one argument and a non-TTY stdin returns a clean error.
 func TestGroupRenameNonTTYOneArgError(t *testing.T) {
-	// Not parallel: temporarily replaces os.Stdin.
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	w.Close()
-	old := os.Stdin
-	os.Stdin = r
-	t.Cleanup(func() {
-		os.Stdin = old
-		r.Close()
-	})
-
 	opts := &rootOptions{}
 	groupCmd := newWatchlistGroupCmd(opts)
 	renameCmd := findSubCmd(groupCmd, "rename")
 	if renameCmd == nil {
 		t.Fatal("rename subcommand not found")
 	}
+	renameCmd.SetIn(strings.NewReader(""))
 
 	gotErr := renameCmd.RunE(renameCmd, []string{"새이름"})
 	if gotErr == nil {
@@ -119,21 +94,9 @@ func TestGroupRenameNonTTYOneArgError(t *testing.T) {
 // 이 커맨드의 원래 동작이고 스크립트·MCP 가 그대로 쓴다. 폴더를 요구하면 피커가
 // 행(hang)되는 것은 막지만 자동화가 깨진다.
 func TestWatchlistListNonTTYNoArgsListsAll(t *testing.T) {
-	// Not parallel: temporarily replaces os.Stdin.
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	w.Close()
-	old := os.Stdin
-	os.Stdin = r
-	t.Cleanup(func() {
-		os.Stdin = old
-		r.Close()
-	})
-
 	opts := &rootOptions{}
 	listCmd := newWatchlistListCmd(opts)
+	listCmd.SetIn(strings.NewReader(""))
 
 	// 세션이 없으므로 config/네트워크 단계에서 실패한다. 확인하려는 것은 "폴더를
 	// 고르라는 요구로 거절당하지 않는다" 는 것뿐이다.
@@ -175,6 +138,39 @@ func TestWatchlistListInvalidIDError(t *testing.T) {
 	}
 	if !strings.Contains(gotErr.Error(), "folder id must be a number") {
 		t.Fatalf("unexpected error message: %v", gotErr)
+	}
+}
+
+func TestFolderIntentResolverAcceptsExplicitID(t *testing.T) {
+	r := folderIntentResolver{}
+	for _, resolve := range []struct {
+		name string
+		call func() (folderIntent, error)
+	}{
+		{name: "list", call: func() (folderIntent, error) { return r.list("42", false) }},
+		{name: "required", call: func() (folderIntent, error) { return r.required("42") }},
+	} {
+		t.Run(resolve.name, func(t *testing.T) {
+			got, err := resolve.call()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.mode != folderIntentSpecific || got.id != 42 {
+				t.Fatalf("intent = %+v, want specific folder 42", got)
+			}
+		})
+	}
+}
+
+func TestFolderIntentResolverKeepsInteractiveIntent(t *testing.T) {
+	r := folderIntentResolver{interactive: true}
+	list, err := r.list("", false)
+	if err != nil || list.mode != folderIntentInteractive {
+		t.Fatalf("interactive list intent = %+v, %v", list, err)
+	}
+	required, err := r.required("")
+	if err != nil || required.mode != folderIntentInteractive {
+		t.Fatalf("interactive required intent = %+v, %v", required, err)
 	}
 }
 

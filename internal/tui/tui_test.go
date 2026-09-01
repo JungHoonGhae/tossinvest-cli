@@ -14,6 +14,15 @@ func TestIsInteractiveFalseForPipe(t *testing.T) {
 	}
 }
 
+func TestIsInteractiveFalseForNilFiles(t *testing.T) {
+	if IsInteractive(nil, os.Stdout) {
+		t.Fatal("nil input must not be interactive")
+	}
+	if IsInteractive(os.Stdin, nil) {
+		t.Fatal("nil output must not be interactive")
+	}
+}
+
 func TestSelectWithNonInteractiveErrors(t *testing.T) {
 	r, w, _ := os.Pipe()
 	defer r.Close()
