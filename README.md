@@ -305,6 +305,11 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **실시간 푸시** | `push listen` (SSE 스트림 — 주문/가격 변경 알림) | ❌ *(공식 API 는 웹소켓)* | ✅ |
 | **🆕 실시간 스트림 (웹소켓)** | `stream --trade\|--orderbook\|--order` (체결·호가·본인 주문 이벤트) | ✅ | ❌ *(웹은 SSE 알림뿐)* |
 
+`quote charts` 와 `quote reasons` 는 서버가 데이터 없는 종목을 응답에서 생략해도 요청 순서를
+유지합니다. JSON 의 `missing` 배열은 생략된 입력 종목을 담고, CSV 에서는 해당 종목을 `symbol` 만
+채운 빈 행으로 기록합니다. 정상 응답에 캔들이 0개인 종목도 빈 시계열 행으로 남습니다. 따라서
+자동화는 응답 행 수가 요청 수와 같다고 가정하지 말고 `missing` 또는 빈 CSV 열을 확인해야 합니다.
+
 #### 📱 모바일 앱 전용 기능 (웹에도 UI 없음)
 
 위 표의 대부분은 **토스 웹(WTS)에 화면이 있는** 기능입니다. 아래는 한 걸음 더 나아가,
@@ -514,6 +519,11 @@ tossctl 은 KIS_MCP_Server 의 catalog 모드를 참조해, 앞단에 **고정 3
 그때 스키마를 읽고 → `call_operation` 으로 호출하므로, 안 쓰는 오퍼레이션의 스키마가 컨텍스트를
 차지하지 않습니다. (이 README 를 읽는 Claude Code 세션에서도 `tossctl` MCP 는 딱 이 3개 툴로
 잡힙니다.)
+
+`call_operation` 의 인자는 `describe_operation` 이 선언한 이름과 타입에 정확히 맞아야 합니다.
+알 수 없는 인자, 소수로 전달된 정수, `float64` 로 바꿀 때 정밀도를 잃는 큰 정수는 backend 를
+호출하기 전에 오류로 반환합니다. 오래된 스키마의 인자를 섞어 보내는 대신 호출 직전에
+`describe_operation` 을 다시 읽으세요.
 
 #### MCP 가 노출하는 범위 — 조회는 공식+WTS, 쓰기는 공식 전용
 
