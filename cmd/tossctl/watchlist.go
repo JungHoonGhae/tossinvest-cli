@@ -27,14 +27,74 @@ func groupItems(groups []domain.WatchlistGroup) []tui.Item {
 	return items
 }
 
+type folderIntentMode uint8
+
+const (
+	folderIntentAll folderIntentMode = iota
+	folderIntentSpecific
+	folderIntentInteractive
+)
+
+type folderIntent struct {
+	mode folderIntentMode
+	id   int64
+}
+
+type folderIntentResolver struct {
+	interactive bool
+	in          *os.File
+	out         *os.File
+}
+
+func folderResolverFor(cmd *cobra.Command) folderIntentResolver {
+	in, inOK := cmd.InOrStdin().(*os.File)
+	out, outOK := cmd.OutOrStdout().(*os.File)
+	return folderIntentResolver{
+		interactive: inOK && outOK && tui.IsInteractive(in, out),
+		in:          in,
+		out:         out,
+	}
+}
+
+func specificFolderIntent(rawID string) (folderIntent, error) {
+	id, err := strconv.ParseInt(rawID, 10, 64)
+	if err != nil {
+		return folderIntent{}, fmt.Errorf("folder id must be a number: %s", rawID)
+	}
+	return folderIntent{mode: folderIntentSpecific, id: id}, nil
+}
+
+func (r folderIntentResolver) list(rawID string, all bool) (folderIntent, error) {
+	if all && rawID != "" {
+		return folderIntent{}, fmt.Errorf("cannot specify both a folder id and --all")
+	}
+	if rawID != "" {
+		return specificFolderIntent(rawID)
+	}
+	if all || !r.interactive {
+		return folderIntent{mode: folderIntentAll}, nil
+	}
+	return folderIntent{mode: folderIntentInteractive}, nil
+}
+
+func (r folderIntentResolver) required(rawID string) (folderIntent, error) {
+	if rawID != "" {
+		return specificFolderIntent(rawID)
+	}
+	if !r.interactive {
+		return folderIntent{}, fmt.Errorf("specify a folder id, or run in an interactive terminal")
+	}
+	return folderIntent{mode: folderIntentInteractive}, nil
+}
+
 // pickFolderID fetches watchlist folders and presents an interactive picker,
 // returning the selected folder's int64 ID.
-func pickFolderID(ctx context.Context, app *appContext) (int64, error) {
+func pickFolderID(ctx context.Context, app *appContext, in, out *os.File) (int64, error) {
 	groups, err := app.client.ListWatchlistGroups(ctx)
 	if err != nil {
 		return 0, userFacingCommandError(err)
 	}
-	selected, err := tui.PickFromList("Select a folder", groupItems(groups))
+	selected, err := tui.PickFromListWith(in, out, "Select a folder", groupItems(groups))
 	if err != nil {
 		return 0, err
 	}
@@ -108,41 +168,30 @@ func newWatchlistGroupCmd(opts *rootOptions) *cobra.Command {
 			Args:        cobra.RangeArgs(1, 2),
 			Annotations: map[string]string{"source": "wts"},
 			RunE: func(cmd *cobra.Command, args []string) error {
-				var id int64
 				var name string
-
+				var rawID string
 				if len(args) == 2 {
-					// Fully-specified: rename <id> <new-name> — existing path, unchanged.
-					var parseErr error
-					id, parseErr = strconv.ParseInt(args[0], 10, 64)
-					if parseErr != nil {
-						return fmt.Errorf("folder id must be a number: %s", args[0])
-					}
+					rawID = args[0]
 					name = strings.Join(args[1:], " ")
 				} else {
-					// 1-arg: treat args[0] as new-name, pick folder interactively.
 					name = args[0]
-					if !tui.IsInteractive(os.Stdin, os.Stdout) {
-						return fmt.Errorf("specify a folder id and new name, or run in an interactive terminal")
-					}
-					app, err := newAppContext(opts)
-					if err != nil {
-						return err
-					}
-					id, err = pickFolderID(cmd.Context(), app)
-					if err != nil {
-						return err
-					}
-					if err := app.client.RenameWatchlistGroup(cmd.Context(), id, name); err != nil {
-						return userFacingCommandError(err)
-					}
-					fmt.Fprintf(cmd.OutOrStdout(), "folder renamed: id=%d -> %s\n", id, name)
-					return nil
 				}
 
+				resolver := folderResolverFor(cmd)
+				intent, err := resolver.required(rawID)
+				if err != nil {
+					return err
+				}
 				app, err := newAppContext(opts)
 				if err != nil {
 					return err
+				}
+				id := intent.id
+				if intent.mode == folderIntentInteractive {
+					id, err = pickFolderID(cmd.Context(), app, resolver.in, resolver.out)
+					if err != nil {
+						return err
+					}
 				}
 				if err := app.client.RenameWatchlistGroup(cmd.Context(), id, name); err != nil {
 					return userFacingCommandError(err)
@@ -157,38 +206,26 @@ func newWatchlistGroupCmd(opts *rootOptions) *cobra.Command {
 			Args:        cobra.MaximumNArgs(1),
 			Annotations: map[string]string{"source": "wts"},
 			RunE: func(cmd *cobra.Command, args []string) error {
-				var id int64
-
+				rawID := ""
 				if len(args) == 1 {
-					// Fully-specified: delete <id> — existing path, unchanged.
-					var parseErr error
-					id, parseErr = strconv.ParseInt(args[0], 10, 64)
-					if parseErr != nil {
-						return fmt.Errorf("folder id must be a number: %s", args[0])
-					}
-				} else {
-					// No id: pick folder interactively (TTY only).
-					if !tui.IsInteractive(os.Stdin, os.Stdout) {
-						return fmt.Errorf("specify a folder id, or run in an interactive terminal")
-					}
-					app, err := newAppContext(opts)
-					if err != nil {
-						return err
-					}
-					id, err = pickFolderID(cmd.Context(), app)
-					if err != nil {
-						return err
-					}
-					if err := app.client.DeleteWatchlistGroup(cmd.Context(), id); err != nil {
-						return userFacingCommandError(err)
-					}
-					fmt.Fprintf(cmd.OutOrStdout(), "folder deleted: id=%d\n", id)
-					return nil
+					rawID = args[0]
+				}
+				resolver := folderResolverFor(cmd)
+				intent, err := resolver.required(rawID)
+				if err != nil {
+					return err
 				}
 
 				app, err := newAppContext(opts)
 				if err != nil {
 					return err
+				}
+				id := intent.id
+				if intent.mode == folderIntentInteractive {
+					id, err = pickFolderID(cmd.Context(), app, resolver.in, resolver.out)
+					if err != nil {
+						return err
+					}
 				}
 				if err := app.client.DeleteWatchlistGroup(cmd.Context(), id); err != nil {
 					return userFacingCommandError(err)
@@ -245,22 +282,14 @@ func newWatchlistListCmd(opts *rootOptions) *cobra.Command {
 		Args:        cobra.MaximumNArgs(1),
 		Annotations: map[string]string{"source": "wts"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if all && len(args) > 0 {
-				return fmt.Errorf("cannot specify both a folder id and --all")
-			}
-			var groupID int64
+			rawID := ""
 			if len(args) == 1 {
-				var parseErr error
-				groupID, parseErr = strconv.ParseInt(args[0], 10, 64)
-				if parseErr != nil {
-					return fmt.Errorf("folder id must be a number: %s", args[0])
-				}
-			} else if !all && !tui.IsInteractive(os.Stdin, os.Stdout) {
-				// 폴더를 고르지 않았고 물어볼 터미널도 없으면 전체를 낸다. 이것이
-				// 이 커맨드의 원래 동작이고, 스크립트와 MCP 가 그대로 쓰고 있다.
-				// 여기서 에러를 내면 대화형 피커가 행(hang)되는 것은 막지만, 대신
-				// 자동화를 깨뜨린다 — 고치려던 것보다 넓은 파손이다.
-				all = true
+				rawID = args[0]
+			}
+			resolver := folderResolverFor(cmd)
+			intent, err := resolver.list(rawID, all)
+			if err != nil {
+				return err
 			}
 
 			app, err := newAppContext(opts)
@@ -268,7 +297,7 @@ func newWatchlistListCmd(opts *rootOptions) *cobra.Command {
 				return err
 			}
 
-			if all {
+			if intent.mode == folderIntentAll {
 				items, err := app.client.ListAllWatchlistItems(cmd.Context())
 				if err != nil {
 					return userFacingCommandError(err)
@@ -276,9 +305,9 @@ func newWatchlistListCmd(opts *rootOptions) *cobra.Command {
 				return output.WriteWatchlist(cmd.OutOrStdout(), app.format, items)
 			}
 
-			if len(args) == 0 {
-				// TTY mode: interactive picker (non-TTY case already handled above).
-				groupID, err = pickFolderID(cmd.Context(), app)
+			groupID := intent.id
+			if intent.mode == folderIntentInteractive {
+				groupID, err = pickFolderID(cmd.Context(), app, resolver.in, resolver.out)
 				if err != nil {
 					return err
 				}

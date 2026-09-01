@@ -1,14 +1,14 @@
 {
   "source": "tossinvest.com web bundles",
-  "build_id": "jftEJdC7grbL1_qM7D5FL",
+  "build_id": "AMMs1o-7oggk8DI6HK-Lh",
   "chunk_count": 79,
-  "total": 1088,
+  "total": 1096,
   "counts": {
-    "implemented": 117,
-    "candidate": 335,
+    "implemented": 129,
+    "candidate": 331,
     "excluded": 636,
     "candidate_next": 25,
-    "meaningful": 452
+    "meaningful": 460
   },
   "overrides": {
     "/api/v1/asset-snapshot/all-accounts/chart": {
@@ -2269,6 +2269,8 @@
     },
     "/api/v1/crypto-prices": {
       "status": "implemented",
+      "method": "GET",
+      "host": "wts-info-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/dashboard/all-accounts": {
@@ -2370,14 +2372,9 @@
     "/api/v1/dashboard/common/stocks/mini-chart": {
       "status": "implemented",
       "note": "다종목 미니차트 (CERT, POST {codes:[]}, 서버가 1일/10분봉을 정해서 준다). 2026-08-04 에 'quote batch --chart 의 N호출을 1로 줄이는 용도로는 측정된 성능 문제가 없어 보류' 로 판단했었다. 2026-08-24 에 **대체가 아니라 별도 커맨드** `quote charts` 로 구현했다 — 간격이 서버 고정(요청 파라미터 아님)이라 batch --chart 를 갈아치우면 사용자가 받던 3m/30 이 조용히 바뀐다. KR·US 모두 동작(005930·AAPL 라이브 확인), 데이터 없는 종목은 오류 없이 빠진다.",
+      "method": "POST",
+      "host": "wts-cert-api",
       "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "method": "POST",
-        "status": 400,
-        "verdict": "needs-params"
-      },
       "observed": {
         "method": "POST",
         "host": "wts-cert-api",
@@ -2530,6 +2527,12 @@
         "at": "2026-08-03"
       }
     },
+    "/api/v1/dashboard/wts/overview/indicator/index": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-09-01"
+    },
     "/api/v1/dashboard/wts/overview/margin": {
       "status": "implemented",
       "first_seen": "2026-06-19",
@@ -2541,8 +2544,16 @@
         "at": "2026-08-03"
       }
     },
+    "/api/v1/dashboard/wts/overview/rankings/by-investors": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-info-api",
+      "first_seen": "2026-09-01"
+    },
     "/api/v1/dashboard/wts/overview/signals": {
       "status": "implemented",
+      "method": "GET",
+      "host": "wts-info-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/dashboard/wts/overview/tics/{id}/comparison-chart": {
@@ -2879,7 +2890,7 @@
       }
     },
     "/api/v1/growth/autotrade/plan/stock/{stockCode}": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
@@ -2927,6 +2938,12 @@
         "at": "2026-08-03"
       }
     },
+    "/api/v1/index-prices/{code}": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-info-api",
+      "first_seen": "2026-09-01"
+    },
     "/api/v1/intelligence/user/mark": {
       "status": "candidate",
       "first_seen": "2026-06-19",
@@ -2960,14 +2977,9 @@
     },
     "/api/v1/interest/accounts/annual/history/years": {
       "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
       "first_seen": "2026-08-03",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "method": "GET",
-        "status": 200,
-        "verdict": "thin"
-      },
       "observed": {
         "method": "GET",
         "host": "wts-cert-api",
@@ -3366,6 +3378,8 @@
     },
     "/api/v1/margin/cert/notice/receivable": {
       "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/mds/broker/trading-ranking": {
@@ -4299,7 +4313,7 @@
       }
     },
     "/api/v1/openapi/client": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -5467,6 +5481,8 @@
     },
     "/api/v1/rankings/realtime/stock": {
       "status": "implemented",
+      "method": "GET",
+      "host": "wts-info-api",
       "first_seen": "2026-06-19",
       "observed": {
         "method": "GET",
@@ -5932,6 +5948,8 @@
     },
     "/api/v1/screener/filters/range": {
       "status": "implemented",
+      "method": "POST",
+      "host": "wts-cert-api",
       "first_seen": "2026-08-03"
     },
     "/api/v1/screener/presets/user": {
@@ -6335,6 +6353,8 @@
     },
     "/api/v1/stock-infos/trade/trend/trading-trend": {
       "status": "implemented",
+      "method": "GET",
+      "host": "wts-info-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/stock-infos/{code}/wts-badges": {
@@ -6527,6 +6547,8 @@
     },
     "/api/v1/tics/all": {
       "status": "implemented",
+      "method": "GET",
+      "host": "wts-info-api",
       "first_seen": "2026-08-03",
       "observed": {
         "method": "GET",
@@ -7505,7 +7527,7 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/wts-login-extend": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -7527,14 +7549,8 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/wts-notification": {
-      "status": "candidate",
+      "status": "implemented",
       "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-cert-api",
-        "status": 404,
-        "verdict": "not-found"
-      },
       "observed": {
         "method": "GET",
         "host": "sse-message",
@@ -7882,6 +7898,8 @@
     },
     "/api/v2/dashboard/asset/sections/all": {
       "status": "implemented",
+      "method": "POST",
+      "host": "wts-cert-api",
       "first_seen": "2026-06-19",
       "observed": {
         "method": "POST",
@@ -8774,6 +8792,8 @@
     },
     "/api/v2/screener/presets/common": {
       "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
       "first_seen": "2026-08-03",
       "observed": {
         "method": "GET",
@@ -9031,6 +9051,12 @@
         "verdict": "http-500"
       }
     },
+    "/api/v2/stock-infos/{code}": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-info-api",
+      "first_seen": "2026-09-01"
+    },
     "/api/v2/stock-prices": {
       "status": "candidate",
       "first_seen": "2026-06-19",
@@ -9051,6 +9077,18 @@
         "body": [],
         "at": "2026-08-03"
       }
+    },
+    "/api/v2/stock-prices/{code}/ticks": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-info-api",
+      "first_seen": "2026-09-01"
+    },
+    "/api/v2/stock-prices/{code}/upper-lower": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-info-api",
+      "first_seen": "2026-09-01"
     },
     "/api/v2/system/trading-hours/integrated": {
       "status": "implemented",
@@ -9182,6 +9220,8 @@
     },
     "/api/v2/trading/commission-info": {
       "status": "implemented",
+      "method": "GET",
+      "host": "wts-api",
       "first_seen": "2026-08-03",
       "observed": {
         "method": "GET",
@@ -9270,6 +9310,8 @@
     },
     "/api/v2/trading/order/buy-control/required-deposit-amount": {
       "status": "implemented",
+      "method": "GET",
+      "host": "wts-info-api",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -9608,6 +9650,8 @@
     },
     "/api/v3/my-assets/summaries/markets/all/overview": {
       "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
       "first_seen": "2026-06-19",
       "observed": {
         "method": "GET",
@@ -9785,6 +9829,12 @@
         "at": "2026-08-03"
       }
     },
+    "/api/v3/stock-prices/{code}/quotes": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-info-api",
+      "first_seen": "2026-09-01"
+    },
     "/api/v3/terms": {
       "status": "excluded",
       "note": "legal terms",
@@ -9902,6 +9952,8 @@
     },
     "/api/v3/trading/auto-trading/histories": {
       "status": "implemented",
+      "method": "GET",
+      "host": "wts-info-api",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -9976,7 +10028,7 @@
       }
     },
     "/api/v3/trading/order/{orderKorNo}/available-actions": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -10060,6 +10112,12 @@
         "body": [],
         "at": "2026-08-24"
       }
+    },
+    "/api/v4/calendar/monthly/{month}": {
+      "status": "candidate",
+      "method": "POST",
+      "host": "wts-info-api",
+      "first_seen": "2026-09-01"
     },
     "/api/v4/certs/register/init-session-v2": {
       "status": "candidate",
@@ -10219,5 +10277,5 @@
       }
     }
   },
-  "updated_at": "2026-08-31"
+  "updated_at": "2026-09-01"
 }

@@ -233,6 +233,25 @@ func (c *Client) GetCommission(ctx context.Context, symbol string) (domain.Commi
 // serve (no WTS equivalent). cmd/tossctl converts it into a friendly hint.
 var ErrOfficialKeyRequired = errors.New("official Open API key required")
 
+// BuyingPower serves the official cash buying-power read. The WTS account
+// summary exposes different orderable-amount concepts, so this read must not
+// fall back or silently substitute one for the other.
+func (c *Client) BuyingPower(ctx context.Context, currency string) (domain.BuyingPower, error) {
+	if c.off == nil || c.pol.Prefer == "wts" {
+		return domain.BuyingPower{}, ErrOfficialKeyRequired
+	}
+	return c.off.BuyingPower(ctx, currency)
+}
+
+// MarketCalendar serves the official trading-day calendar. WTS exposes a
+// different monthly market-events calendar, so this read has no valid fallback.
+func (c *Client) MarketCalendar(ctx context.Context, country, date string) (domain.TradingCalendar, error) {
+	if c.off == nil || c.pol.Prefer == "wts" {
+		return domain.TradingCalendar{}, ErrOfficialKeyRequired
+	}
+	return c.off.MarketCalendar(ctx, country, date)
+}
+
 // Rankings serves the official /rankings ranking. official-only: no WTS
 // fallback (WTS "popularity" ranking is a different dataset), so a missing key
 // returns ErrOfficialKeyRequired rather than degrading.

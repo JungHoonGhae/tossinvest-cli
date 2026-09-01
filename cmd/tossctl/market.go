@@ -79,7 +79,7 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			c, err := app.client.Official().MarketCalendar(cmd.Context(), args[0], businessDaysDate)
+			c, err := app.client.MarketCalendar(cmd.Context(), args[0], businessDaysDate)
 			if err != nil {
 				return userFacingCommandError(err)
 			}

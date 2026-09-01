@@ -22,12 +22,15 @@ package ops
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/jsoninput"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
@@ -170,27 +173,20 @@ func (c *Catalog) Probes() []ProbeSpec {
 	return out
 }
 
-// Call validates the arguments against the operation's required parameters and
-// dispatches to its handler. It returns the operation's result payload.
+// Call validates and normalizes arguments from the operation's declared Param
+// contract before dispatching to its handler. It returns the operation's result
+// payload.
 func (c *Catalog) Call(ctx context.Context, deps *Deps, id string, args map[string]any) (any, error) {
 	op, ok := c.byID[id]
 	if !ok {
 		return nil, fmt.Errorf("unknown operation %q (use list_operations to discover valid ids)", id)
 	}
-	if args == nil {
-		args = map[string]any{}
+	validated, err := validateArguments(op, args)
+	if err != nil {
+		return nil, err
 	}
-	var missing []string
-	for _, p := range op.Params {
-		if !p.Required {
-			continue
-		}
-		if _, ok := args[p.Name]; !ok {
-			missing = append(missing, p.Name)
-		}
-	}
-	if len(missing) > 0 {
-		return nil, fmt.Errorf("operation %q is missing required parameter(s): %s", id, strings.Join(missing, ", "))
+	if deps == nil {
+		return nil, fmt.Errorf("operation %q cannot run: dependencies are not configured", id)
 	}
 	// Verify the operation's backend is authenticated before dispatching.
 	switch op.Backend {
@@ -217,7 +213,132 @@ func (c *Catalog) Call(ctx context.Context, deps *Deps, id string, args map[stri
 			return nil, fmt.Errorf("operation %q needs official Open API credentials; run `tossctl openapi login`", id)
 		}
 	}
-	return op.handler(ctx, deps, args)
+	return op.handler(ctx, deps, validated)
+}
+
+// validateArguments turns the JSON-shaped call payload into the exact Go value
+// shapes handlers expect. Param is therefore the single source of truth for
+// primitive types: handlers only own domain defaults and domain validation.
+func validateArguments(op Operation, args map[string]any) (map[string]any, error) {
+	if args == nil {
+		args = map[string]any{}
+	}
+
+	declared := make(map[string]Param, len(op.Params))
+	for _, p := range op.Params {
+		declared[p.Name] = p
+	}
+
+	unknown := ""
+	for name := range args {
+		if _, ok := declared[name]; !ok {
+			if unknown == "" || name < unknown {
+				unknown = name
+			}
+		}
+	}
+	if unknown != "" {
+		return nil, fmt.Errorf("operation %q has unknown parameter %q", op.ID, unknown)
+	}
+
+	validated := make(map[string]any, len(args))
+	var missing []string
+	for _, p := range op.Params {
+		value, ok := args[p.Name]
+		if !ok {
+			if p.Required {
+				missing = append(missing, p.Name)
+			}
+			continue
+		}
+		normalized, err := normalizeArgument(p, value)
+		if err != nil {
+			return nil, err
+		}
+		validated[p.Name] = normalized
+	}
+	if len(missing) > 0 {
+		return nil, fmt.Errorf("operation %q is missing required parameter(s): %s", op.ID, strings.Join(missing, ", "))
+	}
+	return validated, nil
+}
+
+func normalizeArgument(p Param, value any) (any, error) {
+	switch p.Type {
+	case "string":
+		if s, ok := value.(string); ok {
+			return s, nil
+		}
+		return nil, fmt.Errorf("parameter %q must be a string", p.Name)
+	case "integer":
+		switch n := value.(type) {
+		case int:
+			return n, nil
+		case json.Number:
+			value, err := jsoninput.Int(n, strconv.IntSize)
+			if err != nil {
+				return nil, fmt.Errorf("parameter %q must be an integer", p.Name)
+			}
+			return int(value), nil
+		case float64:
+			limit := math.Ldexp(1, strconv.IntSize-1)
+			if math.IsNaN(n) || math.IsInf(n, 0) || math.Trunc(n) != n || n < -limit || n >= limit {
+				return nil, fmt.Errorf("parameter %q must be an integer", p.Name)
+			}
+			return int(n), nil
+		default:
+			return nil, fmt.Errorf("parameter %q must be an integer", p.Name)
+		}
+	case "number":
+		switch n := value.(type) {
+		case int:
+			const maxExactFloat64Integer int64 = 1 << 53
+			if int64(n) < -maxExactFloat64Integer || int64(n) > maxExactFloat64Integer {
+				return nil, fmt.Errorf("parameter %q must be a number without integer precision loss", p.Name)
+			}
+			return float64(n), nil
+		case json.Number:
+			parsed, err := jsoninput.Float64(n)
+			if errors.Is(err, jsoninput.ErrIntegerPrecisionLoss) {
+				return nil, fmt.Errorf("parameter %q must be a number without integer precision loss", p.Name)
+			}
+			if err != nil {
+				return nil, fmt.Errorf("parameter %q must be a number", p.Name)
+			}
+			return parsed, nil
+		case float64:
+			if math.IsNaN(n) || math.IsInf(n, 0) {
+				return nil, fmt.Errorf("parameter %q must be a number", p.Name)
+			}
+			return n, nil
+		default:
+			return nil, fmt.Errorf("parameter %q must be a number", p.Name)
+		}
+	case "boolean":
+		if b, ok := value.(bool); ok {
+			return b, nil
+		}
+		return nil, fmt.Errorf("parameter %q must be a boolean", p.Name)
+	case "string[]":
+		switch values := value.(type) {
+		case []string:
+			return values, nil
+		case []any:
+			out := make([]string, len(values))
+			for i, item := range values {
+				s, ok := item.(string)
+				if !ok {
+					return nil, fmt.Errorf("parameter %q[%d] must be a string", p.Name, i)
+				}
+				out[i] = s
+			}
+			return out, nil
+		default:
+			return nil, fmt.Errorf("parameter %q must be an array of strings", p.Name)
+		}
+	default:
+		return nil, fmt.Errorf("parameter %q has unsupported declared type %q", p.Name, p.Type)
+	}
 }
 
 // requiredNames returns the names of the operation's required parameters.

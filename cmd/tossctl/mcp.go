@@ -8,6 +8,7 @@ import (
 	"time"
 
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/mcp"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
@@ -18,6 +19,16 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/version"
 	"github.com/spf13/cobra"
 )
+
+func mcpOfficialBackends(cfg config.File, creds *official.Credentials, tokenFile, lineageFile, prefer string) (*official.Client, *trading.Service) {
+	if creds == nil || !cfg.OpenAPI.Enabled || prefer == "wts" {
+		return nil, nil
+	}
+	officialClient := official.New(*creds, tokenFile)
+	tradingSvc := trading.NewService(cfg.Trading, mcp.OfficialBroker{Client: officialClient}).
+		WithLineage(orderlineage.NewService(lineageFile))
+	return officialClient, tradingSvc
+}
 
 // newMCPCmd builds the `tossctl mcp` command: a stdio Model Context Protocol
 // server exposing the official Toss Open API through a catalog tool surface
@@ -46,6 +57,10 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			prefer, err := resolveBackend(cfg.OpenAPI, opts.backend)
+			if err != nil {
+				return err
+			}
 
 			// Official Open API client (optional): serves official reads + order
 			// writes when credentials are present.
@@ -57,18 +72,12 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			var officialClient *official.Client
-			var tradingSvc *trading.Service
-			if creds != nil {
-				officialClient = official.New(*creds, tokenFile)
-				// Order place/cancel/modify: gated by config exactly as the CLI's
-				// `tossctl order` is, routed through an official-only broker so
-				// writes never touch a WTS session.
-				// Same lineage recorder as the CLI: an agent-placed order must leave the
-				// same trail, or a later cancel from the terminal cannot find it.
-				tradingSvc = trading.NewService(cfg.Trading, mcp.OfficialBroker{Client: officialClient}).
-					WithLineage(orderlineage.NewService(resolveLineageFile(opts)))
-			}
+			// Only the effective routing policy may enable official reads and
+			// order writes. A saved credential must not bypass openapi.enabled=false
+			// or an explicit --backend wts pin.
+			officialClient, tradingSvc := mcpOfficialBackends(
+				cfg, creds, tokenFile, resolveLineageFile(opts), prefer,
+			)
 
 			// WTS web-session client (optional): serves the WTS-only reads.
 			store := session.NewFileStore(resolveSessionFile(opts))
@@ -93,10 +102,6 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 			routedWTS := wtsClient
 			if routedWTS == nil {
 				routedWTS = tossclient.New(tossclient.Config{TradingPolicy: cfg.Trading})
-			}
-			prefer, err := resolveBackend(cfg.OpenAPI, opts.backend)
-			if err != nil {
-				return err
 			}
 			routed := hybrid.New(routedWTS, officialClient,
 				hybrid.Policy{Prefer: prefer, Fallback: cfg.OpenAPI.Fallback}, os.Stderr)

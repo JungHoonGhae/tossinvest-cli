@@ -192,14 +192,14 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | Feature | Command | Official API (planned) | tossctl |
 |------|--------|:--:|:--:|
 | Accounts / summary | `account list`, `account summary` | ✅ | ✅ |
-| 🆕 Buying power (official) | `account buying-power [--currency KRW\|USD]` (cash-based; distinct from account summary) | ✅ | ❌ |
+| 🆕 Buying power (official) | `account buying-power [--currency KRW\|USD]` (cash-based; distinct from account summary) | ✅ | ✅ |
 | Portfolio | `portfolio positions`, `portfolio allocation` (USD for US) | ✅ | ✅ |
 | Trade ticks | `quote trades <symbol> --count N` | ✅ | ✅ |
 | Orderbook (10-level bid/ask) | `quote orderbook <symbol>` | ✅ | ✅ |
 | Price limits | `quote limits <symbol>` (KR) | ✅ | ✅ |
 | Trade warnings | `quote warnings <symbol>` (liquidation · alert · VI …) | ✅ | ✅ |
 | Trading hours | `market hours` (today + next session when closed) | ✅ | ✅ |
-| 🆕 Trading calendar | `market business-days <KR\|US>` (previous/today/next session times, KR auctions) | ✅ | ❌ |
+| 🆕 Trading calendar | `market business-days <KR\|US>` (previous/today/next session times, KR auctions) | ✅ | ✅ |
 | FX | `market fx` (USD rate · dollar index) | ✅ | ✅ |
 | 🆕 Circuit breaker / sidecar | `market halt` (KOSPI · KOSDAQ firing state) | ❌ | ✅ |
 | 🆕 Index anomalies | `market anomalies` (AI signal · keyword · z-score) | ❌ | ✅ |
@@ -260,6 +260,12 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **CSV export** | `export positions\|orders --market`, `transactions list --output csv` | ❌ | ✅ |
 | **Real-time push** | `push listen` (SSE stream — order/price change events) | ❌ *(official API uses websockets)* | ✅ |
 | **🆕 Real-time stream (websocket)** | `stream --trade\|--orderbook\|--order` (executions, order book, own orders) | ✅ | ❌ *(web only has SSE alerts)* |
+
+`quote charts` and `quote reasons` preserve request order even when the server omits symbols
+with no data. JSON reports omitted inputs in `missing`; CSV emits a symbol-only empty row for
+each omission. A successful chart response with zero candles also remains as an empty-series
+row. Automation should inspect `missing` or empty CSV fields instead of assuming response rows
+always equal requested symbols.
 
 #### 📱 Mobile-app-only features (no web UI either)
 
@@ -409,12 +415,12 @@ session) for the full feature set — see [Quick Start](#quick-start). Both path
 
 MCP's inherent cost is that **tool schemas stay resident in the model's context**. Register one
 tool per API and every tool's name, description, and parameter schema occupies context for the
-whole conversation. tossctl's surface is **35 operations** (16 official reads + 3 orders + 16
-WTS-only reads) — exposing them as individual tools would keep **35 schemas always loaded**,
+whole conversation. tossctl's surface is **76 operations** across official and WTS reads,
+orders, and system operations — exposing them individually would keep **76 schemas always loaded**,
 burning tokens and adding tool-choice noise (mis-picks between similar tools).
 
 Following KIS_MCP_Server's catalog mode, tossctl fronts everything with **just three fixed
-tools** and keeps the 35 operations behind an **on-demand schema fetch**:
+tools** and keeps the 76 operations behind an **on-demand schema fetch**:
 
 - `list_operations` — list available operations (id, summary, write flag), filter with `query`
 - `describe_operation` — fetch one operation's parameter schema **only at that moment**
@@ -425,6 +431,11 @@ or 100, the resident cost stays at three. The agent finds an operation via `list
 reads its schema via `describe_operation` → calls it via `call_operation`, so unused operations
 never sit in context. (The very Claude Code session reading this README sees `tossctl` as just
 those three tools.)
+
+Arguments to `call_operation` must match the names and primitive types declared by
+`describe_operation`. Unknown parameters, fractional values for integer fields, and integers
+that would lose precision when converted to `float64` fail before any backend call. Refresh the
+operation schema immediately before calling instead of mixing in parameters from an older copy.
 
 ### What MCP exposes — reads: official + WTS; writes: official only
 
@@ -711,11 +722,11 @@ tossctl auth extend --if-expiring 48h   # extend only when close to expiry (cron
 ### API regression watch
 
 ```bash
-tossctl monitor api           # schema-probe 25 endpoints (parallel); exit 0 pass, 1 fail
+tossctl monitor api           # schema-probe 42 endpoints (parallel); exit 0 pass, 1 fail
 tossctl monitor api --quiet   # for cron
 ```
 
-Checks the response schema of 16 read-only endpoints in parallel, using your own session on your own machine — to catch Toss server-side body-contract changes (like [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29)) early. It only returns an exit code, so you compose alert channels (Discord / Slack / ntfy / macOS / email) on the right side of `|| <command>` in your cron line. Recipes: [`AGENTS.md`](AGENTS.md), setup guide: [`docs/operations.md`](docs/operations.md).
+Checks the response schema of 42 read-only endpoints in parallel, using your own session on your own machine — to catch Toss server-side body-contract changes (like [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29)) early. It only returns an exit code, so you compose alert channels (Discord / Slack / ntfy / macOS / email) on the right side of `|| <command>` in your cron line. Recipes: [`AGENTS.md`](AGENTS.md), setup guide: [`docs/operations.md`](docs/operations.md).
 
 ## Development
 
@@ -742,11 +753,23 @@ Run `tossctl doctor --report` and paste the JSON into a GitHub issue. It capture
 
 ## Docs
 
+- [`CHANGELOG.md`](CHANGELOG.md)
+- [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+- [`MAINTAINERS.md`](MAINTAINERS.md)
+- [`SECURITY.md`](SECURITY.md)
+- [`AGENTS.md`](AGENTS.md)
+- [`CONTEXT.md`](CONTEXT.md)
+- [`STATS.md`](STATS.md)
+- [`TODOS.md`](TODOS.md)
+- [`.github/pull_request_template.md`](.github/pull_request_template.md)
 - [`docs/architecture.md`](docs/architecture.md)
 - [`docs/configuration.md`](docs/configuration.md)
+- [`docs/operations.md`](docs/operations.md)
 - [`docs/reverse-engineering/`](docs/reverse-engineering/)
 - [`docs/trading/`](docs/trading/)
 - [`auth-helper/README.md`](auth-helper/README.md)
+- [`website-fumadocs/README.md`](website-fumadocs/README.md)
 
 ## Local State Paths
 

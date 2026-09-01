@@ -149,6 +149,27 @@ func TestOpsCallRejectsMalformedParams(t *testing.T) {
 	}
 }
 
+func TestOpsCallRejectsNullParams(t *testing.T) {
+	_, err := runOps(t, "call", "auth_status", "--params", "null")
+	if err == nil || !strings.Contains(err.Error(), "JSON object") {
+		t.Fatalf("explicit null params must not satisfy the object contract, got %v", err)
+	}
+}
+
+func TestOpsCallRejectsExplicitEmptyParams(t *testing.T) {
+	_, err := runOps(t, "call", "auth_status", "--params", "")
+	if err == nil || !strings.Contains(err.Error(), "JSON object") {
+		t.Fatalf("explicit empty params must not be treated as an omitted flag, got %v", err)
+	}
+}
+
+func TestOpsCallPreservesLargeJSONIntegerForValidation(t *testing.T) {
+	_, err := runOps(t, "call", "place_order", "--params", `{"symbol":"AAPL","side":"buy","price":9007199254740993}`)
+	if err == nil || !strings.Contains(err.Error(), "precision loss") {
+		t.Fatalf("large JSON integer must be rejected without rounding, got %v", err)
+	}
+}
+
 // 실패했을 때 stdout 에 반쪽짜리 JSON 을 남기면 안 된다. 에이전트는 stdout 을
 // 통째로 파싱하므로, 성공했을 때만 JSON 이어야 파싱 성공 = 호출 성공이 된다.
 func TestOpsFailureLeavesStdoutEmpty(t *testing.T) {

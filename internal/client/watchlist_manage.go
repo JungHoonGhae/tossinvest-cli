@@ -15,7 +15,11 @@ import (
 // new-watchlists is the folder-aware watchlist API (관심종목 폴더 + 종목).
 // 공식 API 에 없는 web 전용 표면이며, 비금융 mutation 이라 거래 권한 게이트와
 // 별개로 동작한다 (가벼운 scope).
-const watchlistBase = "/api/v1/new-watchlists"
+const (
+	watchlistBase            = "/api/v1/new-watchlists"
+	watchlistItemsPath       = watchlistBase + "/items"
+	watchlistItemsRemovePath = watchlistBase + "/items/remove"
+)
 
 type newWatchlistEnvelope struct {
 	Result struct {
@@ -174,15 +178,15 @@ func (c *Client) DeleteWatchlistGroup(ctx context.Context, groupID int64) error 
 
 // AddWatchlistItem adds a stock to a folder (symbol or product code).
 func (c *Client) AddWatchlistItem(ctx context.Context, groupID int64, symbol string) error {
-	return c.watchlistItemOp(ctx, "/items", groupID, symbol)
+	return c.watchlistItemOp(ctx, c.certBaseURL+watchlistItemsPath, groupID, symbol)
 }
 
 // RemoveWatchlistItem removes a stock from a folder.
 func (c *Client) RemoveWatchlistItem(ctx context.Context, groupID int64, symbol string) error {
-	return c.watchlistItemOp(ctx, "/items/remove", groupID, symbol)
+	return c.watchlistItemOp(ctx, c.certBaseURL+watchlistItemsRemovePath, groupID, symbol)
 }
 
-func (c *Client) watchlistItemOp(ctx context.Context, path string, groupID int64, symbol string) error {
+func (c *Client) watchlistItemOp(ctx context.Context, endpoint string, groupID int64, symbol string) error {
 	if err := c.requireSession(); err != nil {
 		return err
 	}
@@ -194,7 +198,7 @@ func (c *Client) watchlistItemOp(ctx context.Context, path string, groupID int64
 		"watchlistId": groupID,
 		"items":       []map[string]string{{"code": code, "itemType": "STOCK"}},
 	})
-	return c.mutateJSON(ctx, http.MethodPost, c.certBaseURL+watchlistBase+path, body, nil)
+	return c.mutateJSON(ctx, http.MethodPost, endpoint, body, nil)
 }
 
 // mutateJSON issues a non-GET request with session auth (X-XSRF-TOKEN included

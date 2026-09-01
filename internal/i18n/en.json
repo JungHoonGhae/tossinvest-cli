@@ -469,6 +469,7 @@
   "output.reasoning.relatedPlain": "    · %-8s %s\n",
   "output.reasoning.summary": "  %s\n",
   "output.reasons.empty": "No stock has reasoning available.",
+  "output.reasons.missing": "\nNo reasoning returned for: %s\n",
   "output.reasons.header.reason": "REASON",
   "output.reasons.header.symbol": "SYMBOL",
   "output.riaReport.deductionLine": "  deduction  base %s + RIA %s KRW (rate %s)\n",

@@ -323,7 +323,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "quote_charts", Method: "POST", Path: "wts:dashboard/common/stocks/mini-chart", Backend: "wts",
-			Category: "quote", Summary: "Today's intraday candles for MANY symbols in one request. Range and step are chosen by the server (observed 1d/10m) and are NOT parameters — use quote_chart for an explicit interval on one symbol. Symbols with no data are omitted from the response. WTS-only.",
+			Category: "quote", Summary: "Today's intraday candles for MANY symbols in one request. Range and step are chosen by the server (observed 1d/10m) and are NOT parameters — use quote_chart for an explicit interval on one symbol. The WTS response omits symbols with no data; tossctl preserves requested order for found rows and reports omitted inputs in missing. WTS-only.",
 			Params: []Param{
 				{Name: "symbols", Type: "string[]", Required: true, Desc: "symbols or names, e.g. [\"005930\", \"AAPL\"]"},
 			},
@@ -346,7 +346,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "quote_reasons", Method: "POST", Path: "wts:dashboard/wts/overview/ai-signals", Backend: "wts",
-			Category: "quote", Summary: "One-line AI explanation of why each stock is moving, for many symbols in a single request (web sends up to 100). Use quote_reasoning for the full card on ONE symbol. Symbols with no reasoning are omitted from the response. WTS-only.",
+			Category: "quote", Summary: "One-line AI explanation of why each stock is moving, for many symbols in a single request (web sends up to 100). Use quote_reasoning for the full card on ONE symbol. The WTS response omits symbols with no reasoning; tossctl preserves requested order for found rows and reports omitted inputs in missing. WTS-only.",
 			Params: []Param{
 				{Name: "symbols", Type: "string[]", Required: true, Desc: "symbols or names, e.g. [\"005930\", \"AAPL\"]"},
 			},

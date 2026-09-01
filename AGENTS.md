@@ -18,8 +18,10 @@ Every leaf command carries machine-readable annotations:
 - `source`: `official` (official Open API only), `wts` (WTS internal endpoint only),
   or `both` (official preferred, WTS fallback). `wts` endpoints are unofficial and
   may change without notice.
-- `mutating: true`: the command changes account state (live trading). Only
-  `order place`, `order cancel`, `order amend` carry this.
+- `mutating: true`: the command can change account state (live trading). It is
+  attached to `order place`, `order cancel`, `order amend`, `order conditional
+  place|cancel|modify`, and `ops call` (because that generic dispatcher can
+  invoke write operations).
 
 Rules for agents:
 
@@ -76,14 +78,54 @@ Rules for agents:
 
 ## Probe 목록
 
-현재 감시 중인 endpoint (`internal/monitor/probes.go` 의 `Probes()` 슬라이스):
+현재 `monitor api` 는 42개 read-only endpoint 를 감시합니다. 단일 진실 소스는
+`internal/monitor.Probes()` 런타임 결과입니다. 대부분은 `internal/ops`
+레지스트리의 오퍼레이션 옆 `ProbeSpec` 에서 파생되고, 카탈로그 오퍼레이션이
+없는 CLI 전용 6개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
 
-- `account-list` — `GET /api/v1/account/list`
+- `market-index` — `GET /api/v1/dashboard/wts/overview/indicator/index`
+- `index-prices` — `GET /api/v1/index-prices/KGG01P`
+- `stock-ranking` — `GET /api/v1/rankings/realtime/stock`
+- `investor-rankings` — `GET /api/v1/dashboard/wts/overview/rankings/by-investors`
+- `theme-rankings` — `GET /api/v1/tics/rankings`
+- `sectors-tics` — `GET /api/v1/tics/all`
+- `ai-signals` — `GET /api/v2/reasoning-contents/interest`
+- `screener-presets` — `GET /api/v2/screener/presets/common`
+- `trading-flows` — `GET /api/v1/stock-infos/trade/trend/trading-trend`
+- `earning-call` — `GET /api/v1/earning-call/upcoming`
+- `news-briefing` — `GET /api/v1/dashboard/wts/overview/ai-signals/personalized`
+- `community-rankings` — `GET /api/v1/community/top-rankings/INFLUENCER`
+- `lending-expected` — `GET /api/v1/lending/revenue/account/expected`
+- `accumulation-plans` — `GET /api/v2/autotrade/plan/find`
+- `profit-overview` — `POST /api/v1/profit/overview`
+- `market-issues` — `GET /api/v1/lens/issues`
+- `auto-trades` — `GET /api/v3/trading/auto-trading/histories`
+- `market-calendar` — `POST /api/v4/calendar/monthly/<YYYY-MM>`
+- `quote-charts` — `POST /api/v1/dashboard/common/stocks/mini-chart`
+- `quote-reasons` — `POST /api/v1/dashboard/wts/overview/ai-signals`
+- `market-halt` — `GET /api/v4/dashboard/wts/overview/indicator`
+- `quote-crypto` — `GET /api/v1/crypto-prices`
+- `quote-stock-signals` — `GET /api/v1/dashboard/wts/overview/signals`
+- `account-receivable` — `GET /api/v1/margin/cert/notice/receivable`
+- `screener-filter-range` — `POST /api/v1/screener/filters/range`
+- `option-expiries` — `GET /api/v1/option-maturity-date/get-all`
+- `order-funding` — `GET /api/v2/trading/order/buy-control/required-deposit-amount`
+- `ria-report` — `GET /api/v1/ria-calculator/report`
+- `account-interest-years` — `GET /api/v1/interest/accounts/annual/history/years`
+- `account-commission-info` — `GET /api/v2/trading/commission-info`
 - `account-summary-overview` — `GET /api/v3/my-assets/summaries/markets/all/overview`
-- `portfolio-positions` — `POST /api/v2/dashboard/asset/sections/all` (`SORTED_OVERVIEW`)
+- `portfolio-positions` — `POST /api/v2/dashboard/asset/sections/all`
+- `pending-orders` — `GET /api/v1/trading/orders/histories/all/pending`
 - `watchlist` — `GET /api/v1/new-watchlists`
 - `watchlist-groups` — `GET /api/v1/new-watchlists/groups/simple`
+- `earning-call-home` — `GET /api/v1/earning-call/home`
+- `account-list` — `GET /api/v1/account/list`
 - `quote-stock-infos` — `GET /api/v2/stock-infos/A005930`
-- `pending-orders` — `GET /api/v1/trading/orders/histories/all/pending`
+- `quote-trades` — `GET /api/v2/stock-prices/A005930/ticks`
+- `quote-orderbook` — `GET /api/v3/stock-prices/A005930/quotes`
+- `quote-price-limits` — `GET /api/v2/stock-prices/A005930/upper-lower`
+- `market-trading-hours` — `GET /api/v2/system/trading-hours/integrated`
 
-새 endpoint 의존이 생기면 `internal/monitor/probes.go` 에 항목 추가. 가이드: `docs/operations.md`.
+새 카탈로그 endpoint 의존이 생기면 해당 `internal/ops` 오퍼레이션에 `ProbeSpec`을
+붙입니다. CLI 전용 의존성만 `internal/monitor/probes.go` 에 추가합니다. 가이드:
+`docs/operations.md`.

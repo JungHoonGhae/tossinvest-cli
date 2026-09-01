@@ -9,7 +9,7 @@
 - [#15 / #17](https://github.com/JungHoonGhae/tossinvest-cli/issues/15) — User-Agent 핑거프린팅 차단 (v0.3.6 fix)
 - [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) — `/sections/all` body 계약 변경 (v0.4.8 fix)
 
-`monitor api` 명령은 6개 read-only endpoint 를 schema-invariant probe 로 호출해 이런 변경을 사용자보다 먼저 감지합니다.
+`monitor api` 명령은 42개 read-only endpoint 를 schema-invariant probe 로 호출해 이런 변경을 사용자보다 먼저 감지합니다.
 
 ### 동작 흐름
 
@@ -27,15 +27,25 @@
 
 ### Probe 목록
 
-| 이름 | Endpoint | 보호하는 명령 |
-| --- | --- | --- |
-| `account-list` | `GET /api/v1/account/list` | `account list` |
-| `account-summary-overview` | `GET /api/v3/my-assets/summaries/markets/all/overview` | `account summary` |
-| `portfolio-positions` | `POST /api/v2/dashboard/asset/sections/all` (`SORTED_OVERVIEW`) | `portfolio positions` |
-| `watchlist` | `GET /api/v1/new-watchlists` | `watchlist list` |
-| `watchlist-groups` | `GET /api/v1/new-watchlists/groups/simple` | `watchlist groups` |
-| `quote-stock-infos` | `GET /api/v2/stock-infos/A005930` | `quote get` |
-| `pending-orders` | `GET /api/v1/trading/orders/histories/all/pending` | `orders list` |
+런타임 목록인 `internal/monitor.Probes()` 가 단일 진실 소스입니다. 36개는
+`internal/ops` 레지스트리의 오퍼레이션 옆 `ProbeSpec` 에서 파생되고, 카탈로그
+오퍼레이션이 없는 CLI 전용 6개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
+
+| 보호 영역 | Probe (개수) |
+| --- | --- |
+| 계좌·포트폴리오 | `account-list`, `account-summary-overview`, `account-receivable`, `account-interest-years`, `account-commission-info`, `portfolio-positions` (6) |
+| 주문·자금 | `pending-orders`, `order-funding`, `auto-trades` (3) |
+| 시세·종목 | `quote-stock-infos`, `quote-trades`, `quote-orderbook`, `quote-price-limits`, `quote-charts`, `quote-reasons`, `quote-crypto`, `quote-stock-signals`, `trading-flows`, `option-expiries` (10) |
+| 시장·리서치 | `market-index`, `index-prices`, `stock-ranking`, `investor-rankings`, `theme-rankings`, `sectors-tics`, `ai-signals`, `screener-presets`, `screener-filter-range`, `earning-call`, `earning-call-home`, `news-briefing`, `market-issues`, `market-calendar`, `market-halt`, `market-trading-hours` (16) |
+| 개인화·계좌 부가기능 | `community-rankings`, `lending-expected`, `accumulation-plans`, `profit-overview`, `ria-report`, `watchlist`, `watchlist-groups` (7) |
+
+이름·method·endpoint 전체 매핑은 [`AGENTS.md`](../AGENTS.md) 의 “Probe 목록”에 있고,
+다음 명령으로 실제 런타임 구성을 검증할 수 있습니다.
+
+```bash
+go run ./tools/wtsinventory -mode probes -root "$(pwd)" | jq 'length'
+# 42
+```
 
 각 probe 는 status 200 + 핵심 JSON 경로 존재 + 타입을 검사합니다. Toss 가 새 필드를 추가하는 변경은 통과시키고, 핵심 필드가 사라지거나 빈 응답을 받으면 실패합니다.
 
@@ -58,34 +68,27 @@ Discord 외 Slack · ntfy · macOS notification · 이메일 등 다른 채널 �
 정상 (모든 probe 통과):
 
 ```
-  ✓ account-list — status=200 (43ms)
-  ✓ account-summary-overview — status=200 (53ms)
-  ✓ portfolio-positions — status=200 (52ms)
-  ✓ watchlist — status=200 (16ms)
-  ✓ quote-stock-infos — status=200 (44ms)
-  ✓ pending-orders — status=200 (19ms)
+  ✓ market-index — status=200 (43ms)
+  ✓ index-prices — status=200 (53ms)
+  … 40 more probes …
 
-6 passed, 0 failed
+42 passed, 0 failed
 ```
 
 실패 (예: #29 같은 body-contract 회귀):
 
 ```
-  ✓ account-list — status=200 (43ms)
-  ✓ account-summary-overview — status=200 (53ms)
-  ✓ watchlist — status=200 (15ms)
-  ✓ quote-stock-infos — status=200 (44ms)
-  ✓ pending-orders — status=200 (19ms)
   ✗ portfolio-positions — status=200: result.sections is empty — likely body-contract regression (#29-class)
+… 41 passing probes omitted …
 
-5 passed, 1 failed
+41 passed, 1 failed
 ```
 
 webhook 페이로드:
 
 ```
 🚨 tossctl API regression detected (0.4.9)
-2026-05-13 10:00 UTC — 1/6 probes failed
+2026-05-13 10:00 UTC — 1/42 probes failed
 
 ❌ portfolio-positions — POST wts-cert-api.tossinvest.com/api/v2/dashboard/asset/sections/all
     status=200, result.sections is empty — likely body-contract regression (#29-class)
@@ -93,21 +96,24 @@ webhook 페이로드:
 
 ### 새 probe 추가
 
-새 read-only endpoint 의존이 생기면 `internal/monitor/probes.go` 의 `Probes()` 반환 슬라이스에 항목 추가:
+새 read-only endpoint 의존이 카탈로그 오퍼레이션에 연결되면 해당 `internal/ops`
+항목에 `ProbeSpec` 을 같이 선언합니다. 오퍼레이션·probe 소유권이 한 곳에 남아 MCP,
+CLI, monitor 계약이 같이 바뀔 수 있습니다.
 
 ```go
-{
-    Name:   "new-endpoint",
-    Method: "POST",
-    URL:    cert + "/api/v2/...",
+Probe: &ProbeSpec{
+    Name:   "new-endpoint", Method: "POST",
+    URL:    probeCert + "/api/v2/...",
     Body:   `{"types":["..."]}`,
     Check: func(status int, body []byte) error {
-        if err := expectStatus(status, body, 200); err != nil {
+        if err := ExpectStatus(status, 200); err != nil {
             return err
         }
-        return expectPath(body, "result.someKey", "array")
+        return ExpectPath(body, "result.someKey", "array")
     },
 },
 ```
 
-새 Check 함수는 schema 진단 메시지만 반환하면 됩니다 — `expectStatus` / `expectPath` 가 기본 패턴.
+카탈로그 오퍼레이션이 없는 CLI 직접 표면은 예외적으로
+`internal/monitor/probes.go` 에 넣습니다. 새 Check 함수는 schema 진단 메시지만 반환하면
+됩니다. `ExpectStatus` / `ExpectPath` 가 기본 패턴입니다.

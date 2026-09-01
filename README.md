@@ -236,14 +236,14 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | 기능 | 커맨드 | 공식 API (예정) | tossctl |
 |------|--------|:--:|:--:|
 | 계좌 목록 / 요약 | `account list`, `account summary` | ✅ | ✅ |
-| 🆕 매수여력 (공식) | `account buying-power [--currency KRW\|USD]` (현금 기준, 계좌요약과 다른 개념) | ✅ | ❌ |
+| 🆕 매수여력 (공식) | `account buying-power [--currency KRW\|USD]` (현금 기준, 계좌요약과 다른 개념) | ✅ | ✅ |
 | 포트폴리오 | `portfolio positions`, `portfolio allocation` (US: USD 병기) | ✅ | ✅ |
 | 체결 내역 (틱) | `quote trades <symbol> --count N` | ✅ | ✅ |
 | 호가 (bid/ask 10단계) | `quote orderbook <symbol>` (매도·매수 잔량) | ✅ | ✅ |
 | 상/하한가 | `quote limits <symbol>` (KR) | ✅ | ✅ |
 | 매수 유의사항 | `quote warnings <symbol>` (정리매매·투자경고·VI 등) | ✅ | ✅ |
 | 장 운영 시간 | `market hours` (오늘 + 휴장 시 다음 영업일) | ✅ | ✅ |
-| 🆕 거래일 캘린더 | `market business-days <KR\|US>` (전일·오늘·익일 세션 시각, 국내 단일가 포함) | ✅ | ❌ |
+| 🆕 거래일 캘린더 | `market business-days <KR\|US>` (전일·오늘·익일 세션 시각, 국내 단일가 포함) | ✅ | ✅ |
 | 환율 | `market fx` (달러 환율·달러 인덱스) | ✅ | ✅ |
 | 🆕 서킷브레이커·사이드카 | `market halt` (코스피·코스닥 발동 여부) | ❌ | ✅ |
 | 🆕 지수 이상 움직임 | `market anomalies` (AI 시그널·키워드·Z점수) | ❌ | ✅ |
@@ -304,6 +304,11 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **CSV 내보내기** | `export positions\|orders --market`, `transactions list --output csv` | ❌ | ✅ |
 | **실시간 푸시** | `push listen` (SSE 스트림 — 주문/가격 변경 알림) | ❌ *(공식 API 는 웹소켓)* | ✅ |
 | **🆕 실시간 스트림 (웹소켓)** | `stream --trade\|--orderbook\|--order` (체결·호가·본인 주문 이벤트) | ✅ | ❌ *(웹은 SSE 알림뿐)* |
+
+`quote charts` 와 `quote reasons` 는 서버가 데이터 없는 종목을 응답에서 생략해도 요청 순서를
+유지합니다. JSON 의 `missing` 배열은 생략된 입력 종목을 담고, CSV 에서는 해당 종목을 `symbol` 만
+채운 빈 행으로 기록합니다. 정상 응답에 캔들이 0개인 종목도 빈 시계열 행으로 남습니다. 따라서
+자동화는 응답 행 수가 요청 수와 같다고 가정하지 말고 `missing` 또는 빈 CSV 열을 확인해야 합니다.
 
 #### 📱 모바일 앱 전용 기능 (웹에도 UI 없음)
 
@@ -498,7 +503,7 @@ Claude Desktop·Codex 등 **JSON 설정 방식** 호스트는 아래 [설정 예
 
 MCP 의 고질적 비용은 **툴 스키마가 모델 컨텍스트에 상시 상주**한다는 점입니다. API 하나당 툴
 하나로 등록하면, 그 툴의 이름·설명·파라미터 스키마 전부가 대화 내내 컨텍스트를 차지합니다.
-tossctl 의 API 표면은 **40여 개 오퍼레이션**(공식 조회 16 + 주문 3 + WTS 전용 조회 20여 + 시스템 1,
+tossctl 의 API 표면은 **76개 오퍼레이션**(공식·WTS 조회, 주문, 시스템 오퍼레이션,
 계속 증가) — 이걸 개별 툴로 노출하면 **그만큼의 스키마가 항상 떠 있게** 되어 토큰을 먹고, 툴 선택
 노이즈(비슷한 툴 사이 오판)도 커집니다.
 
@@ -514,6 +519,11 @@ tossctl 은 KIS_MCP_Server 의 catalog 모드를 참조해, 앞단에 **고정 3
 그때 스키마를 읽고 → `call_operation` 으로 호출하므로, 안 쓰는 오퍼레이션의 스키마가 컨텍스트를
 차지하지 않습니다. (이 README 를 읽는 Claude Code 세션에서도 `tossctl` MCP 는 딱 이 3개 툴로
 잡힙니다.)
+
+`call_operation` 의 인자는 `describe_operation` 이 선언한 이름과 타입에 정확히 맞아야 합니다.
+알 수 없는 인자, 소수로 전달된 정수, `float64` 로 바꿀 때 정밀도를 잃는 큰 정수는 backend 를
+호출하기 전에 오류로 반환합니다. 오래된 스키마의 인자를 섞어 보내는 대신 호출 직전에
+`describe_operation` 을 다시 읽으세요.
 
 #### MCP 가 노출하는 범위 — 조회는 공식+WTS, 쓰기는 공식 전용
 
@@ -674,7 +684,8 @@ tossctl order place \
 ### 국내주식 매수
 
 ```bash
-# config.json: place, kr, allow_live_order_actions → true
+# config.json: place, allow_live_order_actions → true
+# (6자리 코드는 KR로 자동 인식 — --market kr 생략 가능)
 
 tossctl order place \
   --symbol 005930 --market kr --side buy --qty 1 --price 200000 \
@@ -843,11 +854,11 @@ tossctl openapi logout      # 자격증명 파일 삭제
 ### API 회귀 감시
 
 ```bash
-tossctl monitor api           # 25개 endpoint schema probe (병렬); exit 0 통과, 1 실패
+tossctl monitor api           # 42개 endpoint schema probe (병렬); exit 0 통과, 1 실패
 tossctl monitor api --quiet   # cron 용
 ```
 
-본인 머신에서 본인 세션으로 16개 read-only endpoint 응답 schema 를 병렬 점검합니다. [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) 같은 토스 서버측 body 계약 변경을 조기 감지할 목적. exit code 만 반환하므로 알림 채널 (Discord / Slack / ntfy / macOS / 이메일) 은 cron 라인의 `|| <command>` 우항에서 사용자가 합성합니다. 합성 recipe: [`AGENTS.md`](AGENTS.md). 설정 가이드: [`docs/operations.md`](docs/operations.md).
+본인 머신에서 본인 세션으로 42개 read-only endpoint 응답 schema 를 병렬 점검합니다. [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) 같은 토스 서버측 body 계약 변경을 조기 감지할 목적. exit code 만 반환하므로 알림 채널 (Discord / Slack / ntfy / macOS / 이메일) 은 cron 라인의 `|| <command>` 우항에서 사용자가 합성합니다. 합성 recipe: [`AGENTS.md`](AGENTS.md). 설정 가이드: [`docs/operations.md`](docs/operations.md).
 
 ## 주문 ref rollover
 
@@ -882,11 +893,23 @@ US/KR 지정가 매수/매도, US 소수점 매수, 당일 미체결 취소가 l
 
 ## 문서
 
+- [`CHANGELOG.md`](CHANGELOG.md)
+- [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+- [`MAINTAINERS.md`](MAINTAINERS.md)
+- [`SECURITY.md`](SECURITY.md)
+- [`AGENTS.md`](AGENTS.md)
+- [`CONTEXT.md`](CONTEXT.md)
+- [`STATS.md`](STATS.md)
+- [`TODOS.md`](TODOS.md)
+- [`.github/pull_request_template.md`](.github/pull_request_template.md)
 - [`docs/architecture.md`](docs/architecture.md)
 - [`docs/configuration.md`](docs/configuration.md)
+- [`docs/operations.md`](docs/operations.md)
 - [`docs/reverse-engineering/`](docs/reverse-engineering/)
 - [`docs/trading/`](docs/trading/)
 - [`auth-helper/README.md`](auth-helper/README.md)
+- [`website-fumadocs/README.md`](website-fumadocs/README.md)
 
 ## 로컬 저장 경로
 

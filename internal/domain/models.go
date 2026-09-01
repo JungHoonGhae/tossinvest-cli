@@ -393,9 +393,19 @@ type IndexAnomalies struct {
 // every output format carries it, rather than it existing only in whichever
 // renderer remembered to print a warning.
 type ChartBatch struct {
-	Charts    []Chart   `json:"charts"`
-	Missing   []string  `json:"missing,omitempty"`
-	FetchedAt time.Time `json:"fetched_at"`
+	Charts    []Chart              `json:"charts"`
+	Missing   []string             `json:"missing,omitempty"`
+	Sequence  []BatchSequenceEntry `json:"-"`
+	FetchedAt time.Time            `json:"fetched_at"`
+}
+
+// BatchSequenceEntry retains one caller input position across backends that
+// return found and missing items in separate shapes. It is output metadata,
+// not part of the JSON contract; machine JSON uses the explicit items and
+// missing fields while row-oriented formats use this to preserve interleaving.
+type BatchSequenceEntry struct {
+	Symbol  string
+	Missing bool
 }
 
 // StockReason is one line of Toss's AI explanation for why a stock is moving.
@@ -413,8 +423,10 @@ type StockReason struct {
 
 // StockReasons is the batch AI-reasoning result.
 type StockReasons struct {
-	Reasons   []StockReason `json:"reasons"`
-	FetchedAt time.Time     `json:"fetched_at"`
+	Reasons   []StockReason        `json:"reasons"`
+	Missing   []string             `json:"missing,omitempty"`
+	Sequence  []BatchSequenceEntry `json:"-"`
+	FetchedAt time.Time            `json:"fetched_at"`
 }
 
 // OptionSession is one US-options business day. PreMarket/AfterMarket are

@@ -229,18 +229,19 @@ func (c *Client) Search(ctx context.Context, query string) (domain.SearchResults
 // of N.
 //
 // The server omits codes it has no reasoning for, so the response is shorter
-// than the request and NOT positionally aligned. Results are matched back by
-// productCode and symbols with no reasoning are simply absent.
+// than the request and NOT positionally aligned. Results are restored to
+// request order and omissions are returned explicitly.
 func (c *Client) GetStockReasons(ctx context.Context, symbols []string) (domain.StockReasons, error) {
 	if err := c.requireSession(); err != nil {
 		return domain.StockReasons{}, err
 	}
-	// productCode ← symbol 역인덱스. 응답이 productCode 로만 오므로 사용자가 입력한
-	// 표기를 되돌려주려면 필요하다.
-	codes, bySymbol, err := c.resolveProductCodes(ctx, symbols)
+	// 응답은 productCode 로만 오므로 원래 입력 표기를 ordered pair 로 함께 둔다.
+	// map 역인덱스는 같은 종목의 티커·이름 별칭이 서로를 덮어써서 쓸 수 없다.
+	requests, err := c.resolveProductCodes(ctx, symbols)
 	if err != nil {
 		return domain.StockReasons{}, err
 	}
+	codes := batchCodes(requests)
 
 	var envelope quoteEnvelope[struct {
 		Signals []struct {
@@ -256,13 +257,17 @@ func (c *Client) GetStockReasons(ctx context.Context, symbols []string) (domain.
 	if err := c.postJSON(ctx, endpoint, body, &envelope); err != nil {
 		return domain.StockReasons{}, err
 	}
-	out := domain.StockReasons{FetchedAt: time.Now().UTC()}
+	reasonsByCode := make(map[string]domain.StockReason, len(envelope.Result.Signals))
 	for _, s := range envelope.Result.Signals {
-		out.Reasons = append(out.Reasons, domain.StockReason{
-			Symbol:      bySymbol[s.ProductCode],
+		reasonsByCode[s.ProductCode] = domain.StockReason{
 			ProductCode: s.ProductCode,
 			Description: s.Description,
-		})
+		}
 	}
+	reasons, missing, sequence := reconcileBatch(requests, reasonsByCode, func(reason domain.StockReason, symbol string) domain.StockReason {
+		reason.Symbol = symbol
+		return reason
+	})
+	out := domain.StockReasons{Reasons: reasons, Missing: missing, Sequence: sequence, FetchedAt: time.Now().UTC()}
 	return out, nil
 }
