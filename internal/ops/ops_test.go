@@ -1,7 +1,11 @@
 package ops
 
 import (
+	"context"
+	"encoding/json"
+	"math"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -67,6 +71,19 @@ func TestRegistryInvariants(t *testing.T) {
 	}
 }
 
+func TestBatchQuoteSummariesDescribeMissingInputs(t *testing.T) {
+	catalog := NewCatalog()
+	for _, id := range []string{"quote_charts", "quote_reasons"} {
+		op, ok := catalog.Get(id)
+		if !ok {
+			t.Fatalf("operation %q not found", id)
+		}
+		if !strings.Contains(op.Summary, "missing") || !strings.Contains(op.Summary, "requested order") {
+			t.Errorf("%s summary does not describe its output contract: %q", id, op.Summary)
+		}
+	}
+}
+
 func TestExpectPathArrayIndex(t *testing.T) {
 	body := []byte(`{"result":[{"close":100},{"close":200}]}`)
 
@@ -84,5 +101,193 @@ func TestExpectPathArrayIndex(t *testing.T) {
 	// Indexing a non-array must say so rather than reporting a missing key.
 	if err := ExpectPath([]byte(`{"result":{"close":1}}`), "result.0.close", "number"); err == nil {
 		t.Error("object indexed as array: want error, got nil")
+	}
+}
+
+func TestCatalogCallValidatesDeclaredArgumentTypesBeforeBackend(t *testing.T) {
+	c := NewCatalog()
+
+	_, err := c.Call(context.Background(), nil, "prices", map[string]any{
+		"symbols": "AAPL",
+	})
+	if err == nil || !strings.Contains(err.Error(), `parameter "symbols" must be an array of strings`) {
+		t.Fatalf("wrong string[] argument must fail before backend dispatch, got %v", err)
+	}
+}
+
+func TestCatalogCallRejectsFractionalInteger(t *testing.T) {
+	c := NewCatalog()
+
+	_, err := c.Call(context.Background(), nil, "stock_ranking", map[string]any{
+		"size": 1.5,
+	})
+	if err == nil || !strings.Contains(err.Error(), `parameter "size" must be an integer`) {
+		t.Fatalf("fractional integer must not be truncated, got %v", err)
+	}
+}
+
+func TestCatalogCallRejectsIntegerOutsideNativeRange(t *testing.T) {
+	c := NewCatalog()
+	tooLarge := math.Ldexp(1, strconv.IntSize-1)
+
+	_, err := c.Call(context.Background(), nil, "stock_ranking", map[string]any{
+		"size": tooLarge,
+	})
+	if err == nil || !strings.Contains(err.Error(), `parameter "size" must be an integer`) {
+		t.Fatalf("out-of-range integer must fail before conversion, got %v", err)
+	}
+}
+
+func TestCatalogCallRejectsLossyIntegerForNumber(t *testing.T) {
+	if strconv.IntSize <= 53 {
+		t.Skip("native int cannot exceed float64's exact integer range")
+	}
+	handlerCalled := false
+	op := Operation{
+		ID: "test_number", Backend: "none",
+		Params: []Param{{Name: "amount", Type: "number", Required: true}},
+		handler: func(_ context.Context, _ *Deps, args map[string]any) (any, error) {
+			handlerCalled = true
+			return args["amount"], nil
+		},
+	}
+	c := &Catalog{ops: []Operation{op}, byID: map[string]Operation{op.ID: op}}
+
+	got, err := c.Call(context.Background(), &Deps{}, op.ID, map[string]any{"amount": int(1 << 53)})
+	if err != nil || got != float64(1<<53) {
+		t.Fatalf("largest universally exact integer rejected: got=%v err=%v", got, err)
+	}
+	handlerCalled = false
+	_, err = c.Call(context.Background(), &Deps{}, op.ID, map[string]any{"amount": int(1<<53) + 1})
+	if err == nil || !strings.Contains(err.Error(), "precision loss") {
+		t.Fatalf("lossy int-to-float64 input must be rejected, got %v", err)
+	}
+	if handlerCalled {
+		t.Fatal("handler ran for a lossy numeric input")
+	}
+}
+
+func TestCatalogCallRejectsLossyJSONNumber(t *testing.T) {
+	handlerCalled := false
+	op := Operation{
+		ID: "test_json_number", Backend: "none",
+		Params: []Param{{Name: "amount", Type: "number", Required: true}},
+		handler: func(_ context.Context, _ *Deps, args map[string]any) (any, error) {
+			handlerCalled = true
+			return args["amount"], nil
+		},
+	}
+	c := &Catalog{ops: []Operation{op}, byID: map[string]Operation{op.ID: op}}
+
+	_, err := c.Call(context.Background(), &Deps{}, op.ID, map[string]any{
+		"amount": json.Number("9007199254740993"),
+	})
+	if err == nil || !strings.Contains(err.Error(), "precision loss") {
+		t.Fatalf("lossy JSON number must be rejected before dispatch, got %v", err)
+	}
+	if handlerCalled {
+		t.Fatal("handler ran for a lossy JSON numeric input")
+	}
+}
+
+func TestCatalogCallRejectsInvalidPrimitiveShapes(t *testing.T) {
+	tests := []struct {
+		name  string
+		param Param
+		value any
+		want  string
+	}{
+		{name: "string", param: Param{Name: "value", Type: "string"}, value: 1, want: "must be a string"},
+		{name: "boolean", param: Param{Name: "value", Type: "boolean"}, value: "true", want: "must be a boolean"},
+		{name: "array member", param: Param{Name: "value", Type: "string[]"}, value: []any{"ok", 1}, want: `parameter "value"[1] must be a string`},
+		{name: "NaN number", param: Param{Name: "value", Type: "number"}, value: math.NaN(), want: "must be a number"},
+		{name: "non-finite number", param: Param{Name: "value", Type: "number"}, value: math.Inf(1), want: "must be a number"},
+		{name: "unsupported declaration", param: Param{Name: "value", Type: "object"}, value: map[string]any{}, want: "unsupported declared type"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			op := Operation{
+				ID: "test_shape", Backend: "none", Params: []Param{tt.param},
+				handler: func(context.Context, *Deps, map[string]any) (any, error) {
+					t.Fatal("handler must not run for an invalid primitive shape")
+					return nil, nil
+				},
+			}
+			c := &Catalog{ops: []Operation{op}, byID: map[string]Operation{op.ID: op}}
+			_, err := c.Call(context.Background(), &Deps{}, op.ID, map[string]any{"value": tt.value})
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("error = %v, want substring %q", err, tt.want)
+			}
+		})
+	}
+}
+
+func TestCatalogCallAcceptsDirectStringSlice(t *testing.T) {
+	op := Operation{
+		ID: "test_direct_strings", Backend: "none",
+		Params: []Param{{Name: "symbols", Type: "string[]", Required: true}},
+		handler: func(_ context.Context, _ *Deps, args map[string]any) (any, error) {
+			return args["symbols"], nil
+		},
+	}
+	c := &Catalog{ops: []Operation{op}, byID: map[string]Operation{op.ID: op}}
+	want := []string{"005930", "AAPL"}
+	got, err := c.Call(context.Background(), &Deps{}, op.ID, map[string]any{"symbols": want})
+	if err != nil {
+		t.Fatal(err)
+	}
+	values, ok := got.([]string)
+	if !ok || len(values) != len(want) || values[0] != want[0] || values[1] != want[1] {
+		t.Fatalf("direct []string changed during normalization: %#v", got)
+	}
+}
+
+func TestCatalogCallReportsUnknownArgumentsDeterministically(t *testing.T) {
+	c := NewCatalog()
+	_, err := c.Call(context.Background(), &Deps{}, "auth_status", map[string]any{"zeta": true, "alpha": true})
+	if err == nil || !strings.Contains(err.Error(), `unknown parameter "alpha"`) {
+		t.Fatalf("unknown arguments must be sorted before reporting, got %v", err)
+	}
+}
+
+func TestCatalogCallRejectsUnknownArgument(t *testing.T) {
+	c := NewCatalog()
+
+	_, err := c.Call(context.Background(), &Deps{}, "auth_status", map[string]any{
+		"typo": true,
+	})
+	if err == nil || !strings.Contains(err.Error(), `operation "auth_status" has unknown parameter "typo"`) {
+		t.Fatalf("unknown argument must be rejected, got %v", err)
+	}
+}
+
+func TestCatalogCallNormalizesJSONStringArrayForHandler(t *testing.T) {
+	op := Operation{
+		ID: "test_strings", Backend: "none",
+		Params: []Param{{Name: "symbols", Type: "string[]", Required: true}},
+		handler: func(_ context.Context, _ *Deps, args map[string]any) (any, error) {
+			return argStringSlice(args, "symbols")
+		},
+	}
+	c := &Catalog{ops: []Operation{op}, byID: map[string]Operation{op.ID: op}}
+
+	got, err := c.Call(context.Background(), &Deps{}, op.ID, map[string]any{
+		"symbols": []any{"005930", "AAPL"},
+	})
+	if err != nil {
+		t.Fatalf("valid JSON string array rejected: %v", err)
+	}
+	symbols, ok := got.([]string)
+	if !ok || len(symbols) != 2 || symbols[0] != "005930" || symbols[1] != "AAPL" {
+		t.Fatalf("handler received wrong normalized value: %#v", got)
+	}
+}
+
+func TestCatalogCallRejectsMissingDependenciesWithoutPanic(t *testing.T) {
+	c := NewCatalog()
+
+	_, err := c.Call(context.Background(), nil, "auth_status", nil)
+	if err == nil || !strings.Contains(err.Error(), "dependencies are not configured") {
+		t.Fatalf("nil dependencies must return a configuration error, got %v", err)
 	}
 }

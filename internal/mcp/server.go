@@ -7,8 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/jsoninput"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
@@ -254,7 +256,7 @@ func toolResult(payload any, isError bool) (any, *rpcError) {
 	}
 	if len(text) > maxResultBytes {
 		var v any
-		if json.Unmarshal(text, &v) == nil {
+		if jsoninput.Decode(text, &v) == nil {
 			if trimmed, terr := json.MarshalIndent(shrinkToCap(v), "", "  "); terr == nil {
 				text = trimmed
 			}
@@ -268,14 +270,19 @@ func toolResult(payload any, isError bool) (any, *rpcError) {
 
 // --- result size cap ---------------------------------------------------------
 
-// omittedKey marks the placeholder element shrinkToCap appends to a trimmed
-// array, so a truncated list can never be mistaken for a complete one.
-const omittedKey = "_omitted_items"
+const (
+	// omittedKey marks the placeholder element shrinkToCap appends to a trimmed
+	// array, so a truncated list can never be mistaken for a complete one.
+	omittedKey = "_omitted_items"
+	// omittedResultKey marks a payload that cannot be reduced by dropping array
+	// rows (for example one oversized scalar string).
+	omittedResultKey = "_omitted_result"
+)
 
 // shrinkToCap repeatedly trims the largest array in a decoded JSON value until
 // the re-encoded value fits maxResultBytes, appending an explicit placeholder to
-// every array it trims. Returns the value unchanged when it already fits or when
-// there is nothing left to trim (e.g. one huge string).
+// every array it trims. When no array can be reduced, it replaces the payload
+// with an explicit omission object so the transport limit remains an invariant.
 func shrinkToCap(v any) any {
 	holder := map[string]any{"v": v} // gives the root a setter
 	for {
@@ -299,7 +306,14 @@ func shrinkToCap(v any) any {
 			best, bestSet, bestSize = s, set, len(enc)
 		})
 		if bestSet == nil {
-			return holder["v"]
+			return map[string]any{
+				omittedResultKey:  true,
+				"_original_bytes": len(text),
+				"_note": fmt.Sprintf(
+					"result omitted: payload exceeded the %d-byte MCP limit and contained no array rows that could be trimmed. Narrow the request or use the CLI for the full result.",
+					maxResultBytes,
+				),
+			}
 		}
 		bestSet(trim(best, bestSize, len(text)-maxResultBytes))
 	}
@@ -324,8 +338,17 @@ func keepable(s []any) int {
 func trim(s []any, size, excess int) []any {
 	n, dropped := keepable(s), 0
 	if n < len(s) {
-		if c, ok := s[len(s)-1].(map[string]any)[omittedKey].(float64); ok {
-			dropped = int(c)
+		switch count := s[len(s)-1].(map[string]any)[omittedKey].(type) {
+		case int:
+			dropped = count
+		case int64:
+			dropped = int(count)
+		case float64:
+			dropped = int(count)
+		case json.Number:
+			if parsed, err := jsoninput.Int(count, strconv.IntSize); err == nil {
+				dropped = int(parsed)
+			}
 		}
 	}
 	keep := n * (size - excess) / size
@@ -373,24 +396,52 @@ func toolError(format string, a ...any) (any, *rpcError) {
 
 func (s *Server) handleToolsCall(ctx context.Context, params json.RawMessage) (any, *rpcError) {
 	var call struct {
-		Name      string         `json:"name"`
-		Arguments map[string]any `json:"arguments"`
+		Name      string `json:"name"`
+		Arguments struct {
+			Query     json.RawMessage `json:"query"`
+			Limit     json.RawMessage `json:"limit"`
+			Operation string          `json:"operation"`
+			Params    json.RawMessage `json:"params"`
+		} `json:"arguments"`
 	}
 	if len(params) > 0 {
-		if err := json.Unmarshal(params, &call); err != nil {
+		if err := jsoninput.Decode(params, &call); err != nil {
 			return nil, &rpcError{Code: codeInvalidParams, Message: "invalid tools/call params: " + err.Error()}
 		}
 	}
 	switch call.Name {
 	case "list_operations":
-		query, _ := call.Arguments["query"].(string)
+		query := ""
+		if len(call.Arguments.Query) > 0 {
+			var decoded any
+			if err := jsoninput.Decode(call.Arguments.Query, &decoded); err != nil {
+				return nil, &rpcError{Code: codeInvalidParams, Message: "list_operations 'query' must be a string: " + err.Error()}
+			}
+			value, ok := decoded.(string)
+			if !ok {
+				return nil, &rpcError{Code: codeInvalidParams, Message: "list_operations 'query' must be a string"}
+			}
+			query = value
+		}
 		limit := 0
-		if v, ok := call.Arguments["limit"].(float64); ok {
-			limit = int(v)
+		if len(call.Arguments.Limit) > 0 {
+			var decoded any
+			if err := jsoninput.Decode(call.Arguments.Limit, &decoded); err != nil {
+				return nil, &rpcError{Code: codeInvalidParams, Message: "list_operations 'limit' must be an integer: " + err.Error()}
+			}
+			number, ok := decoded.(json.Number)
+			if !ok {
+				return nil, &rpcError{Code: codeInvalidParams, Message: "list_operations 'limit' must be an integer"}
+			}
+			value, err := jsoninput.Int(number, strconv.IntSize)
+			if err != nil {
+				return nil, &rpcError{Code: codeInvalidParams, Message: "list_operations 'limit' must be an integer: " + err.Error()}
+			}
+			limit = int(value)
 		}
 		return toolResult(s.listOperationsPayload(query, limit), false)
 	case "describe_operation":
-		id, _ := call.Arguments["operation"].(string)
+		id := call.Arguments.Operation
 		if id == "" {
 			return toolError("describe_operation requires the 'operation' parameter")
 		}
@@ -400,11 +451,19 @@ func (s *Server) handleToolsCall(ctx context.Context, params json.RawMessage) (a
 		}
 		return toolResult(op, false)
 	case "call_operation":
-		id, _ := call.Arguments["operation"].(string)
+		id := call.Arguments.Operation
 		if id == "" {
 			return toolError("call_operation requires the 'operation' parameter")
 		}
-		opArgs, _ := call.Arguments["params"].(map[string]any)
+		var opArgs map[string]any
+		if len(call.Arguments.Params) > 0 {
+			if err := jsoninput.Decode(call.Arguments.Params, &opArgs); err != nil {
+				return toolError("call_operation 'params' must be a JSON object: %s", err.Error())
+			}
+			if opArgs == nil {
+				return toolError("call_operation 'params' must be a JSON object: got null")
+			}
+		}
 		result, err := s.catalog.Call(ctx, s.deps, id, opArgs)
 		if err != nil {
 			return toolError("%s", err.Error())

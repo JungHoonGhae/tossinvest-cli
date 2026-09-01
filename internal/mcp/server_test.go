@@ -212,6 +212,48 @@ func TestCallOperationMissingRequiredParam(t *testing.T) {
 	}
 }
 
+func TestCallOperationRejectsNullParams(t *testing.T) {
+	c := dummyClient(t, nil)
+	resps := runServer(t, c,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"call_operation","arguments":{"operation":"auth_status","params":null}}}`,
+	)
+	text, isErr := toolText(t, resps[0])
+	if !isErr || !strings.Contains(text, "JSON object") {
+		t.Fatalf("explicit null params must not satisfy the object contract, got isError=%v text=%q", isErr, text)
+	}
+}
+
+func TestListOperationsRejectsInvalidIntegerLimit(t *testing.T) {
+	c := dummyClient(t, nil)
+	for _, limit := range []string{"null", "1.9", "9223372036854775808"} {
+		t.Run(limit, func(t *testing.T) {
+			line := `{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_operations","arguments":{"limit":` + limit + `}}}`
+			resps := runServer(t, c, line)
+			errPayload, ok := resps[0]["error"].(map[string]any)
+			if !ok {
+				t.Fatalf("invalid integer limit must return an RPC error: %v", resps[0])
+			}
+			if int(errPayload["code"].(float64)) != codeInvalidParams || !strings.Contains(errPayload["message"].(string), "limit") {
+				t.Fatalf("unexpected invalid-limit error: %v", errPayload)
+			}
+		})
+	}
+}
+
+func TestListOperationsRejectsNullQuery(t *testing.T) {
+	c := dummyClient(t, nil)
+	resps := runServer(t, c,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_operations","arguments":{"query":null}}}`,
+	)
+	errPayload, ok := resps[0]["error"].(map[string]any)
+	if !ok {
+		t.Fatalf("explicit null query must return an RPC error: %v", resps[0])
+	}
+	if int(errPayload["code"].(float64)) != codeInvalidParams || !strings.Contains(errPayload["message"].(string), "query") {
+		t.Fatalf("unexpected invalid-query error: %v", errPayload)
+	}
+}
+
 func TestListOperationsIncludesGatedWrites(t *testing.T) {
 	c := dummyClient(t, nil)
 	resps := runServer(t, c,
@@ -255,6 +297,17 @@ func TestPlaceOrderPreviewDoesNotExecute(t *testing.T) {
 	}
 	if preview.MutationReady {
 		t.Errorf("mutation_ready must be false when config disables trading")
+	}
+}
+
+func TestCallOperationPreservesLargeJSONIntegerForValidation(t *testing.T) {
+	c := dummyClient(t, nil)
+	resps := runServer(t, c,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"call_operation","arguments":{"operation":"place_order","params":{"symbol":"AAPL","side":"buy","price":9007199254740993}}}}`,
+	)
+	text, isErr := toolText(t, resps[0])
+	if !isErr || !strings.Contains(text, "precision loss") {
+		t.Fatalf("large JSON integer must be rejected without rounding, got isError=%v text=%q", isErr, text)
 	}
 }
 
@@ -403,5 +456,42 @@ func TestToolResultKeepsSmallPayload(t *testing.T) {
 	got := res.(map[string]any)["content"].([]map[string]any)[0]["text"].(string)
 	if got != string(want) {
 		t.Errorf("small payload was modified:\n got %s\nwant %s", got, want)
+	}
+}
+
+func TestToolResultPreservesLargeIntegerWhenTrimming(t *testing.T) {
+	items := make([]any, 1000)
+	for index := range items {
+		items[index] = strings.Repeat("x", 100)
+	}
+	payload := map[string]any{
+		"id":    int64(9007199254740993),
+		"items": items,
+	}
+	res, rerr := toolResult(payload, false)
+	if rerr != nil {
+		t.Fatalf("toolResult: %v", rerr)
+	}
+	got := res.(map[string]any)["content"].([]map[string]any)[0]["text"].(string)
+	if !strings.Contains(got, `"id": 9007199254740993`) {
+		t.Fatalf("large integer changed while trimming: %s", got[:min(len(got), 300)])
+	}
+	if !strings.Contains(got, omittedKey) {
+		t.Fatalf("test payload did not exercise trimming: %s", got[:min(len(got), 300)])
+	}
+}
+
+func TestToolResultCapsLargeScalarPayload(t *testing.T) {
+	payload := map[string]any{"body": strings.Repeat("x", maxResultBytes+1)}
+	res, rerr := toolResult(payload, false)
+	if rerr != nil {
+		t.Fatalf("toolResult: %v", rerr)
+	}
+	got := res.(map[string]any)["content"].([]map[string]any)[0]["text"].(string)
+	if len(got) > maxResultBytes {
+		t.Fatalf("scalar result is %d bytes, want <= %d", len(got), maxResultBytes)
+	}
+	if !strings.Contains(got, omittedResultKey) {
+		t.Fatalf("scalar omission must be explicit: %s", got[:min(len(got), 300)])
 	}
 }

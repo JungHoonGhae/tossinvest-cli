@@ -12,9 +12,9 @@ import (
 // ---------------------------------------------------------------------------
 // Argument coercion helpers.
 //
-// Arguments arrive as a JSON-decoded map, so numbers are float64, strings are
-// string, and arrays are []any. These helpers coerce leniently and report
-// clear errors for wrong types on required fields.
+// Catalog.Call normalizes declared primitive arguments before dispatch. These
+// helpers apply handler-level defaults and retain clear errors for direct tests
+// or future internal callers that bypass the catalog.
 // ---------------------------------------------------------------------------
 
 func argString(args map[string]any, name string) (string, error) {
@@ -60,6 +60,9 @@ func argStringSlice(args map[string]any, name string) ([]string, error) {
 	v, ok := args[name]
 	if !ok {
 		return nil, nil
+	}
+	if values, ok := v.([]string); ok {
+		return values, nil
 	}
 	arr, ok := v.([]any)
 	if !ok {

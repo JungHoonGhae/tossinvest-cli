@@ -1,9 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/jsoninput"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/ops"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/spf13/cobra"
@@ -138,9 +138,12 @@ func newOpsCallCmd(opts *rootOptions) *cobra.Command {
 			// Decoded before touching credentials so a typo in the JSON is
 			// reported as a typo, not as a login problem.
 			callArgs := map[string]any{}
-			if params != "" {
-				if err := json.Unmarshal([]byte(params), &callArgs); err != nil {
+			if cmd.Flags().Changed("params") {
+				if err := jsoninput.Decode([]byte(params), &callArgs); err != nil {
 					return fmt.Errorf("--params is not a JSON object: %w", err)
+				}
+				if callArgs == nil {
+					return fmt.Errorf("--params is not a JSON object: got null")
 				}
 			}
 
