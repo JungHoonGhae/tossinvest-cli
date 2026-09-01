@@ -19,6 +19,7 @@ import datetime
 import json
 import os
 import re
+import subprocess
 import sys
 import urllib.request
 
@@ -26,12 +27,36 @@ BASE = "https://www.tossinvest.com"
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
 CATALOG = os.path.join("docs", "reverse-engineering", "wts-endpoints.json")
+GO_WTS_SOURCE_ROOTS = (
+    "internal/client",
+    "internal/push",
+    "internal/monitor",
+    "internal/ops/wts_operations.go",
+)
+GO_FMT_VERB_RE = re.compile(
+    r"%(?:\[[0-9]+\])?[-+#0 ']*[0-9]*(?:\.[0-9]+)?[vTtbcdoOqxXUeEfgGsxp]"
+)
+
+# The bundle currently declares these reads on cert, while live WTS captures
+# used by the production client verified the same paths on info. Both hosts are
+# therefore accepted for these exact paths; every other host mismatch remains a
+# CI failure. Keep this list narrow so it cannot turn host checking back into
+# the old "try every host" guesswork.
+KNOWN_HOST_ALIASES = {
+    "/api/v1/earning-call/upcoming": {"wts-cert-api", "wts-info-api"},
+    "/api/v1/earning-call/home": {"wts-cert-api", "wts-info-api"},
+    "/api/v1/dashboard/wts/overview/ai-signals/personalized": {"wts-cert-api", "wts-info-api"},
+    "/api/v1/community/top-rankings/INFLUENCER": {"wts-cert-api", "wts-info-api"},
+    "/api/v1/lens/issues": {"wts-cert-api", "wts-info-api"},
+    "/api/v4/calendar/monthly": {"wts-cert-api", "wts-info-api"},
+}
 
 # ── classification rules ──────────────────────────────────────────────────
 # implemented: a path is "implemented" if it matches any of these (these mirror
 # the endpoints internal/client/*.go actually calls).
 IMPLEMENTED = [
     r"^/api/v1/account/list$",
+    r"^/api/v1/openapi/client$",                                  # openapi status / doctor
     r"^/api/v1/interest/accounts/annual/history",       # account interest
     r"^/api/v1/ria-calculator/(report|limit|tax-savings/optimized)$",  # tax ria
     r"^/api/v1/usa-market/get-option-biz-day-by-overtime$",            # market option-hours
@@ -83,29 +108,31 @@ IMPLEMENTED = [
     r"^/api/v2/trading/orders/calculate/[^/]+/cost-basis-elements",
     r"^/api/v1/trading/orders/histories/all/pending",
     r"^/api/v2/wts/trading/order/(create|prepare|cancel|correct)",
+    r"^/api/v3/wts/trading/order/cancel/[^/]+/[^/]+$",
+    r"^/api/v3/trading/order/[^/]+/available-actions$",
     r"^/api/v1/trading/settings/toggle",
     r"^/api/v2/system/trading-hours",
     r"^/api/v1/session/expired-at",
-    r"^/api/v1/wts-login-extend/",
+    r"^/api/v1/wts-login-extend(?:/.*)?$",
     r"^/api/v2/reasoning-contents/interest",
     r"^/api/v1/dashboard/wts/overview/rankings/by-investors$",  # market investors
     r"^/api/v1/earning-call/upcoming$",                          # market earnings
     r"^/api/v1/earning-call/home$",                              # market earnings --major
-    r"^/api/v1/community/top-rankings/",                         # community rankings
+    r"^/api/v1/community/top-rankings(?:/[^/]+)?$",              # community rankings
     r"^/api/v1/dashboard/wts/overview/ai-signals/personalized$", # market briefing
     r"^/api/v1/dividends/accounts/annual/history",               # portfolio dividends
     r"^/api/v1/prime/users/(info|benefits)$",                    # account prime
     r"^/api/v1/tics/all$",                                        # market sectors
     r"^/api/v1/tics/rankings$",                                   # market themes
-    r"^/api/v1/index-prices$",                                    # market index <code> (지수 상세)
+    r"^/api/v1/index-prices(?:/[^/]+)?$",                          # market index <code> (지수 상세)
     r"^/api/v2/autotrade/plan/find$",                             # accumulate list
-    r"^/api/v1/growth/autotrade/plan/stock$",                     # accumulate status
+    r"^/api/v1/growth/autotrade/plan/stock(?:/[^/]+)?$",          # accumulate status
     r"^/api/v1/profit/overview$",                                 # profit
     r"^/api/v3/profit/readable-tab$",                             # profit (tab meta)
     r"^/api/v1/dashboard/wts/news$",                             # market news
     r"^/api/v1/lens/issues$",                                    # market issues
     r"^/api/v3/trading/auto-trading/histories$",                  # order autotrade
-    r"^/api/v4/calendar/monthly$",                                # market calendar
+    r"^/api/v4/calendar/monthly(?:/[^/]+)?$",                     # market calendar
     r"^/api/v1/nova-calendar/ai/summary/weekly$",                 # market calendar (AI 요약)
     r"^/api/v1/account/detail$",                                  # account detail
     r"^/api/v1/transfer/withdrawable-status$",                    # account detail
@@ -116,6 +143,7 @@ IMPLEMENTED = [
     r"^/api/v1/profit/type/overview$",                            # profit summary
     r"^/api/v1/profit/wts/daily/market$",                         # profit daily
     r"^/api/v1/my-assets/transfer-income/overseas$",              # tax overseas
+    r"^/api/v1/wts-notification$",                                # push SSE stream
 ]
 
 # recommended: candidates worth implementing next (data/discovery features that
@@ -332,7 +360,8 @@ def derive_paths(blob):
 
 
 def _normalize(p):
-    """동적 세그먼트를 `{name}` 으로, 숫자 id 를 `{id}` 로 통일한다."""
+    """Go 템플릿·동적 세그먼트·숫자 id 를 하나의 identity 로 통일한다."""
+    p = GO_FMT_VERB_RE.sub("{param}", p)
     p = re.sub(r"\[([^\]]*)\]", lambda m: "{" + (m.group(1) or "id") + "}", p)
     p = re.sub(r"/[0-9]{3,}(?=/|$)", "/{id}", p)
     return p.rstrip("/.")
@@ -343,8 +372,11 @@ def _legacy_key(p):
     return p.split("/{")[0].rstrip("/") if "/{" in p else p
 
 
-def classify(path, overrides):
-    ov = overrides.get(path) or overrides.get(_legacy_key(path))
+def classify(path, overrides, known_paths=None):
+    ov = overrides.get(path)
+    legacy = _legacy_key(path)
+    if not ov and (known_paths is None or legacy not in known_paths):
+        ov = overrides.get(legacy)
     if ov:
         return ov["status"], ov.get("note", "")
     for pat in IMPLEMENTED:
@@ -354,6 +386,108 @@ def classify(path, overrides):
         if re.search(pat, path):
             return "excluded", reason
     return "candidate", ""
+
+
+def _run_go_inventory(repo_root, mode):
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    command = [
+        "go", "run", "./tools/wtsinventory",
+        "-mode", mode,
+        "-root", os.path.abspath(repo_root),
+    ]
+    if mode == "exposures":
+        command.extend(["-roots", ",".join(GO_WTS_SOURCE_ROOTS)])
+    result = subprocess.run(
+        command,
+        cwd=project_root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"Go inventory {mode} failed: {result.stderr.strip()}")
+    return json.loads(result.stdout)
+
+
+def discover_go_exposures(repo_root):
+    """Return production WTS endpoint literals and the Go files that own them.
+
+    This is the Go exposure adapter for the inventory module. It deliberately
+    ignores tests and query strings: classification owns endpoint identity,
+    while request fixtures and query values remain implementation details.
+    Dynamic suffixes still classify through the existing anchored family
+    patterns (for example ``/wts-login-extend/doc/``).
+    """
+    exposures = {}
+    for raw, owners in _run_go_inventory(repo_root, "exposures").items():
+        path = _normalize(raw)
+        exposures.setdefault(path, set()).update(owners)
+    return {path: sorted(owners) for path, owners in exposures.items()}
+
+
+def discover_go_probes(repo_root):
+    """Read the exact probe list returned by the Go monitor runtime."""
+    probes = _run_go_inventory(repo_root, "probes")
+    for probe in probes:
+        probe["path"] = _normalize(probe["path"])
+    return probes
+
+
+def _probe_inventory_path(path):
+    """Turn fixed probe symbols into the reusable endpoint template they verify."""
+    for prefix in ("stock-infos", "stock-prices", "index-prices"):
+        path = re.sub(
+            rf"(^/api/v[0-9]+/{prefix}/)[A-Z][A-Z0-9]{{5,}}",
+            rf"\1{{code}}",
+            path,
+            count=1,
+        )
+    path = re.sub(r"(^/api/v4/calendar/monthly/)[^/]+$", r"\1{month}", path)
+    return path
+
+
+def find_inventory_entry(endpoints, path):
+    """Find an exact or explicitly templated inventory entry."""
+    normalized = _normalize(path.split("?", 1)[0])
+    if normalized in endpoints:
+        return endpoints[normalized]
+
+    for candidate, entry in endpoints.items():
+        pattern = re.escape(candidate)
+        pattern = re.sub(r"\\\{[^}]+\\\}", r"[^/]+", pattern)
+        if re.fullmatch(pattern, normalized):
+            return entry
+
+    return None
+
+
+def hosts_compatible(path, actual, inventory):
+    if actual == inventory:
+        return True
+    aliases = KNOWN_HOST_ALIASES.get(_normalize(path.split("?", 1)[0]))
+    return aliases == {actual, inventory}
+
+
+def probe_inventory_mismatches(probes, endpoints):
+    """Return every missing or contradictory probe/inventory fact."""
+    mismatches = []
+    for probe in probes:
+        entry = find_inventory_entry(endpoints, probe["path"])
+        if not entry:
+            mismatches.append((probe["name"], "inventory", probe["path"], "missing"))
+            continue
+        observed = entry.get("observed", {})
+        known_host = entry.get("host") or observed.get("host")
+        known_method = entry.get("method") or observed.get("method")
+        if not known_host:
+            mismatches.append((probe["name"], "host", probe["host"], "missing"))
+        elif not hosts_compatible(probe["path"], probe["host"], known_host):
+            mismatches.append((probe["name"], "host", probe["host"], known_host))
+        if not known_method:
+            mismatches.append((probe["name"], "method", probe["method"], "missing"))
+        elif probe["method"] not in known_method.split(","):
+            mismatches.append((probe["name"], "method", probe["method"], known_method))
+    return mismatches
 
 
 def main():
@@ -371,13 +505,27 @@ def main():
         print("ERROR: no endpoints extracted (fetch failed?)", file=sys.stderr)
         return 1
 
+    # The web bundle sometimes omits a reusable dynamic template even though
+    # monitor.Probes executes a concrete representative URL. Merge those
+    # runtime contracts into the generated inventory so host/method checks do
+    # not depend on a hard-coded stock symbol surviving bundle extraction.
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    for probe in discover_go_probes(repo_root):
+        path = _probe_inventory_path(probe["path"])
+        paths.add(path)
+        facts = meta.setdefault(path, {})
+        methods = set(facts.get("method", "").split(",")) - {""}
+        methods.add(probe["method"])
+        facts["method"] = ",".join(sorted(methods))
+        facts.setdefault("host", probe["host"])
+
     # 이번 추출에서 없어진 옛 키 — 잘린 그림자가 정식 경로로 승격되면 여기 들어온다.
     gone = prev_eps - paths
     today = os.environ.get("WTS_DATE") or datetime.date.today().isoformat()
     endpoints, counts = {}, {"implemented": 0, "candidate": 0, "excluded": 0}
     next_count = 0
     for p in sorted(paths):
-        status, note = classify(p, overrides)
+        status, note = classify(p, overrides, paths)
         entry = {"status": status}
         if note:
             entry["note"] = note

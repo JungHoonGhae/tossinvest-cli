@@ -11,6 +11,11 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 )
 
+const (
+	dividendsHistoryPath              = "/api/v1/dividends/accounts/annual/history"
+	dividendsHistoryByPaymentDatePath = "/api/v1/dividends/accounts/annual/history/by-payment-date"
+)
+
 // getJSONWithAccountKey is getJSON with the account-scoping header the web app
 // sends on per-account endpoints (dividends 등).
 func (c *Client) getJSONWithAccountKey(ctx context.Context, endpoint, accountKey string, target any) error {
@@ -119,9 +124,9 @@ func (c *Client) GetDividends(ctx context.Context, year int, byPaymentDate bool)
 		return domain.Dividends{}, err
 	}
 
-	path := "/api/v1/dividends/accounts/annual/history"
+	path := dividendsHistoryPath
 	if byPaymentDate {
-		path += "/by-payment-date"
+		path = dividendsHistoryByPaymentDatePath
 	}
 	endpoint := fmt.Sprintf("%s%s?year=%d", c.certBaseURL, path, year)
 
