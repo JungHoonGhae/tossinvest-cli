@@ -25,6 +25,7 @@ FILES = ["README.md", "README.en.md"]
 # Longest keys are matched first so e.g. "market ranking" never matches a
 # "community rankings" row. Date = CHANGELOG version date of first appearance.
 FEATURE_DATES = {
+    "quote metadata": "2026-09-02",
     "market halt": "2026-08-24",
     "market anomalies": "2026-08-24",
     "quote reasons": "2026-08-24",
