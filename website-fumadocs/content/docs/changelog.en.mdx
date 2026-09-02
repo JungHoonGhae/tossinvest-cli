@@ -18,6 +18,9 @@ Version history below (source: the Korean-language [CHANGELOG.md](https://github
 - **WTS 고정 정책을 hybrid 라우터 내부의 단일 불변식으로 강화했습니다.** `--backend wts`에서는 ops가 쓰는 직접 공식 클라이언트, official-only 시장 조회·조건주문, WTS 실패 시 환율 폴백까지 모두 공식 경로를 비활성화합니다. 공식 전용 기능은 일관되게 Open API 접근 필요 오류를 반환합니다.
 - **백엔드 선택 값을 공용 타입으로 통합했습니다.** 설정·CLI·MCP·hybrid 라우터가 `auto`·`openapi`·`wts`의 같은 계약을 사용하고, 잘못된 값은 라우터 조립 전에 거부합니다. JSON Schema는 빠져 있던 `openapi`와 하위 호환 별칭 `official`을 모두 검증합니다.
 
+### 기여자용
+- changelog 전체의 기여·제보·감사 항목에서 GitHub 사용자명이 실제 mention으로 쓰였는지 검사하고, 웹 changelog 사본이 원본과 달라지면 CI가 실패합니다.
+
 ## [0.47.1] - 2026-09-01
 
 ### 버그 수정
