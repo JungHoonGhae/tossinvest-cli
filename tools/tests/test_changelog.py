@@ -12,7 +12,12 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CHANGELOG = ROOT / "CHANGELOG.md"
+WEBSITE_CHANGELOGS = (
+    ROOT / "website-fumadocs/content/docs/changelog.mdx",
+    ROOT / "website-fumadocs/content/docs/changelog.en.mdx",
+)
 CREDIT_HEADING = re.compile(r"^### (?:기여자|Contributors?)\s*$")
+CREDIT_MARKER = re.compile(r"기여|제보|감사|contribut|thank", re.IGNORECASE)
 HANDLE = re.compile(r"@([A-Za-z0-9][A-Za-z0-9-]*)")
 CODE_SPAN = re.compile(r"`[^`\n]*`")
 
@@ -29,7 +34,7 @@ class TestChangelogCredits(unittest.TestCase):
                 continue
             if line.startswith("### "):
                 in_credit_section = False
-            if not in_credit_section:
+            if not in_credit_section and not CREDIT_MARKER.search(line):
                 continue
 
             handles = HANDLE.findall(line)
@@ -43,6 +48,19 @@ class TestChangelogCredits(unittest.TestCase):
                     f"@{handle} in a contributor credit must be plain text: {line}",
                 )
         self.assertGreater(sections, 0, "CHANGELOG must contain a contributor section")
+
+    def test_website_changelogs_match_the_source(self):
+        source = CHANGELOG.read_text(encoding="utf-8")
+        source_body = source[source.index("## [") :].strip()
+        for generated in WEBSITE_CHANGELOGS:
+            with self.subTest(generated=generated.name):
+                content = generated.read_text(encoding="utf-8")
+                generated_body = content[content.index("## [") :].strip()
+                self.assertEqual(
+                    generated_body,
+                    source_body,
+                    f"{generated} is stale; run tools/sync_changelog.py",
+                )
 
 
 if __name__ == "__main__":
