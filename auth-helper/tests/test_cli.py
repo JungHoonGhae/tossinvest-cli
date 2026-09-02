@@ -40,5 +40,17 @@ class PrivatePermissionTests(unittest.TestCase):
                     cli._set_private_permissions(789)  # must not raise
 
 
+class LoginGuidanceTests(unittest.TestCase):
+    def test_qr_state_describes_link_compatible_confirmation(self):
+        state = cli.QRState(None)
+
+        with patch.object(cli, "log") as log:
+            state.handle_api_payload({"answerLetter": "뻐"})
+
+        log.assert_called_once_with(
+            "Answer letter: '뻐' — select this on your phone after opening the login request."
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

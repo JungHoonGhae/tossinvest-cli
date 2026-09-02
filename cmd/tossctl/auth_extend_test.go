@@ -10,6 +10,23 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 )
 
+func TestAuthLoginExposesLinkFlag(t *testing.T) {
+	t.Parallel()
+
+	cmd := newAuthCmd(&rootOptions{})
+	loginCmd, _, err := cmd.Find([]string{"login"})
+	if err != nil {
+		t.Fatalf("find auth login: %v", err)
+	}
+	flag := loginCmd.Flags().Lookup("link")
+	if flag == nil {
+		t.Fatal("auth login must expose --link")
+	}
+	if flag.DefValue != "false" {
+		t.Fatalf("--link must be opt-in, got default %q", flag.DefValue)
+	}
+}
+
 func TestWriteAuthStatusIncludesServerExpiryInKST(t *testing.T) {
 	t.Parallel()
 

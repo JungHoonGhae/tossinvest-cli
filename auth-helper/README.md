@@ -54,4 +54,4 @@ python3 -m tossctl_auth_helper login \
 
 stderr에 QR URL과 확인 문자가 출력됨. URL을 텔레그램 등으로 폰에 보내 탭 → Toss 앱이 열림 → 확인 문자 선택 → 완료. PNG 저장이 필요하면 `--qr-output <path>` (0600 권한).
 
-Go CLI에서는 `tossctl auth login --headless [--qr-output <path>]`.
+Go CLI에서는 링크 중심 별칭인 `tossctl auth login --link`를 권장한다. 기존 자동화는 `tossctl auth login --headless [--qr-output <path>]`를 그대로 사용할 수 있다.

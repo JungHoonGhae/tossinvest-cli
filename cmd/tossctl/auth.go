@@ -25,6 +25,7 @@ func newAuthCmd(opts *rootOptions) *cobra.Command {
 
 	var (
 		loginHeadless bool
+		loginLink     bool
 		loginQROutput string
 	)
 
@@ -39,7 +40,7 @@ func newAuthCmd(opts *rootOptions) *cobra.Command {
 			}
 
 			cfg := app.loginConfig
-			cfg.Headless = loginHeadless
+			cfg.Headless = loginHeadless || loginLink
 			if loginQROutput != "" {
 				cfg.QROutputPath = loginQROutput
 			}
@@ -53,6 +54,7 @@ func newAuthCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 	loginCmd.Flags().BoolVar(&loginHeadless, "headless", false, "Run Chrome headless (required for remote/CLI-only login)")
+	loginCmd.Flags().BoolVar(&loginLink, "link", false, "Print a phone-openable Toss login link instead of showing a browser window")
 	loginCmd.Flags().StringVar(&loginQROutput, "qr-output", "", "Path to write the current QR PNG (forward to phone via messenger)")
 
 	var extendTimeout time.Duration
