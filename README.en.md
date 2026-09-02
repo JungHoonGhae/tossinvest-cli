@@ -347,11 +347,14 @@ Trading is disabled by default. For a single live order to reach the broker, it 
 
 ```mermaid
 flowchart TD
-    A["order place / cancel / amend"] --> P{"action toggle<br/>place·cancel·amend"}
+    A["regular order place / cancel / amend"] --> P{"action toggle<br/>place·cancel·amend"}
+    AC["conditional place / cancel / modify"] --> PC{"conditional toggle"}
     P -->|off| X1["❌ DisabledActionError"]
     P -->|on| S{"scope declaration<br/>sell·fractional<br/>(if applicable)"}
     S -->|violated| X2["❌ DisabledActionError"]
     S -->|ok| E{"--execute"}
+    PC -->|off| X1
+    PC -->|on| E
     E -->|absent| PV["📋 preview only<br/>(issues confirm token)"]
     E -->|present| M{"allow_live_order_actions"}
     M -->|false| X3["❌ ErrLiveActionsDisabled"]
@@ -361,6 +364,7 @@ flowchart TD
 
     subgraph CFG["persistent gates · config.json"]
         P
+        PC
         S
         M
     end
@@ -370,7 +374,7 @@ flowchart TD
     end
 ```
 
-- **Persistent gates (config.json):** `place`/`cancel`/`amend` path toggles + `sell`/`fractional` scope declarations + `allow_live_order_actions` master kill-switch. (Market US/KR is not a gate — a KR order is no riskier than a US one, so they're treated symmetrically.)
+- **Persistent gates (config.json):** `place`/`cancel`/`amend` for regular orders, `conditional` for conditional orders, plus `sell`/`fractional` scope declarations and the `allow_live_order_actions` master kill-switch. (Market US/KR is not a gate — a KR order is no riskier than a US one, so they're treated symmetrically.)
 - **Runtime gates (every run):** `--execute` (perform the real mutation, not preview) + `--confirm <token>` (the per-order token from preview).
 - The real safety is the per-order `--confirm <token>` — you can only get it by running preview, so an unintended order is blocked by a token mismatch.
 
@@ -416,12 +420,12 @@ session) for the full feature set — see [Quick Start](#quick-start). Both path
 
 MCP's inherent cost is that **tool schemas stay resident in the model's context**. Register one
 tool per API and every tool's name, description, and parameter schema occupies context for the
-whole conversation. tossctl's surface is **76 operations** across official and WTS reads,
-orders, and system operations — exposing them individually would keep **76 schemas always loaded**,
+whole conversation. tossctl's surface is **81 operations** across official and WTS reads,
+regular and conditional orders, and system operations — exposing them individually would keep **81 schemas always loaded**,
 burning tokens and adding tool-choice noise (mis-picks between similar tools).
 
 Following KIS_MCP_Server's catalog mode, tossctl fronts everything with **just three fixed
-tools** and keeps the 76 operations behind an **on-demand schema fetch**:
+tools** and keeps the 81 operations behind an **on-demand schema fetch**:
 
 - `list_operations` — list available operations (id, summary, write flag), filter with `query`
 - `describe_operation` — fetch one operation's parameter schema **only at that moment**
@@ -450,7 +454,7 @@ official first, web-session fallback), or official-only otherwise.
   [Toss-unique features](#why-tossctl--the-official-api-is-a-fraction-of-toss)). WTS reads need
   a web session; without one, those operations return a `tossctl auth login` hint. A failed read
   is at worst a stale read, so exposing it to an agent is low-risk.
-- **Writes.** Place / cancel / modify always use the **official API path** (never WTS): if an
+- **Writes.** Regular and conditional place / cancel / modify always use the **official API path** (never WTS): if an
   agent can submit orders, the path should be one **Toss officially sanctions** — safer and more honest.
 - **Split auth.** Official reads/orders use the official key (`openapi login`); WTS reads use the
   web session (`auth login`). **Either alone starts the server**, and each operation checks the
@@ -464,7 +468,9 @@ So the **WTS-only features that used to be CLI-only are now reachable from an ag
 > exists, the server also surfaces an "update available" note in its initialize `instructions`
 > so MCP-only users (who never see the CLI's stderr) learn about it through their agent.
 
-Order mutations are **gated exactly like the `tossctl order` CLI**: enable them in config
+Regular (`place_order`, `cancel_order`, `modify_order`) and conditional (`place_conditional_order`,
+`cancel_conditional_order`, `modify_conditional_order`) mutations are **gated exactly like the
+`tossctl order` CLI**: enable them in config
 (`trading.*` + `allow_live_order_actions`); a plain call returns a dry-run preview with a
 `confirm_token`, and submitting requires `execute: true` plus `confirm: <token>`. Writes use the
 official API only (no WTS).
@@ -519,6 +525,7 @@ tossctl config show
     "fractional": false,
     "cancel": false,
     "amend": false,
+    "conditional": false,
     "allow_live_order_actions": false,
     "dangerous_automation": {
       "accept_fx_consent": false
@@ -538,12 +545,12 @@ tossctl config show
 | `conditional` | Allow the `order conditional place/cancel/modify` paths (official Open API, `allow_live_order_actions` also required) |
 | `sell` | Allow sell orders (`place` also required) — **scope declaration**: limit yourself to buy-only / include sell |
 | `fractional` | Allow fractional orders (`place` also required, US market orders only) — **scope declaration** |
-| `allow_live_order_actions` | Master kill-switch — for any of `place/cancel/amend` to reach the real broker, this must also be `true` |
+| `allow_live_order_actions` | Master kill-switch — for any of `place/cancel/amend/conditional` to reach the real broker, this must also be `true` |
 | `accept_fx_consent` | Auto-proceed through post-prepare FX confirmation |
 | `update_check.enabled` | New-version notice (24h cache, GitHub Releases API, silent on failure). Default `true`. Auto-skipped for JSON/CSV output, non-tty, and dev builds |
 
 > **Two kinds of toggles:**
-> - **Path gates** (`place`, `cancel`, `amend`) — independently switch the three actions whose broker API branches actually differ.
+> - **Path gates** (`place`, `cancel`, `amend`, `conditional`) — independently switch the regular and conditional actions whose broker API branches differ.
 > - **Scope declarations** (`sell`, `fractional`) — let you declare "I never place this category of order" to guard against mistakes/bugs/agent misbehavior.
 >
 > `trading.grant`, `dangerous_automation.complete_trade_auth`, `dangerous_automation.accept_product_ack` were removed in v0.4.3, and `trading.kr` (an asymmetric market gate — a KR order is no riskier than a US one, so markets are now symmetric) in v0.5.2. Leftover keys are ignored, surfaced as a one-line stderr warning (24h backoff), and flagged by `config status`/`doctor`.

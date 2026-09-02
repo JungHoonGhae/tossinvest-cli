@@ -189,11 +189,11 @@ func assertOfficialOnlyUnavailable(t *testing.T, c *Client) {
 		{"ConditionalOrder", func() error { _, err := c.ConditionalOrder(ctx, "co-1"); return err }},
 		{"CancelConditionalOrder", func() error { return c.CancelConditionalOrder(ctx, orderintent.ConditionalCancelIntent{ID: "co-1"}) }},
 		{"CreateConditionalOrder", func() error {
-			_, err := c.CreateConditionalOrder(ctx, orderintent.ConditionalPlaceIntent{Symbol: "005930", Type: "SINGLE"})
+			_, err := c.CreateConditionalOrder(ctx, orderintent.ConditionalPlaceIntent{Symbol: "005930", ConditionalShape: orderintent.ConditionalShape{Type: "SINGLE"}})
 			return err
 		}},
 		{"ModifyConditionalOrder", func() error {
-			return c.ModifyConditionalOrder(ctx, orderintent.ConditionalModifyIntent{ID: "co-1", Type: "SINGLE"})
+			return c.ModifyConditionalOrder(ctx, orderintent.ConditionalModifyIntent{ID: "co-1", ConditionalShape: orderintent.ConditionalShape{Type: "SINGLE"}})
 		}},
 		{"Supply", func() error { _, err := c.Supply(ctx, "005930", domain.SupplyInvestor, 0, ""); return err }},
 		{"ListStocks", func() error { _, err := c.ListStocks(ctx, "KOSPI", "", "", false); return err }},

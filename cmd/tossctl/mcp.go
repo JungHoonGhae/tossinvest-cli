@@ -106,6 +106,9 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 			}
 			routed := hybrid.New(routedWTS, officialClient,
 				hybrid.Policy{Prefer: prefer, Fallback: cfg.OpenAPI.Fallback}, os.Stderr)
+			if tradingSvc != nil {
+				tradingSvc.WithConditionalBroker(routed)
+			}
 
 			server := mcp.NewServer(officialClient, routed, tradingSvc, "tossinvest-cli", version.Current().Version)
 

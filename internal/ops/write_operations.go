@@ -134,7 +134,200 @@ func writeOperations() []Operation {
 			}, executeParams...),
 			handler: modifyHandler,
 		},
+		{
+			ID: "place_conditional_order", Method: "POST", Path: "/api/v1/conditional-orders",
+			Category: "order", Summary: "Place a conditional order. Gated; preview unless execute=true.",
+			Write: true,
+			Params: append([]Param{
+				{Name: "symbol", Type: "string", Required: true},
+				{Name: "type", Type: "string", Desc: `"SINGLE" (default), "OCO", or "OTO"`},
+				{Name: "quantity", Type: "number", Required: true},
+				{Name: "order_type", Type: "string", Desc: `"LIMIT" (default) or "MARKET"`},
+				{Name: "expire_date", Type: "string", Required: true, Desc: "YYYY-MM-DD"},
+				{Name: "first_side", Type: "string", Required: true, Desc: `"BUY" or "SELL"`},
+				{Name: "first_trigger", Type: "number", Required: true},
+				{Name: "first_order_price", Type: "number", Desc: "required for LIMIT orders"},
+				{Name: "second_side", Type: "string", Desc: "required for OCO/OTO"},
+				{Name: "second_trigger", Type: "number", Desc: "required for OCO/OTO"},
+				{Name: "second_order_price", Type: "number"},
+				{Name: "client_order_id", Type: "string", Desc: "optional idempotency key"},
+				{Name: "confirm_high_value", Type: "boolean", Desc: "consent for orders >= KRW 100 million"},
+			}, executeParams...),
+			handler: conditionalPlaceHandler,
+		},
+		{
+			ID: "cancel_conditional_order", Method: "DELETE", Path: "/api/v1/conditional-orders/{conditionalOrderId}",
+			Category: "order", Summary: "Cancel a conditional order. Gated; preview unless execute=true.",
+			Write: true,
+			Params: append([]Param{
+				{Name: "conditional_order_id", Type: "string", Required: true},
+			}, executeParams...),
+			handler: conditionalCancelHandler,
+		},
+		{
+			ID: "modify_conditional_order", Method: "POST", Path: "/api/v1/conditional-orders/{conditionalOrderId}/modify",
+			Category: "order", Summary: "Modify a conditional order. Gated; preview unless execute=true.",
+			Write: true,
+			Params: append([]Param{
+				{Name: "conditional_order_id", Type: "string", Required: true},
+				{Name: "type", Type: "string", Desc: `"SINGLE" (default), "OCO", or "OTO"`},
+				{Name: "quantity", Type: "number", Required: true},
+				{Name: "order_type", Type: "string", Desc: `"LIMIT" (default) or "MARKET"`},
+				{Name: "expire_date", Type: "string", Required: true, Desc: "YYYY-MM-DD"},
+				{Name: "first_side", Type: "string", Required: true, Desc: `"BUY" or "SELL"`},
+				{Name: "first_trigger", Type: "number", Required: true},
+				{Name: "first_order_price", Type: "number", Desc: "required for LIMIT orders"},
+				{Name: "second_side", Type: "string", Desc: "required for OCO/OTO"},
+				{Name: "second_trigger", Type: "number", Desc: "required for OCO/OTO"},
+				{Name: "second_order_price", Type: "number"},
+				{Name: "confirm_high_value", Type: "boolean", Desc: "consent for orders >= KRW 100 million"},
+			}, executeParams...),
+			handler: conditionalModifyHandler,
+		},
 	}
+}
+
+func conditionalPlaceHandler(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+	symbol, err := argString(args, "symbol")
+	if err != nil {
+		return nil, err
+	}
+	shape, err := conditionalShapeArgs(args)
+	if err != nil {
+		return nil, err
+	}
+	clientOrderID, err := argString(args, "client_order_id")
+	if err != nil {
+		return nil, err
+	}
+	confirmHighValue, err := argBool(args, "confirm_high_value")
+	if err != nil {
+		return nil, err
+	}
+	intent, err := orderintent.NormalizeConditionalPlace(orderintent.ConditionalPlaceIntent{
+		Symbol: symbol, ConditionalShape: shape,
+		ClientOrderID: clientOrderID, ConfirmHighValue: confirmHighValue,
+	})
+	if err != nil {
+		return nil, err
+	}
+	execute, confirm, err := executeArgs(args)
+	if err != nil {
+		return nil, err
+	}
+	if !execute {
+		return d.Trading.PreviewConditionalPlace(intent), nil
+	}
+	return d.Trading.PlaceConditional(ctx, intent, trading.ExecuteOptions{Execute: true, Confirm: confirm})
+}
+
+func conditionalCancelHandler(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+	id, err := argString(args, "conditional_order_id")
+	if err != nil {
+		return nil, err
+	}
+	intent, err := orderintent.NormalizeConditionalCancel(orderintent.ConditionalCancelIntent{ID: id})
+	if err != nil {
+		return nil, err
+	}
+	execute, confirm, err := executeArgs(args)
+	if err != nil {
+		return nil, err
+	}
+	if !execute {
+		return d.Trading.PreviewConditionalCancel(intent), nil
+	}
+	return nil, d.Trading.CancelConditional(ctx, intent, trading.ExecuteOptions{Execute: true, Confirm: confirm})
+}
+
+func conditionalModifyHandler(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+	id, err := argString(args, "conditional_order_id")
+	if err != nil {
+		return nil, err
+	}
+	shape, err := conditionalShapeArgs(args)
+	if err != nil {
+		return nil, err
+	}
+	confirmHighValue, err := argBool(args, "confirm_high_value")
+	if err != nil {
+		return nil, err
+	}
+	intent, err := orderintent.NormalizeConditionalModify(orderintent.ConditionalModifyIntent{
+		ID: id, ConditionalShape: shape, ConfirmHighValue: confirmHighValue,
+	})
+	if err != nil {
+		return nil, err
+	}
+	execute, confirm, err := executeArgs(args)
+	if err != nil {
+		return nil, err
+	}
+	if !execute {
+		return d.Trading.PreviewConditionalModify(intent), nil
+	}
+	return nil, d.Trading.ModifyConditional(ctx, intent, trading.ExecuteOptions{Execute: true, Confirm: confirm})
+}
+
+func conditionalShapeArgs(args map[string]any) (orderintent.ConditionalShape, error) {
+	typeValue, err := argString(args, "type")
+	if err != nil {
+		return orderintent.ConditionalShape{}, err
+	}
+	kind, err := orderintent.ParseConditionalType(typeValue)
+	if err != nil {
+		return orderintent.ConditionalShape{}, err
+	}
+	quantity, err := argFloat(args, "quantity")
+	if err != nil {
+		return orderintent.ConditionalShape{}, err
+	}
+	orderType, err := argString(args, "order_type")
+	if err != nil {
+		return orderintent.ConditionalShape{}, err
+	}
+	expireDate, err := argString(args, "expire_date")
+	if err != nil {
+		return orderintent.ConditionalShape{}, err
+	}
+	first, err := conditionalLegArgs(args, "first")
+	if err != nil {
+		return orderintent.ConditionalShape{}, err
+	}
+	shape := orderintent.ConditionalShape{
+		Type: kind, OrderType: orderintent.ConditionalOrderType(orderType),
+		ExpireDate: expireDate, Quantity: quantity, First: first,
+	}
+	if kind.RequiresSecondLeg() {
+		second, err := conditionalLegArgs(args, "second")
+		if err != nil {
+			return orderintent.ConditionalShape{}, err
+		}
+		shape.Second = &second
+	}
+	return orderintent.NormalizeConditionalShape(shape)
+}
+
+func conditionalLegArgs(args map[string]any, prefix string) (orderintent.ConditionLeg, error) {
+	side, err := argString(args, prefix+"_side")
+	if err != nil {
+		return orderintent.ConditionLeg{}, err
+	}
+	if side == "" {
+		return orderintent.ConditionLeg{}, fmt.Errorf("parameter %q is required", prefix+"_side")
+	}
+	if _, ok := args[prefix+"_trigger"]; !ok {
+		return orderintent.ConditionLeg{}, fmt.Errorf("parameter %q is required", prefix+"_trigger")
+	}
+	trigger, err := argFloat(args, prefix+"_trigger")
+	if err != nil {
+		return orderintent.ConditionLeg{}, err
+	}
+	price, err := argFloat(args, prefix+"_order_price")
+	if err != nil {
+		return orderintent.ConditionLeg{}, err
+	}
+	return orderintent.ConditionLeg{OrderSide: side, TriggerPrice: trigger, OrderPrice: price}, nil
 }
 
 func placeHandler(ctx context.Context, d *Deps, args map[string]any) (any, error) {

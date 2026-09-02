@@ -171,6 +171,50 @@ func readOperations() []Operation {
 			},
 		},
 		{
+			ID: "conditional_orders", Method: "GET", Path: "/api/v1/conditional-orders",
+			Category: "order", Summary: "List conditional orders. Returns one page; pass next_cursor back as cursor when has_next is true.",
+			Params: []Param{
+				{Name: "status", Type: "string", Desc: `"OPEN" (default) or "CLOSED"`},
+				{Name: "symbol", Type: "string"},
+				{Name: "cursor", Type: "string", Desc: "next_cursor from a previous response"},
+				{Name: "limit", Type: "integer", Desc: "orders per page (0 = API default)"},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				status, err := argString(args, "status")
+				if err != nil {
+					return nil, err
+				}
+				if status == "" {
+					status = "OPEN"
+				}
+				symbol, err := argString(args, "symbol")
+				if err != nil {
+					return nil, err
+				}
+				cursor, err := argString(args, "cursor")
+				if err != nil {
+					return nil, err
+				}
+				limit, err := argInt(args, "limit")
+				if err != nil {
+					return nil, err
+				}
+				return d.Client.ConditionalOrders(ctx, status, symbol, cursor, limit)
+			},
+		},
+		{
+			ID: "conditional_order", Method: "GET", Path: "/api/v1/conditional-orders/{conditionalOrderId}",
+			Category: "order", Summary: "Fetch one conditional order by id.",
+			Params: []Param{{Name: "conditional_order_id", Type: "string", Required: true}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				id, err := argString(args, "conditional_order_id")
+				if err != nil {
+					return nil, err
+				}
+				return d.Client.ConditionalOrder(ctx, id)
+			},
+		},
+		{
 			ID: "sellable_quantity", Method: "GET", Path: "/api/v1/sellable-quantity", Backend: "auto",
 			Category: "order", Summary: "Sellable quantity for a symbol. Served by either backend (official first, web-session fallback).",
 			Params: []Param{{Name: "symbol", Type: "string", Required: true}},

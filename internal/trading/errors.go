@@ -81,9 +81,10 @@ func (e *PrepareRejectedError) Error() string {
 type Action string
 
 const (
-	ActionPlace  Action = "place"
-	ActionCancel Action = "cancel"
-	ActionAmend  Action = "amend"
+	ActionPlace       Action = "place"
+	ActionCancel      Action = "cancel"
+	ActionAmend       Action = "amend"
+	ActionConditional Action = "conditional"
 )
 
 type DisabledActionError struct {

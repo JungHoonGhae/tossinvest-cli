@@ -97,7 +97,8 @@ type Operation struct {
 	Path     string `json:"path"`
 	Category string `json:"category"`
 	Summary  string `json:"summary"`
-	// Write marks state-changing operations (order place/cancel/modify). They
+	// Write marks state-changing operations (regular or conditional order
+	// place/cancel/modify). They
 	// are gated by config and require an explicit execute + confirm token.
 	Write bool `json:"write"`
 	// Backend selects which authenticated client the operation needs: "" (default)

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
 )
 
@@ -17,6 +18,27 @@ type brokerStub struct {
 	placeResult  MutationResult
 	cancelResult MutationResult
 	amendResult  MutationResult
+}
+
+type conditionalBrokerStub struct {
+	placed   int
+	canceled int
+	modified int
+}
+
+func (b *conditionalBrokerStub) CreateConditionalOrder(context.Context, orderintent.ConditionalPlaceIntent) (domain.ConditionalOrderRef, error) {
+	b.placed++
+	return domain.ConditionalOrderRef{ID: "co-1"}, nil
+}
+
+func (b *conditionalBrokerStub) CancelConditionalOrder(context.Context, orderintent.ConditionalCancelIntent) error {
+	b.canceled++
+	return nil
+}
+
+func (b *conditionalBrokerStub) ModifyConditionalOrder(context.Context, orderintent.ConditionalModifyIntent) error {
+	b.modified++
+	return nil
 }
 
 func (b *brokerStub) PlacePendingOrder(_ context.Context, intent orderintent.PlaceIntent) (MutationResult, error) {
@@ -49,6 +71,82 @@ func (b *brokerStub) AmendPendingOrder(_ context.Context, intent orderintent.Ame
 		b.amendResult = MutationResult{Kind: "amend", Status: "amended_pending", OrderID: intent.OrderID, CurrentOrderID: intent.OrderID}
 	}
 	return b.amendResult, nil
+}
+
+func TestConditionalPlaceUsesSharedExecutionGuard(t *testing.T) {
+	broker := &conditionalBrokerStub{}
+	service := NewService(config.Trading{
+		Conditional:           true,
+		AllowLiveOrderActions: true,
+	}, nil).WithConditionalBroker(broker)
+	intent := orderintent.ConditionalPlaceIntent{
+		Symbol: "005930",
+		ConditionalShape: orderintent.ConditionalShape{
+			Type: "SINGLE", OrderType: "LIMIT", ExpireDate: "2026-12-31",
+			Quantity: 1, First: orderintent.ConditionLeg{OrderSide: "BUY", TriggerPrice: 70000, OrderPrice: 69900},
+		},
+	}
+	preview := service.PreviewConditionalPlace(intent)
+	if preview.Kind != "conditional_place" || preview.Canonical != orderintent.CanonicalConditionalPlace(intent) || preview.ConfirmToken == "" {
+		t.Fatalf("unexpected preview: %+v", preview)
+	}
+	if !preview.MutationReady {
+		t.Fatalf("enabled conditional mutation should be ready: %+v", preview)
+	}
+
+	if _, err := service.PlaceConditional(context.Background(), intent, ExecuteOptions{}); !errors.Is(err, ErrExecuteRequired) {
+		t.Fatalf("expected ErrExecuteRequired, got %v", err)
+	}
+	if _, err := service.PlaceConditional(context.Background(), intent, ExecuteOptions{Execute: true, Confirm: "wrong"}); !errors.Is(err, ErrConfirmMismatch) {
+		t.Fatalf("expected ErrConfirmMismatch, got %v", err)
+	}
+	if broker.placed != 0 {
+		t.Fatalf("guarded calls reached broker %d times", broker.placed)
+	}
+
+	ref, err := service.PlaceConditional(context.Background(), intent, ExecuteOptions{Execute: true, Confirm: preview.ConfirmToken})
+	if err != nil {
+		t.Fatalf("PlaceConditional: %v", err)
+	}
+	if ref.ID != "co-1" || broker.placed != 1 {
+		t.Fatalf("ref=%+v placed=%d", ref, broker.placed)
+	}
+}
+
+func TestConditionalCancelAndModifyUseSharedExecutionGuard(t *testing.T) {
+	broker := &conditionalBrokerStub{}
+	service := NewService(config.Trading{
+		Conditional:           true,
+		AllowLiveOrderActions: true,
+	}, nil).WithConditionalBroker(broker)
+
+	cancel := orderintent.ConditionalCancelIntent{ID: "co-1"}
+	cancelPreview := service.PreviewConditionalCancel(cancel)
+	if err := service.CancelConditional(context.Background(), cancel, ExecuteOptions{}); !errors.Is(err, ErrExecuteRequired) {
+		t.Fatalf("cancel: expected ErrExecuteRequired, got %v", err)
+	}
+	if err := service.CancelConditional(context.Background(), cancel, ExecuteOptions{Execute: true, Confirm: cancelPreview.ConfirmToken}); err != nil {
+		t.Fatalf("CancelConditional: %v", err)
+	}
+
+	modify := orderintent.ConditionalModifyIntent{
+		ID: "co-1",
+		ConditionalShape: orderintent.ConditionalShape{
+			Type: "SINGLE", OrderType: "LIMIT", ExpireDate: "2026-12-31",
+			Quantity: 2, First: orderintent.ConditionLeg{OrderSide: "BUY", TriggerPrice: 71000, OrderPrice: 70900},
+		},
+	}
+	modifyPreview := service.PreviewConditionalModify(modify)
+	if err := service.ModifyConditional(context.Background(), modify, ExecuteOptions{Execute: true, Confirm: "wrong"}); !errors.Is(err, ErrConfirmMismatch) {
+		t.Fatalf("modify: expected ErrConfirmMismatch, got %v", err)
+	}
+	if err := service.ModifyConditional(context.Background(), modify, ExecuteOptions{Execute: true, Confirm: modifyPreview.ConfirmToken}); err != nil {
+		t.Fatalf("ModifyConditional: %v", err)
+	}
+
+	if broker.canceled != 1 || broker.modified != 1 {
+		t.Fatalf("canceled=%d modified=%d", broker.canceled, broker.modified)
+	}
 }
 
 func TestPlaceRequiresExecutionFlags(t *testing.T) {
