@@ -4,6 +4,8 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 
 ## [Unreleased]
 
+## [0.48.0] - 2026-09-02
+
 ### 새 기능
 - **조건주문을 ops/MCP에서도 조회·실행할 수 있습니다.** `conditional_orders`·`conditional_order`로 목록·상세를 조회하고, `place_conditional_order`·`cancel_conditional_order`·`modify_conditional_order`로 preview 후 실행합니다. 쓰기는 공식 Open API 전용이며 기본 호출은 dry-run입니다([#111](https://github.com/JungHoonGhae/tossinvest-cli/issues/111)).
 - **`quote metadata <symbol>[,symbol,...] [...]`** — 공식 Open API에서 최대 200개 종목의 이름·영문명·ISIN·시장·증권 유형·상장 상태·통화·상장주식수·상장/상장폐지일과 국내 KRX/NXT 거래 상태를 한 번에 조회합니다. `market stocks`가 시장 전체의 종목 유니버스를 찾는 명령이라면, 이 명령은 이미 아는 심볼의 정확한 참조 데이터를 채우는 용도입니다. JSON·CSV는 공식 응답의 전체 메타데이터를 보존합니다.
