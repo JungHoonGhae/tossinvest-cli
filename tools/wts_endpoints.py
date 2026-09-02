@@ -56,7 +56,13 @@ KNOWN_HOST_ALIASES = {
 # the endpoints internal/client/*.go actually calls).
 IMPLEMENTED = [
     r"^/api/v1/account/list$",
+    r"^/api/v1/dashboard/all-accounts$",                         # account overview (Android + live verified)
     r"^/api/v1/openapi/client$",                                  # openapi status / doctor
+    r"^/api/v1/openapi/client/allowed-ips(?:/[^/]+)?$",            # openapi IP allowlist
+    r"^/api/v1/autotrade/open-banking/info/find$",                 # banking status (read-only)
+    r"^/api/v1/calendar/ai-summary/key-events$",                   # current key events
+    r"^/api/v1/user-alimies$",                                     # notification settings
+    r"^/api/v2/reasoning/personalized$",                           # enriched personalized briefing
     r"^/api/v1/interest/accounts/annual/history",       # account interest
     r"^/api/v1/ria-calculator/(report|limit|tax-savings/optimized)$",  # tax ria
     r"^/api/v1/usa-market/get-option-biz-day-by-overtime$",            # market option-hours
@@ -178,6 +184,7 @@ EXCLUDED = [
     # **복수** `accounts/` 에도 둔다. 2026-08-24 스윕에서 40여건이 그대로 candidate 로
     # 새어 백로그를 부풀리고 있었다.
     (r"^/api/v\d+/accounts/(fatca|investment-propensity|contracts|closeable|password|differential-margin|detail|auto-trade/(auth|event))", "account admin / KYC"),
+    (r"^/api/v\d+/accounts/(?:ssn-verification|close)(?:/|$)", "sensitive account administration"),
     (r"^/api/v\d+/multi-account", "multi-account opening/terms"),
     (r"^/api/v\d+/open-banking", "open-banking linkage"),
     (r"^/api/v\d+/risk-taker", "quiz/marketing"),
@@ -190,9 +197,13 @@ EXCLUDED = [
     (r"^/api/v\d+/lending/(?!revenue)", "stock lending product"),
     (r"^/api/v\d+/(auto-transfer|transfer-income|rename-documents)", "transfer/document admin"),
     (r"^/api/v\d+/terms", "legal terms"),
+    (r"^/api/v\d+/portal/agreement-modules", "legal terms UI"),
     (r"^/api/v\d+/login", "login flow (handled by auth-helper)"),
+    (r"^/api/v\d+/session/refresh$", "auth/session plumbing"),
     (r"^/api/v\d+/common/auth/", "auth/KYC plumbing (handled by auth-helper)"),
+    (r"^/api/v\d+/settings/password/", "account security flow"),
     (r"^/api/v\d+/tuba", "telemetry/AB"),
+    (r"^/api/v\d+/nova-feedback/", "product feedback UI"),
     (r"^/api/v\d+/(user-profiles|personalize|settings|user-setting)", "UI personalization/prefs"),
     (r"^/api/v\d+/(memo|forum|comments|feed)", "community/UGC"),
     (r"^/api/v\d+/product-eligibility", "product eligibility gating"),
@@ -372,11 +383,31 @@ def _legacy_key(p):
     return p.split("/{")[0].rstrip("/") if "/{" in p else p
 
 
-def classify(path, overrides, known_paths=None):
+def find_override(path, overrides, known_paths=None):
+    """Resolve an exact override, or a safe legacy-key override."""
     ov = overrides.get(path)
     legacy = _legacy_key(path)
     if not ov and (known_paths is None or legacy not in known_paths):
         ov = overrides.get(legacy)
+    return ov
+
+
+def apply_override_metadata(entry, override):
+    """Fill bundle metadata gaps with independently verified override facts.
+
+    Bundle-derived facts remain authoritative when present. Curated metadata is
+    only a fallback for contracts such as write endpoints whose request method
+    is assembled in a way the bundle extractor cannot recover.
+    """
+    if not override:
+        return
+    for key in ("method", "host", "evidence"):
+        if override.get(key) and not entry.get(key):
+            entry[key] = override[key]
+
+
+def classify(path, overrides, known_paths=None):
+    ov = find_override(path, overrides, known_paths)
     if ov:
         return ov["status"], ov.get("note", "")
     for pat in IMPLEMENTED:
@@ -541,6 +572,10 @@ def main():
         # 번들 삼중에서 온 호스트·메서드. 프로브가 호스트를 추측하지 않도록 남긴다.
         if m := meta.get(p):
             entry.update(m)
+        # 일부 쓰기 계약은 번들에서 메서드가 동적으로 조립돼 추출기가 놓친다.
+        # 별도로 검증해 override 에 남긴 사실은 빈칸만 보완하고, 새 번들 관측값은
+        # 절대 덮어쓰지 않는다.
+        apply_override_metadata(entry, find_override(p, overrides, paths))
         # first_seen lifecycle: 잘린 옛 키(`/api/v1/profit`)에서 정식 키
         # (`/api/v1/profit/{profitType}/{key}`)로 옮겨온 것은 이력을 이어받는다.
         legacy = _legacy_key(p)

@@ -50,6 +50,9 @@ description: 에이전트가 안전·정확하게 쓰는 규칙
   `tossctl openapi login` (플래그로도 전달 가능). 자격증명 파일은 `0600` 으로 저장된다.
 - `tossctl openapi status --output json` — 키·토큰·허용 IP·라우팅 진단. 공식 키는 **IP 허용
   목록**이 필요하니 서버 IP 등록 여부를 확인하라.
+- `tossctl openapi ip replace-current --output json` — 현재 공인 IP와 기존 목록을 비교한
+  교체 계획만 반환한다. 사용자가 계획을 승인한 뒤 preview의 `confirm_token`으로
+  `--execute --confirm <token>`을 호출한다. 각 변경을 서버에서 재검증하며 실패 시 실제 상태를 조회해 기존 허용 목록을 복구한다.
 - `tossctl <명령> --backend auto|wts|openapi` — 요청별 라우팅 백엔드 지정(기본 auto).
 - 처음 설정은 `tossctl init` 위저드로도 가능하다.
 - 자세한 내용: [공식 Open API 자동 라우팅](/docs/guide/hybrid-openapi).

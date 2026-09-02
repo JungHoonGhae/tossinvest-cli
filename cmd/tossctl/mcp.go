@@ -12,6 +12,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/mcp"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/openapiip"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderlineage"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
@@ -46,8 +47,9 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 			"command `tossctl mcp`. It covers the official Open API (reads plus gated " +
 			"order place/cancel/modify) and, when a web session is present, the WTS-only " +
 			"reads (rankings, flows, AI signals, screener, sectors, earnings, briefing, " +
-			"community, dividends, Prime, transactions). Order mutations follow the same " +
-			"config gate and execute/confirm flow as `tossctl order` and use the official " +
+			"community, dividends, Prime, transactions), plus safely gated Open API IP " +
+			"management. Order mutations follow the same config gate and execute/confirm " +
+			"flow as `tossctl order` and use the official " +
 			"API only (no WTS). Needs at least one credential: `tossctl openapi login` " +
 			"(official) and/or `tossctl auth login` (WTS web session).",
 		Annotations:  map[string]string{"source": "both"},
@@ -110,7 +112,14 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 				tradingSvc.WithConditionalBroker(routed)
 			}
 
-			server := mcp.NewServer(officialClient, routed, tradingSvc, "tossinvest-cli", version.Current().Version)
+			var ipManager *openapiip.Service
+			if sess != nil {
+				ipManager = openapiip.NewService(routed, openapiip.NewHTTPResolver(nil, ""))
+			}
+			server := mcp.NewServer(officialClient, routed, mcp.Services{
+				Trading:   tradingSvc,
+				OpenAPIIP: ipManager,
+			}, "tossinvest-cli", version.Current().Version)
 
 			// Read-only auth snapshot for the auth_status operation (no secrets —
 			// only connected flags + expiry timestamps).

@@ -19,6 +19,8 @@ the rest go through WTS. See the [Hybrid guide](/docs/guide/hybrid-openapi) for 
 | `tossctl openapi login` | Register your key (env vars `TOSSCTL_OPENAPI_KEY`/`TOSSCTL_OPENAPI_SECRET` or flags) |
 | `tossctl openapi status` | Diagnose key · token · allowed IPs · routing state |
 | `tossctl openapi test` | Validate connectivity with a real API call |
+| `tossctl openapi ip list` | List allowed IPs (WTS session required) |
+| `tossctl openapi ip replace-current` | Preview/confirm replacement with the current public IP |
 | `tossctl openapi logout` | Delete the credentials file |
 
 Use the global `--backend auto|wts|openapi` flag to override routing per request.
@@ -40,7 +42,10 @@ Use the global `--backend auto|wts|openapi` flag to override routing per request
 | Net-buy by investor | `market investors` | ❌ | ✅ |
 | Sector movements | `market sectors` | ❌ | ✅ |
 | Earnings calendar | `market earnings [--major]` | ❌ | ✅ |
-| Personalized news briefing | `market briefing` | ❌ | ✅ |
+| Personalized news briefing | `market briefing` (asset, return, reasoning, news) | ❌ | ✅ |
+| Key earnings & economic releases | `market key-events` | ❌ | ✅ |
+| Stock-accumulation open-banking status | `banking status [--full]` | ❌ | ✅ |
+| Notification preferences | `notifications list` | ❌ | ✅ |
 | Toss AI signals | `market signals` | ❌ | ✅ |
 | Screener | `market screener` | ❌ | ✅ |
 | Dividend report | `portfolio dividends` | ❌ | ✅ |

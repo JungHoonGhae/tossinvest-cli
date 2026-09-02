@@ -9,7 +9,7 @@
 - [#15 / #17](https://github.com/JungHoonGhae/tossinvest-cli/issues/15) — User-Agent 핑거프린팅 차단 (v0.3.6 fix)
 - [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) — `/sections/all` body 계약 변경 (v0.4.8 fix)
 
-`monitor api` 명령은 42개 read-only endpoint 를 schema-invariant probe 로 호출해 이런 변경을 사용자보다 먼저 감지합니다.
+`monitor api` 명령은 46개 read-only endpoint 를 schema-invariant probe 로 호출해 이런 변경을 사용자보다 먼저 감지합니다.
 
 ### 동작 흐름
 
@@ -27,24 +27,24 @@
 
 ### Probe 목록
 
-런타임 목록인 `internal/monitor.Probes()` 가 단일 진실 소스입니다. 36개는
+런타임 목록인 `internal/monitor.Probes()` 가 단일 진실 소스입니다. 40개는
 `internal/ops` 레지스트리의 오퍼레이션 옆 `ProbeSpec` 에서 파생되고, 카탈로그
 오퍼레이션이 없는 CLI 전용 6개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
 
 | 보호 영역 | Probe (개수) |
 | --- | --- |
-| 계좌·포트폴리오 | `account-list`, `account-summary-overview`, `account-receivable`, `account-interest-years`, `account-commission-info`, `portfolio-positions` (6) |
+| 계좌·포트폴리오 | `account-list`, `account-summary-overview`, `account-all-overview`, `account-receivable`, `account-interest-years`, `account-commission-info`, `portfolio-positions` (7) |
 | 주문·자금 | `pending-orders`, `order-funding`, `auto-trades` (3) |
 | 시세·종목 | `quote-stock-infos`, `quote-trades`, `quote-orderbook`, `quote-price-limits`, `quote-charts`, `quote-reasons`, `quote-crypto`, `quote-stock-signals`, `trading-flows`, `option-expiries` (10) |
-| 시장·리서치 | `market-index`, `index-prices`, `stock-ranking`, `investor-rankings`, `theme-rankings`, `sectors-tics`, `ai-signals`, `screener-presets`, `screener-filter-range`, `earning-call`, `earning-call-home`, `news-briefing`, `market-issues`, `market-calendar`, `market-halt`, `market-trading-hours` (16) |
-| 개인화·계좌 부가기능 | `community-rankings`, `lending-expected`, `accumulation-plans`, `profit-overview`, `ria-report`, `watchlist`, `watchlist-groups` (7) |
+| 시장·리서치 | `market-index`, `index-prices`, `stock-ranking`, `investor-rankings`, `theme-rankings`, `sectors-tics`, `ai-signals`, `screener-presets`, `screener-filter-range`, `earning-call`, `earning-call-home`, `news-briefing`, `market-issues`, `market-calendar`, `market-key-events`, `market-halt`, `market-trading-hours` (17) |
+| 개인화·계좌 부가기능 | `community-rankings`, `lending-expected`, `accumulation-plans`, `profit-overview`, `ria-report`, `open-banking-status`, `notification-settings`, `watchlist`, `watchlist-groups` (9) |
 
 이름·method·endpoint 전체 매핑은 [`AGENTS.md`](../AGENTS.md) 의 “Probe 목록”에 있고,
 다음 명령으로 실제 런타임 구성을 검증할 수 있습니다.
 
 ```bash
 go run ./tools/wtsinventory -mode probes -root "$(pwd)" | jq 'length'
-# 42
+# 46
 ```
 
 각 probe 는 status 200 + 핵심 JSON 경로 존재 + 타입을 검사합니다. Toss 가 새 필드를 추가하는 변경은 통과시키고, 핵심 필드가 사라지거나 빈 응답을 받으면 실패합니다.
@@ -70,25 +70,25 @@ Discord 외 Slack · ntfy · macOS notification · 이메일 등 다른 채널 �
 ```
   ✓ market-index — status=200 (43ms)
   ✓ index-prices — status=200 (53ms)
-  … 40 more probes …
+  … 43 more probes …
 
-42 passed, 0 failed
+46 passed, 0 failed
 ```
 
 실패 (예: #29 같은 body-contract 회귀):
 
 ```
   ✗ portfolio-positions — status=200: result.sections is empty — likely body-contract regression (#29-class)
-… 41 passing probes omitted …
+… 45 passing probes omitted …
 
-41 passed, 1 failed
+45 passed, 1 failed
 ```
 
 webhook 페이로드:
 
 ```
 🚨 tossctl API regression detected (0.4.9)
-2026-05-13 10:00 UTC — 1/42 probes failed
+2026-05-13 10:00 UTC — 1/46 probes failed
 
 ❌ portfolio-positions — POST wts-cert-api.tossinvest.com/api/v2/dashboard/asset/sections/all
     status=200, result.sections is empty — likely body-contract regression (#29-class)

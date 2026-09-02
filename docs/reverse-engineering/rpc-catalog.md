@@ -45,6 +45,9 @@ This file is the source of truth for endpoint discovery. It should grow before t
 | `guest` | `POST` | `wts-api.tossinvest.com` | `/api/v2/login/wts/toss` | finalize Toss login | request body still undocumented | `auth login` helper only | observed after status polling |
 | `guest` | `POST` | `wts-api.tossinvest.com` | `/api/v3/login/ticket` | obtain post-login ticket | request body still undocumented | `auth login` helper only | likely bridges login flow into WTS session |
 | `auth` | `mixed` | browser cookies and storage | session persistence state | authenticated session reuse | cookies plus local/session storage | `auth status`, `auth login` | state-save capture showed both cookies and storage keys matter |
+| `auth` | `GET` | `wts-api.tossinvest.com` | `/api/v1/openapi/client` | Open API key metadata and allowed IP list | `.result.allowedIps[]`; secret intentionally discarded | `openapi status`, `openapi ip list` | verified live; never map `clientSecret` |
+| `auth` | `POST` | `wts-api.tossinvest.com` | `/api/v1/openapi/client/allowed-ips` | add one allowed IP | body `{"ip":"..."}` | `openapi ip replace-current` | verified from WTS bundle 2026-09-02; preview/confirm/rollback service |
+| `auth` | `DELETE` | `wts-api.tossinvest.com` | `/api/v1/openapi/client/allowed-ips/{ip}` | remove one allowed IP | empty success body | `openapi ip replace-current` | verified from WTS bundle and browser flow 2026-09-02 |
 
 ## Market Overview
 
@@ -57,6 +60,8 @@ This file is the source of truth for endpoint discovery. It should grow before t
 | `public` | `POST` | `wts-cert-api.tossinvest.com` | `/api/v2/dashboard/wts/overview/ranking` | overview ranking widgets | object under `.result` | none | body contract still needs capture |
 | `public` | `POST` | `wts-info-api.tossinvest.com` | `/api/v1/dashboard/intelligences/all` | dashboard cards | object under `.result` | none | body contract still needs capture |
 | `public` | `POST` | `wts-info-api.tossinvest.com` | `/api/v2/dashboard/wts/overview/signals` | signal cards on stock detail/home | object under `.result` | none | body contract still needs capture |
+| `auth` | `GET` | `wts-cert-api.tossinvest.com` | `/api/v2/reasoning/personalized` | personalized AI briefing | `.result.items[]` with asset, holding/watchlist context, return, reasoning title, news, and related stocks | `market briefing` | current WTS bundle + masked live schema verified 2026-09-02; replaces the thinner v1 CLI contract |
+| `auth` | `GET` | `wts-cert-api.tossinvest.com` | `/api/v1/calendar/ai-summary/key-events` | curated key earnings and economic releases | `.result.earnings[]`, `.result.eci.indicators[]` with estimates, actuals, surprise, and previous values | `market key-events` | current WTS bundle + read-only live schema verified 2026-09-02 |
 
 ## Quote and Symbol Detail
 
@@ -108,6 +113,7 @@ These are approved CLI targets. Initial authenticated discovery happened on 2026
 | Status | Method | Host | Path | Purpose | Observed shape | CLI mapping | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `auth` | `GET` | `wts-api.tossinvest.com` | `/api/v1/account/list` | account list and primary account key | `.result.accountList`, `.result.primaryKey` | `account list` | high-value first endpoint; sanitize account identifiers |
+| `auth` | `POST` | `wts-info-api.tossinvest.com` | `/api/v1/dashboard/all-accounts` | all-account asset rollup including minor accounts | body `{"sections":["SUMMARY_WITH_MINOR"]}` → `.result[0].data.{accountOverviews,minorAccountOverviews,totalAssetAmount}` | `account overview` | Android 5.275.0 contract + masked live schema verified 2026-09-02; account numbers are masked by default |
 | `auth` | `GET` | `wts-cert-api.tossinvest.com` | `/api/v3/my-assets/summaries/markets/all/overview` | total assets and profit summary | `.result.accountNo`, `totalAssetAmount`, `evaluatedProfitAmount`, `profitRate`, `overviewByMarket` | `account summary`, `portfolio allocation` | account number appears in response |
 | `auth` | `GET` | `wts-api.tossinvest.com` | `/api/v1/my-assets/summaries/markets/kr/withdrawable-amount` | KRW withdrawable amounts | `.result.amount0..amount3`, `.result.date0..date3` | `account summary` | public account summary dependency |
 | `auth` | `GET` | `wts-api.tossinvest.com` | `/api/v1/my-assets/summaries/markets/us/withdrawable-amount` | USD withdrawable amounts | `.result.amount0..amount3`, `.result.date0..date3` | `account summary` | public account summary dependency |
@@ -116,6 +122,8 @@ These are approved CLI targets. Initial authenticated discovery happened on 2026
 | `auth` | `POST` | `wts-cert-api.tossinvest.com` | `/api/v1/dashboard/asset/sections/all` | account dashboard sections | body `{"types":["MIDDLE"]}` (and others) | dashboard middle banner | filter required since 2026-05-13 (#29) |
 | `auth` | `POST` | `wts-cert-api.tossinvest.com` | `/api/v2/dashboard/asset/sections/all` | account dashboard sections v2 | body `{"types":["SORTED_OVERVIEW"\|"WATCHLIST"\|...]}` | `portfolio positions`, `watchlist list` | **2026-05-13: empty `{}` body now returns empty sections + `pollIntervalMillis`. Must pass `types` filter.** |
 | `auth` | `POST` | `wts-cert-api.tossinvest.com` | `/api/v1/profit/overview` | profit overview widget | body contract unknown | `portfolio allocation` | body still needs capture |
+| `auth` | `GET` | `wts-api.tossinvest.com` | `/api/v1/autotrade/open-banking/info/find` | open-banking account used for stock-accumulation funding | `.result.{name,connectedOpenBankingAccount,savingCount}` plus linked/registrable arrays | `banking status` | current WTS bundle + masked live schema verified 2026-09-02; identity is masked by default |
+| `auth` | `GET` | `wts-cert-api.tossinvest.com` | `/api/v1/user-alimies` | WTS notification preferences | `.result[]` with `id`, `type`, `enabled`, timestamps | `notifications list` | current WTS bundle + read-only live schema verified 2026-09-02; internal `userId` discarded |
 
 Watchlist-specific endpoints are still not isolated. The `/account` page did not clearly expose a standalone watchlist read path in the first authenticated capture.
 

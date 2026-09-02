@@ -88,11 +88,15 @@ WTS로(범위) 자동 라우팅합니다.
 공식이 지원하는 기능은 공식 경로로 자동 라우팅해 **안정성도 함께** 가져갑니다.
 
 <Callout type="info" title="공식 키를 써도 일부 작업은 웹 세션이 필요합니다">
-공식 키의 **메타데이터·허용 IP 조회**(`openapi status` 의 IP 목록, `doctor` 진단)는 토스
+공식 키의 **메타데이터·허용 IP 조회·변경**(`openapi status`, `openapi ip`)은 토스
 WTS 내부 엔드포인트(`/api/v1/openapi/client`)로 제공되므로 **웹 세션 로그인이 선행**되어야
 합니다. 반면 런타임 호출(계좌·시세·주문)은 세션 없이 OAuth 토큰만으로 동작합니다. 허용 IP는
 보통 **키를 쓰는 현재 컴퓨터 IP가 자동 등록**되며, 다른 IP(예: 서버)가 필요하면 WTS(토스 웹)에서
-추가로 등록할 수 있습니다.
+추가로 등록할 수 있습니다. 네트워크가 바뀐 경우 `tossctl openapi ip replace-current`로
+preview한 뒤 `--execute --confirm <token>`을 붙여 교체할 수 있습니다.
+
+현재 공인 IP 확인에는 `https://api.ipify.org`를 사용하며, 이 요청에는 토스 쿠키·Open API
+키·계좌 정보가 전송되지 않습니다.
 </Callout>
 
 ## 자동 라우팅 동작

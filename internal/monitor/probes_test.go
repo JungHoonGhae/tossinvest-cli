@@ -13,6 +13,7 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"order-funding":            true,
 		"account-list":             true,
 		"account-summary-overview": true,
+		"account-all-overview":     true,
 		"portfolio-positions":      true,
 		"watchlist":                true,
 		"quote-stock-infos":        true,
@@ -49,6 +50,9 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"quote-charts":             true,
 		"auto-trades":              true,
 		"market-issues":            true,
+		"market-key-events":        true,
+		"open-banking-status":      true,
+		"notification-settings":    true,
 	}
 	got := map[string]bool{}
 	for _, p := range Probes() {
@@ -150,5 +154,35 @@ func TestPortfolioPositionsCheckCatchesSectionsAllRegression(t *testing.T) {
 	goodBody := []byte(`{"result":{"sections":[{"type":"SORTED_OVERVIEW","data":{"products":[]}}]}}`)
 	if err := positionsProbe.Check(200, goodBody); err != nil {
 		t.Fatalf("expected check to pass on valid shape, got: %v", err)
+	}
+}
+
+func TestDiscoveryProbeChecksRejectBrokenSchemas(t *testing.T) {
+	t.Parallel()
+	tests := map[string]struct {
+		good string
+		bad  string
+	}{
+		"news-briefing":         {good: `{"result":{"items":[]}}`, bad: `{"result":{}}`},
+		"market-key-events":     {good: `{"result":{"earnings":[],"eci":{"indicators":[]}}}`, bad: `{"result":{"earnings":[]}}`},
+		"open-banking-status":   {good: `{"result":{"savingCount":0}}`, bad: `{"result":{}}`},
+		"notification-settings": {good: `{"result":[]}`, bad: `{"result":{}}`},
+		"account-all-overview":  {good: `{"result":[{"data":{"accountOverviews":[],"minorAccountOverviews":[],"totalAssetAmount":0}}]}`, bad: `{"result":[{"data":{"accountOverviews":[]}}]}`},
+	}
+	probes := make(map[string]Probe)
+	for _, probe := range Probes() {
+		probes[probe.Name] = probe
+	}
+	for name, tc := range tests {
+		probe, ok := probes[name]
+		if !ok {
+			t.Fatalf("probe %q missing", name)
+		}
+		if err := probe.Check(200, []byte(tc.good)); err != nil {
+			t.Errorf("%s good schema: %v", name, err)
+		}
+		if err := probe.Check(200, []byte(tc.bad)); err == nil {
+			t.Errorf("%s accepted broken schema", name)
+		}
 	}
 }

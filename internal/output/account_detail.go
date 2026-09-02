@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/privacy"
 )
 
 // WriteAccountDetail renders the read-only 계좌관리 view. full reveals the
@@ -17,9 +18,9 @@ func WriteAccountDetail(w io.Writer, format Format, d domain.AccountDetail, full
 	number := d.Number
 	name := d.Name
 	if !full {
-		number = maskAccountNumber(number)
+		number = privacy.AccountNumber(number)
 		// accountName is the holder's real name — more sensitive than the number.
-		name = maskName(name)
+		name = privacy.Name(name)
 	}
 
 	if format == FormatJSON {
@@ -172,54 +173,4 @@ func WriteAccountDetail(w io.Writer, format Format, d domain.AccountDetail, full
 		return err
 	}
 	return nil
-}
-
-// maskAccountNumber keeps only the last three digits of a normal account
-// number. Short or malformed values stay fully private; separators remain
-// visible so the output shape is familiar.
-func maskAccountNumber(no string) string {
-	r := []rune(no)
-	if len(r) == 0 {
-		return ""
-	}
-
-	identifying := 0
-	for _, ch := range r {
-		if ch != '-' {
-			identifying++
-		}
-	}
-	reveal := 3
-	if identifying <= reveal {
-		reveal = 0
-	}
-	hide := identifying - reveal
-
-	masked := make([]rune, 0, len(r))
-	seen := 0
-	for _, ch := range r {
-		if ch == '-' {
-			masked = append(masked, '-')
-			continue
-		}
-		if seen < hide {
-			masked = append(masked, '*')
-		} else {
-			masked = append(masked, ch)
-		}
-		seen++
-	}
-	return string(masked)
-}
-
-// maskName keeps the first character of the holder's name and hides the rest.
-func maskName(n string) string {
-	r := []rune(n)
-	if len(r) == 0 {
-		return ""
-	}
-	if len(r) == 1 {
-		return "*"
-	}
-	return string(r[0]) + strings.Repeat("*", len(r)-1)
 }

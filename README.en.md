@@ -235,10 +235,11 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **Dividend report** | `portfolio dividends` (annual total · region · monthly, `--by-payment-date` tax) | ❌ | ✅ |
 | **Cumulative realized profit** | `profit` (trading gains · dividends · lending · maturity · deposit interest, KRW/USD — a cumulative view distinct from account summary) | ❌ | ✅ |
 | **Account detail** | `account detail [--full]` (number · open date + **withdrawable cash and caps** + credit-trading status + **US dividend payout mode** — number and name masked by default) | ❌ | ✅ |
-| **🆕 Automated trading** | `order autotrade` (stop-loss / target-profit / OCO / OTO rules with trigger and order prices — read-only) | ❌ | ✅ |
+| **🆕 All-account assets** | `account overview [--full]` (regular and minor accounts · pending-order counts — account numbers masked by default) | ❌ | ✅ |
+| **Automated trading** | `order autotrade` (stop-loss / target-profit / OCO / OTO rules with trigger and order prices — read-only) | ❌ | ✅ |
 | **Market news** | `market news [--type all\|watchlist\|holdings\|soaring\|latest\|recommended] [--limit N] [--full]` (each article's **related stocks and their moves** — what a headline list lacks) | ❌ | ✅ |
-| **🆕 Market issue board** | `market issues [--full]` (topics ranked by attention, with rank movement ▲▼ and backing articles) | ❌ | ✅ |
-| **🆕 Market calendar** | `market calendar [--month YYYY-MM]` (releases with **forecast / actual / prior**, KR+US **earnings** with symbol and call time, holidays — by month) | ❌ | ✅ |
+| **Market issue board** | `market issues [--full]` (topics ranked by attention, with rank movement ▲▼ and backing articles) | ❌ | ✅ |
+| **Market calendar** | `market calendar [--month YYYY-MM]` (releases with **forecast / actual / prior**, KR+US **earnings** with symbol and call time, holidays — by month) | ❌ | ✅ |
 | **Realized profit by period** | `profit summary --type sales\|dividend\|lending\|account-interest [--from --to]` (one category's earned amount, return rate, purchase basis in KRW/USD) | ❌ | ✅ |
 | **Per-stock daily realized profit** | `profit daily [--from --to] [--currency KRW\|USD]` (symbol · quantity · P/L · rate · sell/buy amounts, every page merged — CSV for tax prep) | ❌ | ✅ |
 | **Overseas transfer income (tax)** | `tax overseas --year YYYY` (capital-gains filing: rate · deduction · per-stock P/L) | ❌ | ✅ |
@@ -252,7 +253,10 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **Community rankings** | `community rankings --type influencer\|profit\|followers` | ❌ | ✅ |
 | **Sector movements** | `market sectors [id]` (industry tree, 1d·1m·1y returns) | ❌ | ✅ |
 | **Theme fluctuation ranking** | `market themes` (today's top-moving themes, rising-stock counts) | ❌ | ✅ |
-| **Personalized news briefing** | `market briefing` (headlines grouped by theme) | ❌ | ✅ |
+| **Personalized news briefing** | `market briefing` (holding/watchlist asset · return · AI reasoning · news and related stocks) | ❌ | ✅ |
+| **🆕 Key earnings & economic releases** | `market key-events` (estimates · actuals · surprises · previous values) | ❌ | ✅ |
+| **🆕 Stock-accumulation open-banking status** | `banking status [--full]` (holder and account number masked by default) | ❌ | ✅ |
+| **🆕 Notification preferences** | `notifications list` (read-only; internal user ID omitted) | ❌ | ✅ |
 | **Toss AI signals** | `market signals` (per-symbol AI signal · keywords · move) | ❌ | ✅ |
 | **Stock screener** | `market screener [id]` (preset) · `--filter '<json>'` (custom) `--nation kr\|us` | ❌ | ✅ |
 | **Watchlist read & management** | `watchlist list [<group-id>] [--all]`·`groups`, `watchlist group create\|rename\|delete`, `watchlist add\|remove --group <id>` | ❌ | ✅ |
@@ -650,6 +654,9 @@ python3 -m pip install -e .
 ```bash
 tossctl account list
 tossctl account summary
+tossctl account overview [--full]               # regular + minor accounts; numbers masked by default
+tossctl banking status [--full]                  # stock-accumulation open-banking connection
+tossctl notifications list                       # read-only notification preferences
 tossctl portfolio positions
 tossctl portfolio allocation
 tossctl portfolio dividends [--year YYYY] [--by-payment-date]
@@ -663,6 +670,7 @@ tossctl market option-hours                      # US options business days
 tossctl community boards                         # popular lounges by followers
 tossctl accumulate list|status <symbol>          # stock accumulation (mobile-app-only)
 tossctl market investors|earnings|briefing|sectors|themes|index|ranking|signals
+tossctl market key-events                        # current key earnings and economic releases
 tossctl community rankings --type influencer|profit|followers
 tossctl orders list
 tossctl orders completed --market us|kr|all
@@ -730,11 +738,11 @@ tossctl auth extend --if-expiring 48h   # extend only when close to expiry (cron
 ### API regression watch
 
 ```bash
-tossctl monitor api           # schema-probe 42 endpoints (parallel); exit 0 pass, 1 fail
+tossctl monitor api           # schema-probe 46 endpoints (parallel); exit 0 pass, 1 fail
 tossctl monitor api --quiet   # for cron
 ```
 
-Checks the response schema of 42 read-only endpoints in parallel, using your own session on your own machine — to catch Toss server-side body-contract changes (like [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29)) early. It only returns an exit code, so you compose alert channels (Discord / Slack / ntfy / macOS / email) on the right side of `|| <command>` in your cron line. Recipes: [`AGENTS.md`](AGENTS.md), setup guide: [`docs/operations.md`](docs/operations.md).
+Checks the response schema of 46 read-only endpoints in parallel, using your own session on your own machine — to catch Toss server-side body-contract changes (like [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29)) early. It only returns an exit code, so you compose alert channels (Discord / Slack / ntfy / macOS / email) on the right side of `|| <command>` in your cron line. Recipes: [`AGENTS.md`](AGENTS.md), setup guide: [`docs/operations.md`](docs/operations.md).
 
 ## Development
 

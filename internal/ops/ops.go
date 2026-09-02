@@ -32,15 +32,18 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/jsoninput"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/openapiip"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
 
 // Deps carries the backends a handler may need. Official-only read operations
 // use Client; WTS reads and "auto" reads use WTS; write (order-mutation)
-// operations go through Trading, which applies the config gate, dry-run
+// order operations go through Trading, which applies the config gate, dry-run
 // preview, and confirm-token flow — the same policy the `tossctl order` CLI
-// enforces. Trading routes to an official-only broker, so order writes never
-// touch a WTS session. Client and WTS are each optional (nil when that
+// enforces. Non-trading Open API allowlist changes go through OpenAPIIP, which
+// owns its own preview/confirm/rollback transaction. Trading routes to an
+// official-only broker, so order writes never touch a WTS session. Client and
+// WTS are each optional (nil when that
 // credential/session is absent); Catalog.Call checks the one an operation
 // needs and returns a clear "run login" error when it is missing.
 //
@@ -49,10 +52,11 @@ import (
 // internal/hybrid). With no official credentials the router degrades to a pure
 // WTS passthrough, which is exactly the pre-hybrid behaviour.
 type Deps struct {
-	Client  *official.Client
-	WTS     *hybrid.Client
-	Trading *trading.Service
-	Auth    AuthStatus
+	Client    *official.Client
+	WTS       *hybrid.Client
+	Trading   *trading.Service
+	OpenAPIIP *openapiip.Service
+	Auth      AuthStatus
 }
 
 // BackendStatus reports whether a backend is connected and, if known, when its
@@ -97,9 +101,8 @@ type Operation struct {
 	Path     string `json:"path"`
 	Category string `json:"category"`
 	Summary  string `json:"summary"`
-	// Write marks state-changing operations (regular or conditional order
-	// place/cancel/modify). They
-	// are gated by config and require an explicit execute + confirm token.
+	// Write marks state-changing operations. Every write requires an explicit
+	// execute + confirm token; trading writes additionally require config opt-in.
 	Write bool `json:"write"`
 	// Backend selects which authenticated client the operation needs: "" (default)
 	// = the official Open API client; "wts" = the web-session client; "auto" =
@@ -121,11 +124,12 @@ type Catalog struct {
 	byID map[string]Operation
 }
 
-// NewCatalog builds the operation catalog (official reads, gated order-mutation
-// writes, and WTS-only reads).
+// NewCatalog builds the operation catalog (official reads, WTS reads, gated
+// order mutations, and gated non-trading settings mutations).
 func NewCatalog() *Catalog {
 	ops := append(readOperations(), writeOperations()...)
 	ops = append(ops, wtsOperations()...)
+	ops = append(ops, settingsOperations()...)
 	byID := make(map[string]Operation, len(ops))
 	for _, o := range ops {
 		byID[o.ID] = o

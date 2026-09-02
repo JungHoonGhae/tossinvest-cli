@@ -12,6 +12,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/jsoninput"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/openapiip"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
 
@@ -34,6 +35,14 @@ type Server struct {
 	instructions string
 }
 
+// Services are stateful workflows assembled by the process composition root.
+// Keeping construction outside the transport makes network policy and test
+// doubles explicit instead of hiding them in NewServer.
+type Services struct {
+	Trading   *trading.Service
+	OpenAPIIP *openapiip.Service
+}
+
 // baseInstructions is returned in the initialize response so the host/model
 // knows how to drive the 3-tool catalog and which auth each backend needs.
 const baseInstructions = "Toss Securities via a 3-tool catalog. Call list_operations first " +
@@ -41,7 +50,8 @@ const baseInstructions = "Toss Securities via a 3-tool catalog. Call list_operat
 	"schema, then call_operation to run it. Operations with backend \"wts\" need a Toss web session " +
 	"(`tossctl auth login`); those with backend \"auto\" work with either credential (official first, " +
 	"web-session fallback); the rest need official Open API credentials (`tossctl openapi login`). " +
-	"Order writes are gated: config opt-in plus execute + confirm token (a plain call returns a dry-run preview)."
+	"Every write returns a preview unless execute + confirm token are supplied. Order writes additionally require trading config opt-in; " +
+	"non-trading settings writes such as Open API IP replacement do not place trades but use the same two-step confirmation boundary."
 
 // NewServer constructs a Server over the given backends. official serves the
 // official-only Open API operations (and, via tradingSvc, gated order
@@ -52,13 +62,12 @@ const baseInstructions = "Toss Securities via a 3-tool catalog. Call list_operat
 // be non-nil whenever any credential is present; because it is built even
 // without a web session, Catalog.Call gates WTS operations on the auth
 // snapshot (see SetAuthStatus) rather than on nilness. Operations whose
-// backend is unavailable return a clear "run login" error. tradingSvc drives
-// gated order-mutation operations; pass one built on an OfficialBroker so
-// writes never touch a WTS session.
-func NewServer(official *official.Client, routed *hybrid.Client, tradingSvc *trading.Service, name, version string) *Server {
+// backend is unavailable return a clear "run login" error. Services.Trading
+// must use an OfficialBroker so order writes never touch a WTS session.
+func NewServer(official *official.Client, routed *hybrid.Client, services Services, name, version string) *Server {
 	return &Server{
 		catalog:      NewCatalog(),
-		deps:         &Deps{Client: official, WTS: routed, Trading: tradingSvc},
+		deps:         &Deps{Client: official, WTS: routed, Trading: services.Trading, OpenAPIIP: services.OpenAPIIP},
 		name:         name,
 		version:      version,
 		instructions: baseInstructions,
@@ -212,7 +221,7 @@ func (s *Server) handleToolsList() any {
 	tools := []toolDef{
 		{
 			Name:        "list_operations",
-			Description: "List available Toss Securities operations — the official Open API plus WTS-only reads (rankings, flows, AI signals, screener, sectors, earnings, briefing, dividends, etc.). Each item shows id, method, path, summary, and backend (\"wts\" = web-session read; empty = official). Optionally filter with a case-insensitive query. Call this first to discover operation ids.",
+			Description: "List available Toss Securities operations — the official Open API plus WTS reads and safely gated settings operations. Each item shows id, method, path, summary, write flag, and backend (\"wts\" = web session; empty = official). Optionally filter with a case-insensitive query. Call this first to discover operation ids.",
 			InputSchema: obj(map[string]any{
 				"query": map[string]any{"type": "string", "description": "case-insensitive substring filter over id/path/category/summary"},
 				"limit": map[string]any{"type": "integer", "description": "max results (default 200)"},
@@ -227,7 +236,7 @@ func (s *Server) handleToolsList() any {
 		},
 		{
 			Name:        "call_operation",
-			Description: "Call a Toss Securities operation by id with its parameters (official Open API or WTS-only read). Reads return the JSON payload. WTS operations (backend \"wts\") need a web session (`tossctl auth login`); official ops/orders need official credentials (`tossctl openapi login`). Write operations (place/cancel/modify order) use the official path and are gated: without execute=true they return a dry-run preview with a confirm_token; pass execute=true plus confirm=<token> to submit (also requires config to enable trading).",
+			Description: "Call a Toss Securities operation by id with its parameters. WTS operations (backend \"wts\") need a web session (`tossctl auth login`); official operations need official credentials (`tossctl openapi login`). Writes return a dry-run preview with a confirm_token unless execute=true plus confirm=<token> are supplied. Trading writes additionally require config opt-in; Open API IP replacement is a non-trading settings write with rollback.",
 			InputSchema: obj(map[string]any{
 				"operation": map[string]any{"type": "string", "description": "operation id"},
 				"params":    map[string]any{"type": "object", "description": "operation parameters (see describe_operation)"},

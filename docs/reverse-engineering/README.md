@@ -13,6 +13,7 @@
 | [auth-notes.md](auth-notes.md) | 세션·쿠키·인증 헤더 |
 | [push-events.md](push-events.md) | 실시간 push 이벤트 |
 | [change-analysis/](change-analysis/) | 서버 변경이 관측된 날의 분석 기록 |
+| [change-analysis/2026-09-02-android-static.md](change-analysis/2026-09-02-android-static.md) | Android 5.275.0 정적 계약 감사: WTS 교차검증, 은행/MyData 인증 경계, 쓰기 후보 정책 |
 
 ## 도구
 

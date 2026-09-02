@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -12,7 +13,9 @@ import (
 
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/openapiip"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
@@ -31,7 +34,7 @@ func runServerPolicy(t *testing.T, client *official.Client, policy config.Tradin
 	in := strings.NewReader(strings.Join(lines, "\n") + "\n")
 	var out bytes.Buffer
 	tradingSvc := trading.NewService(policy, OfficialBroker{Client: client})
-	s := NewServer(client, nil, tradingSvc, "test", "0.0.0")
+	s := NewServer(client, nil, Services{Trading: tradingSvc}, "test", "0.0.0")
 	if err := s.Serve(context.Background(), in, &out); err != nil {
 		t.Fatalf("Serve: %v", err)
 	}
@@ -274,6 +277,16 @@ func TestListOperationsIncludesGatedWrites(t *testing.T) {
 	}
 }
 
+func TestNewServerWiresOpenAPIIPManager(t *testing.T) {
+	t.Parallel()
+	routed := hybrid.New(tossclient.New(tossclient.Config{}), nil, hybrid.Policy{}, io.Discard)
+	manager := openapiip.NewService(nil, nil)
+	server := NewServer(nil, routed, Services{OpenAPIIP: manager}, "test", "0.0.0")
+	if server.deps.OpenAPIIP != manager {
+		t.Fatal("MCP server must preserve the injected Open API IP manager")
+	}
+}
+
 func TestPlaceOrderPreviewDoesNotExecute(t *testing.T) {
 	// No routes: a live POST would 404. Preview must not hit the network.
 	c := dummyClient(t, nil)
@@ -452,7 +465,7 @@ func TestToolResultCapsOversizedPayload(t *testing.T) {
 	defer srv.Close()
 
 	wts := tossclient.New(tossclient.Config{
-		InfoBaseURL: srv.URL,
+		CertBaseURL: srv.URL,
 		Session:     &session.Session{Cookies: map[string]string{"SESSION": "s"}},
 	})
 	resps := driveWTS(t, wts,

@@ -103,6 +103,36 @@ class TestClassify(unittest.TestCase):
         self.assertEqual(status, "candidate")
         self.assertEqual(note, "손으로 뒤집음")
 
+    def test_verified_override_metadata_survives_regeneration(self):
+        entry = {"status": "implemented"}
+        override = {
+            "status": "implemented",
+            "method": "DELETE,POST",
+            "host": "wts-api",
+            "evidence": "verified",
+        }
+
+        W.apply_override_metadata(entry, override)
+
+        self.assertEqual(entry["method"], "DELETE,POST")
+        self.assertEqual(entry["host"], "wts-api")
+        self.assertEqual(entry["evidence"], "verified")
+
+    def test_bundle_metadata_wins_over_curated_override_metadata(self):
+        entry = {"status": "implemented", "method": "GET", "host": "wts-info-api"}
+        override = {
+            "status": "implemented",
+            "method": "DELETE,POST",
+            "host": "wts-api",
+            "evidence": "verified",
+        }
+
+        W.apply_override_metadata(entry, override)
+
+        self.assertEqual(entry["method"], "GET")
+        self.assertEqual(entry["host"], "wts-info-api")
+        self.assertEqual(entry["evidence"], "verified")
+
     def test_live_concrete_parent_override_does_not_leak_into_templated_child(self):
         parent = "/api/v3/stock-prices"
         child = parent + "/{code}/quotes"
@@ -129,6 +159,28 @@ class TestClassify(unittest.TestCase):
         # 단수 account/ 만 걸러내고 있어 복수형 40여건이 새고 있었다.
         status, _ = W.classify("/api/v1/accounts/fatca", {})
         self.assertEqual(status, "excluded")
+
+    def test_sensitive_account_admin_and_auth_paths_are_excluded(self):
+        for path in [
+            "/api/v1/accounts/ssn-verification/check",
+            "/api/v1/accounts/ssn-verification/mark-ssn-verified",
+            "/api/v2/accounts/close/password",
+            "/api/v3/accounts/close",
+            "/api/v3/accounts/close/pre-check",
+            "/api/v1/session/refresh",
+        ]:
+            with self.subTest(path=path):
+                status, _ = W.classify(path, {})
+                self.assertEqual(status, "excluded")
+
+    def test_legal_and_feedback_plumbing_is_excluded(self):
+        for path in [
+            "/api/v1/portal/agreement-modules/{moduleCode}",
+            "/api/v1/nova-feedback/user-feedbacks",
+        ]:
+            with self.subTest(path=path):
+                status, _ = W.classify(path, {})
+                self.assertEqual(status, "excluded")
 
     def test_unknown_path_is_candidate(self):
         status, _ = W.classify("/api/v1/brand-new-thing", {})

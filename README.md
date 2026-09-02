@@ -151,6 +151,7 @@ tossctl version
 tossctl doctor
 tossctl auth login
 tossctl account summary --output json
+tossctl account overview                 # 전체 계좌 합산 (번호 기본 마스킹)
 ```
 
 설치 후 새 버전이 나오면 `tossctl update` 로 갱신할 수 있습니다 (Homebrew로 설치했다면 `brew upgrade tossctl-cli` 로 자동 위임됩니다).
@@ -235,7 +236,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 
 | 기능 | 커맨드 | 공식 API (예정) | tossctl |
 |------|--------|:--:|:--:|
-| 계좌 목록 / 요약 | `account list`, `account summary` | ✅ | ✅ |
+| 🆕 계좌 목록 / 요약 | `account list`, `account summary`, `account overview [--full]` (전체 계좌·미성년 계좌 합산, 번호 기본 마스킹) | ✅ (목록·선택 계좌) | ✅ |
 | 🆕 매수여력 (공식) | `account buying-power [--currency KRW\|USD]` (현금 기준, 계좌요약과 다른 개념) | ✅ | ✅ |
 | 포트폴리오 | `portfolio positions`, `portfolio allocation` (US: USD 병기) | ✅ | ✅ |
 | 체결 내역 (틱) | `quote trades <symbol> --count N` | ✅ | ✅ |
@@ -279,10 +280,11 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **배당 내역** | `portfolio dividends` (연간 총액·지역·월별, `--by-payment-date` 세금) | ❌ | ✅ |
 | **누적 실현손익** | `profit` (매매손익·배당·대여·만기·예탁금이자, KRW/USD — account summary 와 다른 누적 관점) | ❌ | ✅ |
 | **계좌 상세** | `account detail [--full]` (계좌번호·개설일 + **출금 가능액/한도** + 미수거래 상태 + **미국 배당 수령 방식** — 번호·이름은 기본 마스킹) | ❌ | ✅ |
-| **🆕 자동매매 조회** | `order autotrade` (스탑로스·목표수익·OCO·OTO 설정과 감시가/주문가 — 조회 전용) | ❌ | ✅ |
+| **🆕 전체 계좌 자산** | `account overview [--full]` (일반·미성년 계좌별 자산과 미체결 주문 수 — 번호는 table/JSON/CSV 모두 기본 마스킹) | ❌ | ✅ |
+| **자동매매 조회** | `order autotrade` (스탑로스·목표수익·OCO·OTO 설정과 감시가/주문가 — 조회 전용) | ❌ | ✅ |
 | **시장 뉴스** | `market news [--type all\|watchlist\|holdings\|soaring\|latest\|recommended] [--limit N] [--full]` (기사별 **관련 종목 등락률** 포함 — 헤드라인 목록에 없는 부분) | ❌ | ✅ |
-| **🆕 시장 이슈 랭킹** | `market issues [--full]` (지금 가장 많이 이야기되는 토픽 순위 + 등락 ▲▼ + 관련 기사) | ❌ | ✅ |
-| **🆕 증시 캘린더** | `market calendar [--month YYYY-MM]` (경제지표 **예상치·실제치·직전값** + 국내·미국 **실적 발표**(종목/시각) + 휴장일, 월 단위) | ❌ | ✅ |
+| **시장 이슈 랭킹** | `market issues [--full]` (지금 가장 많이 이야기되는 토픽 순위 + 등락 ▲▼ + 관련 기사) | ❌ | ✅ |
+| **증시 캘린더** | `market calendar [--month YYYY-MM]` (경제지표 **예상치·실제치·직전값** + 국내·미국 **실적 발표**(종목/시각) + 휴장일, 월 단위) | ❌ | ✅ |
 | **기간별 실현손익** | `profit summary --type sales\|dividend\|lending\|account-interest [--from --to]` (카테고리 하나의 수익금·수익률·매입금액, KRW/USD) | ❌ | ✅ |
 | **종목별 일자별 실현손익** | `profit daily [--from --to] [--currency KRW\|USD]` (종목·수량·손익·수익률·매도/매수 금액, 전체 페이지 병합 — 세금 준비용 CSV) | ❌ | ✅ |
 | **해외 양도소득(세금)** | `tax overseas --year YYYY` (양도소득세 신고용: 세율·공제·종목별 손익) | ❌ | ✅ |
@@ -296,7 +298,10 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **커뮤니티 랭킹** | `community rankings --type influencer\|profit\|followers` | ❌ | ✅ |
 | **업종별 등락** | `market sectors [id]` (대분류·하위 업종, 1일·1개월·1년) | ❌ | ✅ |
 | **테마 등락 랭킹** | `market themes` (오늘 가장 많이 오른 테마, 상승종목 수) | ❌ | ✅ |
-| **개인화 뉴스 브리핑** | `market briefing` (테마별 뉴스 묶음) | ❌ | ✅ |
+| **개인화 뉴스 브리핑** | `market briefing` (보유·관심 종목, 수익률, AI 사유, 원문 뉴스·관련 종목) | ❌ | ✅ |
+| **🆕 핵심 실적·경제지표** | `market key-events` (실적 예상·발표·서프라이즈, 경제지표 실제·예상·직전값) | ❌ | ✅ |
+| **🆕 주식모으기 오픈뱅킹 상태** | `banking status [--full]` (예금주·계좌번호 기본 마스킹) | ❌ | ✅ |
+| **🆕 알림 설정 조회** | `notifications list` (읽기 전용, 내부 사용자 ID 제외) | ❌ | ✅ |
 | **토스 AI 시그널** | `market signals` (종목별 AI 시그널·키워드·등락) | ❌ | ✅ |
 | **조건 검색 (스크리너)** | `market screener [id]` (프리셋) · `--filter '<json>'` (커스텀 조건) `--nation kr\|us` | ❌ | ✅ |
 | **관심 종목 조회·관리** | `watchlist list [<group-id>] [--all]`·`groups`, `watchlist group create\|rename\|delete`, `watchlist add\|remove --group <id>` (폴더별 조회 + CRUD + 종목 추가/제거) | ❌ | ✅ |
@@ -463,6 +468,9 @@ tossctl init                          # 온보딩 위저드 (처음 설정 시)
 tossctl openapi login                 # 공식 키 등록 (환경변수도 지원)
 tossctl openapi status                # 키·토큰·허용 IP·라우팅 진단
 tossctl openapi test                  # 연결 검증
+tossctl openapi ip list               # 현재 허용 IP 목록
+tossctl openapi ip replace-current    # 새 공인 IP 교체 계획만 preview
+# preview의 token 확인 후에만: --execute --confirm <token>
 tossctl account summary --backend openapi  # 공식 API 우선 (fallback 설정 적용)
 ```
 
@@ -475,7 +483,8 @@ tossctl account summary --backend openapi  # 공식 API 우선 (fallback 설정 
 공식 Open API 는 물론 **WTS 전용 기능까지** **MCP(Model Context Protocol) 서버**로 노출합니다.
 Claude Code·Claude Desktop·Codex 등 MCP 호스트에 등록하면 에이전트가 자연어로 계좌·잔고·시세·
 호가·체결·캔들(공식)과 **인기 순위·수급·AI 시그널·스크리너·업종·어닝·브리핑·배당 등 WTS 전용
-조회**까지 다루고, **주문(매수/매도·취소·정정)** 도 실행할 수 있습니다. stdin/stdout(JSON-RPC
+조회**까지 다루고, **주문(매수/매도·취소·정정)** 및 preview/confirm으로 보호된 **Open API
+허용 IP 교체**도 실행할 수 있습니다. stdin/stdout(JSON-RPC
 2.0) 으로 동작하며 별도 서버·포트가 필요 없습니다.
 
 #### MCP 빠른 시작 — 3단계
@@ -767,6 +776,9 @@ python3 -m pip install -e .
 ```bash
 tossctl account list
 tossctl account summary
+tossctl account overview [--full]               # 전체·미성년 계좌 합산, 번호 기본 마스킹
+tossctl banking status [--full]                  # 주식모으기 오픈뱅킹 연결 상태
+tossctl notifications list                       # 알림 설정 조회(읽기 전용)
 tossctl portfolio positions
 tossctl portfolio allocation
 tossctl portfolio dividends [--year YYYY] [--by-payment-date]
@@ -782,6 +794,7 @@ tossctl market option-hours                      # 미국 옵션 영업일·거�
 tossctl community boards                         # 인기 라운지 (팔로워 순)
 tossctl accumulate list|status <symbol>          # 주식모으기 (모바일 앱 전용)
 tossctl market investors|earnings|briefing|sectors|themes|index|ranking|signals
+tossctl market key-events                        # 현재 핵심 실적·경제지표
 tossctl community rankings --type influencer|profit|followers
 tossctl orders list
 tossctl orders completed --market us|kr|all
@@ -856,17 +869,19 @@ tossctl init                # 온보딩 위저드 (처음 설정 시)
 tossctl openapi login       # 공식 키 등록 (env: TOSSCTL_OPENAPI_KEY / TOSSCTL_OPENAPI_SECRET)
 tossctl openapi status      # 키·토큰·허용 IP 진단
 tossctl openapi test        # 연결 검증
+tossctl openapi ip list
+tossctl openapi ip replace-current  # preview; 변경 없음
 tossctl openapi logout      # 자격증명 파일 삭제
 ```
 
 ### API 회귀 감시
 
 ```bash
-tossctl monitor api           # 42개 endpoint schema probe (병렬); exit 0 통과, 1 실패
+tossctl monitor api           # 46개 endpoint schema probe (병렬); exit 0 통과, 1 실패
 tossctl monitor api --quiet   # cron 용
 ```
 
-본인 머신에서 본인 세션으로 42개 read-only endpoint 응답 schema 를 병렬 점검합니다. [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) 같은 토스 서버측 body 계약 변경을 조기 감지할 목적. exit code 만 반환하므로 알림 채널 (Discord / Slack / ntfy / macOS / 이메일) 은 cron 라인의 `|| <command>` 우항에서 사용자가 합성합니다. 합성 recipe: [`AGENTS.md`](AGENTS.md). 설정 가이드: [`docs/operations.md`](docs/operations.md).
+본인 머신에서 본인 세션으로 46개 read-only endpoint 응답 schema 를 병렬 점검합니다. [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) 같은 토스 서버측 body 계약 변경을 조기 감지할 목적. exit code 만 반환하므로 알림 채널 (Discord / Slack / ntfy / macOS / 이메일) 은 cron 라인의 `|| <command>` 우항에서 사용자가 합성합니다. 합성 recipe: [`AGENTS.md`](AGENTS.md). 설정 가이드: [`docs/operations.md`](docs/operations.md).
 
 ## 주문 ref rollover
 

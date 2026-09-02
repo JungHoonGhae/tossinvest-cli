@@ -914,13 +914,26 @@ func WriteNewsBriefing(w io.Writer, format Format, b domain.NewsBriefing) error 
 			if len(it.Keywords) > 0 {
 				header += " · " + strings.Join(it.Keywords, ", ")
 			}
-			fmt.Fprintf(w, "\n[%s]\n", header)
+			if _, err := fmt.Fprintf(w, "\n[%s]\n", header); err != nil {
+				return err
+			}
+			if it.ReasoningTitle != "" || it.AssetName != "" {
+				asset := it.AssetName
+				if it.AssetCode != "" {
+					asset += " (" + it.AssetCode + ")"
+				}
+				if _, err := fmt.Fprintf(w, "  %s · %.2f%% · %s\n", asset, it.ProfitLossRate, it.ReasoningTitle); err != nil {
+					return err
+				}
+			}
 			for _, n := range it.News {
 				agency := n.Agency
 				if agency != "" {
 					agency = " (" + agency + ")"
 				}
-				fmt.Fprintf(w, "  · %s%s\n", n.Title, agency)
+				if _, err := fmt.Fprintf(w, "  · %s%s\n", n.Title, agency); err != nil {
+					return err
+				}
 			}
 		}
 		return nil

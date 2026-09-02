@@ -29,6 +29,9 @@ Rules for agents:
   live order. Trading is also gated in `config.json` (disabled by default).
 - **Preview before placing.** Use `order preview` to validate a canonical order
   intent, then let a human run `order place`.
+- Open API IP 교체도 기본은 preview입니다. `openapi ip replace-current` 결과의
+  `confirm_token`을 검토한 뒤에만 `--execute --confirm <token>`으로 실행하세요.
+  이 작업은 주문을 만들지 않으며, 새 IP 추가 실패 시 기존 목록 복구를 시도합니다.
 - Prefer `--json` for machine-readable output.
 - Treat `source: wts` results as best-effort; add a `monitor api` probe when you
   build automation on top of them.
@@ -78,7 +81,7 @@ Rules for agents:
 
 ## Probe 목록
 
-현재 `monitor api` 는 42개 read-only endpoint 를 감시합니다. 단일 진실 소스는
+현재 `monitor api` 는 46개 read-only endpoint 를 감시합니다. 단일 진실 소스는
 `internal/monitor.Probes()` 런타임 결과입니다. 대부분은 `internal/ops`
 레지스트리의 오퍼레이션 옆 `ProbeSpec` 에서 파생되고, 카탈로그 오퍼레이션이
 없는 CLI 전용 6개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
@@ -93,7 +96,7 @@ Rules for agents:
 - `screener-presets` — `GET /api/v2/screener/presets/common`
 - `trading-flows` — `GET /api/v1/stock-infos/trade/trend/trading-trend`
 - `earning-call` — `GET /api/v1/earning-call/upcoming`
-- `news-briefing` — `GET /api/v1/dashboard/wts/overview/ai-signals/personalized`
+- `news-briefing` — `GET /api/v2/reasoning/personalized`
 - `community-rankings` — `GET /api/v1/community/top-rankings/INFLUENCER`
 - `lending-expected` — `GET /api/v1/lending/revenue/account/expected`
 - `accumulation-plans` — `GET /api/v2/autotrade/plan/find`
@@ -101,6 +104,7 @@ Rules for agents:
 - `market-issues` — `GET /api/v1/lens/issues`
 - `auto-trades` — `GET /api/v3/trading/auto-trading/histories`
 - `market-calendar` — `POST /api/v4/calendar/monthly/<YYYY-MM>`
+- `market-key-events` — `GET /api/v1/calendar/ai-summary/key-events`
 - `quote-charts` — `POST /api/v1/dashboard/common/stocks/mini-chart`
 - `quote-reasons` — `POST /api/v1/dashboard/wts/overview/ai-signals`
 - `market-halt` — `GET /api/v4/dashboard/wts/overview/indicator`
@@ -114,6 +118,9 @@ Rules for agents:
 - `account-interest-years` — `GET /api/v1/interest/accounts/annual/history/years`
 - `account-commission-info` — `GET /api/v2/trading/commission-info`
 - `account-summary-overview` — `GET /api/v3/my-assets/summaries/markets/all/overview`
+- `account-all-overview` — `POST /api/v1/dashboard/all-accounts`
+- `open-banking-status` — `GET /api/v1/autotrade/open-banking/info/find`
+- `notification-settings` — `GET /api/v1/user-alimies`
 - `portfolio-positions` — `POST /api/v2/dashboard/asset/sections/all`
 - `pending-orders` — `GET /api/v1/trading/orders/histories/all/pending`
 - `watchlist` — `GET /api/v1/new-watchlists`

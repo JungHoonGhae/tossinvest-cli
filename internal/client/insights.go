@@ -12,12 +12,32 @@ import (
 )
 
 type relatedStockRaw struct {
+	Code                string `json:"code"`
 	StockCode           string `json:"stockCode"`
 	StockName           string `json:"stockName"`
 	Symbol              string `json:"symbol"`
 	Market              string `json:"market"`
 	InvestmentType      string `json:"investmentType"`
 	InvestmentTypeValue string `json:"investmentTypeValue"`
+}
+
+func mapRelatedStocks(values []relatedStockRaw) []domain.RelatedStock {
+	result := make([]domain.RelatedStock, 0, len(values))
+	for _, value := range values {
+		productCode := value.StockCode
+		if productCode == "" {
+			productCode = value.Code
+		}
+		result = append(result, domain.RelatedStock{
+			ProductCode:         productCode,
+			Name:                value.StockName,
+			Symbol:              value.Symbol,
+			Market:              value.Market,
+			InvestmentType:      value.InvestmentType,
+			InvestmentTypeValue: value.InvestmentTypeValue,
+		})
+	}
+	return result
 }
 
 type stockReasoningRaw struct {
@@ -59,17 +79,7 @@ func (c *Client) GetStockReasoning(ctx context.Context, symbol string) (domain.S
 		CreatedAt:   r.CreatedAt,
 		FetchedAt:   time.Now().UTC(),
 	}
-	for _, s := range r.RelatedStocks {
-		out.RelatedStock = append(out.RelatedStock, domain.RelatedStock{
-			ProductCode: s.StockCode,
-			Name:        s.StockName,
-			Symbol:      s.Symbol,
-			Market:      s.Market,
-			// 서버 원문 그대로 — 토스가 이 enum 의 매핑을 공개하지 않는다.
-			InvestmentType:      s.InvestmentType,
-			InvestmentTypeValue: s.InvestmentTypeValue,
-		})
-	}
+	out.RelatedStock = mapRelatedStocks(r.RelatedStocks)
 	return out, nil
 }
 

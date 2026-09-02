@@ -30,7 +30,7 @@ func driveWTS(t *testing.T, wts *tossclient.Client, lines ...string) []map[strin
 		routedWTS = tossclient.New(tossclient.Config{})
 	}
 	routed := hybrid.New(routedWTS, nil, hybrid.Policy{Prefer: "wts"}, io.Discard)
-	s := NewServer(nil, routed, nil, "test", "0.0.0")
+	s := NewServer(nil, routed, Services{}, "test", "0.0.0")
 	s.SetAuthStatus(AuthStatus{WTS: BackendStatus{Connected: wts != nil}})
 	if err := s.Serve(context.Background(), in, &out); err != nil {
 		t.Fatalf("Serve: %v", err)

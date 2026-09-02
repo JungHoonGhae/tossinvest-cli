@@ -4,8 +4,19 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 
 ## [Unreleased]
 
+### 새 기능
+- **`account overview [--full]`** — Android 앱 5.275.0의 정적 인터페이스와 마스킹된 라이브 응답으로 계약을 교차 검증해, 일반·미성년 계좌별 자산과 미체결 주문 수를 한 번에 조회합니다. 계좌번호는 table·JSON·CSV 모두 기본적으로 가립니다.
+- **`market key-events`** — 토스가 선별한 현재 핵심 기업 실적과 경제지표 발표를 한 번에 조회합니다. 실적 예상·발표·서프라이즈와 경제지표 실제·예상·직전값을 JSON·CSV에서도 보존합니다.
+- **`banking status [--full]`** — 주식모으기 출금에 연결된 오픈뱅킹 계좌와 연결·등록 가능 계좌 수를 조회합니다. 예금주명과 계좌번호는 CLI·MCP 모두 기본 마스킹하며 명시적인 `--full`/`full=true`에서만 보여줍니다.
+- **`notifications list`** — 현재 WTS 알림 종류와 활성화 여부를 읽기 전용으로 조회합니다. 내부 사용자 ID는 노출하지 않으며, 아직 완전히 검증하지 못한 알림 변경 API는 구현하지 않았습니다.
+- **`openapi ip list`·`openapi ip replace-current`** — 이사·회선 변경으로 공인 IP가 달라졌을 때 WTS 설정을 직접 열지 않고 공식 Open API 허용 IP를 교체합니다. 교체는 기본 preview이며 `--execute --confirm <token>`이 있어야 적용됩니다. 각 변경 뒤 서버 상태를 다시 검증하고, 응답 유실을 포함한 실패 시 실제 허용 목록을 재조회해 기존 상태를 복구합니다. MCP에도 `openapi_ip_list`·`openapi_ip_replace_current`로 같은 안전 경계를 노출합니다.
+
 ### 변경
 - **`auth login --link`** — QR을 카메라로 스캔하지 않고, 출력된 일회성 URL을 휴대폰에서 눌러 Toss 앱을 여는 로그인 흐름을 명시적으로 제공합니다. 기존 `--headless` 자동화는 그대로 호환됩니다.
+- **`market briefing`을 개인화 v2 계약으로 확장했습니다.** 보유·관심 종목, 수익률, 시그널 방향, AI 사유 제목, 원문 뉴스와 관련 종목을 함께 반환합니다. 상세 필드는 table·JSON·ops/MCP에서 제공하며, 기존 CSV 자동화가 깨지지 않도록 CSV는 `category,title,agency,created_at` 4열 계약을 유지합니다.
+- **개인정보 마스킹을 공용 모듈로 통합했습니다.** `account overview`와 `banking status`의 CLI table·JSON·CSV 및 ops/MCP 기본 출력이 같은 규칙을 사용합니다.
+- **API 회귀 감시를 46개로 확대했습니다.** 이번에 추가한 주요 일정·오픈뱅킹 연결 상태·알림 설정과 개인화 v2 브리핑의 스키마를 함께 감시합니다.
+- **역공학 근거를 `verified`·`partial`·`inferred`·`unknown`으로 구분합니다.** APK 문자열이나 경로 후보만으로 기능을 만들지 않고, 구현에는 전체 요청/응답 계약과 읽기 전용 라이브 스키마 검증을 요구합니다. 은행·소비 MyData와 쓰기 API는 현재 WTS 인증 범위 밖으로 분리했습니다.
 
 ## [0.48.0] - 2026-09-02
 

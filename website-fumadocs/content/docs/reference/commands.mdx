@@ -51,7 +51,8 @@ description: tossctl 전체 명령
 | `tossctl market investors` | 투자자별(외국인·기관·개인) 순매수 상위 |
 | `tossctl market sectors [<id>]` | 업종별 등락(대분류/하위, 1일·1개월·1년) |
 | `tossctl market earnings [--major]` | 어닝콜 일정 / 주요 기업 |
-| `tossctl market briefing` | 개인화 AI 뉴스 브리핑(테마별) |
+| `tossctl market briefing` | 개인화 AI 뉴스 브리핑(보유·관심 종목, 수익률, AI 사유, 뉴스·관련 종목) |
+| `tossctl market key-events` | 현재 핵심 실적·경제지표(예상·발표·직전값) |
 | `tossctl market signals` | 토스 AI 시그널 |
 | `tossctl market fx` | 환율·달러 인덱스 |
 | `tossctl market hours` | 장 운영 시간 |
@@ -85,6 +86,14 @@ description: tossctl 전체 명령
 | `tossctl transactions overview --market us\|kr` | 주문가능·출금가능·예정입금 |
 | `tossctl export positions\|orders --market us\|kr\|all` | CSV 내보내기 |
 
+## 계좌 부가기능 · 알림
+
+| 명령 | 설명 |
+|------|------|
+| `tossctl account overview [--full]` | 전체·미성년 계좌 자산(계좌번호 기본 마스킹) |
+| `tossctl banking status [--full]` | 주식모으기 오픈뱅킹 연결 상태(예금주·계좌번호 기본 마스킹) |
+| `tossctl notifications list` | WTS 알림 설정 조회(읽기 전용, 내부 사용자 ID 제외) |
+
 ## 관심종목 (watchlist)
 
 | 명령 | 설명 |
@@ -103,6 +112,8 @@ description: tossctl 전체 명령
 | `tossctl openapi login` | 공식 API Key·Secret 등록(환경변수·플래그·대화형, 파일 `0600`) |
 | `tossctl openapi status` | 키·토큰·허용 IP·라우팅 진단 |
 | `tossctl openapi test` | 실제 호출로 연결 검증 |
+| `tossctl openapi ip list` | 현재 허용 IP 목록 조회(WTS 세션 필요) |
+| `tossctl openapi ip replace-current` | 현재 공인 IP로 교체 계획 preview; `--execute --confirm <token>`으로 적용 |
 | `tossctl openapi logout` | 자격증명 파일 삭제 |
 | `tossctl <명령> --backend auto\|wts\|openapi` | 요청별 라우팅 백엔드 지정(전역, 기본 auto) |
 

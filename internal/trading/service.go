@@ -2,11 +2,11 @@ package trading
 
 import (
 	"context"
-	"crypto/subtle"
 	"fmt"
 	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/confirmation"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderlineage"
@@ -315,7 +315,7 @@ func (s *Service) guard(ctx context.Context, action Action, preview Preview, opt
 	if !s.policy.AllowLiveOrderActions {
 		return ErrLiveActionsDisabled
 	}
-	if subtle.ConstantTimeCompare([]byte(opts.Confirm), []byte(preview.ConfirmToken)) != 1 {
+	if !confirmation.Matches(opts.Confirm, preview.ConfirmToken) {
 		return ErrConfirmMismatch
 	}
 	return nil

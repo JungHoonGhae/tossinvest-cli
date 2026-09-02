@@ -51,7 +51,8 @@ agents should use `--output json`.
 | `tossctl market investors` | Top net-buy by investor (foreign, institution, retail) |
 | `tossctl market sectors [<id>]` | Sector movements (top-level/sub, 1d·1m·1y) |
 | `tossctl market earnings [--major]` | Earnings calendar / major companies |
-| `tossctl market briefing` | Personalized AI news briefing (by theme) |
+| `tossctl market briefing` | Personalized AI briefing with holdings/watchlist context, return, reasoning, news, and related stocks |
+| `tossctl market key-events` | Current key earnings and economic releases (estimates, actuals, previous values) |
 | `tossctl market signals` | Toss AI signals |
 | `tossctl market fx` | FX & dollar index |
 | `tossctl market hours` | Trading hours |
@@ -85,6 +86,14 @@ Fractional (amount-based) order: `order place --fractional --amount <krw> --qty 
 | `tossctl transactions overview --market us\|kr` | Orderable / withdrawable / scheduled deposits |
 | `tossctl export positions\|orders --market us\|kr\|all` | CSV export |
 
+## Account extras & notifications
+
+| Command | Description |
+|------|------|
+| `tossctl account overview [--full]` | All-account and minor-account assets (account numbers masked by default) |
+| `tossctl banking status [--full]` | Open-banking status for stock accumulation (holder/account masked by default) |
+| `tossctl notifications list` | Read-only WTS notification preferences (internal user ID omitted) |
+
 ## Watchlist
 
 | Command | Description |
@@ -103,6 +112,8 @@ Connect an official key and the read/trade features the official API supports ro
 | `tossctl openapi login` | Register official API Key/Secret (env, flags, or interactive; file `0600`) |
 | `tossctl openapi status` | Diagnose key / token / allowed IPs / routing |
 | `tossctl openapi test` | Verify the connection with a real call |
+| `tossctl openapi ip list` | List currently allowed IP addresses (WTS session required) |
+| `tossctl openapi ip replace-current` | Preview replacement with the current public IP; apply with `--execute --confirm <token>` |
 | `tossctl openapi logout` | Delete the credential file |
 | `tossctl <command> --backend auto\|wts\|openapi` | Pick the routing backend per request (global, default auto) |
 

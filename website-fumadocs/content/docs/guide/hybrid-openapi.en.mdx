@@ -87,11 +87,15 @@ app itself uses (**WTS as the primary path**) so you can use those features now,
 auto-routing officially-supported features through the official path to keep stability.
 
 <Callout type="info" title="Some tasks still need a web session even with an official key">
-The official key's **metadata and allowed-IP lookup** (`openapi status` IP list, `doctor`) is
+The official key's **metadata and allowed-IP lookup or change** (`openapi status`, `openapi ip`) is
 served by a Toss WTS internal endpoint (`/api/v1/openapi/client`), so it requires a **web
 session login first**. Runtime calls (accounts, quotes, orders) work with just the OAuth token.
 The IP of the machine you use the key from is usually registered automatically; if you need
-other IPs (e.g., a server), you can add them via WTS (Toss web).
+other IPs (e.g., a server), you can add them via WTS (Toss web). After a network change,
+preview `tossctl openapi ip replace-current`, then apply it with `--execute --confirm <token>`.
+
+Current-IP discovery uses `https://api.ipify.org`; no Toss cookies, Open API credentials, or
+account data are sent with that request.
 </Callout>
 
 ## How auto-routing works

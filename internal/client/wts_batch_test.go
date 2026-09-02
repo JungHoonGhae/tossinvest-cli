@@ -196,7 +196,7 @@ func TestGetSectors(t *testing.T) {
 
 func TestGetNewsBriefing(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.URL.Path, "/ai-signals/personalized") {
+		if r.URL.Path != "/api/v2/reasoning/personalized" {
 			http.NotFound(w, r)
 			return
 		}

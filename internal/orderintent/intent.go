@@ -1,13 +1,13 @@
 package orderintent
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/JungHoonGhae/tossinvest-cli/internal/confirmation"
 )
 
 type PlaceIntent struct {
@@ -254,8 +254,7 @@ func CanonicalAmend(intent AmendIntent) string {
 }
 
 func ConfirmToken(canonical string) string {
-	sum := sha256.Sum256([]byte(canonical))
-	return hex.EncodeToString(sum[:])[:12]
+	return confirmation.Token(canonical)
 }
 
 func normalizeDefault(value, fallback string) string {

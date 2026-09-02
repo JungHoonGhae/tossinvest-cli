@@ -38,6 +38,23 @@ type AccountMarketSummary struct {
 	OrderableAmountUSD    float64 `json:"orderable_amount_usd"`
 }
 
+// AccountOverview is the mobile account switcher's all-account rollup. It is
+// deliberately separate from AccountSummary: this view spans every account
+// (including minor accounts), while AccountSummary describes the currently
+// selected account in detail.
+type AccountOverview struct {
+	Accounts         []AccountOverviewItem `json:"accounts"`
+	MinorAccounts    []AccountOverviewItem `json:"minor_accounts"`
+	TotalAssetAmount int64                 `json:"total_asset_amount"`
+}
+
+type AccountOverviewItem struct {
+	AccountName       string `json:"account_name"`
+	AccountNo         string `json:"account_no"`
+	PendingOrderCount int    `json:"pending_order_count"`
+	TotalAssetAmount  int64  `json:"total_asset_amount"`
+}
+
 type Position struct {
 	ProductCode     string  `json:"product_code,omitempty"`
 	Symbol          string  `json:"symbol"`
@@ -849,17 +866,32 @@ type CommunityRanking struct {
 
 // BriefingNews is a single news headline backing a briefing theme.
 type BriefingNews struct {
-	Title     string `json:"title"`
-	Agency    string `json:"agency"`
-	Source    string `json:"source"`
-	CreatedAt string `json:"created_at"`
+	ID         string `json:"id,omitempty"`
+	Title      string `json:"title"`
+	Agency     string `json:"agency"`
+	Source     string `json:"source"`
+	FaviconURL string `json:"favicon_url,omitempty"`
+	CreatedAt  string `json:"created_at"`
 }
 
 // BriefingItem is one themed briefing (수급 변동·실적 등) with its headlines.
 type BriefingItem struct {
-	CategoryType string         `json:"category_type"`
-	Keywords     []string       `json:"keywords"`
-	News         []BriefingNews `json:"news"`
+	CategoryType      string         `json:"category_type"`
+	Keywords          []string       `json:"keywords"`
+	News              []BriefingNews `json:"news"`
+	Section           string         `json:"section,omitempty"`
+	SignalID          string         `json:"signal_id,omitempty"`
+	TraceID           string         `json:"trace_id,omitempty"`
+	CreatedAt         string         `json:"created_at,omitempty"`
+	AssetCode         string         `json:"asset_code,omitempty"`
+	AssetName         string         `json:"asset_name,omitempty"`
+	AssetLogoImageURL string         `json:"asset_logo_image_url,omitempty"`
+	AssetType         string         `json:"asset_type,omitempty"`
+	InvestmentType    string         `json:"investment_type,omitempty"`
+	ProfitLossRate    float64        `json:"profit_loss_rate,omitempty"`
+	ReasoningTitle    string         `json:"reasoning_title,omitempty"`
+	SignalDirection   int            `json:"signal_direction,omitempty"`
+	RelatedStocks     []RelatedStock `json:"related_stocks,omitempty"`
 }
 
 // NewsBriefing is the personalized AI news briefing grouped by theme.
@@ -867,6 +899,96 @@ type NewsBriefing struct {
 	CreatedAt string         `json:"created_at"`
 	Items     []BriefingItem `json:"items"`
 	FetchedAt time.Time      `json:"fetched_at"`
+}
+
+// MarketKeyEarning is a company result highlighted in Toss's current key-event
+// digest. Numeric result fields are pointers because future announcements are
+// present before their actual values exist.
+type MarketKeyEarning struct {
+	AnnounceAt               string   `json:"announce_at"`
+	MarketStatus             string   `json:"market_status,omitempty"`
+	MarketStatusText         string   `json:"market_status_text,omitempty"`
+	CompanyCode              string   `json:"company_code"`
+	CompanyName              string   `json:"company_name"`
+	CountryIcon              string   `json:"country_icon,omitempty"`
+	LogoImageURL             string   `json:"logo_image_url,omitempty"`
+	EPS                      *float64 `json:"eps,omitempty"`
+	EPSDisplay               *string  `json:"eps_display,omitempty"`
+	EPSEstimate              *float64 `json:"eps_estimate,omitempty"`
+	EPSEstimateDisplay       *string  `json:"eps_estimate_display,omitempty"`
+	EPSSurprise              *float64 `json:"eps_surprise,omitempty"`
+	EPSSurpriseDisplay       *string  `json:"eps_surprise_display,omitempty"`
+	Sales                    *float64 `json:"sales,omitempty"`
+	SalesDisplay             *string  `json:"sales_display,omitempty"`
+	SalesEstimate            *float64 `json:"sales_estimate,omitempty"`
+	SalesEstimateDisplay     *string  `json:"sales_estimate_display,omitempty"`
+	SalesSurprise            *float64 `json:"sales_surprise,omitempty"`
+	SalesSurpriseDisplay     *string  `json:"sales_surprise_display,omitempty"`
+	OperatingProfit          *float64 `json:"operating_profit,omitempty"`
+	OperatingProfitDisplay   *string  `json:"operating_profit_display,omitempty"`
+	OperatingEstimate        *float64 `json:"operating_profit_estimate,omitempty"`
+	OperatingEstimateDisplay *string  `json:"operating_profit_estimate_display,omitempty"`
+	OperatingSurprise        *float64 `json:"operating_profit_surprise,omitempty"`
+	OperatingSurpriseDisplay *string  `json:"operating_profit_surprise_display,omitempty"`
+	LegacyReportID           *string  `json:"legacy_report_id,omitempty"`
+	ReportID                 string   `json:"report_id,omitempty"`
+	ReportItem               string   `json:"report_item,omitempty"`
+	LandingURL               string   `json:"landing_url,omitempty"`
+}
+
+// MarketKeyIndicator is an economic release highlighted in the same digest.
+type MarketKeyIndicator struct {
+	AnnounceAt  string   `json:"announce_at"`
+	Title       string   `json:"title"`
+	Actual      *float64 `json:"actual,omitempty"`
+	Forecast    *float64 `json:"forecast,omitempty"`
+	Historical  *float64 `json:"historical,omitempty"`
+	Unit        string   `json:"unit,omitempty"`
+	UnitPrefix  string   `json:"unit_prefix,omitempty"`
+	DisplayUnit string   `json:"display_unit,omitempty"`
+	RIC         string   `json:"ric,omitempty"`
+}
+
+// MarketKeyEvents is the current curated digest of earnings and economic data.
+type MarketKeyEvents struct {
+	Earnings   []MarketKeyEarning   `json:"earnings"`
+	Indicators []MarketKeyIndicator `json:"indicators"`
+	FetchedAt  time.Time            `json:"fetched_at"`
+}
+
+// OpenBankingAccount is the single bank account currently connected to Toss's
+// stock-accumulation funding flow.
+type OpenBankingAccount struct {
+	AccountNo     string `json:"account_no"`
+	BankCode      string `json:"bank_code"`
+	OpenBankingID int64  `json:"open_banking_id"`
+}
+
+// OpenBankingStatus intentionally carries only fields observed with stable
+// schemas. The two account lists were empty during verification, so only their
+// counts are exposed rather than inventing item models.
+type OpenBankingStatus struct {
+	HolderName              string              `json:"holder_name,omitempty"`
+	ConnectedAccount        *OpenBankingAccount `json:"connected_account,omitempty"`
+	LinkedAccountCount      int                 `json:"linked_account_count"`
+	RegistrableAccountCount int                 `json:"registrable_account_count"`
+	SavingCount             int                 `json:"saving_count"`
+	FetchedAt               time.Time           `json:"fetched_at"`
+}
+
+// NotificationSetting is one WTS notification preference. The internal user
+// id from the wire response is deliberately not retained.
+type NotificationSetting struct {
+	ID        int64  `json:"id"`
+	Type      string `json:"type,omitempty"`
+	Enabled   bool   `json:"enabled"`
+	CreatedAt string `json:"created_at,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+}
+
+type NotificationSettings struct {
+	Settings  []NotificationSetting `json:"settings"`
+	FetchedAt time.Time             `json:"fetched_at"`
 }
 
 // Sector is one industry (TICS) with its fluctuation rates and sub-industries.

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/privacy"
 )
 
 // Probe hosts — raw URLs on purpose (probes bypass the typed client so a
@@ -173,9 +174,9 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "news_briefing", Method: "GET", Path: "wts:market/briefing", Backend: "wts",
-			Category: "market", Summary: "Personalized AI news briefing (headlines grouped by theme). WTS-only.",
+			Category: "market", Summary: "Personalized AI briefing enriched with the related holding/watchlist asset, return, signal direction, reasoning title, and source headlines. WTS-only.",
 			Probe: &ProbeSpec{Name: "news-briefing", Method: "GET",
-				URL:   probeInfo + "/api/v1/dashboard/wts/overview/ai-signals/personalized",
+				URL:   probeCert + "/api/v2/reasoning/personalized",
 				Check: statusAndPath("result.items", "array")},
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.GetNewsBriefing(ctx)
@@ -312,6 +313,25 @@ func wtsOperations() []Operation {
 					return nil, err
 				}
 				return d.WTS.GetMarketCalendar(ctx, month)
+			},
+		},
+		{
+			ID: "market_key_events", Method: "GET", Path: "wts:calendar/ai-summary/key-events", Backend: "wts",
+			Category: "market",
+			Summary:  "Current curated earnings and economic releases, including estimates and actual/forecast/historical values. WTS-only.",
+			Probe: &ProbeSpec{Name: "market-key-events", Method: "GET",
+				URL: probeCert + "/api/v1/calendar/ai-summary/key-events",
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					if err := ExpectPath(body, "result.earnings", "array"); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.eci.indicators", "array")
+				}},
+			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
+				return d.WTS.GetMarketKeyEvents(ctx)
 			},
 		},
 		{
@@ -755,6 +775,73 @@ func wtsOperations() []Operation {
 				}},
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.GetAccountSummary(ctx)
+			},
+		},
+		{
+			ID: "account_overview", Method: "POST", Path: "wts:account/overview", Backend: "wts",
+			Category: "account", Summary: "All-account asset rollup, including minor accounts and pending-order counts. Account numbers are masked unless full=true. WTS-only.",
+			Params: []Param{{Name: "full", Type: "boolean", Desc: "reveal complete account numbers; false/omitted masks them"}},
+			Probe: &ProbeSpec{Name: "account-all-overview", Method: "POST",
+				URL:  probeInfo + "/api/v1/dashboard/all-accounts",
+				Body: `{"sections":["SUMMARY_WITH_MINOR"]}`,
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					if err := ExpectPath(body, "result.0.data.accountOverviews", "array"); err != nil {
+						return err
+					}
+					if err := ExpectPath(body, "result.0.data.minorAccountOverviews", "array"); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.0.data.totalAssetAmount", "number")
+				}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				full, err := argBool(args, "full")
+				if err != nil {
+					return nil, err
+				}
+				value, err := d.WTS.GetAccountOverview(ctx)
+				if err != nil || full {
+					return value, err
+				}
+				return privacy.RedactAccountOverview(value), nil
+			},
+		},
+		{
+			ID: "banking_status", Method: "GET", Path: "wts:autotrade/open-banking/info/find", Backend: "wts",
+			Category: "account",
+			Summary:  "Open-banking account connected to stock-accumulation funding plus linked/registrable counts. Holder and account are masked unless full=true. WTS-only.",
+			Params:   []Param{{Name: "full", Type: "boolean", Desc: "reveal the account holder and complete account number; false/omitted masks them"}},
+			Probe: &ProbeSpec{Name: "open-banking-status", Method: "GET",
+				URL: probeAPI + "/api/v1/autotrade/open-banking/info/find",
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					return ExpectPath(body, "result.savingCount", "number")
+				}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				full, err := argBool(args, "full")
+				if err != nil {
+					return nil, err
+				}
+				value, err := d.WTS.GetOpenBankingStatus(ctx)
+				if err != nil || full {
+					return value, err
+				}
+				return privacy.RedactOpenBankingStatus(value), nil
+			},
+		},
+		{
+			ID: "notification_settings", Method: "GET", Path: "wts:user-alimies", Backend: "wts",
+			Category: "settings",
+			Summary:  "Every WTS notification preference and its enabled state. Read-only; internal user ids are omitted. WTS-only.",
+			Probe: &ProbeSpec{Name: "notification-settings", Method: "GET",
+				URL:   probeCert + "/api/v1/user-alimies",
+				Check: statusAndPath("result", "array")},
+			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
+				return d.WTS.GetNotificationSettings(ctx)
 			},
 		},
 		{

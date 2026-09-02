@@ -25,8 +25,15 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/netip"
+	"net/url"
+	"strings"
 	"time"
 )
+
+const openAPIAllowedIPsPath = "/api/v1/openapi/client/allowed-ips"
 
 // OpenAPIClientInfo holds key metadata for the user's WTS-side Open API key.
 type OpenAPIClientInfo struct {
@@ -102,6 +109,45 @@ func (c *Client) OpenAPIAllowedIPs(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 	return info.AllowedIPs, nil
+}
+
+// AddOpenAPIAllowedIP adds one address to the official Open API allowlist.
+// Contract verified against the WTS web bundle: POST {"ip":"..."}.
+func (c *Client) AddOpenAPIAllowedIP(ctx context.Context, ip string) error {
+	if err := c.requireSession(); err != nil {
+		return err
+	}
+	normalized, err := normalizeOpenAPIAllowedIP(ip)
+	if err != nil {
+		return err
+	}
+	body, err := json.Marshal(map[string]string{"ip": normalized})
+	if err != nil {
+		return err
+	}
+	return c.mutateJSON(ctx, http.MethodPost, c.apiBaseURL+openAPIAllowedIPsPath, body, nil)
+}
+
+// DeleteOpenAPIAllowedIP removes one address from the official Open API
+// allowlist. Contract verified against the WTS web bundle: DELETE /{ip}.
+func (c *Client) DeleteOpenAPIAllowedIP(ctx context.Context, ip string) error {
+	if err := c.requireSession(); err != nil {
+		return err
+	}
+	normalized, err := normalizeOpenAPIAllowedIP(ip)
+	if err != nil {
+		return err
+	}
+	endpoint := c.apiBaseURL + openAPIAllowedIPsPath + "/" + url.PathEscape(normalized)
+	return c.mutateJSON(ctx, http.MethodDelete, endpoint, nil, nil)
+}
+
+func normalizeOpenAPIAllowedIP(value string) (string, error) {
+	addr, err := netip.ParseAddr(strings.TrimSpace(value))
+	if err != nil {
+		return "", fmt.Errorf("invalid IP address %q", value)
+	}
+	return addr.Unmap().String(), nil
 }
 
 // parseRawDate unquotes a JSON string and tries RFC3339 then common fallbacks.

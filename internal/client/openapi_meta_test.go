@@ -169,3 +169,56 @@ func TestOpenAPIClientInfo_AuthError(t *testing.T) {
 		t.Fatalf("expected auth error, got %v", err)
 	}
 }
+
+func TestAddOpenAPIAllowedIPSendsVerifiedContract(t *testing.T) {
+	t.Parallel()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/openapi/client/allowed-ips", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("method = %s, want POST", r.Method)
+		}
+		var body struct {
+			IP string `json:"ip"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode body: %v", err)
+		}
+		if body.IP != "198.51.100.9" {
+			t.Fatalf("ip = %q", body.IP)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	if err := newOpenAPITestClient(t, mux).AddOpenAPIAllowedIP(context.Background(), "198.51.100.9"); err != nil {
+		t.Fatalf("AddOpenAPIAllowedIP: %v", err)
+	}
+}
+
+func TestDeleteOpenAPIAllowedIPSendsVerifiedContract(t *testing.T) {
+	t.Parallel()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/openapi/client/allowed-ips/198.51.100.9", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("method = %s, want DELETE", r.Method)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	if err := newOpenAPITestClient(t, mux).DeleteOpenAPIAllowedIP(context.Background(), "198.51.100.9"); err != nil {
+		t.Fatalf("DeleteOpenAPIAllowedIP: %v", err)
+	}
+}
+
+func TestOpenAPIAllowedIPMutationRejectsInvalidIP(t *testing.T) {
+	t.Parallel()
+	client := newOpenAPITestClient(t, http.NewServeMux())
+
+	if err := client.AddOpenAPIAllowedIP(context.Background(), "not-an-ip"); err == nil {
+		t.Fatal("expected invalid IP error")
+	}
+	if err := client.DeleteOpenAPIAllowedIP(context.Background(), "not-an-ip"); err == nil {
+		t.Fatal("expected invalid IP error")
+	}
+}

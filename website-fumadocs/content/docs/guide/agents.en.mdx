@@ -52,6 +52,9 @@ long-running agents. Everything still works without a key.
   `tossctl openapi login` (flags also work). The credential file is saved `0600`.
 - `tossctl openapi status --output json` — diagnose key / token / allowed IPs / routing. The key
   needs an **allowed-IP** entry; the IP list lookup itself requires a WTS session.
+- `tossctl openapi ip replace-current --output json` — preview replacement of the existing list
+  with the current public IP. Apply only after user approval with `--execute --confirm <token>`
+  using the preview's `confirm_token`; every mutation is verified and failures reconcile the previous allowlist from server state.
 - `tossctl <command> --backend auto|wts|openapi` — pick the routing backend per request.
 - First-time setup is also available via the `tossctl init` wizard.
 - Details: [Official Open API Auto-routing](/docs/guide/hybrid-openapi).
