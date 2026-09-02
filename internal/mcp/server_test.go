@@ -300,6 +300,43 @@ func TestPlaceOrderPreviewDoesNotExecute(t *testing.T) {
 	}
 }
 
+func TestConditionalOrderOperationsAreVisibleAndPreviewable(t *testing.T) {
+	c := dummyClient(t, nil)
+	resps := runServer(t, c,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_operations","arguments":{"query":"conditional"}}}`,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"call_operation","arguments":{"operation":"place_conditional_order","params":{"symbol":"005930","quantity":1,"expire_date":"2026-12-31","first_side":"BUY","first_trigger":70000,"first_order_price":69900}}}}`,
+	)
+
+	listText, listErr := toolText(t, resps[0])
+	if listErr {
+		t.Fatalf("list conditional operations: %s", listText)
+	}
+	var listed struct {
+		Count int `json:"count"`
+	}
+	if err := json.Unmarshal([]byte(listText), &listed); err != nil {
+		t.Fatal(err)
+	}
+	if listed.Count != 5 {
+		t.Fatalf("conditional operation count = %d, want 5: %s", listed.Count, listText)
+	}
+
+	previewText, previewErr := toolText(t, resps[1])
+	if previewErr {
+		t.Fatalf("conditional preview: %s", previewText)
+	}
+	var preview struct {
+		Kind         string `json:"kind"`
+		ConfirmToken string `json:"confirm_token"`
+	}
+	if err := json.Unmarshal([]byte(previewText), &preview); err != nil {
+		t.Fatal(err)
+	}
+	if preview.Kind != "conditional_place" || preview.ConfirmToken == "" {
+		t.Fatalf("unexpected conditional preview: %s", previewText)
+	}
+}
+
 func TestCallOperationPreservesLargeJSONIntegerForValidation(t *testing.T) {
 	c := dummyClient(t, nil)
 	resps := runServer(t, c,

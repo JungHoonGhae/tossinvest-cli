@@ -30,6 +30,7 @@ tossctl config init
     "fractional": false,
     "cancel": false,
     "amend": false,
+    "conditional": false,
     "allow_live_order_actions": false,
     "dangerous_automation": {
       "accept_fx_consent": false
@@ -46,6 +47,7 @@ tossctl config init
 - `trading.place` — `tossctl order place` 허용 여부
 - `trading.cancel` — `tossctl order cancel` 허용 여부
 - `trading.amend` — `tossctl order amend` 허용 여부
+- `trading.conditional` — `tossctl order conditional place|cancel|modify` 및 대응 ops/MCP 쓰기 허용 여부
 
 **스코프 선언 (유저 자가 제한)**
 - `trading.sell` — `tossctl order place --side sell` 허용 여부. `trading.place`도 함께 켜야 합니다. 끄면 매수만 가능
@@ -54,7 +56,7 @@ tossctl config init
 > 시장(US/KR)은 게이트가 아닙니다. `v0.5.2`에서 비대칭이던 `trading.kr` 토글을 제거했습니다 — KR 주문이 US 주문보다 위험하지 않으므로 시장은 대칭 취급하며, `trading.place` + `allow_live_order_actions` 가 양쪽을 동일하게 게이트합니다. KR 6자리 종목코드는 `--market kr` 없이도 자동 인식됩니다.
 
 **마스터 / 자동화**
-- `trading.allow_live_order_actions` — 실계좌에 도달하는 주문 액션(`place`, `cancel`, `amend`) 자체를 허용. **마스터 킬스위치**로 위 경로 게이트가 켜져 있어도 이 값이 false면 broker에 닿지 않음
+- `trading.allow_live_order_actions` — 실계좌에 도달하는 일반·조건 주문 액션(`place`, `cancel`, `amend`, `conditional`) 자체를 허용. **마스터 킬스위치**로 위 경로 게이트가 켜져 있어도 이 값이 false면 broker에 닿지 않음
 - `trading.dangerous_automation.accept_fx_consent` — post-prepare FX confirmation branch를 자동 수락하고 같은 주문을 계속 진행하도록 허용. 현재는 `prepare` 성공 후 `needExchange > 0`인 미국주식 KRW 매수 경로에만 연결됨
 
 즉, 각 액션은 config에서 먼저 열려 있어야 하고, 그 다음에도 런타임 게이트(`--execute` → `--confirm <token>`)를 통과해야 합니다.

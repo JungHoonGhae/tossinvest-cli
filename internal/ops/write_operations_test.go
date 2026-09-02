@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
@@ -19,10 +20,13 @@ import (
 // recordingBroker 는 호출 여부만 기록한다. 게이트가 열렸는지를 "브로커가 불렸는가"
 // 로 판정하기 위한 것이라 응답 내용은 의미 없다.
 type recordingBroker struct {
-	placed    int
-	canceled  int
-	amended   int
-	actionsOf []string
+	placed              int
+	canceled            int
+	amended             int
+	conditionalPlaced   int
+	conditionalCanceled int
+	conditionalModified int
+	actionsOf           []string
 }
 
 func (b *recordingBroker) PlacePendingOrder(context.Context, orderintent.PlaceIntent) (trading.MutationResult, error) {
@@ -45,7 +49,25 @@ func (b *recordingBroker) AmendPendingOrder(context.Context, orderintent.AmendIn
 	return trading.MutationResult{}, nil
 }
 
-func (b *recordingBroker) total() int { return b.placed + b.canceled + b.amended }
+func (b *recordingBroker) CreateConditionalOrder(context.Context, orderintent.ConditionalPlaceIntent) (domain.ConditionalOrderRef, error) {
+	b.conditionalPlaced++
+	return domain.ConditionalOrderRef{ID: "co-1"}, nil
+}
+
+func (b *recordingBroker) CancelConditionalOrder(context.Context, orderintent.ConditionalCancelIntent) error {
+	b.conditionalCanceled++
+	return nil
+}
+
+func (b *recordingBroker) ModifyConditionalOrder(context.Context, orderintent.ConditionalModifyIntent) error {
+	b.conditionalModified++
+	return nil
+}
+
+func (b *recordingBroker) total() int {
+	return b.placed + b.canceled + b.amended +
+		b.conditionalPlaced + b.conditionalCanceled + b.conditionalModified
+}
 
 // writeDeps 는 쓰기 오퍼레이션을 부를 수 있는 최소 Deps 를 만든다.
 //
@@ -53,17 +75,182 @@ func (b *recordingBroker) total() int { return b.placed + b.canceled + b.amended
 // (ops.go 의 official 분기). 그래서 빈 값을 넣는다.
 func writeDeps(policy config.Trading) (*Deps, *recordingBroker) {
 	b := &recordingBroker{}
+	service := trading.NewService(policy, b).WithConditionalBroker(b)
 	return &Deps{
 		Client:  &official.Client{},
-		Trading: trading.NewService(policy, b),
+		Trading: service,
 		Auth:    AuthStatus{Official: BackendStatus{Connected: true}},
 	}, b
 }
 
 func allowAll() config.Trading {
 	return config.Trading{
-		Place: true, Cancel: true, Amend: true, Sell: true,
+		Place: true, Cancel: true, Amend: true, Sell: true, Conditional: true,
 		AllowLiveOrderActions: true,
+	}
+}
+
+func conditionalPlaceArgs() map[string]any {
+	return map[string]any{
+		"symbol": "005930", "type": "SINGLE", "quantity": 1.0,
+		"order_type": "LIMIT", "expire_date": "2026-12-31",
+		"first_side": "BUY", "first_trigger": 70000.0, "first_order_price": 69900.0,
+	}
+}
+
+func conditionalModifyArgs() map[string]any {
+	return map[string]any{
+		"conditional_order_id": "co-1", "type": "SINGLE", "quantity": 2.0,
+		"order_type": "LIMIT", "expire_date": "2026-12-31",
+		"first_side": "BUY", "first_trigger": 71000.0, "first_order_price": 70900.0,
+	}
+}
+
+func conditionalWriteCases() []struct {
+	id   string
+	args map[string]any
+} {
+	return []struct {
+		id   string
+		args map[string]any
+	}{
+		{id: "place_conditional_order", args: conditionalPlaceArgs()},
+		{id: "cancel_conditional_order", args: map[string]any{"conditional_order_id": "co-1"}},
+		{id: "modify_conditional_order", args: conditionalModifyArgs()},
+	}
+}
+
+func TestConditionalPlaceOpWithoutExecuteReturnsPreview(t *testing.T) {
+	deps, broker := writeDeps(allowAll())
+	res, err := NewCatalog().Call(context.Background(), deps, "place_conditional_order", conditionalPlaceArgs())
+	if err != nil {
+		t.Fatalf("Call: %v", err)
+	}
+	preview, ok := res.(trading.Preview)
+	if !ok || preview.Kind != "conditional_place" || preview.ConfirmToken == "" {
+		t.Fatalf("expected conditional place preview, got %#v", res)
+	}
+	if broker.conditionalPlaced != 0 {
+		t.Fatalf("preview reached conditional broker %d times", broker.conditionalPlaced)
+	}
+}
+
+func TestConditionalCancelAndModifyOpsWithoutExecuteReturnPreview(t *testing.T) {
+	cases := []struct {
+		id   string
+		kind string
+		args map[string]any
+	}{
+		{id: "cancel_conditional_order", kind: "conditional_cancel", args: map[string]any{"conditional_order_id": "co-1"}},
+		{id: "modify_conditional_order", kind: "conditional_modify", args: conditionalModifyArgs()},
+	}
+	for _, tt := range cases {
+		t.Run(tt.id, func(t *testing.T) {
+			deps, broker := writeDeps(allowAll())
+			res, err := NewCatalog().Call(context.Background(), deps, tt.id, tt.args)
+			if err != nil {
+				t.Fatalf("Call: %v", err)
+			}
+			preview, ok := res.(trading.Preview)
+			if !ok || preview.Kind != tt.kind || preview.ConfirmToken == "" {
+				t.Fatalf("expected %s preview, got %#v", tt.kind, res)
+			}
+			if broker.conditionalCanceled != 0 || broker.conditionalModified != 0 {
+				t.Fatalf("preview reached conditional broker: %+v", broker)
+			}
+		})
+	}
+}
+
+func TestConditionalOCORequiresSecondTrigger(t *testing.T) {
+	deps, broker := writeDeps(allowAll())
+	args := conditionalPlaceArgs()
+	args["type"] = "OCO"
+	args["second_side"] = "SELL"
+
+	_, err := NewCatalog().Call(context.Background(), deps, "place_conditional_order", args)
+	if err == nil || !strings.Contains(err.Error(), "second_trigger") {
+		t.Fatalf("expected missing second_trigger error, got %v", err)
+	}
+	if broker.total() != 0 {
+		t.Fatalf("invalid conditional order reached broker: %+v", broker)
+	}
+}
+
+func TestConditionalWriteOpsRejectWrongConfirmToken(t *testing.T) {
+	for _, tt := range conditionalWriteCases() {
+		t.Run(tt.id, func(t *testing.T) {
+			deps, broker := writeDeps(allowAll())
+			tt.args["execute"] = true
+			tt.args["confirm"] = "not-the-token"
+
+			_, err := NewCatalog().Call(context.Background(), deps, tt.id, tt.args)
+			if !errors.Is(err, trading.ErrConfirmMismatch) {
+				t.Fatalf("expected ErrConfirmMismatch, got %v", err)
+			}
+			if broker.total() != 0 {
+				t.Fatalf("wrong token reached broker: %+v", broker)
+			}
+		})
+	}
+}
+
+func TestConditionalWriteOpsRespectConfigGate(t *testing.T) {
+	policies := []struct {
+		name           string
+		cfg            config.Trading
+		wantLiveClosed bool
+	}{
+		{name: "conditional disabled", cfg: config.Trading{AllowLiveOrderActions: true}},
+		{name: "live actions disabled", cfg: config.Trading{Conditional: true}, wantLiveClosed: true},
+	}
+	for _, policy := range policies {
+		t.Run(policy.name, func(t *testing.T) {
+			deps, broker := writeDeps(policy.cfg)
+			args := conditionalPlaceArgs()
+			res, err := NewCatalog().Call(context.Background(), deps, "place_conditional_order", args)
+			if err != nil {
+				t.Fatalf("preview: %v", err)
+			}
+			preview := res.(trading.Preview)
+			args["execute"], args["confirm"] = true, preview.ConfirmToken
+
+			_, err = NewCatalog().Call(context.Background(), deps, "place_conditional_order", args)
+			if policy.wantLiveClosed {
+				if !errors.Is(err, trading.ErrLiveActionsDisabled) {
+					t.Fatalf("expected ErrLiveActionsDisabled, got %v", err)
+				}
+			} else {
+				var disabled *trading.DisabledActionError
+				if !errors.As(err, &disabled) || disabled.Action != trading.ActionConditional {
+					t.Fatalf("expected conditional DisabledActionError, got %v", err)
+				}
+			}
+			if broker.total() != 0 {
+				t.Fatalf("disabled config reached broker: %+v", broker)
+			}
+		})
+	}
+}
+
+func TestConditionalWriteOpsExecuteWithValidTokenReachBroker(t *testing.T) {
+	for _, tt := range conditionalWriteCases() {
+		t.Run(tt.id, func(t *testing.T) {
+			deps, broker := writeDeps(allowAll())
+			res, err := NewCatalog().Call(context.Background(), deps, tt.id, tt.args)
+			if err != nil {
+				t.Fatalf("preview: %v", err)
+			}
+			preview := res.(trading.Preview)
+			tt.args["execute"], tt.args["confirm"] = true, preview.ConfirmToken
+
+			if _, err := NewCatalog().Call(context.Background(), deps, tt.id, tt.args); err != nil {
+				t.Fatalf("execute: %v", err)
+			}
+			if broker.total() != 1 {
+				t.Fatalf("valid request reached broker %d times", broker.total())
+			}
+		})
 	}
 }
 

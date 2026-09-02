@@ -415,11 +415,14 @@ US 지정가는 `--currency-mode`로 가격 해석을 선택합니다: `KRW` (�
 
 ```mermaid
 flowchart TD
-    A["order place / cancel / amend"] --> P{"action 토글<br/>place·cancel·amend"}
+    A["일반 주문 place / cancel / amend"] --> P{"action 토글<br/>place·cancel·amend"}
+    AC["조건주문 place / cancel / modify"] --> PC{"conditional 토글"}
     P -->|off| X1["❌ DisabledActionError"]
     P -->|on| S{"scope 선언<br/>sell·fractional<br/>(해당 시)"}
     S -->|위반| X2["❌ DisabledActionError"]
     S -->|ok| E{"--execute"}
+    PC -->|off| X1
+    PC -->|on| E
     E -->|없음| PV["📋 preview만 출력<br/>(confirm token 발급)"]
     E -->|있음| M{"allow_live_order_actions"}
     M -->|false| X3["❌ ErrLiveActionsDisabled"]
@@ -429,6 +432,7 @@ flowchart TD
 
     subgraph CFG["영속 게이트 · config.json"]
         P
+        PC
         S
         M
     end
@@ -438,7 +442,7 @@ flowchart TD
     end
 ```
 
-- **영속 게이트 (config.json):** `place`/`cancel`/`amend` 경로 토글 + `sell`/`fractional` 스코프 선언 + `allow_live_order_actions` 마스터 킬스위치. (시장 US/KR 은 게이트 아님 — KR 주문이 US 보다 위험하지 않으므로 동일 취급)
+- **영속 게이트 (config.json):** 일반 주문의 `place`/`cancel`/`amend`, 조건주문의 `conditional` 경로 토글 + `sell`/`fractional` 스코프 선언 + `allow_live_order_actions` 마스터 킬스위치. (시장 US/KR 은 게이트 아님 — KR 주문이 US 보다 위험하지 않으므로 동일 취급)
 - **런타임 게이트 (매 실행):** `--execute` (preview 아닌 실제 실행) + `--confirm <token>` (preview 에서 받은 주문별 토큰).
 - 진짜 안전장치는 주문별 `--confirm <token>` — preview 를 봐야만 얻을 수 있어, 의도하지 않은 주문은 토큰이 어긋나 차단됩니다.
 
@@ -504,7 +508,7 @@ Claude Desktop·Codex 등 **JSON 설정 방식** 호스트는 아래 [설정 예
 
 MCP 의 고질적 비용은 **툴 스키마가 모델 컨텍스트에 상시 상주**한다는 점입니다. API 하나당 툴
 하나로 등록하면, 그 툴의 이름·설명·파라미터 스키마 전부가 대화 내내 컨텍스트를 차지합니다.
-tossctl 의 API 표면은 **76개 오퍼레이션**(공식·WTS 조회, 주문, 시스템 오퍼레이션,
+tossctl 의 API 표면은 **81개 오퍼레이션**(공식·WTS 조회, 일반·조건 주문, 시스템 오퍼레이션,
 계속 증가) — 이걸 개별 툴로 노출하면 **그만큼의 스키마가 항상 떠 있게** 되어 토큰을 먹고, 툴 선택
 노이즈(비슷한 툴 사이 오판)도 커집니다.
 
@@ -536,7 +540,7 @@ MCP 는 **조회를 공식 Open API + WTS 전용 기능 모두** 노출하고, *
   스크리너·업종·어닝·브리핑·배당 등 [토스 고유 기능](#왜-tossctl-인가--공식-api-는-토스-기능의-일부일-뿐))을
   함께 노출합니다. WTS 조회는 웹 세션이 필요하고, 없으면 해당 오퍼레이션이 `tossctl auth login`
   안내를 돌려줍니다. 조회는 실패해도 stale read 수준이라 에이전트에 노출해도 위험이 낮습니다.
-- **주문(write)** — 생성·취소·정정은 **항상 공식 API 경로만** 사용합니다(WTS 미경유). 에이전트에
+- **주문(write)** — 일반·조건주문의 생성·취소·정정은 **항상 공식 API 경로만** 사용합니다(WTS 미경유). 에이전트에
   주문을 맡기는 이상 제출 경로는 **토스가 공식 승인한 API** 여야 안전하고 정직하기 때문입니다.
 - **인증 분리.** 공식 조회·주문은 공식 키(`openapi login`), WTS 조회는 웹 세션(`auth login`).
   둘 중 **하나만 있어도 MCP 서버는 뜨고**, 각 오퍼레이션이 자기에게 필요한 인증을 확인합니다.
@@ -547,7 +551,9 @@ MCP 는 **조회를 공식 Open API + WTS 전용 기능 모두** 노출하고, *
 > `brew upgrade tossctl-cli`(또는 `tossctl update`)로 바이너리만 갱신하면 다음 세션·호스트 재시작 때
 > 새 오퍼레이션이 **재등록 없이** 반영됩니다(catalog 는 서버 시작 시 바이너리에서 구성).
 
-**주문 실행은 CLI(`tossctl order`)와 동일하게 게이트**됩니다: config 의 `trading.*` +
+일반 주문(`place_order`·`cancel_order`·`modify_order`)과 조건주문(`place_conditional_order`·
+`cancel_conditional_order`·`modify_conditional_order`) 실행은 **CLI(`tossctl order`)와 동일하게
+게이트**됩니다: config 의 `trading.*` +
 `allow_live_order_actions` 토글로 켜야 하고, 기본 호출은 **dry-run preview**(confirm_token·경고
 반환)를 돌려줍니다. 실제 제출은 `execute: true` + `confirm: <token>` 을 함께 넘겨야 합니다. 주문은
 **공식 API 경로만 사용(WTS 미경유)** 합니다.
@@ -621,6 +627,7 @@ tossctl config show
     "fractional": false,
     "cancel": false,
     "amend": false,
+    "conditional": false,
     "allow_live_order_actions": false,
     "dangerous_automation": {
       "accept_fx_consent": false
@@ -640,12 +647,12 @@ tossctl config show
 | `conditional` | `order conditional place/cancel/modify` 경로 허용 (공식 Open API, `allow_live_order_actions`도 필요) |
 | `sell` | 매도 주문 허용 (`place`도 필요) — **scope 선언**: 유저가 스스로 "매수만/매도 포함" 범위 제한 |
 | `fractional` | 소수점 주문 허용 (`place`도 필요, US 시장가만) — **scope 선언** |
-| `allow_live_order_actions` | 마스터 킬스위치 — 위 `place/cancel/amend` 중 하나라도 실제 broker에 도달하려면 이 값도 `true`여야 함 |
+| `allow_live_order_actions` | 마스터 킬스위치 — 위 `place/cancel/amend/conditional` 중 하나라도 실제 broker에 도달하려면 이 값도 `true`여야 함 |
 | `accept_fx_consent` | post-prepare FX confirmation 자동 진행 |
 | `update_check.enabled` | 새 버전 알림 (24h 캐시, GitHub Releases API, 실패 시 silent). 기본 `true`. JSON/CSV 출력·non-tty·dev 빌드에서는 자동 skip |
 
 > **두 가지 유형의 토글:**
-> - **경로 게이트** (`place`, `cancel`, `amend`) — broker API 분기가 실제로 다른 세 동작을 각각 독립적으로 켬/끔
+> - **경로 게이트** (`place`, `cancel`, `amend`, `conditional`) — broker API 분기가 다른 일반·조건주문 동작을 각각 독립적으로 켬/끔
 > - **스코프 선언** (`sell`, `fractional`) — 유저가 스스로 "난 이 범주의 주문은 안 낸다"고 선언하여 실수/버그/agent 오작동 방지
 >
 > `v0.4.3`에서 `trading.grant`, `dangerous_automation.complete_trade_auth`, `dangerous_automation.accept_product_ack`가, `v0.5.2`에서 `trading.kr`(비대칭 시장 게이트 — KR 주문은 US 보다 위험하지 않아 제거, 시장 대칭 취급)이 제거되었습니다. 남아있는 구 설정은 자동 무시되며, 일반 명령 실행 시 stderr 경고 1줄(24h backoff)로 안내되고 `config status`/`doctor`에서도 표시됩니다.

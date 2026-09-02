@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderlineage"
 )
@@ -16,6 +17,14 @@ type Broker interface {
 	GetOrderAvailableActions(ctx context.Context, orderID string) (map[string]any, error)
 	CancelPendingOrder(ctx context.Context, intent orderintent.CancelIntent) (MutationResult, error)
 	AmendPendingOrder(ctx context.Context, intent orderintent.AmendIntent) (MutationResult, error)
+}
+
+// ConditionalBroker executes conditional-order mutations after Service has
+// applied the shared config, execute, and confirm-token guard.
+type ConditionalBroker interface {
+	CreateConditionalOrder(ctx context.Context, intent orderintent.ConditionalPlaceIntent) (domain.ConditionalOrderRef, error)
+	CancelConditionalOrder(ctx context.Context, intent orderintent.ConditionalCancelIntent) error
+	ModifyConditionalOrder(ctx context.Context, intent orderintent.ConditionalModifyIntent) error
 }
 
 type Preview struct {
@@ -39,16 +48,23 @@ type ExecuteOptions struct {
 // caller of Place/Cancel/Amend needs it: the CLI used to record lineage itself
 // while the MCP path silently did not, which meant agent-placed orders lost
 // their trail. Recording alongside the guard keeps write policy and its
-// bookkeeping in one module (see issue #111 for the same lesson applied to the
-// conditional-order gate).
+// bookkeeping in one module. Conditional-order mutations use this same Service
+// for the same reason: every write surface must apply one safety policy.
 type LineageRecorder interface {
 	Record(originalOrderID string, entry orderlineage.Entry) error
 }
 
 type Service struct {
-	policy  config.Trading
-	broker  Broker
-	lineage LineageRecorder // optional; nil disables recording
+	policy      config.Trading
+	broker      Broker
+	conditional ConditionalBroker
+	lineage     LineageRecorder // optional; nil disables recording
+}
+
+// WithConditionalBroker attaches the official-only conditional-order adapter.
+func (s *Service) WithConditionalBroker(b ConditionalBroker) *Service {
+	s.conditional = b
+	return s
 }
 
 func NewService(policy config.Trading, broker Broker) *Service {
@@ -178,6 +194,36 @@ func (s *Service) PreviewAmend(intent orderintent.AmendIntent) Preview {
 	}
 }
 
+func (s *Service) PreviewConditionalPlace(intent orderintent.ConditionalPlaceIntent) Preview {
+	return s.previewConditional("conditional_place", orderintent.CanonicalConditionalPlace(intent))
+}
+
+func (s *Service) PreviewConditionalCancel(intent orderintent.ConditionalCancelIntent) Preview {
+	return s.previewConditional("conditional_cancel", orderintent.CanonicalConditionalCancel(intent))
+}
+
+func (s *Service) PreviewConditionalModify(intent orderintent.ConditionalModifyIntent) Preview {
+	return s.previewConditional("conditional_modify", orderintent.CanonicalConditionalModify(intent))
+}
+
+func (s *Service) previewConditional(kind, canonical string) Preview {
+	warnings := []string{"Conditional orders use the official Open API only."}
+	if !s.policy.Conditional {
+		warnings = append(warnings, "Config currently disables conditional order actions.")
+	}
+	if !s.policy.AllowLiveOrderActions {
+		warnings = append(warnings, "Config currently disables live order actions.")
+	}
+	return Preview{
+		Kind:          kind,
+		Canonical:     canonical,
+		ConfirmToken:  orderintent.ConfirmToken(canonical),
+		Warnings:      warnings,
+		LiveReady:     true,
+		MutationReady: s.policy.Conditional && s.policy.AllowLiveOrderActions,
+	}
+}
+
 func (s *Service) Place(ctx context.Context, intent orderintent.PlaceIntent, opts ExecuteOptions) (MutationResult, error) {
 	// 1. capability check
 	if !placeIntentSupported(intent) {
@@ -229,6 +275,36 @@ func (s *Service) Amend(ctx context.Context, intent orderintent.AmendIntent, opt
 	return s.withLineage(s.broker.AmendPendingOrder(ctx, intent))
 }
 
+func (s *Service) PlaceConditional(ctx context.Context, intent orderintent.ConditionalPlaceIntent, opts ExecuteOptions) (domain.ConditionalOrderRef, error) {
+	if err := s.guard(ctx, ActionConditional, s.PreviewConditionalPlace(intent), opts); err != nil {
+		return domain.ConditionalOrderRef{}, err
+	}
+	if s.conditional == nil {
+		return domain.ConditionalOrderRef{}, ErrLiveMutationPending
+	}
+	return s.conditional.CreateConditionalOrder(ctx, intent)
+}
+
+func (s *Service) CancelConditional(ctx context.Context, intent orderintent.ConditionalCancelIntent, opts ExecuteOptions) error {
+	if err := s.guard(ctx, ActionConditional, s.PreviewConditionalCancel(intent), opts); err != nil {
+		return err
+	}
+	if s.conditional == nil {
+		return ErrLiveMutationPending
+	}
+	return s.conditional.CancelConditionalOrder(ctx, intent)
+}
+
+func (s *Service) ModifyConditional(ctx context.Context, intent orderintent.ConditionalModifyIntent, opts ExecuteOptions) error {
+	if err := s.guard(ctx, ActionConditional, s.PreviewConditionalModify(intent), opts); err != nil {
+		return err
+	}
+	if s.conditional == nil {
+		return ErrLiveMutationPending
+	}
+	return s.conditional.ModifyConditionalOrder(ctx, intent)
+}
+
 func (s *Service) guard(ctx context.Context, action Action, preview Preview, opts ExecuteOptions) error {
 	if err := s.requireActionEnabled(action); err != nil {
 		return err
@@ -254,6 +330,8 @@ func (s *Service) requireActionEnabled(action Action) error {
 		enabled = s.policy.Cancel
 	case ActionAmend:
 		enabled = s.policy.Amend
+	case ActionConditional:
+		enabled = s.policy.Conditional
 	}
 	if enabled {
 		return nil

@@ -171,27 +171,27 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor Caller as User / Agent
-    participant CLI as tossctl
+    participant Surface as CLI / ops / MCP
     participant Config as config.json
     participant Trading as internal/trading
-    participant Client as internal/client
-    participant API as Toss trading APIs
+    participant Broker as official-only broker
+    participant API as Toss Open API
 
-    Caller->>CLI: order preview
-    CLI->>Trading: canonical preview + confirm token
-    Trading-->>Caller: preview
+    Surface->>Config: load trading policy
+    Caller->>Surface: regular/conditional preview
+    Surface->>Trading: typed intent
+    Trading-->>Surface: preview
+    Surface-->>Caller: preview
 
-    Caller->>CLI: order place/cancel/amend --execute --confirm <token>
-    CLI->>Config: verify action enabled + allow_live_order_actions
-    CLI->>Trading: guard(action, flags, confirm)
-    Trading->>Client: prepare/mutation call
-    Client->>API: prepare
-    API-->>Client: orderKey / challenge / reject
-    Client->>API: final mutation
-    API-->>Client: accepted
-    Client->>API: pending/completed reconciliation
-    Client-->>Trading: MutationResult
-    Trading-->>Caller: accepted_pending / filled_completed / canceled / amended_pending / unknown
+    Caller->>Surface: execute=true + confirm token
+    Surface->>Trading: typed intent + ExecuteOptions
+    Trading->>Trading: config + execute + token guard
+    Trading->>Broker: typed mutation
+    Broker->>API: official mutation request
+    API-->>Broker: accepted / rejected
+    Broker-->>Trading: result
+    Trading-->>Surface: mutation result / acknowledgement
+    Surface-->>Caller: success or error
 ```
 
 ## Safety Model
@@ -199,7 +199,7 @@ sequenceDiagram
 거래 mutation은 아래 순서로 열립니다.
 
 1. `config.json`
-   - **경로 게이트:** `place`, `cancel`, `amend` (broker API 분기별 허용)
+   - **경로 게이트:** `place`, `cancel`, `amend`, `conditional` (broker API 분기별 허용)
    - **스코프 선언:** `sell`, `fractional` (유저 자가 제한; 시장 US/KR 은 게이트 아님)
    - **마스터 킬스위치:** `allow_live_order_actions` (실계좌 도달 차단)
    - **자동화:** `dangerous_automation.accept_fx_consent`

@@ -562,6 +562,8 @@ func newAppContext(opts *rootOptions) (*appContext, error) {
 		lineageService: lineage,
 		// The trading service records lineage itself, so every surface that
 		// mutates through it (cobra, MCP, `ops call`) leaves the same trail.
-		tradingService: trading.NewService(cfg.Trading, h.Broker()).WithLineage(lineage),
+		tradingService: trading.NewService(cfg.Trading, h.Broker()).
+			WithConditionalBroker(h).
+			WithLineage(lineage),
 	}, nil
 }

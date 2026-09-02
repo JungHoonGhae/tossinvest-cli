@@ -71,8 +71,9 @@ CLI 와 MCP 는 **같은 라우터를 공유한다** — 사람이 부르든 에
 우회**해서 raw method/URL/body 로 찌른다. 클라이언트 코드가 서버 변경과 함께 움직여도
 계약 변화를 잡아내기 위함이다. 선별적으로만 단다(CLI 표면당 대표 엔드포인트 하나).
 
-**write operation** — 주문 생성·취소·정정. config 옵트인 + execute·confirm 토큰으로
-이중 게이팅되며 official 전용 브로커로만 라우팅된다.
+**write operation** — 일반·조건주문의 생성·취소·정정. CLI와 ops/MCP 모두 공용
+`trading.Service`에서 config 옵트인 + execute·confirm 토큰으로 이중 게이팅되며,
+official 전용 브로커로만 라우팅된다.
 
 ## 인증 상태
 
