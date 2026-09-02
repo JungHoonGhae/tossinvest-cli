@@ -245,7 +245,7 @@ class QRState:
         if isinstance(new_letter, str) and new_letter != self.answer_letter:
             self.answer_letter = new_letter
             log(
-                f"Answer letter: '{new_letter}' — select this on your phone after scanning the QR."
+                f"Answer letter: '{new_letter}' — select this on your phone after opening the login request."
             )
 
         status_key = (new_qr_status, new_user_status)
@@ -267,6 +267,7 @@ class QRState:
             return
         self.url = decoded
         log(f"QR URL: {decoded}")
+        log("Open this URL on your phone to launch Toss without scanning the QR.")
 
 
 def command_login(args: argparse.Namespace) -> int:
@@ -407,7 +408,7 @@ def command_login(args: argparse.Namespace) -> int:
             if not initial_auth_notified:
                 timeout_message = (
                     f"Timed out after {args.timeout_seconds} seconds. "
-                    "QR login was not completed — scan the QR code in the browser window first."
+                    "Login was not completed — open the printed URL on your phone or scan the QR code first."
                 )
             else:
                 timeout_message = (

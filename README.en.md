@@ -120,8 +120,8 @@ tossctl account summary --output json
 > After scanning the QR, make sure to tap the **"keep this device signed in"** confirmation on your phone.
 > Skipping that second confirmation expires the session after ~1h idle. Verify with `tossctl auth status` showing `Persistence: persistent cookie (expires ...)`.
 
-> **Headless environments (SSH servers, CI):** `tossctl auth login --headless [--qr-output /tmp/toss-qr.png]`.
-> The QR URL and answer letter are printed to stderr; forward the URL to your phone to authenticate without a camera.
+> **Link login:** run `tossctl auth login --link`, then open the printed URL on your phone to launch Toss without scanning a QR code. Select the answer letter and confirm **“Keep me signed in on this device.”**
+> The existing `--headless` mode behaves the same way in SSH/CI environments; add `--qr-output /tmp/toss-qr.png` only when you also need a QR image. The file is written with `0600` permissions.
 
 ### Session extension
 

@@ -162,8 +162,8 @@ tossctl account summary --output json
 > 이 2차 확인을 건너뛰면 세션이 약 1시간 idle 후 만료되어 재로그인이 필요해집니다.
 > 정상 캡처 여부는 `tossctl auth status` 의 `Persistence: persistent cookie (expires ...)` 로 확인할 수 있습니다.
 
-> **GUI 없는 환경 (SSH 서버·CI):** `tossctl auth login --headless [--qr-output /tmp/toss-qr.png]`.
-> QR URL 과 확인 문자(answerLetter)가 stderr 로 출력되며, URL 을 폰으로 전달해 탭하면 카메라 없이 Toss 앱에서 인증할 수 있습니다. `--qr-output` 파일은 `0600` 권한으로 저장됩니다.
+> **링크 로그인:** `tossctl auth login --link`. 출력된 URL 을 폰에서 탭하면 카메라 없이 Toss 앱이 열립니다. 확인 문자를 고른 뒤 **“이 기기 로그인 유지”**까지 승인하세요.
+> GUI 없는 환경의 기존 `--headless`도 같은 동작이며, QR 파일이 필요하면 `--qr-output /tmp/toss-qr.png`를 함께 사용합니다. 파일은 `0600` 권한으로 저장됩니다.
 
 ### 세션 연장
 

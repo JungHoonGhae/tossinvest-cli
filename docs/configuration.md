@@ -83,7 +83,8 @@ tossctl이 저장하는 모든 상태 파일과 디렉토리는 소유자 전용
 | `config.json` | `0o600` | 거래 허용 플래그 |
 | `trading-lineage.json` | `0o600` | order ref 추적 |
 | `~/Library/Caches/tossctl/auth/playwright-storage-state.json` (로그인 중간 산출물) | `0o600` | 로그인 성공 직후 자동 삭제 (v0.4.1+) |
-| `--qr-output <path>` PNG (headless 로그인) | `0o600` | `fchmod`로 기존 파일도 강제 |
+| `--link` / `--headless` 로그인 URL | stderr에만 출력 | 일회성 URL이므로 공개 로그에 남기지 않음 |
+| `--qr-output <path>` PNG (link/headless 로그인) | `0o600` | `fchmod`로 기존 파일도 강제 |
 
 **진단:** `tossctl doctor --report` 의 `file_modes` 항목에서 각 파일/디렉토리의 실제 모드와 기대 모드를 JSON으로 확인할 수 있습니다. `ok: false`로 표시되는 항목은 보통 v0.4.0 이전에 생성된 디렉토리(0o755)라, `chmod 0700 ~/Library/Application\ Support/tossctl` 한 번이면 정리됩니다. 기능에는 영향 없음.
 
