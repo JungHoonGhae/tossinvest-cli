@@ -8,8 +8,8 @@
   <h1>tossinvest-cli</h1>
   <p><strong>토스증권에 연결하는 가장 유연한 방법. CLI 로, MCP 서버로, 어떤 AI 에이전트로든 — 공식 API는 물론 웹앱에만 있던 기능까지 하나로.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — 어떤 AI 에이전트로든 <code>tossctl</code> 하나로 토스증권 계좌·시세·거래를 다룹니다. <strong>MCP 서버(<code>tossctl mcp</code>)로 붙이거나 터미널에서 직접</strong>, <strong>공식 키 없이 바로 또는 연결 시 자동 라우팅.</strong></p>
-  <p><sub>수급 · 시장지수 · AI 시그널 · 조건검색 · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview 등 WTS 전용 기능 39가지 — <strong>공식 Open API 지원 범위도 물론 100% 포함합니다.</strong> <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
-  <p><sub><em>The most flexible way to connect Toss Securities — via CLI, via MCP, from any AI agent. 100% of the official Open API, plus 24 features only the web app had.</em></sub></p>
+  <p><sub>수급 · 시장지수 · AI 시그널 · 조건검색 · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview 등 공식 Open API에 없는 tossctl 고유 기능 51가지 — <strong>공식 Open API 지원 범위도 물론 100% 포함합니다.</strong> <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
+  <p><sub><em>The most flexible way to connect Toss Securities — via CLI, via MCP, from any AI agent. 100% of the official Open API, plus 51 tossctl-only capabilities.</em></sub></p>
 </div>
 
 <p align="center">
@@ -216,7 +216,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 ## 지원 범위
 
 > **tossctl 은 토스 공식 Open API 의 조회·거래 범위를 100% 커버하고, 그 너머까지 다룹니다.**
-> 공식 [Open API 문서](https://developers.tossinvest.com/docs)의 모든 엔드포인트(계좌·잔고·시세·호가·체결·캔들·상하한가·매도가능수량·수수료·주문 등)에 대응하며, 추가로 수급·시장지수·AI 시그널·조건검색·관심종목 관리·거래내역 ledger·실시간 푸시·원화 소수점 주문·dry-run preview 등 **39개가 공식 Open API에 없는 tossctl 고유 범위**입니다.
+> 공식 [Open API 문서](https://developers.tossinvest.com/docs)의 모든 엔드포인트(계좌·잔고·시세·호가·체결·캔들·상하한가·매도가능수량·수수료·주문 등)에 대응하며, 추가로 수급·시장지수·AI 시그널·조건검색·관심종목 관리·거래내역 ledger·실시간 푸시·원화 소수점 주문·dry-run preview 등 **51개가 공식 Open API에 없는 tossctl 고유 범위**입니다.
 
 <p align="center">
   <img src="docs/assets/api-comparison.svg" alt="tossctl vs 공식 Open API(예정) 커버리지 비교 — tossctl 이 상위집합" width="840" />
@@ -236,7 +236,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 
 | 기능 | 커맨드 | 공식 API (예정) | tossctl |
 |------|--------|:--:|:--:|
-| 🆕 계좌 목록 / 요약 | `account list`, `account summary`, `account overview [--full]` (전체 계좌·미성년 계좌 합산, 번호 기본 마스킹) | ✅ (목록·선택 계좌) | ✅ |
+| 계좌 목록 / 요약 | `account list`, `account summary` | ✅ | ✅ |
 | 🆕 매수여력 (공식) | `account buying-power [--currency KRW\|USD]` (현금 기준, 계좌요약과 다른 개념) | ✅ | ✅ |
 | 포트폴리오 | `portfolio positions`, `portfolio allocation` (US: USD 병기) | ✅ | ✅ |
 | 체결 내역 (틱) | `quote trades <symbol> --count N` | ✅ | ✅ |
@@ -517,7 +517,7 @@ Claude Desktop·Codex 등 **JSON 설정 방식** 호스트는 아래 [설정 예
 
 MCP 의 고질적 비용은 **툴 스키마가 모델 컨텍스트에 상시 상주**한다는 점입니다. API 하나당 툴
 하나로 등록하면, 그 툴의 이름·설명·파라미터 스키마 전부가 대화 내내 컨텍스트를 차지합니다.
-tossctl 의 API 표면은 **81개 오퍼레이션**(공식·WTS 조회, 일반·조건 주문, 시스템 오퍼레이션,
+tossctl 의 API 표면은 **87개 오퍼레이션**(공식·WTS 조회, 일반·조건 주문, 시스템 오퍼레이션,
 계속 증가) — 이걸 개별 툴로 노출하면 **그만큼의 스키마가 항상 떠 있게** 되어 토큰을 먹고, 툴 선택
 노이즈(비슷한 툴 사이 오판)도 커집니다.
 
@@ -539,10 +539,11 @@ tossctl 은 KIS_MCP_Server 의 catalog 모드를 참조해, 앞단에 **고정 3
 호출하기 전에 오류로 반환합니다. 오래된 스키마의 인자를 섞어 보내는 대신 호출 직전에
 `describe_operation` 을 다시 읽으세요.
 
-#### MCP 가 노출하는 범위 — 조회는 공식+WTS, 쓰기는 공식 전용
+#### MCP 가 노출하는 범위 — 조회는 공식+WTS, 주문은 공식 전용
 
 MCP 는 **조회를 공식 Open API + WTS 전용 기능 모두** 노출하고, **주문(write)은 공식 API 경로만**
-씁니다. 각 오퍼레이션은 `list_operations` 결과에 `backend`로 표시됩니다 — `"wts"`(웹 세션 필요),
+씁니다. 예외적으로 공식 Open API 허용 IP 교체는 WTS 설정 경로를 사용하되 preview·confirm·서버
+재검증·롤백을 모두 거칩니다. 각 오퍼레이션은 `list_operations` 결과에 `backend`로 표시됩니다 — `"wts"`(웹 세션 필요),
 `"auto"`(공식·웹 세션 **둘 중 하나면 동작**, 공식 우선 후 웹 세션 폴백), 그 외는 공식 전용.
 
 - **조회(read)** — 공식 API(계좌·시세·호가·체결·캔들 등)와 **WTS 전용**(인기 순위·수급·AI 시그널·
@@ -551,6 +552,9 @@ MCP 는 **조회를 공식 Open API + WTS 전용 기능 모두** 노출하고, *
   안내를 돌려줍니다. 조회는 실패해도 stale read 수준이라 에이전트에 노출해도 위험이 낮습니다.
 - **주문(write)** — 일반·조건주문의 생성·취소·정정은 **항상 공식 API 경로만** 사용합니다(WTS 미경유). 에이전트에
   주문을 맡기는 이상 제출 경로는 **토스가 공식 승인한 API** 여야 안전하고 정직하기 때문입니다.
+- **WTS 설정 쓰기(유일한 예외)** — `openapi_ip_replace_current`는 공식 Open API의 허용 IP 설정만
+  교체합니다. 기본 호출은 preview이고 `execute:true` + 유효한 `confirm` 토큰이 필요하며, 변경 뒤
+  서버 상태를 재검증하고 실패하면 기존 목록을 복구합니다. 주문이나 관심종목 쓰기는 WTS로 노출하지 않습니다.
 - **인증 분리.** 공식 조회·주문은 공식 키(`openapi login`), WTS 조회는 웹 세션(`auth login`).
   둘 중 **하나만 있어도 MCP 서버는 뜨고**, 각 오퍼레이션이 자기에게 필요한 인증을 확인합니다.
 
@@ -591,14 +595,14 @@ Desktop·Codex 등 JSON 설정 방식 호스트는 다음을 설정 파일에 �
 | 어디서 | 셸이 있는 어디서든 — 터미널·스크립트·cron, **그리고 셸을 쓰는 AI 에이전트**(Claude Code·Codex·Cursor…) | **MCP 네이티브 호스트** — 에이전트가 오퍼레이션을 툴로 호출 (catalog 3툴로 컨텍스트 최소화) |
 | 에이전트가 아는 법 | 프롬프트에 언급하거나 스킬·`AGENTS.md`/`CLAUDE.md` 로 등록해 존재를 알려줘야 함 — 알고 나면 [`tossctl ops list`](#에이전트가-cli-로-카탈로그를-쓰는-법--tossctl-ops) 로 전체 오퍼레이션을 스스로 탐색 | **등록 시 툴 목록에 자동 노출** → 별도 안내 없이 호출 |
 | 인증 | **웹 세션만으로** 전부 동작(공식 키 연결 시 자동 라우팅) | 공식 조회·주문엔 공식 키(`openapi login`), WTS 조회엔 웹 세션(`auth login`) — **최소 하나** |
-| 커버 범위 | **전부** — 공식 + WTS(조회·주문·실시간 스트리밍·관심종목 등) | **조회는 공식+WTS**, 주문은 공식 경로. 실시간 스트리밍·WTS 쓰기는 미포함 |
+| 커버 범위 | **전부** — 공식 + WTS(조회·주문·실시간 스트리밍·관심종목 등) | **조회는 공식+WTS**, 주문은 공식 경로. 허용 IP 교체만 보호된 WTS 설정 쓰기로 포함; 실시간 스트리밍·관심종목 WTS 쓰기는 미포함 |
 | 자연어 | 에이전트가 자연어 → `tossctl` 명령으로 실행 | 에이전트가 자연어 → MCP 툴 호출 |
 
 - **AI 에이전트는 둘 다 씁니다 — 차이는 '아는 법'입니다.** MCP 는 등록하면 툴로 자동 노출돼 별도 안내 없이 호출됩니다(조회는 공식+WTS, 주문은 공식). CLI 는 셸을 다루는 에이전트(Claude Code·Codex·Cursor)가 잘 실행하지만, **프롬프트에 언급하거나 스킬·`AGENTS.md`/`CLAUDE.md` 로 알려줘야** 존재를 압니다 — 대신 **전체 기능**(실시간·WTS 쓰기 포함)에 결정적·파이프 가능합니다.
 - **스크립트·cron·파이프·재현 가능한 자동화**는 CLI 가 자연스럽습니다(같은 명령 = 같은 결과).
 - 무엇을 쓰든 **조회 데이터·주문 안전 게이트는 동일**합니다: config opt-in + dry-run preview + `execute`/`confirm` 토큰.
 
-> **자율 에이전트에 붙일 땐 조회 전용을 권장.** config 에서 `trading.*` 를 끈 상태(기본값)면 MCP 는 조회만 가능하고, 주문 오퍼레이션은 호출돼도 게이트에서 막힙니다. 거래까지 열려면 사람이 명시적으로 config 를 켜야 하며, 실제 제출은 매번 `execute:true` + 유효한 `confirm` 토큰이 필요합니다.
+> **자율 에이전트에 붙일 땐 조회 중심 사용을 권장.** config 에서 `trading.*` 를 끈 상태(기본값)면 주문 오퍼레이션은 게이트에서 막힙니다. 거래까지 열려면 사람이 명시적으로 config 를 켜야 하며, 실제 제출은 매번 `execute:true` + 유효한 `confirm` 토큰이 필요합니다. `openapi_ip_replace_current`는 trading config와 별개지만, 기본 preview + 별도 confirm 토큰 + 서버 재검증/롤백으로 보호됩니다.
 
 #### 에이전트가 CLI 로 카탈로그를 쓰는 법 — `tossctl ops` <!--since:2026-07-25-->
 

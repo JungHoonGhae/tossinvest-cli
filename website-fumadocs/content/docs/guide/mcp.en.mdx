@@ -58,10 +58,12 @@ re-registering** on the next session/host restart (the catalog is built from the
 start). `list_operations` is always the source of truth for what's currently exposed.
 </Callout>
 
-## Scope — reads from official + WTS, writes official-only
+## Scope — reads from official + WTS, orders official-only
 
 MCP exposes **reads from both the official Open API and WTS-only features**, and routes **orders
-(writes) through the official API path only**. Each operation is tagged in `list_operations` with
+(writes) through the official API path only**. The sole WTS settings write is official Open API
+allowed-IP replacement, protected by preview, confirmation, server re-verification, and rollback.
+Each operation is tagged in `list_operations` with
 `backend` (`"wts"` or official).
 
 - **Reads** — the official API (accounts, quotes, order book, trades, candles, …) plus **WTS-only**
@@ -71,6 +73,10 @@ MCP exposes **reads from both the official Open API and WTS-only features**, and
   WTS reads need a web session; without one, that operation returns a `tossctl auth login` hint.
 - **Writes** — create/cancel/amend always use the **official API path only** (never WTS). If you let
   an agent place orders, the submission path should be the API Toss officially sanctions.
+- **WTS settings write (sole exception)** — `openapi_ip_replace_current` changes only the official
+  Open API allowlist. It previews by default, requires `execute:true` plus a valid `confirm` token,
+  re-verifies server state, and restores the prior list on failure. WTS order and watchlist writes
+  remain unavailable through MCP.
 - **Separate auth** — official reads/orders use the official key (`openapi login`), WTS reads use the
   web session (`auth login`). The server starts with **either one**, and each operation checks the
   auth it needs. Use the `auth_status` operation to see which backends are connected and when they
@@ -86,9 +92,10 @@ Order execution is **gated exactly like the CLI** (`tossctl order`). See [Safety
 - Orders use the **official API path only** (never WTS)
 
 <Callout type="warn" title="Reads-only recommended for autonomous agents">
-With `trading.*` off (the default), MCP can only read; order operations are blocked at the gate even
-if called. Opening trading requires a human to flip config explicitly, and each real submission still
-needs `execute:true` + a valid `confirm` token.
+With `trading.*` off (the default), order operations are blocked at the gate even if called. Opening
+trading requires a human to flip config explicitly, and each real submission still needs
+`execute:true` + a valid `confirm` token. `openapi_ip_replace_current` is independent of trading
+config, but is separately guarded by preview, confirmation, server re-verification, and rollback.
 </Callout>
 
 ## MCP host JSON config
@@ -115,7 +122,7 @@ just different ways to connect.
 | Where | Anywhere there's a shell — terminal, scripts, cron, and shell-using agents | MCP-native hosts — operations as tools (3-tool catalog minimizes context) |
 | How the agent knows | Must be told via prompt / skill / `AGENTS.md`/`CLAUDE.md` | **Auto-surfaced in the tool list on registration** |
 | Auth | Works with the web session alone (auto-routes if an official key is connected) | Official key for official reads/orders, web session for WTS reads — at least one |
-| Coverage | **Everything** — official + WTS (reads, orders, live streaming, watchlist writes) | Reads official+WTS, orders official path. No live streaming / WTS writes |
+| Coverage | **Everything** — official + WTS (reads, orders, live streaming, watchlist writes) | Reads official+WTS, orders official path. Allowed-IP replacement is the sole guarded WTS settings write; no live streaming or WTS watchlist writes |
 
 - **Scripts, cron, pipes, reproducible automation** fit the CLI (same command = same result).
 - **MCP-native agents** call it as a tool with no extra instruction once registered.

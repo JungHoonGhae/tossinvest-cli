@@ -8,7 +8,7 @@
   <h1>tossinvest-cli</h1>
   <p><strong>The most flexible way to connect Toss Securities. Via CLI, via MCP server, from any AI agent — 100% of the official API, plus the features only the web app had.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — any AI agent drives Toss Securities accounts, quotes, and trades through one <code>tossctl</code>. <strong>Attach it as an MCP server (<code>tossctl mcp</code>) or run it by hand</strong>, <strong>with no key at all — or auto-routed through the official path when you connect one.</strong></p>
-  <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — 39 WTS-only features, and <strong>100% of the official Open API's coverage, included too.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
+  <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — 51 tossctl-only capabilities beyond the official Open API, with <strong>100% of the official Open API's coverage included too.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
   <p><sub><em>An unofficial Toss Securities CLI for AI agents. Auto-routes through the official OAuth path when you connect an official key.</em></sub></p>
 </div>
 
@@ -174,7 +174,7 @@ For cron: `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 ## Support Scope
 
 > **tossctl covers 100% of the official Toss Open API's read & trade coverage — and goes beyond.**
-> It maps to every endpoint in the official [Open API docs](https://developers.tossinvest.com/docs) (accounts, holdings, quotes, orderbook, ticks, candles, price limits, sellable quantity, commissions, orders, …), and adds investor flows, market indices, AI signals, screener, watchlist management, transaction ledger, real-time push, fractional orders, dry-run preview, and more — **39 features that aren't in the official API are tossctl-only.**
+> It maps to every endpoint in the official [Open API docs](https://developers.tossinvest.com/docs) (accounts, holdings, quotes, orderbook, ticks, candles, price limits, sellable quantity, commissions, orders, …), and adds investor flows, market indices, AI signals, screener, watchlist management, transaction ledger, real-time push, fractional orders, dry-run preview, and more — **51 capabilities that aren't in the official API are tossctl-only.**
 
 <p align="center">
   <img src="docs/assets/api-comparison.en.svg" alt="tossctl vs official Open API (upcoming) coverage — tossctl is a superset" width="900" />
@@ -424,12 +424,12 @@ session) for the full feature set — see [Quick Start](#quick-start). Both path
 
 MCP's inherent cost is that **tool schemas stay resident in the model's context**. Register one
 tool per API and every tool's name, description, and parameter schema occupies context for the
-whole conversation. tossctl's surface is **81 operations** across official and WTS reads,
-regular and conditional orders, and system operations — exposing them individually would keep **81 schemas always loaded**,
+whole conversation. tossctl's surface is **87 operations** across official and WTS reads,
+regular and conditional orders, and system operations — exposing them individually would keep **87 schemas always loaded**,
 burning tokens and adding tool-choice noise (mis-picks between similar tools).
 
 Following KIS_MCP_Server's catalog mode, tossctl fronts everything with **just three fixed
-tools** and keeps the 81 operations behind an **on-demand schema fetch**:
+tools** and keeps the 87 operations behind an **on-demand schema fetch**:
 
 - `list_operations` — list available operations (id, summary, write flag), filter with `query`
 - `describe_operation` — fetch one operation's parameter schema **only at that moment**
@@ -446,10 +446,12 @@ Arguments to `call_operation` must match the names and primitive types declared 
 that would lose precision when converted to `float64` fail before any backend call. Refresh the
 operation schema immediately before calling instead of mixing in parameters from an older copy.
 
-### What MCP exposes — reads: official + WTS; writes: official only
+### What MCP exposes — reads: official + WTS; orders: official only
 
 MCP exposes **reads from both the official Open API and WTS-only features**, and keeps
-**order writes on the official API path only**. Each operation is tagged with a `backend`
+**order writes on the official API path only**. The sole WTS settings write is official Open API
+allowed-IP replacement, protected by preview, confirmation, server re-verification, and rollback.
+Each operation is tagged with a `backend`
 in `list_operations`: `"wts"` (needs a web session), `"auto"` (**either credential works** —
 official first, web-session fallback), or official-only otherwise.
 
@@ -460,6 +462,10 @@ official first, web-session fallback), or official-only otherwise.
   is at worst a stale read, so exposing it to an agent is low-risk.
 - **Writes.** Regular and conditional place / cancel / modify always use the **official API path** (never WTS): if an
   agent can submit orders, the path should be one **Toss officially sanctions** — safer and more honest.
+- **WTS settings write (sole exception).** `openapi_ip_replace_current` changes only the official
+  Open API allowlist. It previews by default, requires `execute:true` plus a valid `confirm` token,
+  re-verifies server state, and restores the previous list on failure. WTS order and watchlist
+  writes remain unavailable through MCP.
 - **Split auth.** Official reads/orders use the official key (`openapi login`); WTS reads use the
   web session (`auth login`). **Either alone starts the server**, and each operation checks the
   auth it needs.
@@ -503,14 +509,14 @@ Two entry points to the same `tossctl` binary, and **both work well with AI agen
 | Where | Anywhere a shell exists — terminal, scripts, cron, **and AI agents that shell out** (Claude Code, Codex, Cursor…) | **MCP-native hosts** — the agent calls operations as tools (catalog keeps 3 tools resident) |
 | How the agent finds it | Must be mentioned in the prompt, or registered via a skill / `AGENTS.md` / `CLAUDE.md` | **Auto-listed as tools once registered** → called without extra prompting |
 | Auth | Runs on the **web session alone** (auto-routes when an official key is connected) | Official reads/orders need the official key (`openapi login`); WTS reads need the web session (`auth login`) — **at least one** |
-| Coverage | **Everything** — official + WTS (reads, orders, real-time streaming, watchlist, …) | **Reads: official + WTS**; orders: official path. Real-time streaming and WTS writes not exposed |
+| Coverage | **Everything** — official + WTS (reads, orders, real-time streaming, watchlist, …) | **Reads: official + WTS**; orders: official path. Allowed-IP replacement is the sole guarded WTS settings write; no real-time streaming or WTS watchlist writes |
 | Natural language | Agent turns NL → `tossctl` commands | Agent turns NL → MCP tool calls |
 
 - **AI agents use both — the difference is discovery.** MCP is auto-listed as tools once registered, so it's called with no extra prompting (reads: official + WTS; orders: official). The CLI runs fine from a shell-capable agent (Claude Code, Codex, Cursor), but the agent only knows it exists if you **mention it in the prompt or register it via a skill / `AGENTS.md` / `CLAUDE.md`** — in return you get the **full feature set** (incl. real-time and WTS writes), deterministic and pipeable.
 - **Scripts, cron, pipes, reproducible automation** → CLI (same command = same result).
 - Either way the **read data and order safety gate are identical**: config opt-in + dry-run preview + `execute`/`confirm` token.
 
-> **Prefer read-only when wiring an autonomous agent.** With `trading.*` off (the default), MCP can only read; order operations are blocked at the gate even if called. Enabling trading requires an explicit human config change, and every real submission still needs `execute:true` plus a valid `confirm` token.
+> **Prefer read-focused use for autonomous agents.** With `trading.*` off (the default), order operations are blocked at the gate even if called. Enabling trading requires an explicit human config change, and every real submission still needs `execute:true` plus a valid `confirm` token. `openapi_ip_replace_current` is independent of trading config, but is separately guarded by preview, confirmation, server re-verification, and rollback.
 
 ## Config
 
