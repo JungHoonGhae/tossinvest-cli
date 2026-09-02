@@ -3,7 +3,6 @@ package ops
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
@@ -189,41 +188,26 @@ func writeOperations() []Operation {
 }
 
 func conditionalPlaceHandler(ctx context.Context, d *Deps, args map[string]any) (any, error) {
-	intent := orderintent.ConditionalPlaceIntent{}
-	var err error
-	if intent.Symbol, err = argString(args, "symbol"); err != nil {
+	symbol, err := argString(args, "symbol")
+	if err != nil {
 		return nil, err
 	}
-	if intent.Type, err = argString(args, "type"); err != nil {
+	shape, err := conditionalShapeArgs(args)
+	if err != nil {
 		return nil, err
 	}
-	if intent.Quantity, err = argFloat(args, "quantity"); err != nil {
+	clientOrderID, err := argString(args, "client_order_id")
+	if err != nil {
 		return nil, err
 	}
-	if intent.OrderType, err = argString(args, "order_type"); err != nil {
+	confirmHighValue, err := argBool(args, "confirm_high_value")
+	if err != nil {
 		return nil, err
 	}
-	if intent.ExpireDate, err = argString(args, "expire_date"); err != nil {
-		return nil, err
-	}
-	if intent.First, err = conditionalLegArgs(args, "first"); err != nil {
-		return nil, err
-	}
-	conditionalType := strings.ToUpper(strings.TrimSpace(intent.Type))
-	if conditionalType == "OCO" || conditionalType == "OTO" {
-		second, err := conditionalLegArgs(args, "second")
-		if err != nil {
-			return nil, err
-		}
-		intent.Second = &second
-	}
-	if intent.ClientOrderID, err = argString(args, "client_order_id"); err != nil {
-		return nil, err
-	}
-	if intent.ConfirmHighValue, err = argBool(args, "confirm_high_value"); err != nil {
-		return nil, err
-	}
-	intent, err = orderintent.NormalizeConditionalPlace(intent)
+	intent, err := orderintent.NormalizeConditionalPlace(orderintent.ConditionalPlaceIntent{
+		Symbol: symbol, ConditionalShape: shape,
+		ClientOrderID: clientOrderID, ConfirmHighValue: confirmHighValue,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -261,34 +245,17 @@ func conditionalModifyHandler(ctx context.Context, d *Deps, args map[string]any)
 	if err != nil {
 		return nil, err
 	}
-	intent := orderintent.ConditionalModifyIntent{ID: id}
-	if intent.Type, err = argString(args, "type"); err != nil {
+	shape, err := conditionalShapeArgs(args)
+	if err != nil {
 		return nil, err
 	}
-	if intent.Quantity, err = argFloat(args, "quantity"); err != nil {
+	confirmHighValue, err := argBool(args, "confirm_high_value")
+	if err != nil {
 		return nil, err
 	}
-	if intent.OrderType, err = argString(args, "order_type"); err != nil {
-		return nil, err
-	}
-	if intent.ExpireDate, err = argString(args, "expire_date"); err != nil {
-		return nil, err
-	}
-	if intent.First, err = conditionalLegArgs(args, "first"); err != nil {
-		return nil, err
-	}
-	conditionalType := strings.ToUpper(strings.TrimSpace(intent.Type))
-	if conditionalType == "OCO" || conditionalType == "OTO" {
-		second, err := conditionalLegArgs(args, "second")
-		if err != nil {
-			return nil, err
-		}
-		intent.Second = &second
-	}
-	if intent.ConfirmHighValue, err = argBool(args, "confirm_high_value"); err != nil {
-		return nil, err
-	}
-	intent, err = orderintent.NormalizeConditionalModify(intent)
+	intent, err := orderintent.NormalizeConditionalModify(orderintent.ConditionalModifyIntent{
+		ID: id, ConditionalShape: shape, ConfirmHighValue: confirmHighValue,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -300,6 +267,45 @@ func conditionalModifyHandler(ctx context.Context, d *Deps, args map[string]any)
 		return d.Trading.PreviewConditionalModify(intent), nil
 	}
 	return nil, d.Trading.ModifyConditional(ctx, intent, trading.ExecuteOptions{Execute: true, Confirm: confirm})
+}
+
+func conditionalShapeArgs(args map[string]any) (orderintent.ConditionalShape, error) {
+	typeValue, err := argString(args, "type")
+	if err != nil {
+		return orderintent.ConditionalShape{}, err
+	}
+	kind, err := orderintent.ParseConditionalType(typeValue)
+	if err != nil {
+		return orderintent.ConditionalShape{}, err
+	}
+	quantity, err := argFloat(args, "quantity")
+	if err != nil {
+		return orderintent.ConditionalShape{}, err
+	}
+	orderType, err := argString(args, "order_type")
+	if err != nil {
+		return orderintent.ConditionalShape{}, err
+	}
+	expireDate, err := argString(args, "expire_date")
+	if err != nil {
+		return orderintent.ConditionalShape{}, err
+	}
+	first, err := conditionalLegArgs(args, "first")
+	if err != nil {
+		return orderintent.ConditionalShape{}, err
+	}
+	shape := orderintent.ConditionalShape{
+		Type: kind, OrderType: orderintent.ConditionalOrderType(orderType),
+		ExpireDate: expireDate, Quantity: quantity, First: first,
+	}
+	if kind.RequiresSecondLeg() {
+		second, err := conditionalLegArgs(args, "second")
+		if err != nil {
+			return orderintent.ConditionalShape{}, err
+		}
+		shape.Second = &second
+	}
+	return orderintent.NormalizeConditionalShape(shape)
 }
 
 func conditionalLegArgs(args map[string]any, prefix string) (orderintent.ConditionLeg, error) {

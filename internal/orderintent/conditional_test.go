@@ -7,8 +7,11 @@ import (
 
 func TestNormalizeConditionalPlaceDefaultsAndCanonicalizes(t *testing.T) {
 	got, err := NormalizeConditionalPlace(ConditionalPlaceIntent{
-		Symbol: " aapl ", ExpireDate: " 2026-12-31 ", Quantity: 1,
-		First: ConditionLeg{OrderSide: " buy ", TriggerPrice: 100, OrderPrice: 99},
+		Symbol: " aapl ",
+		ConditionalShape: ConditionalShape{
+			ExpireDate: " 2026-12-31 ", Quantity: 1,
+			First: ConditionLeg{OrderSide: " buy ", TriggerPrice: 100, OrderPrice: 99},
+		},
 	})
 	if err != nil {
 		t.Fatalf("NormalizeConditionalPlace: %v", err)
@@ -20,8 +23,11 @@ func TestNormalizeConditionalPlaceDefaultsAndCanonicalizes(t *testing.T) {
 
 func TestNormalizeConditionalPlaceValidatesOfficialShape(t *testing.T) {
 	base := ConditionalPlaceIntent{
-		Symbol: "005930", Type: "SINGLE", OrderType: "LIMIT", ExpireDate: "2026-12-31", Quantity: 1,
-		First: ConditionLeg{OrderSide: "BUY", TriggerPrice: 70000, OrderPrice: 69900},
+		Symbol: "005930",
+		ConditionalShape: ConditionalShape{
+			Type: "SINGLE", OrderType: "LIMIT", ExpireDate: "2026-12-31", Quantity: 1,
+			First: ConditionLeg{OrderSide: "BUY", TriggerPrice: 70000, OrderPrice: 69900},
+		},
 	}
 	cases := []struct {
 		name string
@@ -67,8 +73,11 @@ func TestNormalizeConditionalCancelAndModifyRequireIDs(t *testing.T) {
 
 func TestCanonicalConditionalPlaceDeterministic(t *testing.T) {
 	i := ConditionalPlaceIntent{
-		Symbol: "005930", Type: "SINGLE", OrderType: "LIMIT", ExpireDate: "2026-12-31",
-		Quantity: 10, First: ConditionLeg{OrderSide: "SELL", TriggerPrice: 70000, OrderPrice: 69900},
+		Symbol: "005930",
+		ConditionalShape: ConditionalShape{
+			Type: "SINGLE", OrderType: "LIMIT", ExpireDate: "2026-12-31",
+			Quantity: 10, First: ConditionLeg{OrderSide: "SELL", TriggerPrice: 70000, OrderPrice: 69900},
+		},
 	}
 	a := CanonicalConditionalPlace(i)
 	b := CanonicalConditionalPlace(i)
@@ -86,6 +95,11 @@ func TestCanonicalConditionalPlaceDeterministic(t *testing.T) {
 	if CanonicalConditionalPlace(j) == a {
 		t.Fatalf("SINGLE and OCO canonical must differ")
 	}
+	j = i
+	j.ClientOrderID = "different-idempotency-key"
+	if CanonicalConditionalPlace(j) == a {
+		t.Fatal("client order id must be bound to the confirmation token")
+	}
 	if ConfirmToken(a) == "" {
 		t.Fatalf("confirm token empty")
 	}
@@ -95,7 +109,13 @@ func TestCanonicalConditionalCancelModify(t *testing.T) {
 	if CanonicalConditionalCancel(ConditionalCancelIntent{ID: "co-1"}) == "" {
 		t.Fatalf("cancel canonical empty")
 	}
-	m := ConditionalModifyIntent{ID: "co-1", Type: "SINGLE", OrderType: "MARKET", ExpireDate: "2026-12-31", Quantity: 5, First: ConditionLeg{OrderSide: "SELL", TriggerPrice: 68000}}
+	m := ConditionalModifyIntent{
+		ID: "co-1",
+		ConditionalShape: ConditionalShape{
+			Type: "SINGLE", OrderType: "MARKET", ExpireDate: "2026-12-31", Quantity: 5,
+			First: ConditionLeg{OrderSide: "SELL", TriggerPrice: 68000},
+		},
+	}
 	if CanonicalConditionalModify(m) == "" {
 		t.Fatalf("modify canonical empty")
 	}

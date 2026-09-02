@@ -80,8 +80,11 @@ func TestConditionalPlaceUsesSharedExecutionGuard(t *testing.T) {
 		AllowLiveOrderActions: true,
 	}, nil).WithConditionalBroker(broker)
 	intent := orderintent.ConditionalPlaceIntent{
-		Symbol: "005930", Type: "SINGLE", OrderType: "LIMIT", ExpireDate: "2026-12-31",
-		Quantity: 1, First: orderintent.ConditionLeg{OrderSide: "BUY", TriggerPrice: 70000, OrderPrice: 69900},
+		Symbol: "005930",
+		ConditionalShape: orderintent.ConditionalShape{
+			Type: "SINGLE", OrderType: "LIMIT", ExpireDate: "2026-12-31",
+			Quantity: 1, First: orderintent.ConditionLeg{OrderSide: "BUY", TriggerPrice: 70000, OrderPrice: 69900},
+		},
 	}
 	preview := service.PreviewConditionalPlace(intent)
 	if preview.Kind != "conditional_place" || preview.Canonical != orderintent.CanonicalConditionalPlace(intent) || preview.ConfirmToken == "" {
@@ -127,8 +130,11 @@ func TestConditionalCancelAndModifyUseSharedExecutionGuard(t *testing.T) {
 	}
 
 	modify := orderintent.ConditionalModifyIntent{
-		ID: "co-1", Type: "SINGLE", OrderType: "LIMIT", ExpireDate: "2026-12-31",
-		Quantity: 2, First: orderintent.ConditionLeg{OrderSide: "BUY", TriggerPrice: 71000, OrderPrice: 70900},
+		ID: "co-1",
+		ConditionalShape: orderintent.ConditionalShape{
+			Type: "SINGLE", OrderType: "LIMIT", ExpireDate: "2026-12-31",
+			Quantity: 2, First: orderintent.ConditionLeg{OrderSide: "BUY", TriggerPrice: 71000, OrderPrice: 70900},
+		},
 	}
 	modifyPreview := service.PreviewConditionalModify(modify)
 	if err := service.ModifyConditional(context.Background(), modify, ExecuteOptions{Execute: true, Confirm: "wrong"}); !errors.Is(err, ErrConfirmMismatch) {

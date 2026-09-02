@@ -344,8 +344,8 @@ func (c *Client) CancelConditionalOrder(ctx context.Context, intent orderintent.
 // CreateConditionalOrder creates a conditional order. official-only.
 func (c *Client) CreateConditionalOrder(ctx context.Context, intent orderintent.ConditionalPlaceIntent) (domain.ConditionalOrderRef, error) {
 	body := official.ConditionalCreateBody{
-		Symbol: intent.Symbol, Type: intent.Type, Quantity: fmtDec(intent.Quantity),
-		OrderType: intent.OrderType, ClientOrderID: intent.ClientOrderID, ExpireDate: intent.ExpireDate,
+		Symbol: intent.Symbol, Type: string(intent.Type), Quantity: fmtDec(intent.Quantity),
+		OrderType: string(intent.OrderType), ClientOrderID: intent.ClientOrderID, ExpireDate: intent.ExpireDate,
 		First: officialLeg(intent.First), ConfirmHighValueOrder: intent.ConfirmHighValue,
 	}
 	if intent.Second != nil {
@@ -360,7 +360,7 @@ func (c *Client) CreateConditionalOrder(ctx context.Context, intent orderintent.
 // ModifyConditionalOrder modifies a conditional order. official-only.
 func (c *Client) ModifyConditionalOrder(ctx context.Context, intent orderintent.ConditionalModifyIntent) error {
 	body := official.ConditionalModifyBody{
-		Type: intent.Type, Quantity: fmtDec(intent.Quantity), OrderType: intent.OrderType,
+		Type: string(intent.Type), Quantity: fmtDec(intent.Quantity), OrderType: string(intent.OrderType),
 		ExpireDate: intent.ExpireDate, First: officialLeg(intent.First), ConfirmHighValueOrder: intent.ConfirmHighValue,
 	}
 	if intent.Second != nil {

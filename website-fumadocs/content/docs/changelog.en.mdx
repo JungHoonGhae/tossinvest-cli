@@ -10,9 +10,11 @@ Version history below (source: the Korean-language [CHANGELOG.md](https://github
 ## [Unreleased]
 
 ### 새 기능
+- **조건주문을 ops/MCP에서도 조회·실행할 수 있습니다.** `conditional_orders`·`conditional_order`로 목록·상세를 조회하고, `place_conditional_order`·`cancel_conditional_order`·`modify_conditional_order`로 preview 후 실행합니다. 쓰기는 공식 Open API 전용이며 기본 호출은 dry-run입니다([#111](https://github.com/JungHoonGhae/tossinvest-cli/issues/111)).
 - **`quote metadata <symbol>[,symbol,...] [...]`** — 공식 Open API에서 최대 200개 종목의 이름·영문명·ISIN·시장·증권 유형·상장 상태·통화·상장주식수·상장/상장폐지일과 국내 KRX/NXT 거래 상태를 한 번에 조회합니다. `market stocks`가 시장 전체의 종목 유니버스를 찾는 명령이라면, 이 명령은 이미 아는 심볼의 정확한 참조 데이터를 채우는 용도입니다. JSON·CSV는 공식 응답의 전체 메타데이터를 보존합니다.
 
 ### 변경
+- **일반 주문과 조건주문의 안전 정책을 `trading.Service` 하나로 통합했습니다.** CLI와 ops/MCP가 같은 config 옵트인, execute, confirm-token 검사를 거치므로 새 호출 표면에서도 게이트가 달라지지 않습니다. 조건주문 confirm token은 idempotency key까지 묶고, OCO/OTO ops 입력은 두 번째 trigger 누락도 공식 API 호출 전에 거절합니다.
 - **WTS 고정 정책을 hybrid 라우터 내부의 단일 불변식으로 강화했습니다.** `--backend wts`에서는 ops가 쓰는 직접 공식 클라이언트, official-only 시장 조회·조건주문, WTS 실패 시 환율 폴백까지 모두 공식 경로를 비활성화합니다. 공식 전용 기능은 일관되게 Open API 접근 필요 오류를 반환합니다.
 - **백엔드 선택 값을 공용 타입으로 통합했습니다.** 설정·CLI·MCP·hybrid 라우터가 `auto`·`openapi`·`wts`의 같은 계약을 사용하고, 잘못된 값은 라우터 조립 전에 거부합니다. JSON Schema는 빠져 있던 `openapi`와 하위 호환 별칭 `official`을 모두 검증합니다.
 

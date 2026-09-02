@@ -16,15 +16,55 @@ type ConditionLeg struct {
 	OrderPrice   float64
 }
 
+type ConditionalType string
+
+const (
+	ConditionalSingle ConditionalType = "SINGLE"
+	ConditionalOCO    ConditionalType = "OCO"
+	ConditionalOTO    ConditionalType = "OTO"
+)
+
+func ParseConditionalType(value string) (ConditionalType, error) {
+	value = strings.ToUpper(strings.TrimSpace(value))
+	if value == "" {
+		return ConditionalSingle, nil
+	}
+	kind := ConditionalType(value)
+	switch kind {
+	case ConditionalSingle, ConditionalOCO, ConditionalOTO:
+		return kind, nil
+	default:
+		return "", fmt.Errorf("unsupported conditional order type %q; expected SINGLE, OCO or OTO", value)
+	}
+}
+
+func (t ConditionalType) RequiresSecondLeg() bool {
+	return t == ConditionalOCO || t == ConditionalOTO
+}
+
+type ConditionalOrderType string
+
+const (
+	ConditionalLimit  ConditionalOrderType = "LIMIT"
+	ConditionalMarket ConditionalOrderType = "MARKET"
+)
+
+// ConditionalShape is the shared economic shape of create and modify requests.
+// Keeping it as one value prevents those two flows from drifting as the
+// official conditional-order schema evolves.
+type ConditionalShape struct {
+	Type       ConditionalType
+	OrderType  ConditionalOrderType
+	ExpireDate string
+	Quantity   float64
+	First      ConditionLeg
+	Second     *ConditionLeg // OCO/OTO
+}
+
 // ConditionalPlaceIntent is a request to create a conditional order.
 type ConditionalPlaceIntent struct {
-	Symbol           string
-	Type             string // SINGLE|OCO|OTO
-	OrderType        string // LIMIT|MARKET
-	ExpireDate       string
-	Quantity         float64
-	First            ConditionLeg
-	Second           *ConditionLeg // OCO/OTO
+	Symbol string
+	ConditionalShape
 	ClientOrderID    string
 	ConfirmHighValue bool
 }
@@ -34,13 +74,8 @@ type ConditionalCancelIntent struct{ ID string }
 
 // ConditionalModifyIntent is a request to modify an existing conditional order.
 type ConditionalModifyIntent struct {
-	ID               string
-	Type             string
-	OrderType        string
-	ExpireDate       string
-	Quantity         float64
-	First            ConditionLeg
-	Second           *ConditionLeg
+	ID string
+	ConditionalShape
 	ConfirmHighValue bool
 }
 
@@ -50,12 +85,11 @@ func NormalizeConditionalPlace(intent ConditionalPlaceIntent) (ConditionalPlaceI
 		return ConditionalPlaceIntent{}, fmt.Errorf("symbol is required")
 	}
 	intent.ClientOrderID = strings.TrimSpace(intent.ClientOrderID)
-	if err := normalizeConditionalShape(
-		&intent.Type, &intent.OrderType, &intent.ExpireDate,
-		intent.Quantity, &intent.First, &intent.Second,
-	); err != nil {
+	shape, err := NormalizeConditionalShape(intent.ConditionalShape)
+	if err != nil {
 		return ConditionalPlaceIntent{}, err
 	}
+	intent.ConditionalShape = shape
 	return intent, nil
 }
 
@@ -72,66 +106,62 @@ func NormalizeConditionalModify(intent ConditionalModifyIntent) (ConditionalModi
 	if intent.ID == "" {
 		return ConditionalModifyIntent{}, fmt.Errorf("conditional order id is required")
 	}
-	if err := normalizeConditionalShape(
-		&intent.Type, &intent.OrderType, &intent.ExpireDate,
-		intent.Quantity, &intent.First, &intent.Second,
-	); err != nil {
+	shape, err := NormalizeConditionalShape(intent.ConditionalShape)
+	if err != nil {
 		return ConditionalModifyIntent{}, err
 	}
+	intent.ConditionalShape = shape
 	return intent, nil
 }
 
-func normalizeConditionalShape(conditionalType, orderType, expireDate *string, quantity float64, first *ConditionLeg, second **ConditionLeg) error {
-	*conditionalType = strings.ToUpper(strings.TrimSpace(*conditionalType))
-	if *conditionalType == "" {
-		*conditionalType = "SINGLE"
+func NormalizeConditionalShape(shape ConditionalShape) (ConditionalShape, error) {
+	kind, err := ParseConditionalType(string(shape.Type))
+	if err != nil {
+		return ConditionalShape{}, err
 	}
-	switch *conditionalType {
-	case "SINGLE", "OCO", "OTO":
-	default:
-		return fmt.Errorf("unsupported conditional order type %q; expected SINGLE, OCO or OTO", *conditionalType)
+	shape.Type = kind
+
+	orderType := strings.ToUpper(strings.TrimSpace(string(shape.OrderType)))
+	if orderType == "" {
+		orderType = string(ConditionalLimit)
+	}
+	shape.OrderType = ConditionalOrderType(orderType)
+	if shape.OrderType != ConditionalLimit && shape.OrderType != ConditionalMarket {
+		return ConditionalShape{}, fmt.Errorf("unsupported order type %q; expected LIMIT or MARKET", orderType)
+	}
+	if shape.Type.RequiresSecondLeg() && shape.OrderType != ConditionalLimit {
+		return ConditionalShape{}, fmt.Errorf("conditional order type %s requires LIMIT order type", shape.Type)
 	}
 
-	*orderType = strings.ToUpper(strings.TrimSpace(*orderType))
-	if *orderType == "" {
-		*orderType = "LIMIT"
+	shape.ExpireDate = strings.TrimSpace(shape.ExpireDate)
+	if _, err := time.Parse("2006-01-02", shape.ExpireDate); err != nil {
+		return ConditionalShape{}, fmt.Errorf("expire date must use YYYY-MM-DD")
 	}
-	if *orderType != "LIMIT" && *orderType != "MARKET" {
-		return fmt.Errorf("unsupported order type %q; expected LIMIT or MARKET", *orderType)
+	if shape.Quantity <= 0 {
+		return ConditionalShape{}, fmt.Errorf("quantity must be greater than zero")
 	}
-	if (*conditionalType == "OCO" || *conditionalType == "OTO") && *orderType != "LIMIT" {
-		return fmt.Errorf("conditional order type %s requires LIMIT order type", *conditionalType)
-	}
-
-	*expireDate = strings.TrimSpace(*expireDate)
-	if _, err := time.Parse("2006-01-02", *expireDate); err != nil {
-		return fmt.Errorf("expire date must use YYYY-MM-DD")
-	}
-	if quantity <= 0 {
-		return fmt.Errorf("quantity must be greater than zero")
-	}
-	if err := normalizeConditionLeg(first, *orderType, "first"); err != nil {
-		return err
+	if err := normalizeConditionLeg(&shape.First, shape.OrderType, "first"); err != nil {
+		return ConditionalShape{}, err
 	}
 
-	if *conditionalType == "SINGLE" {
-		if *second != nil {
-			return fmt.Errorf("second condition must be omitted for SINGLE orders")
+	if !shape.Type.RequiresSecondLeg() {
+		if shape.Second != nil {
+			return ConditionalShape{}, fmt.Errorf("second condition must be omitted for SINGLE orders")
 		}
-		return nil
+		return shape, nil
 	}
-	if *second == nil {
-		return fmt.Errorf("second condition is required for %s orders", *conditionalType)
+	if shape.Second == nil {
+		return ConditionalShape{}, fmt.Errorf("second condition is required for %s orders", shape.Type)
 	}
-	leg := **second
-	if err := normalizeConditionLeg(&leg, *orderType, "second"); err != nil {
-		return err
+	leg := *shape.Second
+	if err := normalizeConditionLeg(&leg, shape.OrderType, "second"); err != nil {
+		return ConditionalShape{}, err
 	}
-	*second = &leg
-	return nil
+	shape.Second = &leg
+	return shape, nil
 }
 
-func normalizeConditionLeg(leg *ConditionLeg, orderType, name string) error {
+func normalizeConditionLeg(leg *ConditionLeg, orderType ConditionalOrderType, name string) error {
 	leg.OrderSide = strings.ToUpper(strings.TrimSpace(leg.OrderSide))
 	if leg.OrderSide != "BUY" && leg.OrderSide != "SELL" {
 		return fmt.Errorf("%s side must be BUY or SELL", name)
@@ -139,10 +169,10 @@ func normalizeConditionLeg(leg *ConditionLeg, orderType, name string) error {
 	if leg.TriggerPrice <= 0 {
 		return fmt.Errorf("%s trigger price must be greater than zero", name)
 	}
-	if orderType == "LIMIT" && leg.OrderPrice <= 0 {
+	if orderType == ConditionalLimit && leg.OrderPrice <= 0 {
 		return fmt.Errorf("%s order price must be greater than zero for LIMIT orders", name)
 	}
-	if orderType == "MARKET" && leg.OrderPrice != 0 {
+	if orderType == ConditionalMarket && leg.OrderPrice != 0 {
 		return fmt.Errorf("%s order price must be omitted for MARKET orders", name)
 	}
 	return nil
@@ -163,9 +193,9 @@ func secondCanonical(s *ConditionLeg) string {
 
 // CanonicalConditionalPlace builds a deterministic string for confirm-token hashing.
 func CanonicalConditionalPlace(i ConditionalPlaceIntent) string {
-	return fmt.Sprintf("cplace|%s|%s|%s|%s|%s|%s|%s|%t",
+	return fmt.Sprintf("cplace|%s|%s|%s|%s|%s|%s|%s|%s|%t",
 		i.Symbol, i.Type, i.OrderType, i.ExpireDate, fmtFloat(i.Quantity),
-		legCanonical(i.First), secondCanonical(i.Second), i.ConfirmHighValue)
+		legCanonical(i.First), secondCanonical(i.Second), i.ClientOrderID, i.ConfirmHighValue)
 }
 
 // CanonicalConditionalCancel builds a deterministic string for a cancel.

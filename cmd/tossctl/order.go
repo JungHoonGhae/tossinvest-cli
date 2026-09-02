@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
@@ -585,15 +584,19 @@ func newOrderConditionalCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			intent := orderintent.ConditionalPlaceIntent{
-				Symbol: plSymbol, Type: plType, OrderType: plOrderType, ExpireDate: plExpire,
-				Quantity: plQty, ClientOrderID: plClientID, ConfirmHighValue: plConfirmHigh,
-				First: orderintent.ConditionLeg{OrderSide: plFirstSide, TriggerPrice: plFirstTrigger, OrderPrice: plFirstOrder},
+			kind, err := orderintent.ParseConditionalType(plType)
+			if err != nil {
+				return err
 			}
-			if strings.EqualFold(plType, "OCO") || strings.EqualFold(plType, "OTO") {
-				if plSecondSide == "" {
-					return fmt.Errorf("--second-side/--second-trigger required for %s", plType)
-				}
+			intent := orderintent.ConditionalPlaceIntent{
+				Symbol: plSymbol, ClientOrderID: plClientID, ConfirmHighValue: plConfirmHigh,
+				ConditionalShape: orderintent.ConditionalShape{
+					Type: kind, OrderType: orderintent.ConditionalOrderType(plOrderType), ExpireDate: plExpire,
+					Quantity: plQty,
+					First:    orderintent.ConditionLeg{OrderSide: plFirstSide, TriggerPrice: plFirstTrigger, OrderPrice: plFirstOrder},
+				},
+			}
+			if kind.RequiresSecondLeg() {
 				intent.Second = &orderintent.ConditionLeg{OrderSide: plSecondSide, TriggerPrice: plSecondTrigger, OrderPrice: plSecondOrder}
 			}
 			intent, err = orderintent.NormalizeConditionalPlace(intent)
@@ -643,15 +646,19 @@ func newOrderConditionalCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			intent := orderintent.ConditionalModifyIntent{
-				ID: args[0], Type: mdType, OrderType: mdOrderType, ExpireDate: mdExpire,
-				Quantity: mdQty, ConfirmHighValue: mdConfirmHigh,
-				First: orderintent.ConditionLeg{OrderSide: mdFirstSide, TriggerPrice: mdFirstTrigger, OrderPrice: mdFirstOrder},
+			kind, err := orderintent.ParseConditionalType(mdType)
+			if err != nil {
+				return err
 			}
-			if strings.EqualFold(mdType, "OCO") || strings.EqualFold(mdType, "OTO") {
-				if mdSecondSide == "" {
-					return fmt.Errorf("--second-side/--second-trigger required for %s", mdType)
-				}
+			intent := orderintent.ConditionalModifyIntent{
+				ID: args[0], ConfirmHighValue: mdConfirmHigh,
+				ConditionalShape: orderintent.ConditionalShape{
+					Type: kind, OrderType: orderintent.ConditionalOrderType(mdOrderType), ExpireDate: mdExpire,
+					Quantity: mdQty,
+					First:    orderintent.ConditionLeg{OrderSide: mdFirstSide, TriggerPrice: mdFirstTrigger, OrderPrice: mdFirstOrder},
+				},
+			}
+			if kind.RequiresSecondLeg() {
 				intent.Second = &orderintent.ConditionLeg{OrderSide: mdSecondSide, TriggerPrice: mdSecondTrigger, OrderPrice: mdSecondOrder}
 			}
 			intent, err = orderintent.NormalizeConditionalModify(intent)
