@@ -83,3 +83,19 @@ func RedactOpenBankingStatus(value domain.OpenBankingStatus) domain.OpenBankingS
 	}
 	return out
 }
+
+func RedactSecuritiesTransferAccounts(value domain.SecuritiesTransferAccounts) domain.SecuritiesTransferAccounts {
+	out := value
+	out.OwnAccounts = redactSecuritiesTransferAccountItems(value.OwnAccounts)
+	out.RecentAccounts = redactSecuritiesTransferAccountItems(value.RecentAccounts)
+	return out
+}
+
+func redactSecuritiesTransferAccountItems(items []domain.SecuritiesTransferAccount) []domain.SecuritiesTransferAccount {
+	out := make([]domain.SecuritiesTransferAccount, len(items))
+	copy(out, items)
+	for i := range out {
+		out[i].AccountNo = AccountNumber(out[i].AccountNo)
+	}
+	return out
+}

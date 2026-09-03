@@ -8,8 +8,8 @@
   <h1>tossinvest-cli</h1>
   <p><strong>토스증권에 연결하는 가장 유연한 방법. CLI 로, MCP 서버로, 어떤 AI 에이전트로든 — 공식 API는 물론 웹앱에만 있던 기능까지 하나로.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — 어떤 AI 에이전트로든 <code>tossctl</code> 하나로 토스증권 계좌·시세·거래를 다룹니다. <strong>MCP 서버(<code>tossctl mcp</code>)로 붙이거나 터미널에서 직접</strong>, <strong>공식 키 없이 바로 또는 연결 시 자동 라우팅.</strong></p>
-  <p><sub>수급 · 시장지수 · AI 시그널 · 조건검색 · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview 등 공식 Open API에 없는 tossctl 고유 기능 53가지 — <strong>공식 Open API 지원 범위도 물론 100% 포함합니다.</strong> <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
-  <p><sub><em>The most flexible way to connect Toss Securities — via CLI, via MCP, from any AI agent. 100% of the official Open API, plus 53 tossctl-only capabilities.</em></sub></p>
+  <p><sub>수급 · 시장지수 · AI 시그널 · 조건검색 · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview 등 공식 Open API에 없는 tossctl 고유 기능 55가지 — <strong>공식 Open API 지원 범위도 물론 100% 포함합니다.</strong> <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
+  <p><sub><em>The most flexible way to connect Toss Securities — via CLI, via MCP, from any AI agent. 100% of the official Open API, plus 55 tossctl-only capabilities.</em></sub></p>
 </div>
 
 <p align="center">
@@ -216,7 +216,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 ## 지원 범위
 
 > **tossctl 은 토스 공식 Open API 의 조회·거래 범위를 100% 커버하고, 그 너머까지 다룹니다.**
-> 공식 [Open API 문서](https://developers.tossinvest.com/docs)의 모든 엔드포인트(계좌·잔고·시세·호가·체결·캔들·상하한가·매도가능수량·수수료·주문 등)에 대응하며, 추가로 수급·시장지수·AI 시그널·조건검색·관심종목 관리·거래내역 ledger·실시간 푸시·원화 소수점 주문·dry-run preview 등 **53개가 공식 Open API에 없는 tossctl 고유 범위**입니다.
+> 공식 [Open API 문서](https://developers.tossinvest.com/docs)의 모든 엔드포인트(계좌·잔고·시세·호가·체결·캔들·상하한가·매도가능수량·수수료·주문 등)에 대응하며, 추가로 수급·시장지수·AI 시그널·조건검색·관심종목 관리·거래내역 ledger·실시간 푸시·원화 소수점 주문·dry-run preview 등 **55개가 공식 Open API에 없는 tossctl 고유 범위**입니다.
 
 <p align="center">
   <img src="docs/assets/api-comparison.svg" alt="tossctl vs 공식 Open API(예정) 커버리지 비교 — tossctl 이 상위집합" width="840" />
@@ -297,10 +297,12 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **누적 실현손익** | `profit` (매매손익·배당·대여·만기·예탁금이자, KRW/USD — account summary 와 다른 누적 관점) | ❌ | ✅ |
 | **계좌 상세** | `account detail [--full]` (계좌번호·개설일 + **출금 가능액/한도** + 미수거래 상태 + **미국 배당 수령 방식** — 번호·이름은 기본 마스킹) | ❌ | ✅ |
 | **🆕 전체 계좌 자산** | `account overview [--full]` (일반·미성년 계좌별 자산과 미체결 주문 수 — 번호는 table/JSON/CSV 모두 기본 마스킹) | ❌ | ✅ |
-| **🆕 자동매매 조회** | `order autotrade` (스탑로스·목표수익·OCO·OTO 설정과 감시가/주문가 — 조회 전용) | ❌ | ✅ |
+| **🆕 증권 거래 설정 조회** | `account trading-settings` (간편주문·KRX/NXT 체결시장·ATS 알림·옵션 실시간 시세 구독 상태, 읽기 전용) | ❌ | ✅ |
+| **🆕 증권 주식이체 계좌 조회** | `account transfer-accounts [--full]` (내 계좌·최근 목적지 계좌, 번호 기본 마스킹; 이체 실행 없음) | ❌ | ✅ |
+| **자동매매 조회** | `order autotrade` (스탑로스·목표수익·OCO·OTO 설정과 감시가/주문가 — 조회 전용) | ❌ | ✅ |
 | **시장 뉴스** | `market news [--type all\|watchlist\|holdings\|soaring\|latest\|recommended] [--limit N] [--full]` (기사별 **관련 종목 등락률** 포함 — 헤드라인 목록에 없는 부분) | ❌ | ✅ |
-| **🆕 시장 이슈 랭킹** | `market issues [--full]` (지금 가장 많이 이야기되는 토픽 순위 + 등락 ▲▼ + 관련 기사) | ❌ | ✅ |
-| **🆕 증시 캘린더** | `market calendar [--month YYYY-MM]` (경제지표 **예상치·실제치·직전값** + 국내·미국 **실적 발표**(종목/시각) + 휴장일, 월 단위) | ❌ | ✅ |
+| **시장 이슈 랭킹** | `market issues [--full]` (지금 가장 많이 이야기되는 토픽 순위 + 등락 ▲▼ + 관련 기사) | ❌ | ✅ |
+| **증시 캘린더** | `market calendar [--month YYYY-MM]` (경제지표 **예상치·실제치·직전값** + 국내·미국 **실적 발표**(종목/시각) + 휴장일, 월 단위) | ❌ | ✅ |
 | **기간별 실현손익** | `profit summary --type sales\|dividend\|lending\|account-interest [--from --to]` (카테고리 하나의 수익금·수익률·매입금액, KRW/USD) | ❌ | ✅ |
 | **종목별 일자별 실현손익** | `profit daily [--from --to] [--currency KRW\|USD]` (종목·수량·손익·수익률·매도/매수 금액, 전체 페이지 병합 — 세금 준비용 CSV) | ❌ | ✅ |
 | **해외 양도소득(세금)** | `tax overseas --year YYYY` (양도소득세 신고용: 세율·공제·종목별 손익) | ❌ | ✅ |
@@ -317,7 +319,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **테마 등락 랭킹** | `market themes` (오늘 가장 많이 오른 테마, 상승종목 수) | ❌ | ✅ |
 | **AI 뉴스 브리핑** | `market briefing [--scope personalized\|kr\|us]` (개인화 또는 한국·미국 최신 브리핑) | ❌ | ✅ |
 | **🆕 핵심 실적·경제지표** | `market key-events` (실적 예상·발표·서프라이즈, 경제지표 실제·예상·직전값) | ❌ | ✅ |
-| **🆕 증권 주식모으기 자금연결 상태** | `banking status [--full]` (일반 Banking 아님; 예금주·계좌번호 기본 마스킹) | ❌ | ✅ |
+| **🆕 증권 주식모으기 자금연결 상태** | `banking status [--full]` (일반 Banking 아님; 연결 생성 가능·등록 필요 여부 포함, 예금주·계좌번호 기본 마스킹) | ❌ | ✅ |
 | **🆕 알림 설정 조회** | `notifications list` (읽기 전용, 내부 사용자 ID 제외) | ❌ | ✅ |
 | **🆕 목표가 알림 조회·관리** | `quote alert list\|add\|remove <symbol>` (변경은 preview + `--execute --confirm`) | ❌ | ✅ |
 | **🆕 숨긴 보유종목 조회·관리** | `portfolio hidden list\|hide\|show` (계좌 키 비노출, 변경 후 재검증) | ❌ | ✅ |
@@ -537,7 +539,7 @@ Claude Desktop·Codex 등 **JSON 설정 방식** 호스트는 아래 [설정 예
 
 MCP 의 고질적 비용은 **툴 스키마가 모델 컨텍스트에 상시 상주**한다는 점입니다. API 하나당 툴
 하나로 등록하면, 그 툴의 이름·설명·파라미터 스키마 전부가 대화 내내 컨텍스트를 차지합니다.
-tossctl 의 API 표면은 **87개 오퍼레이션**(공식·WTS 조회, 일반·조건 주문, 시스템 오퍼레이션,
+tossctl 의 API 표면은 **100개 오퍼레이션**(공식·WTS 조회, 일반·조건 주문, 시스템 오퍼레이션,
 계속 증가) — 이걸 개별 툴로 노출하면 **그만큼의 스키마가 항상 떠 있게** 되어 토큰을 먹고, 툴 선택
 노이즈(비슷한 툴 사이 오판)도 커집니다.
 
@@ -569,7 +571,9 @@ MCP 는 **조회를 공식 Open API + WTS 전용 기능 모두** 노출하고, *
 - **조회(read)** — 공식 API(계좌·시세·호가·체결·캔들 등)와 **WTS 전용**(인기 순위·수급·AI 시그널·
   스크리너·업종·어닝·브리핑·배당 등 [토스 고유 기능](#왜-tossctl-인가--공식-api-는-토스-기능의-일부일-뿐))을
   함께 노출합니다. WTS 조회는 웹 세션이 필요하고, 없으면 해당 오퍼레이션이 `tossctl auth login`
-  안내를 돌려줍니다. 조회는 실패해도 stale read 수준이라 에이전트에 노출해도 위험이 낮습니다.
+  안내를 돌려줍니다. 증권 거래 설정·주식이체 계좌·주식모으기 자금연결은 각각
+  `trading_settings`·`securities_transfer_accounts`·`banking_status`로 조회합니다. 조회는 실패해도
+  stale read 수준이라 에이전트에 노출해도 위험이 낮습니다.
 - **주문(write)** — 일반·조건주문의 생성·취소·정정은 **항상 공식 API 경로만** 사용합니다(WTS 미경유). 에이전트에
   주문을 맡기는 이상 제출 경로는 **토스가 공식 승인한 API** 여야 안전하고 정직하기 때문입니다.
 - **WTS 설정 쓰기(유일한 예외)** — `openapi_ip_replace_current`는 공식 Open API의 허용 IP 설정만
@@ -801,7 +805,9 @@ python3 -m pip install -e .
 tossctl account list
 tossctl account summary
 tossctl account overview [--full]               # 전체·미성년 계좌 합산, 번호 기본 마스킹
-tossctl banking status [--full]                  # 증권 주식모으기 자금연결 상태(일반 Banking 아님)
+tossctl account trading-settings                 # 간편주문·KRX/NXT·ATS·옵션 시세 구독 설정 조회
+tossctl account transfer-accounts [--full]       # 증권 이체용 내/최근 계좌 조회, 번호 기본 마스킹
+tossctl banking status [--full]                  # 증권 주식모으기 자금연결·등록 상태(일반 Banking 아님)
 tossctl notifications list                       # 알림 설정 조회(읽기 전용)
 tossctl portfolio positions
 tossctl portfolio allocation
@@ -922,11 +928,11 @@ tossctl openapi logout      # 자격증명 파일 삭제
 ### API 회귀 감시
 
 ```bash
-tossctl monitor api           # 57개 endpoint schema probe (병렬); exit 0 통과, 1 실패
+tossctl monitor api           # 65개 endpoint schema probe (병렬); exit 0 통과, 1 실패
 tossctl monitor api --quiet   # cron 용
 ```
 
-본인 머신에서 본인 세션으로 57개 read-only endpoint 응답 schema 를 병렬 점검합니다. [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) 같은 토스 서버측 body 계약 변경을 조기 감지할 목적. exit code 만 반환하므로 알림 채널 (Discord / Slack / ntfy / macOS / 이메일) 은 cron 라인의 `|| <command>` 우항에서 사용자가 합성합니다. 합성 recipe: [`AGENTS.md`](AGENTS.md). 설정 가이드: [`docs/operations.md`](docs/operations.md).
+본인 머신에서 본인 세션으로 65개 read-only endpoint 응답 schema 를 병렬 점검합니다. [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) 같은 토스 서버측 body 계약 변경을 조기 감지할 목적. exit code 만 반환하므로 알림 채널 (Discord / Slack / ntfy / macOS / 이메일) 은 cron 라인의 `|| <command>` 우항에서 사용자가 합성합니다. 합성 recipe: [`AGENTS.md`](AGENTS.md). 설정 가이드: [`docs/operations.md`](docs/operations.md).
 
 ## 주문 ref rollover
 

@@ -84,7 +84,9 @@ state를 가져와 `.tossinvest.com`의 WTS API 세 호스트에 적용한다.
 `GET /api/v1/autotrade/open-banking/info/find`는 현재 WTS 번들의 `wts-api` 클라이언트가
 소유하고 같은 증권 웹 세션으로 읽기 전용 라이브 schema까지 확인됐다. 따라서 전체 은행
 거래내역이 아니라 **주식모으기 출금계좌 연결 상태만** `banking status [--full]`로 구현했다.
-CLI·ops/MCP는 예금주명과 계좌번호를 기본 마스킹한다.
+CLI·ops/MCP는 예금주명과 계좌번호를 기본 마스킹한다. 같은 상태 조회에
+`open-banking/creatable`과 `open-banking/need-registration`을 묶어 연결 생성 가능 여부와
+등록 필요 여부도 보존한다.
 
 ## 후속 WTS 번들로 추가 검증한 읽기 계약
 
@@ -97,6 +99,14 @@ CLI·ops/MCP는 예금주명과 계좌번호를 기본 마스킹한다.
 | `GET /api/v2/reasoning/personalized` | `market briefing` | 보유·관심 종목, 수익률, 시그널 방향, AI 사유, 뉴스, 관련 종목 |
 | `GET /api/v1/calendar/ai-summary/key-events` | `market key-events` | 실적 예상·발표·서프라이즈, 경제지표 실제·예상·직전값 |
 | `GET /api/v1/user-alimies` | `notifications list` | 알림 타입·활성화·갱신시각; 내부 `userId`는 폐기 |
+| `GET /api/v1/autotrade/open-banking/creatable` | `banking status` | 새 자금연결 생성 가능 여부 |
+| `GET /api/v1/autotrade/open-banking/need-registration` | `banking status` | 자금연결 등록 필요 여부 |
+| `GET /api/v1/trading/settings/simple-trade` | `account trading-settings` | 계좌별 간편주문 활성 상태 |
+| `GET /api/v2/trading/settings/investor-exchange-choice-type` | `account trading-settings` | KRX/NXT 체결시장 선택 값 |
+| `GET /api/v1/users/settings/me/ats-notification` | `account trading-settings` | ATS 알림 활성 상태 |
+| `GET /api/v1/member-subscriptions/get-option-real-time-tick` | `account trading-settings` | 옵션 실시간 시세의 `requested`·`serviced`·`shouldCharged` 원문 의미 플래그 |
+| `GET /api/v1/securities-transfer/my-accounts` | `account transfer-accounts` | 내 이체 계좌의 은행 코드·계좌번호·계좌 ID; 번호 기본 마스킹 |
+| `GET /api/v1/securities-transfer/recent-accounts` | `account transfer-accounts` | 최근 목적지 계좌의 은행 코드·계좌번호; 번호 기본 마스킹 |
 | `GET /api/v1/dashboard/wts/overview/ai-signals/latest?nationCode=KOR\|USA` | `market briefing --scope kr\|us` | 개인화 브리핑과 같은 시그널·AI 사유·뉴스·관련 종목 구조 |
 | `GET /api/v1/dashboard/wts/overview/ai-signals/detail?productCode=&productType=` | `market signal <symbol> [--type]` | 전체 AI 근거·이슈·키워드·출처 뉴스·연관 종목 흐름; `result:null`은 정상 빈 상태 |
 | `GET /api/v2/dashboard/wts/overview/tics/{id}/simple` | `market sector <id>` | 업종명·현재 등락률·기간·이미지 |
@@ -111,7 +121,9 @@ CLI·ops/MCP는 예금주명과 계좌번호를 기본 마스킹한다.
 화면이 있는지 여부는 접근 가능성의 조건으로 쓰지 않았고, 현재 `.tossinvest.com` 세션으로
 실제 호출이 확인된 계약만 `source=wts`로 구현했다. TICS 종목·ETF·뉴스는 `{}` 요청에서
 서버 기본 첫 페이지를 반환하며 응답의 `totalCount`를 보존한다. 확인되지 않은 페이지 요청
-필드를 추측해 전체 목록인 것처럼 표시하지 않는다.
+필드를 추측해 전체 목록인 것처럼 표시하지 않는다. `account trading-settings`는 설정값을
+읽기만 하고 변경 endpoint를 노출하지 않는다. `account transfer-accounts`도 주식이체 화면의
+선택 후보만 조회하며 이체를 시작하거나 계좌 상태를 변경하지 않는다.
 
 같은 감사에서 `r-chart` 함수 정의와 정확한 URL 조립식도 찾았지만 현재 77개 chunk에는
 그 export를 소비하는 호출부가 없고, 실제 종목 화면의 일별 차트는 기존 `c-chart`, 실시간

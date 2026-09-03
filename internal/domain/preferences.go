@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 // PriceAlert is one server-side stock target-price alert.
 type PriceAlert struct {
 	TargetPrice float64 `json:"target_price"`
@@ -28,4 +30,22 @@ type HiddenHoldings struct {
 	AccountKey   string          `json:"-"`
 	AccountScope string          `json:"account_scope"`
 	Holdings     []HiddenHolding `json:"holdings"`
+}
+
+// OptionRealTimeTickStatus preserves the three booleans exposed by the WTS
+// membership contract without inferring subscription or billing semantics.
+type OptionRealTimeTickStatus struct {
+	Requested     bool `json:"requested"`
+	Serviced      bool `json:"serviced"`
+	ShouldCharged bool `json:"should_charged"`
+}
+
+// TradingSettings is the read-only set of independently stored Securities
+// trading preferences currently exposed by WTS.
+type TradingSettings struct {
+	SimpleTradeEnabled     bool                     `json:"simple_trade_enabled"`
+	InvestorExchangeChoice string                   `json:"investor_exchange_choice"`
+	ATSNotificationEnabled bool                     `json:"ats_notification_enabled"`
+	OptionRealTimeTick     OptionRealTimeTickStatus `json:"option_real_time_tick"`
+	FetchedAt              time.Time                `json:"fetched_at"`
 }

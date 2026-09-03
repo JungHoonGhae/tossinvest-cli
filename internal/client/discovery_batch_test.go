@@ -126,11 +126,19 @@ func TestGetMarketKeyEventsKeepsEmptyCollectionsAsArrays(t *testing.T) {
 func TestGetOpenBankingStatusMapsOnlyStableObservedFields(t *testing.T) {
 	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/autotrade/open-banking/info/find" {
-			http.NotFound(w, r)
-			return
+		if r.Method != http.MethodGet {
+			t.Fatalf("method = %s, want GET", r.Method)
 		}
-		_, _ = w.Write([]byte(`{"result":{"name":"홍길동","connectedOpenBankingAccount":{"accountNo":"123-456-789","bankCode":"088","openBankingId":42},"openBankingAccounts":[{}],"registrableAccounts":[{},{}],"savingCount":3}}`))
+		switch r.URL.Path {
+		case "/api/v1/autotrade/open-banking/info/find":
+			_, _ = w.Write([]byte(`{"result":{"name":"홍길동","connectedOpenBankingAccount":{"accountNo":"123-456-789","bankCode":"088","openBankingId":42},"openBankingAccounts":[{}],"registrableAccounts":[{},{}],"savingCount":3}}`))
+		case "/api/v1/autotrade/open-banking/creatable":
+			_, _ = w.Write([]byte(`{"result":true}`))
+		case "/api/v1/autotrade/open-banking/need-registration":
+			_, _ = w.Write([]byte(`{"result":false}`))
+		default:
+			http.NotFound(w, r)
+		}
 	}))
 	t.Cleanup(server.Close)
 
@@ -144,16 +152,24 @@ func TestGetOpenBankingStatusMapsOnlyStableObservedFields(t *testing.T) {
 	if got.LinkedAccountCount != 1 || got.RegistrableAccountCount != 2 || got.SavingCount != 3 {
 		t.Fatalf("counts = %#v", got)
 	}
+	if !got.ConnectionCreatable || got.RegistrationRequired {
+		t.Fatalf("capabilities = %#v", got)
+	}
 }
 
 func TestGetOpenBankingStatusAllowsDisconnectedAccount(t *testing.T) {
 	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/autotrade/open-banking/info/find" {
+		switch r.URL.Path {
+		case "/api/v1/autotrade/open-banking/info/find":
+			_, _ = w.Write([]byte(`{"result":{"name":"","connectedOpenBankingAccount":null,"openBankingAccounts":[],"registrableAccounts":[],"savingCount":0}}`))
+		case "/api/v1/autotrade/open-banking/creatable":
+			_, _ = w.Write([]byte(`{"result":false}`))
+		case "/api/v1/autotrade/open-banking/need-registration":
+			_, _ = w.Write([]byte(`{"result":true}`))
+		default:
 			http.NotFound(w, r)
-			return
 		}
-		_, _ = w.Write([]byte(`{"result":{"name":"","connectedOpenBankingAccount":null,"openBankingAccounts":[],"registrableAccounts":[],"savingCount":0}}`))
 	}))
 	t.Cleanup(server.Close)
 
@@ -163,6 +179,9 @@ func TestGetOpenBankingStatusAllowsDisconnectedAccount(t *testing.T) {
 	}
 	if got.ConnectedAccount != nil || got.LinkedAccountCount != 0 || got.RegistrableAccountCount != 0 {
 		t.Fatalf("disconnected status = %#v", got)
+	}
+	if got.ConnectionCreatable || !got.RegistrationRequired {
+		t.Fatalf("disconnected capabilities = %#v", got)
 	}
 }
 

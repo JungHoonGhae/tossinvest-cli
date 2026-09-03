@@ -8,7 +8,7 @@
   <h1>tossinvest-cli</h1>
   <p><strong>The most flexible way to connect Toss Securities. Via CLI, via MCP server, from any AI agent — 100% of the official API, plus the features only the web app had.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — any AI agent drives Toss Securities accounts, quotes, and trades through one <code>tossctl</code>. <strong>Attach it as an MCP server (<code>tossctl mcp</code>) or run it by hand</strong>, <strong>with no key at all — or auto-routed through the official path when you connect one.</strong></p>
-  <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — 53 tossctl-only capabilities beyond the official Open API, with <strong>100% of the official Open API's coverage included too.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
+  <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — 55 tossctl-only capabilities beyond the official Open API, with <strong>100% of the official Open API's coverage included too.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
   <p><sub><em>An unofficial Toss Securities CLI for AI agents. Auto-routes through the official OAuth path when you connect an official key.</em></sub></p>
 </div>
 
@@ -174,7 +174,7 @@ For cron: `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 ## Support Scope
 
 > **tossctl covers 100% of the official Toss Open API's read & trade coverage — and goes beyond.**
-> It maps to every endpoint in the official [Open API docs](https://developers.tossinvest.com/docs) (accounts, holdings, quotes, orderbook, ticks, candles, price limits, sellable quantity, commissions, orders, …), and adds investor flows, market indices, AI signals, screener, watchlist management, transaction ledger, real-time push, fractional orders, dry-run preview, and more — **53 capabilities that aren't in the official API are tossctl-only.**
+> It maps to every endpoint in the official [Open API docs](https://developers.tossinvest.com/docs) (accounts, holdings, quotes, orderbook, ticks, candles, price limits, sellable quantity, commissions, orders, …), and adds investor flows, market indices, AI signals, screener, watchlist management, transaction ledger, real-time push, fractional orders, dry-run preview, and more — **55 capabilities that aren't in the official API are tossctl-only.**
 
 <p align="center">
   <img src="docs/assets/api-comparison.en.svg" alt="tossctl vs official Open API (upcoming) coverage — tossctl is a superset" width="900" />
@@ -254,10 +254,12 @@ token and consent boundary to be verified first.
 | **Cumulative realized profit** | `profit` (trading gains · dividends · lending · maturity · deposit interest, KRW/USD — a cumulative view distinct from account summary) | ❌ | ✅ |
 | **Account detail** | `account detail [--full]` (number · open date + **withdrawable cash and caps** + credit-trading status + **US dividend payout mode** — number and name masked by default) | ❌ | ✅ |
 | **🆕 All-account assets** | `account overview [--full]` (regular and minor accounts · pending-order counts — account numbers masked by default) | ❌ | ✅ |
-| **🆕 Automated trading** | `order autotrade` (stop-loss / target-profit / OCO / OTO rules with trigger and order prices — read-only) | ❌ | ✅ |
+| **🆕 Securities trading settings** | `account trading-settings` (simple trade, KRX/NXT execution venue, ATS notifications, option real-time tick subscription; read-only) | ❌ | ✅ |
+| **🆕 Securities transfer accounts** | `account transfer-accounts [--full]` (own and recent destination accounts, masked by default; never initiates a transfer) | ❌ | ✅ |
+| **Automated trading** | `order autotrade` (stop-loss / target-profit / OCO / OTO rules with trigger and order prices — read-only) | ❌ | ✅ |
 | **Market news** | `market news [--type all\|watchlist\|holdings\|soaring\|latest\|recommended] [--limit N] [--full]` (each article's **related stocks and their moves** — what a headline list lacks) | ❌ | ✅ |
-| **🆕 Market issue board** | `market issues [--full]` (topics ranked by attention, with rank movement ▲▼ and backing articles) | ❌ | ✅ |
-| **🆕 Market calendar** | `market calendar [--month YYYY-MM]` (releases with **forecast / actual / prior**, KR+US **earnings** with symbol and call time, holidays — by month) | ❌ | ✅ |
+| **Market issue board** | `market issues [--full]` (topics ranked by attention, with rank movement ▲▼ and backing articles) | ❌ | ✅ |
+| **Market calendar** | `market calendar [--month YYYY-MM]` (releases with **forecast / actual / prior**, KR+US **earnings** with symbol and call time, holidays — by month) | ❌ | ✅ |
 | **Realized profit by period** | `profit summary --type sales\|dividend\|lending\|account-interest [--from --to]` (one category's earned amount, return rate, purchase basis in KRW/USD) | ❌ | ✅ |
 | **Per-stock daily realized profit** | `profit daily [--from --to] [--currency KRW\|USD]` (symbol · quantity · P/L · rate · sell/buy amounts, every page merged — CSV for tax prep) | ❌ | ✅ |
 | **Overseas transfer income (tax)** | `tax overseas --year YYYY` (capital-gains filing: rate · deduction · per-stock P/L) | ❌ | ✅ |
@@ -274,7 +276,7 @@ token and consent boundary to be verified first.
 | **Theme fluctuation ranking** | `market themes` (today's top-moving themes, rising-stock counts) | ❌ | ✅ |
 | **AI news briefing** | `market briefing [--scope personalized\|kr\|us]` (personalized or latest KR/US briefing) | ❌ | ✅ |
 | **🆕 Key earnings & economic releases** | `market key-events` (estimates · actuals · surprises · previous values) | ❌ | ✅ |
-| **🆕 Securities stock-accumulation funding status** | `banking status [--full]` (not general Banking; holder/account masked by default) | ❌ | ✅ |
+| **🆕 Securities stock-accumulation funding status** | `banking status [--full]` (not general Banking; includes connection-creatable/registration-required flags, holder/account masked by default) | ❌ | ✅ |
 | **🆕 Notification preferences** | `notifications list` (read-only; internal user ID omitted) | ❌ | ✅ |
 | **🆕 Target-price alert reads & writes** | `quote alert list\|add\|remove <symbol>` (writes use preview + `--execute --confirm`) | ❌ | ✅ |
 | **🆕 Hidden-holding reads & writes** | `portfolio hidden list\|hide\|show` (account key omitted; post-write verification) | ❌ | ✅ |
@@ -446,12 +448,12 @@ session) for the full feature set — see [Quick Start](#quick-start). Both path
 
 MCP's inherent cost is that **tool schemas stay resident in the model's context**. Register one
 tool per API and every tool's name, description, and parameter schema occupies context for the
-whole conversation. tossctl's surface is **87 operations** across official and WTS reads,
-regular and conditional orders, and system operations — exposing them individually would keep **87 schemas always loaded**,
+whole conversation. tossctl's surface is **100 operations** across official and WTS reads,
+regular and conditional orders, and system operations — exposing them individually would keep **100 schemas always loaded**,
 burning tokens and adding tool-choice noise (mis-picks between similar tools).
 
 Following KIS_MCP_Server's catalog mode, tossctl fronts everything with **just three fixed
-tools** and keeps the 87 operations behind an **on-demand schema fetch**:
+tools** and keeps the 100 operations behind an **on-demand schema fetch**:
 
 - `list_operations` — list available operations (id, summary, write flag), filter with `query`
 - `describe_operation` — fetch one operation's parameter schema **only at that moment**
@@ -481,7 +483,9 @@ official first, web-session fallback), or official-only otherwise.
   flows, AI signals, screener, sectors, earnings, briefing, dividends — the
   [Toss-unique features](#why-tossctl--the-official-api-is-a-fraction-of-toss)). WTS reads need
   a web session; without one, those operations return a `tossctl auth login` hint. A failed read
-  is at worst a stale read, so exposing it to an agent is low-risk.
+  is at worst a stale read, so exposing it to an agent is low-risk. Securities trading settings,
+  stock-transfer accounts, and accumulation funding status are exposed as `trading_settings`,
+  `securities_transfer_accounts`, and `banking_status` respectively.
 - **Writes.** Regular and conditional place / cancel / modify always use the **official API path** (never WTS): if an
   agent can submit orders, the path should be one **Toss officially sanctions** — safer and more honest.
 - **WTS settings write (sole exception).** `openapi_ip_replace_current` changes only the official
@@ -683,7 +687,9 @@ python3 -m pip install -e .
 tossctl account list
 tossctl account summary
 tossctl account overview [--full]               # regular + minor accounts; numbers masked by default
-tossctl banking status [--full]                  # Securities accumulation funding (not general Banking)
+tossctl account trading-settings                 # simple trade, KRX/NXT, ATS, option tick settings
+tossctl account transfer-accounts [--full]       # Securities transfer destinations; masked by default
+tossctl banking status [--full]                  # Securities accumulation funding/registration status
 tossctl notifications list                       # read-only notification preferences
 tossctl portfolio positions
 tossctl portfolio allocation
@@ -786,11 +792,11 @@ tossctl auth extend --if-expiring 48h   # extend only when close to expiry (cron
 ### API regression watch
 
 ```bash
-tossctl monitor api           # schema-probe 57 endpoints (parallel); exit 0 pass, 1 fail
+tossctl monitor api           # schema-probe 65 endpoints (parallel); exit 0 pass, 1 fail
 tossctl monitor api --quiet   # for cron
 ```
 
-Checks the response schema of 57 read-only endpoints in parallel, using your own session on your own machine — to catch Toss server-side body-contract changes (like [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29)) early. It only returns an exit code, so you compose alert channels (Discord / Slack / ntfy / macOS / email) on the right side of `|| <command>` in your cron line. Recipes: [`AGENTS.md`](AGENTS.md), setup guide: [`docs/operations.md`](docs/operations.md).
+Checks the response schema of 65 read-only endpoints in parallel, using your own session on your own machine — to catch Toss server-side body-contract changes (like [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29)) early. It only returns an exit code, so you compose alert channels (Discord / Slack / ntfy / macOS / email) on the right side of `|| <command>` in your cron line. Recipes: [`AGENTS.md`](AGENTS.md), setup guide: [`docs/operations.md`](docs/operations.md).
 
 ## Development
 

@@ -4,8 +4,8 @@
   "chunk_count": 77,
   "total": 1113,
   "counts": {
-    "implemented": 147,
-    "candidate": 310,
+    "implemented": 155,
+    "candidate": 302,
     "excluded": 656,
     "candidate_next": 0,
     "meaningful": 457
@@ -24,6 +24,62 @@
       "host": "wts-api",
       "evidence": "verified",
       "note": "WTS bundle contract + read-only live schema verified 2026-09-02. Only stock-accumulation funding connection state is exposed; identity is masked by default."
+    },
+    "/api/v1/autotrade/open-banking/creatable": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-api",
+      "evidence": "verified",
+      "note": "Generated WTS request registry + read-only live boolean schema verified 2026-09-03. Exposed as connection_creatable in banking status; this is Securities accumulation funding, not general Banking."
+    },
+    "/api/v1/autotrade/open-banking/need-registration": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-api",
+      "evidence": "verified",
+      "note": "Generated WTS request registry + read-only live boolean schema verified 2026-09-03. Exposed as registration_required in banking status; this is Securities accumulation funding, not general Banking."
+    },
+    "/api/v1/trading/settings/simple-trade": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "Exact accountKey-scoped GET contract + read-only live boolean schema verified 2026-09-03. Read only through account trading-settings; enabling/disabling remains unimplemented."
+    },
+    "/api/v2/trading/settings/investor-exchange-choice-type": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "Exact GET contract, integrated/krx/nxt bundle enum, and read-only live string schema verified 2026-09-03. Read only through account trading-settings."
+    },
+    "/api/v1/users/settings/me/ats-notification": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "Exact GET contract + read-only live boolean schema verified 2026-09-03. Read only through account trading-settings; the PUT mutation remains unimplemented."
+    },
+    "/api/v1/member-subscriptions/get-option-real-time-tick": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "Exact GET contract + read-only live requested/serviced/shouldCharged schema verified 2026-09-03. Exposed without inventing subscription or billing semantics."
+    },
+    "/api/v1/securities-transfer/my-accounts": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "Exact accountKey-scoped GET contract + non-empty live bankCode/accountNo/accountId schema verified 2026-09-03. Read only through account transfer-accounts; account numbers are masked by default."
+    },
+    "/api/v1/securities-transfer/recent-accounts": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "Exact accountKey-scoped GET contract + non-empty live bankCode/accountNo schema verified 2026-09-03. Read only through account transfer-accounts; account numbers are masked by default."
     },
     "/api/v1/user-price-alimy/{stockCode}": {
       "status": "implemented",
@@ -641,7 +697,7 @@
         "host": "wts-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/account/fatca": {
@@ -797,7 +853,7 @@
         "body": [
           "termsKeys"
         ],
-        "at": "2026-08-24"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/account/frontend/terms/list": {
@@ -861,7 +917,7 @@
         "host": "wts-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/account/locked-status/locked-status": {
@@ -1464,9 +1520,11 @@
       }
     },
     "/api/v1/autotrade/open-banking/creatable": {
-      "status": "candidate",
+      "status": "implemented",
+      "note": "Generated WTS request registry + read-only live boolean schema verified 2026-09-03. Exposed as connection_creatable in banking status; this is Securities accumulation funding, not general Banking.",
       "method": "GET",
       "host": "wts-api",
+      "evidence": "verified",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -1490,9 +1548,11 @@
       }
     },
     "/api/v1/autotrade/open-banking/need-registration": {
-      "status": "candidate",
+      "status": "implemented",
+      "note": "Generated WTS request registry + read-only live boolean schema verified 2026-09-03. Exposed as registration_required in banking status; this is Securities accumulation funding, not general Banking.",
       "method": "GET",
       "host": "wts-api",
+      "evidence": "verified",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -1620,7 +1680,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-04"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/boards/{subjectType}/{subjectId}": {
@@ -1701,8 +1761,7 @@
           "guid"
         ],
         "body": [],
-        "at": "2026-08-04",
-        "source": "bundle-literal: pages/bonds/[guid] — FH.get(`${INFO}/api/v1/bond-infos`,{params:{guid}})"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/bond-infos/simple": {
@@ -1806,7 +1865,7 @@
           "useAdjustedRate"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/calendar/ai-summary/key-events": {
@@ -2343,7 +2402,7 @@
           "type"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/community/terms-agreement": {
@@ -2546,7 +2605,7 @@
         "body": [
           "types"
         ],
-        "at": "2026-08-24"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/dashboard/common/cached-orderable-amount": {
@@ -2557,7 +2616,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/dashboard/common/market-event/banners": {
@@ -2626,7 +2685,7 @@
         "body": [
           "codes"
         ],
-        "at": "2026-08-24"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/dashboard/common/watchlists/grid-view": {
@@ -2649,7 +2708,7 @@
         "host": "wts-info-api",
         "query": [],
         "body": [],
-        "at": "2026-08-24"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/dashboard/wts/overview/ai-signals": {
@@ -2669,7 +2728,7 @@
         "host": "wts-info-api",
         "query": [],
         "body": [],
-        "at": "2026-08-24"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/dashboard/wts/overview/ai-signals/detail": {
@@ -2721,7 +2780,7 @@
         "host": "wts-info-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/dashboard/wts/overview/indicator": {
@@ -2747,7 +2806,16 @@
       "status": "implemented",
       "method": "GET",
       "host": "wts-cert-api",
-      "first_seen": "2026-09-01"
+      "first_seen": "2026-09-01",
+      "observed": {
+        "method": "GET",
+        "host": "wts-cert-api",
+        "query": [
+          "market"
+        ],
+        "body": [],
+        "at": "2026-09-03"
+      }
     },
     "/api/v1/dashboard/wts/overview/margin": {
       "status": "implemented",
@@ -2757,7 +2825,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/dashboard/wts/overview/rankings/by-investors": {
@@ -2803,7 +2871,7 @@
         "host": "wts-info-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/delayed-transfer/schedules": {
@@ -2828,7 +2896,7 @@
           "year"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/dividends/accounts/{key}": {
@@ -3020,7 +3088,14 @@
       "status": "implemented",
       "method": "GET",
       "host": "wts-api",
-      "first_seen": "2026-08-25"
+      "first_seen": "2026-08-25",
+      "observed": {
+        "method": "GET",
+        "host": "wts-api",
+        "query": [],
+        "body": [],
+        "at": "2026-09-03"
+      }
     },
     "/api/v1/exchange/usd/base-exchange-rate/{date}": {
       "status": "candidate",
@@ -3238,7 +3313,7 @@
         "host": "wts-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/kyc/due-diligence": {
@@ -3292,7 +3367,7 @@
         "host": "wts-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/lending/agreement/count-active": {
@@ -3551,7 +3626,7 @@
           "countryCode"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/margin/cert/differential-margin/enabled": {
@@ -3562,7 +3637,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/margin/cert/frozen-account": {
@@ -3624,9 +3699,11 @@
       }
     },
     "/api/v1/member-subscriptions/get-option-real-time-tick": {
-      "status": "candidate",
+      "status": "implemented",
+      "note": "Exact GET contract + read-only live requested/serviced/shouldCharged schema verified 2026-09-03. Exposed without inventing subscription or billing semantics.",
       "method": "GET",
       "host": "wts-cert-api",
+      "evidence": "verified",
       "first_seen": "2026-06-19",
       "probe": {
         "verdict": "thin",
@@ -3640,7 +3717,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/member-terms/get-all-agreed-by-scope-range": {
@@ -3659,7 +3736,16 @@
     "/api/v1/memo/private": {
       "status": "excluded",
       "note": "community/UGC",
-      "first_seen": "2026-06-19"
+      "first_seen": "2026-06-19",
+      "observed": {
+        "method": "GET",
+        "host": "wts-cert-api",
+        "query": [
+          "size"
+        ],
+        "body": [],
+        "at": "2026-09-03"
+      }
     },
     "/api/v1/memo/private/stocks/recent": {
       "status": "excluded",
@@ -3672,7 +3758,7 @@
           "codes"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/memo/private/stocks/{stockCode}/count": {
@@ -4266,7 +4352,7 @@
           "currency"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/my-assets/summaries/markets/{market}/withdrawable-amount": {
@@ -4320,7 +4406,7 @@
           "lazyLoad"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/new-watchlists/config": {
@@ -4420,7 +4506,7 @@
           "code",
           "itemType"
         ],
-        "at": "2026-08-24"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/new-watchlists/recent/delete": {
@@ -4467,7 +4553,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/nova-feedback/user-feedbacks": {
@@ -4724,7 +4810,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/pin/error-status": {
@@ -4902,7 +4988,7 @@
           "productCodes"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/product/stock-prices/mainsession": {
@@ -4919,7 +5005,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-24"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/profit/type/overview": {
@@ -5688,7 +5774,7 @@
           "size"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/reasoning-contents/alimy/subscription": {
@@ -6164,7 +6250,7 @@
           "useCustom"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/screener/screen/count": {
@@ -6271,9 +6357,11 @@
       }
     },
     "/api/v1/securities-transfer/my-accounts": {
-      "status": "candidate",
+      "status": "implemented",
+      "note": "Exact accountKey-scoped GET contract + non-empty live bankCode/accountNo/accountId schema verified 2026-09-03. Read only through account transfer-accounts; account numbers are masked by default.",
       "method": "GET",
       "host": "wts-cert-api",
+      "evidence": "verified",
       "first_seen": "2026-06-19",
       "probe": {
         "verdict": "thin",
@@ -6284,9 +6372,11 @@
       }
     },
     "/api/v1/securities-transfer/recent-accounts": {
-      "status": "candidate",
+      "status": "implemented",
+      "note": "Exact accountKey-scoped GET contract + non-empty live bankCode/accountNo schema verified 2026-09-03. Read only through account transfer-accounts; account numbers are masked by default.",
       "method": "GET",
       "host": "wts-cert-api",
+      "evidence": "verified",
       "first_seen": "2026-06-19",
       "probe": {
         "verdict": "thin",
@@ -6343,7 +6433,7 @@
         "host": "wts-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/session/refresh": {
@@ -6372,7 +6462,7 @@
         "host": "wts-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/settings/notification/alimy": {
@@ -6454,7 +6544,7 @@
         "host": "wts-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/settings/wts/abroad-access": {
@@ -6487,7 +6577,7 @@
         "host": "wts-info-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/stock-detail/ui/wts": {
@@ -6700,7 +6790,7 @@
           "type"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/terms/agreement/{scope}/{type}/{docId}": {
@@ -6792,7 +6882,7 @@
         "host": "wts-info-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/tics/rankings": {
@@ -6818,7 +6908,7 @@
         "host": "wts-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/toss-one-user/terms": {
@@ -7050,7 +7140,7 @@
           "forceFetch"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/trading/orders/calculate/order-data": {
@@ -7068,7 +7158,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-24"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/trading/orders/histories/all/pending": {
@@ -7081,7 +7171,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/trading/orders/histories/tab": {
@@ -7099,7 +7189,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/trading/orders/histories/{type}": {
@@ -7127,14 +7217,12 @@
       }
     },
     "/api/v1/trading/settings/simple-trade": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 200,
-        "verdict": "thin"
-      }
+      "status": "implemented",
+      "note": "Exact accountKey-scoped GET contract + read-only live boolean schema verified 2026-09-03. Read only through account trading-settings; enabling/disabling remains unimplemented.",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "first_seen": "2026-06-19"
     },
     "/api/v1/trading/settings/simple-trade/off": {
       "status": "candidate",
@@ -7161,7 +7249,7 @@
           "categoryName"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/trading/stocks/{stockCode}/average-price": {
@@ -7408,9 +7496,11 @@
       "observed": {
         "method": "GET",
         "host": "wts-info-api",
-        "query": [],
+        "query": [
+          "overtimeFlag"
+        ],
         "body": [],
-        "at": "2026-08-04"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/user-alimies": {
@@ -7494,7 +7584,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/user-profiles/by-replies/{commentId}": {
@@ -7567,7 +7657,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/user-profiles/unhide": {
@@ -7622,7 +7712,7 @@
         "host": "wts-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/user-token/uuid": {
@@ -7688,14 +7778,12 @@
       }
     },
     "/api/v1/users/settings/me/ats-notification": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 200,
-        "verdict": "thin"
-      }
+      "status": "implemented",
+      "note": "Exact GET contract + read-only live boolean schema verified 2026-09-03. Read only through account trading-settings; the PUT mutation remains unimplemented.",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "first_seen": "2026-06-19"
     },
     "/api/v1/users/{userId}/settings/terms-change-noti/channel": {
       "status": "candidate",
@@ -7786,7 +7874,7 @@
         "host": "sse-message",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v1/wts/active-method/locked-status": {
@@ -8145,7 +8233,7 @@
         "body": [
           "types"
         ],
-        "at": "2026-08-24"
+        "at": "2026-09-03"
       }
     },
     "/api/v2/dashboard/common/watchlists/grid-view": {
@@ -8180,7 +8268,7 @@
           "types",
           "variable"
         ],
-        "at": "2026-08-24"
+        "at": "2026-09-03"
       }
     },
     "/api/v2/dashboard/wts/overview/calendar/economic-events": {
@@ -8201,7 +8289,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v2/dashboard/wts/overview/ranking": {
@@ -8220,7 +8308,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-24"
+        "at": "2026-09-03"
       }
     },
     "/api/v2/dashboard/wts/overview/tics/ranking": {
@@ -8329,7 +8417,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v2/index-infos/{code}": {
@@ -8734,7 +8822,7 @@
         "host": "wts-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v2/my-assets/transactions": {
@@ -8751,7 +8839,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v2/news": {
@@ -9010,7 +9098,7 @@
           "useCustom"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v2/screener/screen": {
@@ -9021,7 +9109,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-24"
+        "at": "2026-09-03"
       }
     },
     "/api/v2/settings/password/reset": {
@@ -9227,7 +9315,7 @@
         "host": "wts-info-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v2/stock-infos/code-or-symbol": {
@@ -9238,7 +9326,7 @@
         "host": "wts-info-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v2/stock-infos/consensus": {
@@ -9283,7 +9371,7 @@
           "viewType"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v2/stock-prices/{code}/ticks": {
@@ -9308,7 +9396,7 @@
         "host": "wts-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v2/terms/agreement/overseas-stocks": {
@@ -9513,7 +9601,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v2/trading/order/buy-control/required-deposit-amount": {
@@ -9585,20 +9673,18 @@
       }
     },
     "/api/v2/trading/settings/investor-exchange-choice-type": {
-      "status": "candidate",
+      "status": "implemented",
+      "note": "Exact GET contract, integrated/krx/nxt bundle enum, and read-only live string schema verified 2026-09-03. Read only through account trading-settings.",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
       "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 200,
-        "verdict": "thin"
-      },
       "observed": {
         "method": "GET",
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v2/trading/settings/prepare/toggle": {
@@ -9822,7 +9908,7 @@
           "tabId"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v3/ipd-thor/api/v1/workspaces": {
@@ -9843,6 +9929,13 @@
         "host": "wts-info-api",
         "status": 200,
         "verdict": "worth-review"
+      },
+      "observed": {
+        "method": "GET",
+        "host": "wts-info-api",
+        "query": [],
+        "body": [],
+        "at": "2026-09-03"
       }
     },
     "/api/v3/ipd-toss-survey/forms": {
@@ -9882,7 +9975,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v3/my-assets/transactions/markets/{market}/lastest-etc-lend": {
@@ -10037,7 +10130,7 @@
           "productCodes"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v3/stock-prices/details": {
@@ -10050,7 +10143,7 @@
           "productCodes"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v3/stock-prices/{code}/quotes": {
@@ -10334,7 +10427,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-24"
+        "at": "2026-09-03"
       }
     },
     "/api/v4/calendar/monthly/{month}": {
@@ -10371,7 +10464,7 @@
           "subjectType"
         ],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v4/comments/{id}": {
@@ -10398,7 +10491,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v4/feed/issue-ranking": {
@@ -10419,7 +10512,7 @@
         "host": "wts-cert-api",
         "query": [],
         "body": [],
-        "at": "2026-08-03"
+        "at": "2026-09-03"
       }
     },
     "/api/v4/login/mts/issue-ticket": {

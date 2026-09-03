@@ -17,6 +17,8 @@ func newAccountCmd(opts *rootOptions) *cobra.Command {
 		newAccountInterestCmd(opts),
 		newAccountBuyingPowerCmd(opts),
 		newAccountOverviewCmd(opts),
+		newAccountTradingSettingsCmd(opts),
+		newAccountTransferAccountsCmd(opts),
 		&cobra.Command{
 			Use:         "list",
 			Short:       i18n.T("account.list.short"),
@@ -95,6 +97,51 @@ func newAccountCmd(opts *rootOptions) *cobra.Command {
 	)
 
 	return cmd
+}
+
+func newAccountTransferAccountsCmd(opts *rootOptions) *cobra.Command {
+	var full bool
+	cmd := &cobra.Command{
+		Use:         "transfer-accounts",
+		Short:       i18n.T("account.transferAccounts.short"),
+		Long:        i18n.T("account.transferAccounts.long"),
+		Annotations: map[string]string{"source": "wts", "domain": "securities"},
+		Args:        cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			accounts, err := app.client.GetSecuritiesTransferAccounts(cmd.Context())
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteSecuritiesTransferAccounts(cmd.OutOrStdout(), app.format, accounts, full)
+		},
+	}
+	cmd.Flags().BoolVar(&full, "full", false, "show complete account numbers (default masks them)")
+	return cmd
+}
+
+func newAccountTradingSettingsCmd(opts *rootOptions) *cobra.Command {
+	return &cobra.Command{
+		Use:         "trading-settings",
+		Short:       i18n.T("account.tradingSettings.short"),
+		Long:        i18n.T("account.tradingSettings.long"),
+		Annotations: map[string]string{"source": "wts", "domain": "securities"},
+		Args:        cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			settings, err := app.client.GetTradingSettings(cmd.Context())
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteTradingSettings(cmd.OutOrStdout(), app.format, settings)
+		},
+	}
 }
 
 func newAccountOverviewCmd(opts *rootOptions) *cobra.Command {

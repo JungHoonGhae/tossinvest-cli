@@ -67,3 +67,21 @@ func TestRedactOpenBankingStatusMasksNameAndAccount(t *testing.T) {
 		t.Fatalf("input mutated: %#v", input)
 	}
 }
+
+func TestRedactSecuritiesTransferAccountsMasksEveryNumberWithoutMutatingInput(t *testing.T) {
+	t.Parallel()
+	input := domain.SecuritiesTransferAccounts{
+		OwnAccounts:    []domain.SecuritiesTransferAccount{{BankCode: "092", AccountNo: "123-456-789", AccountID: "own-1"}},
+		RecentAccounts: []domain.SecuritiesTransferAccount{{BankCode: "088", AccountNo: "987-654-321"}},
+	}
+	got := RedactSecuritiesTransferAccounts(input)
+	if got.OwnAccounts[0].AccountNo == "123-456-789" || got.RecentAccounts[0].AccountNo == "987-654-321" {
+		t.Fatalf("account numbers not redacted: %#v", got)
+	}
+	if got.OwnAccounts[0].BankCode != "092" || got.OwnAccounts[0].AccountID != "own-1" || got.RecentAccounts[0].BankCode != "088" {
+		t.Fatalf("non-secret metadata changed: %#v", got)
+	}
+	if input.OwnAccounts[0].AccountNo != "123-456-789" || input.RecentAccounts[0].AccountNo != "987-654-321" {
+		t.Fatalf("input mutated: %#v", input)
+	}
+}

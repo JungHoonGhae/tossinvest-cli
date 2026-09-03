@@ -53,6 +53,120 @@ func TestDiscoveryBatchOperationsAreCataloguedAndReadOnly(t *testing.T) {
 	}
 }
 
+func TestTradingSettingsOperationIsCallableAndOwnsDependencyProbes(t *testing.T) {
+	t.Parallel()
+	deps := discoveryWTSDeps(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/account/list":
+			_, _ = w.Write([]byte(`{"result":{"accountList":[{"key":"primary-test"}],"primaryKey":"primary-test"}}`))
+		case "/api/v1/trading/settings/simple-trade":
+			if r.Header.Get("accountKey") != "primary-test" {
+				t.Fatalf("simple-trade accountKey = %q", r.Header.Get("accountKey"))
+			}
+			_, _ = w.Write([]byte(`{"result":false}`))
+		case "/api/v2/trading/settings/investor-exchange-choice-type":
+			_, _ = w.Write([]byte(`{"result":"nxt"}`))
+		case "/api/v1/users/settings/me/ats-notification":
+			_, _ = w.Write([]byte(`{"result":true}`))
+		case "/api/v1/member-subscriptions/get-option-real-time-tick":
+			_, _ = w.Write([]byte(`{"result":{"requested":false,"serviced":true,"shouldCharged":false}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	catalog := NewCatalog()
+	op, ok := catalog.Get("trading_settings")
+	if !ok {
+		t.Fatal("trading_settings operation missing")
+	}
+	if op.Backend != "wts" || op.Domain != "securities" || op.Write || op.Probe == nil || len(op.ExtraProbes) != 3 {
+		t.Fatalf("operation metadata = %#v", op)
+	}
+	gotAny, err := catalog.Call(context.Background(), deps, "trading_settings", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := gotAny.(domain.TradingSettings)
+	if got.InvestorExchangeChoice != "nxt" || !got.ATSNotificationEnabled || !got.OptionRealTimeTick.Serviced {
+		t.Fatalf("result = %#v", got)
+	}
+
+	probes := append([]ProbeSpec{*op.Probe}, op.ExtraProbes...)
+	want := map[string]string{
+		"trading-simple-trade":     "bool",
+		"trading-exchange-choice":  "string",
+		"trading-ats-notification": "bool",
+		"option-real-time-tick":    "object",
+	}
+	for _, probe := range probes {
+		typ, found := want[probe.Name]
+		if !found {
+			t.Errorf("unexpected probe %q", probe.Name)
+			continue
+		}
+		delete(want, probe.Name)
+		body := `{"result":true}`
+		if typ == "string" {
+			body = `{"result":"integrated"}`
+		} else if typ == "object" {
+			body = `{"result":{"requested":false,"serviced":true,"shouldCharged":false}}`
+		}
+		if err := probe.Check(http.StatusOK, []byte(body)); err != nil {
+			t.Errorf("%s rejected verified schema: %v", probe.Name, err)
+		}
+	}
+	if len(want) != 0 {
+		t.Fatalf("missing probes: %v", want)
+	}
+}
+
+func TestSecuritiesTransferAccountsOperationMasksNumbersAndOwnsDependencyProbes(t *testing.T) {
+	t.Parallel()
+	deps := discoveryWTSDeps(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/account/list":
+			_, _ = w.Write([]byte(`{"result":{"accountList":[{"key":"primary-test"}],"primaryKey":"primary-test"}}`))
+		case "/api/v1/securities-transfer/my-accounts":
+			_, _ = w.Write([]byte(`{"result":[{"bankCode":"092","accountNo":"123-456-789","accountId":"own-1"}]}`))
+		case "/api/v1/securities-transfer/recent-accounts":
+			_, _ = w.Write([]byte(`{"result":[{"bankCode":"088","accountNo":"987-654-321"}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	catalog := NewCatalog()
+	op, ok := catalog.Get("securities_transfer_accounts")
+	if !ok {
+		t.Fatal("securities_transfer_accounts operation missing")
+	}
+	if op.Backend != "wts" || op.Domain != "securities" || op.Write || op.Probe == nil || len(op.ExtraProbes) != 1 {
+		t.Fatalf("operation metadata = %#v", op)
+	}
+
+	maskedAny, err := catalog.Call(context.Background(), deps, "securities_transfer_accounts", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	masked := maskedAny.(domain.SecuritiesTransferAccounts)
+	if masked.OwnAccounts[0].AccountNo == "123-456-789" || masked.RecentAccounts[0].AccountNo == "987-654-321" {
+		t.Fatalf("default result leaked account numbers: %#v", masked)
+	}
+	fullAny, err := catalog.Call(context.Background(), deps, "securities_transfer_accounts", map[string]any{"full": true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	full := fullAny.(domain.SecuritiesTransferAccounts)
+	if full.OwnAccounts[0].AccountNo != "123-456-789" || full.RecentAccounts[0].AccountNo != "987-654-321" {
+		t.Fatalf("full result = %#v", full)
+	}
+
+	for _, probe := range append([]ProbeSpec{*op.Probe}, op.ExtraProbes...) {
+		if err := probe.Check(http.StatusOK, []byte(`{"result":[]}`)); err != nil {
+			t.Errorf("%s rejected empty valid list: %v", probe.Name, err)
+		}
+	}
+}
+
 func TestHiddenReadBatchOperationsAreCataloguedAndMonitored(t *testing.T) {
 	t.Parallel()
 	catalog := NewCatalog()
@@ -174,11 +288,16 @@ func TestEarningCallDetailOperationIsCallableAndMonitored(t *testing.T) {
 func TestBankingStatusOperationMasksIdentityUnlessFull(t *testing.T) {
 	t.Parallel()
 	deps := discoveryWTSDeps(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/autotrade/open-banking/info/find" {
+		switch r.URL.Path {
+		case "/api/v1/autotrade/open-banking/info/find":
+			_, _ = w.Write([]byte(`{"result":{"name":"홍길동","connectedOpenBankingAccount":{"accountNo":"123-456-789","bankCode":"088","openBankingId":42},"openBankingAccounts":[],"registrableAccounts":[],"savingCount":1}}`))
+		case "/api/v1/autotrade/open-banking/creatable":
+			_, _ = w.Write([]byte(`{"result":true}`))
+		case "/api/v1/autotrade/open-banking/need-registration":
+			_, _ = w.Write([]byte(`{"result":false}`))
+		default:
 			http.NotFound(w, r)
-			return
 		}
-		_, _ = w.Write([]byte(`{"result":{"name":"홍길동","connectedOpenBankingAccount":{"accountNo":"123-456-789","bankCode":"088","openBankingId":42},"openBankingAccounts":[],"registrableAccounts":[],"savingCount":1}}`))
 	}))
 	catalog := NewCatalog()
 
@@ -198,6 +317,31 @@ func TestBankingStatusOperationMasksIdentityUnlessFull(t *testing.T) {
 	full := fullAny.(domain.OpenBankingStatus)
 	if full.HolderName != "홍길동" || full.ConnectedAccount.AccountNo != "123-456-789" {
 		t.Fatalf("full view missing identity: %#v", full)
+	}
+}
+
+func TestBankingStatusOperationOwnsEveryHTTPDependencyProbe(t *testing.T) {
+	t.Parallel()
+	op, ok := NewCatalog().Get("banking_status")
+	if !ok {
+		t.Fatal("banking_status operation missing")
+	}
+	probes := map[string]ProbeSpec{}
+	if op.Probe != nil {
+		probes[op.Probe.Name] = *op.Probe
+	}
+	for _, probe := range op.ExtraProbes {
+		probes[probe.Name] = probe
+	}
+	for _, name := range []string{"open-banking-status", "open-banking-creatable", "open-banking-registration"} {
+		probe, found := probes[name]
+		if !found {
+			t.Errorf("dependency probe %q missing", name)
+			continue
+		}
+		if err := probe.Check(http.StatusOK, []byte(`{"result":true}`)); err != nil && name != "open-banking-status" {
+			t.Errorf("%s rejected boolean contract: %v", name, err)
+		}
 	}
 }
 

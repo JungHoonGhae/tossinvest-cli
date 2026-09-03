@@ -26,8 +26,8 @@ func WriteOpenBankingStatus(w io.Writer, format Format, status domain.OpenBankin
 		return writeJSON(w, view)
 	case FormatCSV:
 		return writeCSV(w,
-			[]string{"holder_name", "connected_account_no", "bank_code", "open_banking_id", "linked_account_count", "registrable_account_count", "saving_count"},
-			[][]string{{view.HolderName, accountNo, bankCode, connectedID, strconv.Itoa(view.LinkedAccountCount), strconv.Itoa(view.RegistrableAccountCount), strconv.Itoa(view.SavingCount)}},
+			[]string{"holder_name", "connected_account_no", "bank_code", "open_banking_id", "linked_account_count", "registrable_account_count", "saving_count", "connection_creatable", "registration_required"},
+			[][]string{{view.HolderName, accountNo, bankCode, connectedID, strconv.Itoa(view.LinkedAccountCount), strconv.Itoa(view.RegistrableAccountCount), strconv.Itoa(view.SavingCount), strconv.FormatBool(view.ConnectionCreatable), strconv.FormatBool(view.RegistrationRequired)}},
 		)
 	case FormatTable:
 		state := "not connected"
@@ -48,6 +48,9 @@ func WriteOpenBankingStatus(w io.Writer, format Format, status domain.OpenBankin
 			}
 		}
 		if _, err := fmt.Fprintf(w, "Linked:       %d\nRegistrable:  %d\nSavings:      %d\n", view.LinkedAccountCount, view.RegistrableAccountCount, view.SavingCount); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(w, "Connection creatable:  %t\nRegistration required: %t\n", view.ConnectionCreatable, view.RegistrationRequired); err != nil {
 			return err
 		}
 		if !full && view.ConnectedAccount != nil {

@@ -63,6 +63,30 @@ func TestWriteOpenBankingStatusShowsDisconnectedWithoutRevealHint(t *testing.T) 
 	}
 }
 
+func TestWriteOpenBankingStatusShowsConnectionCapabilitiesInEveryFormat(t *testing.T) {
+	t.Parallel()
+	status := domain.OpenBankingStatus{ConnectionCreatable: true, RegistrationRequired: false}
+	tests := []struct {
+		format Format
+		want   []string
+	}{
+		{format: FormatTable, want: []string{"Connection creatable:  true", "Registration required: false"}},
+		{format: FormatJSON, want: []string{`"connection_creatable": true`, `"registration_required": false`}},
+		{format: FormatCSV, want: []string{"connection_creatable", "registration_required", "true,false"}},
+	}
+	for _, tc := range tests {
+		var out bytes.Buffer
+		if err := WriteOpenBankingStatus(&out, tc.format, status, false); err != nil {
+			t.Fatalf("%s: %v", tc.format, err)
+		}
+		for _, want := range tc.want {
+			if !strings.Contains(out.String(), want) {
+				t.Fatalf("%s missing %q: %s", tc.format, want, out.String())
+			}
+		}
+	}
+}
+
 func TestWriteMarketKeyEventsRendersBothSections(t *testing.T) {
 	t.Parallel()
 	eps := 1.2

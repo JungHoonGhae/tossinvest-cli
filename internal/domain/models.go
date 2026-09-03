@@ -1019,6 +1019,8 @@ type OpenBankingStatus struct {
 	LinkedAccountCount      int                 `json:"linked_account_count"`
 	RegistrableAccountCount int                 `json:"registrable_account_count"`
 	SavingCount             int                 `json:"saving_count"`
+	ConnectionCreatable     bool                `json:"connection_creatable"`
+	RegistrationRequired    bool                `json:"registration_required"`
 	FetchedAt               time.Time           `json:"fetched_at"`
 }
 

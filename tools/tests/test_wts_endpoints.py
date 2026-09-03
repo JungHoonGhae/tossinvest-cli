@@ -157,6 +157,21 @@ class TestClassify(unittest.TestCase):
                 status, _ = W.classify(path, {})
                 self.assertEqual(status, "implemented")
 
+    def test_account_services_batch_endpoints_are_implemented(self):
+        for path in [
+            "/api/v1/autotrade/open-banking/creatable",
+            "/api/v1/autotrade/open-banking/need-registration",
+            "/api/v1/trading/settings/simple-trade",
+            "/api/v2/trading/settings/investor-exchange-choice-type",
+            "/api/v1/users/settings/me/ats-notification",
+            "/api/v1/member-subscriptions/get-option-real-time-tick",
+            "/api/v1/securities-transfer/my-accounts",
+            "/api/v1/securities-transfer/recent-accounts",
+        ]:
+            with self.subTest(path=path):
+                status, _ = W.classify(path, {})
+                self.assertEqual(status, "implemented")
+
     def test_ai_signal_detail_and_sector_simple_are_implemented(self):
         for path in [
             "/api/v1/dashboard/wts/overview/ai-signals/detail",

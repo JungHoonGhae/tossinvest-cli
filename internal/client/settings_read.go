@@ -28,12 +28,22 @@ func (c *Client) GetOpenBankingStatus(ctx context.Context) (domain.OpenBankingSt
 	if err := c.getJSON(ctx, c.apiBaseURL+"/api/v1/autotrade/open-banking/info/find", &env); err != nil {
 		return domain.OpenBankingStatus{}, err
 	}
+	var creatable quoteEnvelope[bool]
+	if err := c.getJSON(ctx, c.apiBaseURL+"/api/v1/autotrade/open-banking/creatable", &creatable); err != nil {
+		return domain.OpenBankingStatus{}, err
+	}
+	var registration quoteEnvelope[bool]
+	if err := c.getJSON(ctx, c.apiBaseURL+"/api/v1/autotrade/open-banking/need-registration", &registration); err != nil {
+		return domain.OpenBankingStatus{}, err
+	}
 
 	out := domain.OpenBankingStatus{
 		HolderName:              env.Result.Name,
 		LinkedAccountCount:      len(env.Result.OpenBankingAccounts),
 		RegistrableAccountCount: len(env.Result.RegistrableAccounts),
 		SavingCount:             env.Result.SavingCount,
+		ConnectionCreatable:     creatable.Result,
+		RegistrationRequired:    registration.Result,
 		FetchedAt:               time.Now().UTC(),
 	}
 	if item := env.Result.ConnectedAccount; item != nil {
