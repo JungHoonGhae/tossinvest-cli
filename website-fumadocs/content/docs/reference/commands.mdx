@@ -10,9 +10,9 @@ description: tossctl 전체 명령
 
 | 명령 | 설명 |
 |------|------|
-| `tossctl auth login [--headless] [--qr-output <path>]` | QR + 폰 승인 로그인 |
+| `tossctl auth login [--link] [--headless] [--qr-output <path>]` | QR 또는 휴대폰에서 누르는 링크 + 폰 승인 로그인 |
 | `tossctl auth status` | 세션 유효성·만료 확인 |
-| `tossctl auth extend [--timeout 120s]` | 폰 푸시 승인으로 세션 연장(~7일) |
+| `tossctl auth extend [--timeout 120s] [--if-expiring 48h]` | 폰 푸시 승인으로 세션 연장(~7일); 충분히 남았으면 선택적으로 건너뜀 |
 
 ## 계좌 · 포트폴리오
 
@@ -22,6 +22,7 @@ description: tossctl 전체 명령
 | `tossctl account summary` | 총자산·평가손익·시장별 |
 | `tossctl portfolio positions` | 보유 종목 (미국은 USD 병기) |
 | `tossctl portfolio allocation` | 자산 배분 |
+| `tossctl portfolio folders [--account <key>]` | 사용자 정의 폴더별 보유종목·수수료 반영 평가손익(계좌·폴더 내부 키 비노출) |
 | `tossctl portfolio performance [--account <key>]` | 최근 1개월 일별 원금·평가액·수익률·기간 고저(기본: 모든 증권 계좌 합산) |
 | `tossctl portfolio snapshots [--account <key>] [--cursor <key>] [--limit N]` | 커서 기반 날짜별 포트폴리오 평가 이력 |
 | `tossctl portfolio snapshot <YYYY-MM-DD> [--account <key>]` | 특정 날짜의 시장·보유종목별 전체 평가 상세 |
@@ -53,7 +54,7 @@ description: tossctl 전체 명령
 
 | 명령 | 설명 |
 |------|------|
-| `tossctl market index [<코드\|이름>]` | 주요 지수 목록 / 인자 주면 상세(OHLC·52주) |
+| `tossctl market index [<코드\|이름>]` | 주요 지수 목록 / 인자 주면 상세(OHLC·52주·시세원·장 시작/종료·운영 여부) |
 | `tossctl market ranking --size N` | 실시간 인기 종목 |
 | `tossctl market investors` | 투자자별(외국인·기관·개인) 순매수 상위 |
 | `tossctl market sectors [<id>]` | 업종별 등락(대분류/하위, 1일·1개월·1년) |
@@ -81,8 +82,8 @@ description: tossctl 전체 명령
 |------|------|
 | `tossctl order preview --symbol <s> --side <buy\|sell> --qty <n> --price <p>` | dry-run 미리보기(주문 안 나감) |
 | `tossctl order place ... --execute --confirm <token>` | 실제 주문(2단계 게이트) |
-| `tossctl order cancel --order-id <id> --symbol <s>` | 주문 취소 |
-| `tossctl order amend --order-id <id> ...` | 주문 정정 |
+| `tossctl order cancel --order-id <id> --symbol <s> [--execute --confirm <token>]` | 기본 preview; 같은 명령의 token으로 주문 취소 |
+| `tossctl order amend --order-id <id> ... [--execute --confirm <token>]` | 기본 preview; 같은 명령의 token으로 주문 정정 |
 | `tossctl orders list` · `orders completed` · `order show <id>` | 미체결/체결/단건 조회 |
 
 소수점(금액 기반) 주문: `order place --fractional --amount <krw> --qty 0` (미국 시장가).
@@ -103,21 +104,21 @@ description: tossctl 전체 명령
 | `tossctl account trading-settings [--account <key>]` | 증권 계좌별 간편주문과 사용자 공통 KRX/NXT·ATS 알림·옵션 실시간 시세 설정 조회(읽기 전용) |
 | `tossctl account transfer-accounts [--account <key>] [--full]` | 증권 주식이체용 내·최근 계좌 조회(번호 기본 마스킹, 이체 실행 없음) |
 | `tossctl account access-status [--account <key>]` | 최근 증권 접속 환경과 계좌별 신용거래 동결·사고계좌 상태(읽기 전용, 원래 계좌 키 미출력) |
-| `tossctl banking status [--full]` | 증권 주식모으기 자금연결·자동주문 등록·거래목적 확인용 MyData 상태(일반 Banking/MyData 아님, 예금주·계좌번호 기본 마스킹, 내부 ID 항상 미출력) |
+| `tossctl accumulate funding-status [--full]` | 증권 주식모으기 자금연결·자동주문 등록 상태(`banking status`는 deprecated alias; 일반 Banking/MyData 아님, 예금주·계좌번호 기본 마스킹, 내부 ID 항상 미출력) |
 | `tossctl notifications list` | WTS 알림 설정 조회(읽기 전용, 내부 사용자 ID 제외) |
-| `tossctl notifications status` | 받은함 미확인·AI 이슈 SNS 공개·FOMC 라이브·AI 분석 콘텐츠 알림 및 동의 상태 조회(읽기 전용) |
+| `tossctl notifications status` | 통합 알림 설정·받은함 미확인·AI 분석 동의 상태 조회(읽기 전용) |
 
 ## 관심종목 (watchlist)
 
 | 명령 | 설명 |
 |------|------|
 | `tossctl watchlist list [<group-id>] [--all]` · `watchlist groups` | 관심종목 폴더별 조회 / 폴더 목록 |
-| `tossctl watchlist group create\|rename\|delete` | 폴더 관리 |
-| `tossctl watchlist add\|remove --group <id>` | 종목 추가/제거 |
+| `tossctl watchlist group create\|rename\|delete [--execute --confirm <token>]` | 폴더 변경 preview/confirm; 삭제는 `--acknowledge-irreversible` 추가 필요 |
+| `tossctl watchlist add\|remove <symbol or name> --group <id> [--execute --confirm <token>]` | 종목 추가/제거 preview/confirm |
 
 ## 공식 Open API · 자동 라우팅
 
-공식 키를 연결하면 공식이 지원하는 조회·거래는 공식 OAuth 경로로 처리되고(자동 토큰 갱신), 나머지는 WTS 경로를 씁니다. 키 없이도 모든 기능이 동작합니다. 자세한 내용은 [자동 라우팅 가이드](/docs/guide/hybrid-openapi).
+공식 키를 연결하면 공식이 지원하는 조회·거래는 공식 OAuth 경로로 처리되고(자동 토큰 갱신), 나머지는 WTS 경로를 씁니다. WTS 기능은 웹 세션만으로 동작하지만 `account buying-power`, `market business-days|stocks`, `quote metadata`, 조건주문, `stream`은 공식 키가 필요합니다. 자세한 내용은 [자동 라우팅 가이드](/docs/guide/hybrid-openapi).
 
 | 명령 | 설명 |
 |------|------|

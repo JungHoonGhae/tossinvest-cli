@@ -28,7 +28,7 @@ var ErrDevBuild = errors.New("source build (dev) — use `git pull && make build
 
 // Run performs the upgrade for opts.Method:
 //   - MethodDev: returns ErrDevBuild without any I/O.
-//   - MethodHomebrew: runs `brew upgrade tossctl-cli` synchronously,
+//   - MethodHomebrew: runs `brew upgrade tossctl` synchronously,
 //     relaying its output, and returns its error (if any) wrapped with
 //     context.
 //   - MethodBinary on non-Windows: re-runs install.sh via `sh -c 'curl ... |
@@ -46,11 +46,11 @@ func Run(ctx context.Context, opts Options) error {
 	case MethodDev:
 		return ErrDevBuild
 	case MethodHomebrew:
-		cmd := exec.CommandContext(ctx, "brew", "upgrade", "tossctl-cli")
+		cmd := exec.CommandContext(ctx, "brew", "upgrade", "tossctl")
 		cmd.Stdout = opts.Out
 		cmd.Stderr = opts.ErrOut
 		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("brew upgrade tossctl-cli: %w", err)
+			return fmt.Errorf("brew upgrade tossctl: %w", err)
 		}
 		return nil
 	case MethodBinary:

@@ -137,3 +137,15 @@ A 는 2,080 바이트를 아낀다. describe 한 번은 평균 482 바이트(25,
 - 오퍼레이션 수가 100개를 넘어 무인자 list 가 ~9,000 토큰대에 접근할 때
 - 에이전트가 무인자 list 를 세션당 여러 번 부르는 패턴이 관찰될 때
 - 호스트가 툴 결과 크기 상한에 걸릴 때 (`maxResultBytes` 축약이 실제로 발동할 때)
+
+## 2026-09-03 재측정과 결정
+
+오퍼레이션이 111개로 늘면서 위 트리거 두 개가 동시에 충족됐다. 들여쓴 전체 목록은
+49,379바이트였고 MCP의 30,000바이트 상한 때문에 실제로 뒤쪽 operation이 생략됐다.
+
+- `method`·`path`와 write별 전체 `mutation`은 목록에서 제거하고 `describe_operation`에 유지
+- ID·alias·domain·category·summary·write·backend·필수 파라미터 이름은 탐색에 필요하므로 유지
+- 사람용 `tossctl ops list`는 들여쓰기를 유지하고, 모델용 MCP 목록만 compact JSON 사용
+
+변경 뒤 무필터 MCP 목록 전체가 30KB 안에 들어오며 `count`와 실제 operation 배열 길이가
+같다는 회귀 테스트를 고정했다. summary는 최초 분석의 결론대로 줄이지 않았다.

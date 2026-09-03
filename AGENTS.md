@@ -16,12 +16,15 @@ tossctl auth status      # Session: active / Live Check: valid 여야 함
 Every leaf command carries machine-readable annotations:
 
 - `source`: `official` (official Open API only), `wts` (WTS internal endpoint only),
-  or `both` (official preferred, WTS fallback). `wts` endpoints are unofficial and
-  may change without notice.
+  `both` (official preferred, WTS fallback), or `local` (no remote API call). `wts`
+  endpoints are unofficial and may change without notice.
 - `mutating: true`: the command can change account state (live trading). It is
   attached to `order place`, `order cancel`, `order amend`, `order conditional
   place|cancel|modify`, and `ops call` (because that generic dispatcher can
   invoke write operations).
+- `writes_state: true`: a non-trading command changes a preference or resource.
+  `writes_state: possible` on `ops call` means the selected operation decides;
+  inspect its `mutation` policy before calling it.
 
 Rules for agents:
 
@@ -29,10 +32,12 @@ Rules for agents:
   live order. Trading is also gated in `config.json` (disabled by default).
 - **Preview before placing.** Use `order preview` to validate a canonical order
   intent, then let a human run `order place`.
-- Open API IP 교체도 기본은 preview입니다. `openapi ip replace-current` 결과의
-  `confirm_token`을 검토한 뒤에만 `--execute --confirm <token>`으로 실행하세요.
-  이 작업은 주문을 만들지 않으며, 새 IP 추가 실패 시 기존 목록 복구를 시도합니다.
-- Prefer `--json` for machine-readable output.
+- `writes_state: true` 명령도 먼저 preview합니다. 사용자의 현재 요청이 그 정확한
+  변경을 승인한 경우에만 방금 조회한 영향 상태·intent에 결합된 `confirm_token`으로 실행하고, 불가역 작업은 별도
+  acknowledgement까지 확인합니다. Open API IP 교체·목표가 알림·숨김 종목·관심종목
+  폴더/종목 관리가 이 범주입니다.
+- Open API IP 교체는 새 IP 추가와 검증을 먼저 하고, 실패하면 기존 목록을 복구합니다.
+- Prefer `--output json` for machine-readable output.
 - Treat `source: wts` results as best-effort; add a `monitor api` probe when you
   build automation on top of them.
 - **Don't auto-run `tossctl update`.** It changes the tossctl binary itself
@@ -88,6 +93,7 @@ Rules for agents:
 
 - `market-index` — `GET /api/v1/dashboard/wts/overview/indicator/index`
 - `index-prices` — `GET /api/v1/index-prices/KGG01P`
+- `index-info` — `GET /api/v2/index-infos/KGG01P`
 - `stock-ranking` — `GET /api/v1/rankings/realtime/stock`
 - `investor-rankings` — `GET /api/v1/dashboard/wts/overview/rankings/by-investors`
 - `theme-rankings` — `GET /api/v1/tics/rankings`
@@ -100,6 +106,7 @@ Rules for agents:
 - `ai-signals` — `GET /api/v2/reasoning-contents/interest`
 - `ai-signal-detail` — `GET /api/v1/dashboard/wts/overview/ai-signals/detail?productCode=A005930&productType=STOCKS`
 - `screener-presets` — `GET /api/v2/screener/presets/common`
+- `stock-search` — `POST /api/v2/search/stocks`
 - `trading-flows` — `GET /api/v1/stock-infos/trade/trend/trading-trend`
 - `earning-call` — `GET /api/v1/earning-call/upcoming`
 - `earning-call-detail` — `GET /api/v1/earning-call/events/228692/info`
@@ -137,11 +144,11 @@ Rules for agents:
 - `asset-snapshots-account` — `GET /api/v1/asset-snapshot/page?pageSize=1` (`accountKey`)
 - `asset-snapshot-detail-all` — `GET /api/v1/asset-snapshot/all-accounts/detail-by-date?baseDate=<today>`
 - `asset-snapshot-detail-account` — `GET /api/v1/asset-snapshot/detail-by-date?baseDate=<today>` (`accountKey`)
+- `portfolio-folders` — `POST /api/v2/dashboard/asset/sections/all` (`FOLDER_OVERVIEW_V2`, `accountKey`)
 - `open-banking-status` — `GET /api/v1/autotrade/open-banking/info/find`
 - `open-banking-creatable` — `GET /api/v1/autotrade/open-banking/creatable`
 - `open-banking-registration` — `GET /api/v1/autotrade/open-banking/need-registration`
 - `auto-trading-open-banking` — `GET /api/v1/trading/open-banking/auto-trading`
-- `trade-purpose-mydata-account` — `GET /api/v1/trade-purpose-verification/my-data/account/exists`
 - `trading-simple-trade` — `GET /api/v1/trading/settings/simple-trade`
 - `trading-exchange-choice` — `GET /api/v2/trading/settings/investor-exchange-choice-type`
 - `trading-ats-notification` — `GET /api/v1/users/settings/me/ats-notification`
@@ -150,9 +157,6 @@ Rules for agents:
 - `securities-transfer-recent-accounts` — `GET /api/v1/securities-transfer/recent-accounts`
 - `notification-settings` — `GET /api/v1/user-alimies`
 - `notification-inbox-unread` — `GET /api/v1/inbox-alimies/has-unread`
-- `notification-ai-issue-release` — `GET /api/v1/ai-issue/sns-release/alimy`
-- `notification-fomc-live` — `GET /api/v1/fomc-live/alimy`
-- `notification-reasoning-contents` — `GET /api/v1/reasoning-contents/alimy/subscription`
 - `notification-reasoning-agreement` — `GET /api/v1/reasoning/agreement`
 - `notification-reasoning-news-count` — `GET /api/v1/reasoning-news/count`
 - `price-alerts` — `GET /api/v1/user-price-alimy/A005930`
@@ -161,6 +165,7 @@ Rules for agents:
 - `pending-orders` — `GET /api/v1/trading/orders/histories/all/pending`
 - `watchlist` — `GET /api/v1/new-watchlists`
 - `watchlist-groups` — `GET /api/v1/new-watchlists/groups/simple`
+- `watchlist-group` — `GET /api/v1/new-watchlists/groups?ids=<first-user-folder-id>&includePrice=true`
 - `earning-call-home` — `GET /api/v1/earning-call/home`
 - `account-list` — `GET /api/v1/account/list`
 - `quote-stock-infos` — `GET /api/v2/stock-infos/A005930`

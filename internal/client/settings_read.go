@@ -2,6 +2,8 @@ package client
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
@@ -31,7 +33,6 @@ func (c *Client) GetOpenBankingStatus(ctx context.Context) (domain.OpenBankingSt
 		ConnectedAccountBankCode string `json:"connectedAccountBankCode"`
 		Registered               bool   `json:"isRegistered"`
 	}]
-	var tradePurposeMyData quoteEnvelope[bool]
 	if err := runReadBatch(
 		readTask{label: "open banking connection info", run: func() error {
 			return c.getJSON(ctx, c.apiBaseURL+"/api/v1/autotrade/open-banking/info/find", &env)
@@ -45,24 +46,20 @@ func (c *Client) GetOpenBankingStatus(ctx context.Context) (domain.OpenBankingSt
 		readTask{label: "auto-trading open banking registration", run: func() error {
 			return c.getJSON(ctx, c.certBaseURL+"/api/v1/trading/open-banking/auto-trading", &autoTrading)
 		}},
-		readTask{label: "trade-purpose MyData account state", run: func() error {
-			return c.getJSON(ctx, c.apiBaseURL+"/api/v1/trade-purpose-verification/my-data/account/exists", &tradePurposeMyData)
-		}},
 	); err != nil {
 		return domain.OpenBankingStatus{}, err
 	}
 
 	out := domain.OpenBankingStatus{
-		HolderName:                      env.Result.Name,
-		LinkedAccountCount:              len(env.Result.OpenBankingAccounts),
-		RegistrableAccountCount:         len(env.Result.RegistrableAccounts),
-		SavingCount:                     env.Result.SavingCount,
-		ConnectionCreatable:             creatable.Result,
-		RegistrationRequired:            registration.Result,
-		AutoTradingRegistered:           autoTrading.Result.Registered,
-		AutoTradingBankCode:             autoTrading.Result.ConnectedAccountBankCode,
-		TradePurposeMyDataAccountExists: tradePurposeMyData.Result,
-		FetchedAt:                       time.Now().UTC(),
+		HolderName:              env.Result.Name,
+		LinkedAccountCount:      len(env.Result.OpenBankingAccounts),
+		RegistrableAccountCount: len(env.Result.RegistrableAccounts),
+		SavingCount:             env.Result.SavingCount,
+		ConnectionCreatable:     creatable.Result,
+		RegistrationRequired:    registration.Result,
+		AutoTradingRegistered:   autoTrading.Result.Registered,
+		AutoTradingBankCode:     autoTrading.Result.ConnectedAccountBankCode,
+		FetchedAt:               time.Now().UTC(),
 	}
 	if item := env.Result.ConnectedAccount; item != nil {
 		out.ConnectedAccount = &domain.OpenBankingAccount{
@@ -74,8 +71,9 @@ func (c *Client) GetOpenBankingStatus(ctx context.Context) (domain.OpenBankingSt
 	return out, nil
 }
 
-// GetNotificationSettings returns every WTS notification toggle. The wire's
-// internal userId is intentionally omitted from the domain model.
+// GetNotificationSettings returns every WTS notification toggle. Toss emits
+// one legitimate untyped row in the current contract, which is retained with
+// an empty Type. The wire's internal userId is intentionally omitted.
 func (c *Client) GetNotificationSettings(ctx context.Context) (domain.NotificationSettings, error) {
 	if err := c.requireSession(); err != nil {
 		return domain.NotificationSettings{}, err
@@ -83,27 +81,35 @@ func (c *Client) GetNotificationSettings(ctx context.Context) (domain.Notificati
 	var env quoteEnvelope[[]struct {
 		ID        int64   `json:"id"`
 		Type      *string `json:"type"`
-		Enabled   bool    `json:"enabled"`
+		Enabled   *bool   `json:"enabled"`
 		CreatedAt string  `json:"createdAt"`
 		UpdatedAt string  `json:"updatedAt"`
 	}]
 	if err := c.getJSON(ctx, c.certBaseURL+"/api/v1/user-alimies", &env); err != nil {
 		return domain.NotificationSettings{}, err
 	}
+	if env.Result == nil {
+		return domain.NotificationSettings{}, fmt.Errorf("notification settings response missing result array")
+	}
 
 	out := domain.NotificationSettings{
 		Settings:  make([]domain.NotificationSetting, 0, len(env.Result)),
 		FetchedAt: time.Now().UTC(),
 	}
-	for _, item := range env.Result {
+	for index, item := range env.Result {
+		if item.Enabled == nil {
+			return domain.NotificationSettings{}, fmt.Errorf("notification settings result[%d] missing enabled boolean", index)
+		}
+		settingType := ""
+		if item.Type != nil {
+			settingType = strings.TrimSpace(*item.Type)
+		}
 		setting := domain.NotificationSetting{
 			ID:        item.ID,
-			Enabled:   item.Enabled,
+			Type:      settingType,
+			Enabled:   *item.Enabled,
 			CreatedAt: item.CreatedAt,
 			UpdatedAt: item.UpdatedAt,
-		}
-		if item.Type != nil {
-			setting.Type = *item.Type
 		}
 		out.Settings = append(out.Settings, setting)
 	}

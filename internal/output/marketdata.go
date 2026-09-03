@@ -385,18 +385,15 @@ func WriteIndexQuote(w io.Writer, format Format, q domain.IndexQuote) error {
 	case FormatJSON:
 		return writeJSON(w, q)
 	case FormatCSV:
-		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"code", "name", "open", "high", "low", "close", "change", "change_rate", "high_52w", "low_52w"}); err != nil {
-			return err
-		}
-		if err := cw.Write([]string{
-			q.Code, q.Name, formatFloat(q.Open), formatFloat(q.High), formatFloat(q.Low), formatFloat(q.Close),
-			formatFloat(q.Change), formatFloat(q.ChangeRate), formatFloat(q.High52w), formatFloat(q.Low52w),
-		}); err != nil {
-			return err
-		}
-		cw.Flush()
-		return cw.Error()
+		return writeCSV(w,
+			// Keep the released ten-column prefix stable; append enrichment fields.
+			[]string{"code", "name", "open", "high", "low", "close", "change", "change_rate", "high_52w", "low_52w", "nation", "base", "volume", "price_feed_code", "price_feed_description", "trading_start_at", "trading_end_at", "market_open"},
+			[][]string{{
+				q.Code, q.Name, formatFloat(q.Open), formatFloat(q.High), formatFloat(q.Low), formatFloat(q.Close),
+				formatFloat(q.Change), formatFloat(q.ChangeRate), formatFloat(q.High52w), formatFloat(q.Low52w), q.Nation, formatFloat(q.Base), formatFloat(q.Volume),
+				q.PriceFeed.Code, q.PriceFeed.Description, q.TradingStartAt, q.TradingEndAt, strconv.FormatBool(q.MarketOpen),
+			}},
+		)
 	case FormatTable:
 		sign := ""
 		if q.Change > 0 {
@@ -410,6 +407,13 @@ func WriteIndexQuote(w io.Writer, format Format, q domain.IndexQuote) error {
 		}
 		if q.Volume != 0 {
 			fmt.Fprintf(w, "  %-8s %s\n", i18n.T("output.indexQuote.volume"), formatFloat(q.Volume))
+		}
+		if q.TradingStartAt != "" || q.TradingEndAt != "" {
+			fmt.Fprintf(w, "  %-8s %s - %s\n", i18n.T("output.indexQuote.session"), q.TradingStartAt, q.TradingEndAt)
+		}
+		fmt.Fprintf(w, "  %-8s %t\n", i18n.T("output.indexQuote.marketOpen"), q.MarketOpen)
+		if q.PriceFeed.Code != "" || q.PriceFeed.Description != "" {
+			fmt.Fprintf(w, "  %-8s %s (%s)\n", i18n.T("output.indexQuote.priceFeed"), q.PriceFeed.Code, q.PriceFeed.Description)
 		}
 		return nil
 	default:

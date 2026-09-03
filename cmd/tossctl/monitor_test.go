@@ -82,3 +82,21 @@ func TestMonitorSessionHintSurvivesQuiet(t *testing.T) {
 		t.Error("--quiet 에서 세션 힌트가 사라졌다")
 	}
 }
+
+func TestMonitorReportsInapplicableStateDependentProbeAsSkipped(t *testing.T) {
+	results := []monitor.Result{
+		{Probe: monitor.Probe{Name: "watchlist-groups"}, OK: true, Status: 200},
+		{Probe: monitor.Probe{Name: "watchlist-group"}, Skipped: true, Detail: "not applicable: account has no watchlist folders"},
+	}
+
+	var stdout, stderr bytes.Buffer
+	printResults(&stdout, &stderr, results, false)
+	if stderr.Len() != 0 {
+		t.Fatalf("skipped probe was reported as failure: %s", stderr.String())
+	}
+	for _, want := range []string{"watchlist-group", "1 passed, 0 failed, 1 skipped"} {
+		if !strings.Contains(stdout.String(), want) {
+			t.Fatalf("output missing %q: %s", want, stdout.String())
+		}
+	}
+}

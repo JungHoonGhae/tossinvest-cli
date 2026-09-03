@@ -30,8 +30,6 @@ type opsListPayload struct {
 	Count      int `json:"count"`
 	Operations []struct {
 		ID       string   `json:"id"`
-		Method   string   `json:"method"`
-		Path     string   `json:"path"`
 		Domain   string   `json:"domain"`
 		Category string   `json:"category"`
 		Summary  string   `json:"summary"`
@@ -39,6 +37,41 @@ type opsListPayload struct {
 		Write    bool     `json:"write"`
 		Required []string `json:"required"`
 	} `json:"operations"`
+}
+
+func TestOpsListKeepsTransportAndMutationDetailsInDescribe(t *testing.T) {
+	out, err := runOps(t, "list", "--query", "place_order")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var payload struct {
+		Operations []map[string]any `json:"operations"`
+	}
+	if err := json.Unmarshal([]byte(out), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Operations) != 1 || payload.Operations[0]["write"] != true {
+		t.Fatalf("write discovery metadata missing: %s", out)
+	}
+	for _, detail := range []string{"method", "path", "mutation"} {
+		if _, exists := payload.Operations[0][detail]; exists {
+			t.Fatalf("%s belongs in ops describe, not ops list: %s", detail, out)
+		}
+	}
+
+	described, err := runOps(t, "describe", "place_order")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var operation map[string]any
+	if err := json.Unmarshal([]byte(described), &operation); err != nil {
+		t.Fatal(err)
+	}
+	for _, detail := range []string{"method", "path", "mutation"} {
+		if _, exists := operation[detail]; !exists {
+			t.Fatalf("ops describe lost %s: %s", detail, described)
+		}
+	}
 }
 
 // list 는 인증 없이 동작해야 한다 — 카탈로그는 로컬 선언이지 API 호출이 아니다.
@@ -84,7 +117,7 @@ func TestOpsListQueryFilters(t *testing.T) {
 		t.Fatal("order 로 걸리는 오퍼레이션이 하나도 없다")
 	}
 	for _, o := range got.Operations {
-		hay := strings.ToLower(o.ID + " " + o.Path + " " + o.Category + " " + o.Summary)
+		hay := strings.ToLower(o.ID + " " + o.Category + " " + o.Summary)
 		if !strings.Contains(hay, "order") {
 			t.Errorf("질의와 무관한 오퍼레이션이 섞였다: %s", o.ID)
 		}

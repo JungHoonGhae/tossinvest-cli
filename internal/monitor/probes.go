@@ -11,8 +11,10 @@ package monitor
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -24,21 +26,23 @@ import (
 
 // Probe describes one endpoint to validate.
 type Probe struct {
-	Name          string
-	Method        string
-	URL           string
-	Body          string
-	AccountScoped bool
-	Check         func(status int, body []byte) error
+	Name                 string
+	Method               string
+	URL                  string
+	Body                 string
+	AccountScoped        bool
+	WatchlistGroupScoped bool
+	Check                func(status int, body []byte) error
 }
 
 // Result of one probe execution.
 type Result struct {
 	Probe    Probe
 	OK       bool
+	Skipped  bool // valid state made a state-dependent probe inapplicable
 	Status   int
 	Duration time.Duration
-	Detail   string // failure detail; empty if OK
+	Detail   string // failure or skip detail; empty on an ordinary pass
 }
 
 // Probes returns the read-only endpoints we monitor.
@@ -58,7 +62,7 @@ func Probes() []Probe {
 	)
 	var out []Probe
 	for _, spec := range ops.NewCatalog().Probes() {
-		out = append(out, Probe{Name: spec.Name, Method: spec.Method, URL: spec.URL, Body: spec.Body, AccountScoped: spec.AccountScoped, Check: spec.Check})
+		out = append(out, Probe{Name: spec.Name, Method: spec.Method, URL: spec.URL, Body: spec.Body, AccountScoped: spec.AccountScoped, WatchlistGroupScoped: spec.WatchlistGroupScoped, Check: spec.Check})
 	}
 	// CLI-surface probes without a registry operation (covered by cmd quote/market).
 	out = append(out,
@@ -127,7 +131,9 @@ func Run(ctx context.Context, sess *session.Session) []Result {
 	probes := Probes()
 	results := make([]Result, len(probes))
 	accountListIndex := -1
+	watchlistGroupsIndex := -1
 	accountKey := ""
+	var watchlistGroupID int64
 	for i, probe := range probes {
 		if probe.Name == "account-list" {
 			accountListIndex = i
@@ -139,11 +145,23 @@ func Run(ctx context.Context, sess *session.Session) []Result {
 			break
 		}
 	}
+	for i, probe := range probes {
+		if probe.Name != "watchlist-groups" {
+			continue
+		}
+		watchlistGroupsIndex = i
+		var body []byte
+		results[i], body = executeProbe(ctx, sess, probe, "")
+		if results[i].OK {
+			watchlistGroupID = watchlistGroupIDFromList(body)
+		}
+		break
+	}
 
 	sem := make(chan struct{}, maxConcurrentProbes)
 	var wg sync.WaitGroup
 	for i, p := range probes {
-		if i == accountListIndex {
+		if i == accountListIndex || i == watchlistGroupsIndex {
 			continue
 		}
 		wg.Add(1)
@@ -155,11 +173,61 @@ func Run(ctx context.Context, sess *session.Session) []Result {
 				results[i] = Result{Probe: p, Detail: "account-list did not return a primary account key"}
 				return
 			}
+			if p.WatchlistGroupScoped {
+				if watchlistGroupID == 0 {
+					results[i] = Result{Probe: p, Skipped: true, Detail: "not applicable: account has no watchlist folders"}
+					return
+				}
+				p.URL = strings.ReplaceAll(p.URL, "{watchlistGroupId}", strconv.FormatInt(watchlistGroupID, 10))
+				baseCheck := p.Check
+				p.Check = func(status int, body []byte) error {
+					if err := baseCheck(status, body); err != nil {
+						return err
+					}
+					if !watchlistGroupResponseContains(body, watchlistGroupID) {
+						return fmt.Errorf("result.watchlists does not contain requested folder %d", watchlistGroupID)
+					}
+					return nil
+				}
+			}
 			results[i] = runOne(ctx, sess, p, accountKey)
 		}(i, p)
 	}
 	wg.Wait()
 	return results
+}
+
+func watchlistGroupResponseContains(body []byte, wanted int64) bool {
+	var envelope struct {
+		Result struct {
+			Watchlists []struct {
+				ID int64 `json:"id"`
+			} `json:"watchlists"`
+		} `json:"result"`
+	}
+	if json.Unmarshal(body, &envelope) != nil {
+		return false
+	}
+	for _, group := range envelope.Result.Watchlists {
+		if group.ID == wanted {
+			return true
+		}
+	}
+	return false
+}
+
+func watchlistGroupIDFromList(body []byte) int64 {
+	var envelope struct {
+		Result struct {
+			Watchlists []struct {
+				ID int64 `json:"id"`
+			} `json:"watchlists"`
+		} `json:"result"`
+	}
+	if json.Unmarshal(body, &envelope) != nil || len(envelope.Result.Watchlists) == 0 {
+		return 0
+	}
+	return envelope.Result.Watchlists[0].ID
 }
 
 func runOne(ctx context.Context, sess *session.Session, p Probe, accountKey string) Result {

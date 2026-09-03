@@ -97,12 +97,13 @@ type Order struct {
 }
 
 type WatchlistItem struct {
-	Group    string  `json:"group,omitempty"`
-	Symbol   string  `json:"symbol"`
-	Name     string  `json:"name,omitempty"`
-	Currency string  `json:"currency,omitempty"`
-	Base     float64 `json:"base,omitempty"`
-	Last     float64 `json:"last,omitempty"`
+	Group       string  `json:"group,omitempty"`
+	ProductCode string  `json:"product_code,omitempty"`
+	Symbol      string  `json:"symbol"`
+	Name        string  `json:"name,omitempty"`
+	Currency    string  `json:"currency,omitempty"`
+	Base        float64 `json:"base,omitempty"`
+	Last        float64 `json:"last,omitempty"`
 }
 
 // Trade is a single executed tick (체결) from the market-data feed.
@@ -252,22 +253,34 @@ type MarketIndices struct {
 	FetchedAt time.Time     `json:"fetched_at"`
 }
 
+// IndexPriceFeed identifies whether an index quote is realtime or delayed.
+// Code and Description are the server's own values so new feed types are not
+// guessed or collapsed locally.
+type IndexPriceFeed struct {
+	Code        string `json:"code"`
+	Description string `json:"description"`
+}
+
 // IndexQuote is a detailed quote for a single market index (지수 상세 시세).
 type IndexQuote struct {
-	Code       string    `json:"code"`
-	Name       string    `json:"name"`
-	Nation     string    `json:"nation,omitempty"`
-	Open       float64   `json:"open"`
-	High       float64   `json:"high"`
-	Low        float64   `json:"low"`
-	Close      float64   `json:"close"`
-	Base       float64   `json:"base"`
-	Change     float64   `json:"change"`
-	ChangeRate float64   `json:"change_rate"`
-	Volume     float64   `json:"volume,omitempty"`
-	High52w    float64   `json:"high_52w,omitempty"`
-	Low52w     float64   `json:"low_52w,omitempty"`
-	FetchedAt  time.Time `json:"fetched_at"`
+	Code           string         `json:"code"`
+	Name           string         `json:"name"`
+	Nation         string         `json:"nation,omitempty"`
+	Open           float64        `json:"open"`
+	High           float64        `json:"high"`
+	Low            float64        `json:"low"`
+	Close          float64        `json:"close"`
+	Base           float64        `json:"base"`
+	Change         float64        `json:"change"`
+	ChangeRate     float64        `json:"change_rate"`
+	Volume         float64        `json:"volume,omitempty"`
+	High52w        float64        `json:"high_52w,omitempty"`
+	Low52w         float64        `json:"low_52w,omitempty"`
+	PriceFeed      IndexPriceFeed `json:"price_feed"`
+	TradingStartAt string         `json:"trading_start_at"`
+	TradingEndAt   string         `json:"trading_end_at"`
+	MarketOpen     bool           `json:"market_open"`
+	FetchedAt      time.Time      `json:"fetched_at"`
 }
 
 // RankedStock is one entry in the realtime popularity ranking (실시간 인기 순위).
@@ -1023,14 +1036,12 @@ type OpenBankingStatus struct {
 	RegistrationRequired    bool                `json:"registration_required"`
 	AutoTradingRegistered   bool                `json:"auto_trading_registered"`
 	AutoTradingBankCode     string              `json:"auto_trading_bank_code,omitempty"`
-	// TradePurposeMyDataAccountExists is narrowly scoped to the Securities
-	// trade-purpose verification flow. It is not a general Toss Banking link.
-	TradePurposeMyDataAccountExists bool      `json:"trade_purpose_mydata_account_exists"`
-	FetchedAt                       time.Time `json:"fetched_at"`
+	FetchedAt               time.Time           `json:"fetched_at"`
 }
 
-// NotificationSetting is one WTS notification preference. The internal user
-// id from the wire response is deliberately not retained.
+// NotificationSetting is one WTS notification preference. Type is empty for
+// the upstream's untyped placeholder row. The wire's internal user id is not
+// retained.
 type NotificationSetting struct {
 	ID        int64  `json:"id"`
 	Type      string `json:"type,omitempty"`

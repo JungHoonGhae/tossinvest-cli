@@ -117,3 +117,47 @@ func TestMutatingAnnotationOnTradeCommands(t *testing.T) {
 		}
 	}
 }
+
+func TestStateChangingCommandsDeclareRiskAndReversibility(t *testing.T) {
+	want := map[string][2]string{
+		"tossctl openapi ip replace-current": {"preference", "compensating"},
+		"tossctl quote alert add":            {"preference", "reversible"},
+		"tossctl quote alert remove":         {"preference", "reversible"},
+		"tossctl portfolio hidden hide":      {"preference", "reversible"},
+		"tossctl portfolio hidden show":      {"preference", "reversible"},
+		"tossctl watchlist group create":     {"preference", "reversible"},
+		"tossctl watchlist group rename":     {"preference", "reversible"},
+		"tossctl watchlist group delete":     {"destructive", "irreversible"},
+		"tossctl watchlist add":              {"preference", "reversible"},
+		"tossctl watchlist remove":           {"preference", "reversible"},
+		"tossctl order place":                {"financial", "irreversible"},
+		"tossctl order cancel":               {"financial", "irreversible"},
+		"tossctl order amend":                {"financial", "irreversible"},
+		"tossctl order conditional place":    {"financial", "irreversible"},
+		"tossctl order conditional cancel":   {"financial", "irreversible"},
+		"tossctl order conditional modify":   {"financial", "irreversible"},
+	}
+	seen := map[string]bool{}
+	for _, cmd := range leafCommands(newRootCmd()) {
+		path := cmd.CommandPath()
+		policy, expected := want[path]
+		writes := cmd.Annotations["writes_state"] == "true"
+		if expected {
+			seen[path] = true
+			if !writes || cmd.Annotations["mutation_risk"] != policy[0] || cmd.Annotations["reversibility"] != policy[1] {
+				t.Errorf("%s: incomplete mutation annotations: %#v", path, cmd.Annotations)
+			}
+		} else if writes {
+			t.Errorf("%s: unexpected writes_state=true annotation", path)
+		}
+	}
+	for path := range want {
+		if !seen[path] {
+			t.Errorf("expected mutation command %s not found", path)
+		}
+	}
+	call, _, err := newRootCmd().Find([]string{"ops", "call"})
+	if err != nil || call.Annotations["writes_state"] != "possible" || call.Annotations["mutation_risk"] != "operation-defined" {
+		t.Errorf("ops call must declare dynamic mutation policy: cmd=%v err=%v annotations=%#v", call, err, call.Annotations)
+	}
+}

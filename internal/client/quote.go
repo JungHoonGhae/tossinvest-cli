@@ -261,6 +261,19 @@ func looksLikeProductCode(value string) bool {
 	if strings.HasPrefix(value, "OPT_") {
 		return true
 	}
+	// US equities are returned by WTS search as dotted product codes such as
+	// US.AAPL. Treating one as a ticker triggers a second search and can make a
+	// previewed watchlist mutation fail at execution time.
+	if len(value) > 3 && value[2] == '.' && value[0] >= 'A' && value[0] <= 'Z' && value[1] >= 'A' && value[1] <= 'Z' {
+		for i := 3; i < len(value); i++ {
+			ch := value[i]
+			if (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '.' || ch == '_' || ch == '-' {
+				continue
+			}
+			return false
+		}
+		return true
+	}
 	if len(value) == 7 && value[0] == 'A' {
 		return true
 	}

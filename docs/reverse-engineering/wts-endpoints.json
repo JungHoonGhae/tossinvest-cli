@@ -1,14 +1,17 @@
 {
   "source": "tossinvest.com web bundles",
-  "build_id": "Vn2JUgZup8HwoN8aQW3Nm",
+  "build_id": "S2JOk3dbR30ziH6ToNktG",
+  "build_ids": [
+    "S2JOk3dbR30ziH6ToNktG"
+  ],
   "chunk_count": 77,
-  "total": 1113,
+  "total": 1147,
   "counts": {
-    "implemented": 172,
-    "candidate": 285,
-    "excluded": 656,
+    "implemented": 154,
+    "candidate": 333,
+    "excluded": 660,
     "candidate_next": 0,
-    "meaningful": 457
+    "meaningful": 487
   },
   "overrides": {
     "/api/v1/openapi/client/allowed-ips": {
@@ -30,14 +33,14 @@
       "method": "GET",
       "host": "wts-api",
       "evidence": "verified",
-      "note": "Generated WTS request registry + read-only live boolean schema verified 2026-09-03. Exposed as connection_creatable in banking status; this is Securities accumulation funding, not general Banking."
+      "note": "Generated WTS request registry + read-only live boolean schema verified 2026-09-03. Exposed as connection_creatable in accumulate funding-status; this is Securities accumulation funding, not general Banking."
     },
     "/api/v1/autotrade/open-banking/need-registration": {
       "status": "implemented",
       "method": "GET",
       "host": "wts-api",
       "evidence": "verified",
-      "note": "Generated WTS request registry + read-only live boolean schema verified 2026-09-03. Exposed as registration_required in banking status; this is Securities accumulation funding, not general Banking."
+      "note": "Generated WTS request registry + read-only live boolean schema verified 2026-09-03. Exposed as registration_required in accumulate funding-status; this is Securities accumulation funding, not general Banking."
     },
     "/api/v1/reasoning/agreement": {
       "status": "implemented",
@@ -128,6 +131,20 @@
       "host": "wts-cert-api",
       "evidence": "verified",
       "note": "Read-only live schema and WTS static contract verified on 2026-09-03."
+    },
+    "/api/v2/index-infos/{code}": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-info-api",
+      "evidence": "verified",
+      "note": "Exact read-only live schema verified 2026-09-03. Merged into market index detail as session hours, open state, and realtime/delayed feed metadata."
+    },
+    "/api/v2/dashboard/asset/sections/all": {
+      "status": "implemented",
+      "method": "POST",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "Body-filtered dashboard sections. SORTED_OVERVIEW powers flat positions; FOLDER_OVERVIEW_V2 powers grouped holdings with fee-aware returns. Empty bodies are invalid for capability claims."
     },
     "/api/v1/calendar/ai-summary/key-events": {
       "status": "implemented",
@@ -418,8 +435,11 @@
       "note": "웹 화면 없음 — 커뮤니티 라우트 캡처에서 미관측 (2026-08-04)"
     },
     "/api/v2/dashboard/intelligences/all": {
-      "status": "candidate",
-      "note": "POST {types, variable}. types 어휘 미상으로 400 (2026-08-04)"
+      "status": "excluded",
+      "method": "POST",
+      "host": "wts-info-api",
+      "evidence": "verified",
+      "note": "Exact MAIN request and live nullable intelligence response verified 2026-09-03. This is a homepage polling/composition placeholder, not a standalone user capability."
     },
     "/api/v2/dashboard/wts/overview/calendar/economic-events": {
       "status": "candidate",
@@ -1375,7 +1395,8 @@
       }
     },
     "/api/v1/ai-issue/sns-release/alimy": {
-      "status": "implemented",
+      "status": "excluded",
+      "note": "redundant notification preference read (/user-alimies is canonical)",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -1566,7 +1587,7 @@
     },
     "/api/v1/autotrade/open-banking/creatable": {
       "status": "implemented",
-      "note": "Generated WTS request registry + read-only live boolean schema verified 2026-09-03. Exposed as connection_creatable in banking status; this is Securities accumulation funding, not general Banking.",
+      "note": "Generated WTS request registry + read-only live boolean schema verified 2026-09-03. Exposed as connection_creatable in accumulate funding-status; this is Securities accumulation funding, not general Banking.",
       "method": "GET",
       "host": "wts-api",
       "evidence": "verified",
@@ -1594,7 +1615,7 @@
     },
     "/api/v1/autotrade/open-banking/need-registration": {
       "status": "implemented",
-      "note": "Generated WTS request registry + read-only live boolean schema verified 2026-09-03. Exposed as registration_required in banking status; this is Securities accumulation funding, not general Banking.",
+      "note": "Generated WTS request registry + read-only live boolean schema verified 2026-09-03. Exposed as registration_required in accumulate funding-status; this is Securities accumulation funding, not general Banking.",
       "method": "GET",
       "host": "wts-api",
       "evidence": "verified",
@@ -2746,6 +2767,10 @@
         "verdict": "not-found"
       }
     },
+    "/api/v1/dashboard/product-categories/us-options": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
+    },
     "/api/v1/dashboard/wts/news": {
       "status": "implemented",
       "first_seen": "2026-08-03",
@@ -3189,7 +3214,8 @@
       "first_seen": "2026-08-03"
     },
     "/api/v1/fomc-live/alimy": {
-      "status": "implemented",
+      "status": "excluded",
+      "note": "redundant notification preference read (/user-alimies is canonical)",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -3729,6 +3755,10 @@
         "verdict": "not-found"
       }
     },
+    "/api/v1/mds/info/krx-extended-hour-support-yn": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
+    },
     "/api/v1/mds/info/trading-trend": {
       "status": "candidate",
       "note": "공식 Open API 가 대체한다 — 1.2.13(2026-08-07)의 /api/v1/stocks/{symbol}/investor-trading 이 같은 데이터를 문서화된 커서 페이징으로 준다. quote supply --type investor 로 구현됨. 파라미터 추적 중단",
@@ -3774,6 +3804,10 @@
         "host": "wts-cert-api",
         "at": "2026-08-24"
       }
+    },
+    "/api/v1/member-terms/get-all-disagreed": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
     },
     "/api/v1/memo/private": {
       "status": "excluded",
@@ -4452,7 +4486,7 @@
       }
     },
     "/api/v1/new-watchlists/config": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
@@ -4464,7 +4498,7 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/new-watchlists/groups/reorder": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "POST",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
@@ -4488,25 +4522,25 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/new-watchlists/items/all-codes": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/new-watchlists/items/exists-new-after": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/new-watchlists/items/first-add": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/new-watchlists/items/move-groups": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "POST",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
@@ -4518,25 +4552,25 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/new-watchlists/items/reorder": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "POST",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/new-watchlists/items/user-count": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/new-watchlists/recent": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/new-watchlists/recent/add": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "POST",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -4552,37 +4586,37 @@
       }
     },
     "/api/v1/new-watchlists/recent/delete": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "PUT",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/new-watchlists/recent/delete-all": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "DELETE",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/new-watchlists/recommend/default": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/new-watchlists/recommend/news": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/new-watchlists/recommend/tics": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/new-watchlists/suggest/{type}": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
@@ -4740,16 +4774,112 @@
         "verdict": "not-found"
       }
     },
+    "/api/v1/paper/cash-balance": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static read contract returns a simulated orderableAmount. Safe exposure still depends on proving the paper account/session cannot resolve to the live ledger.",
+      "first_seen": "2026-09-03"
+    },
+    "/api/v1/paper/deposit": {
+      "status": "candidate",
+      "method": "POST",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static contract changes simulated cash; the observed UI submits an amount. Exact validation/receipt and paper-only isolation remain unverified.",
+      "mutation": {
+        "writes_state": true,
+        "risk_level": "simulation",
+        "reversibility": "unknown",
+        "approval": "per-execution"
+      },
+      "first_seen": "2026-09-03"
+    },
+    "/api/v1/paper/education/lecture-video": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static paper-education lecture lookup. The server-side eligibility relationship is not yet verified.",
+      "first_seen": "2026-09-03"
+    },
     "/api/v1/paper/education/redirect-push": {
       "status": "candidate",
-      "first_seen": "2026-08-03",
-      "probe": {
-        "at": "2026-08-04",
-        "host": "wts-info-api",
-        "method": "POST",
-        "status": 200,
-        "verdict": "thin"
-      }
+      "method": "POST",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Sends a Toss-app push that redirects the user to required online education. It does not bypass education.",
+      "mutation": {
+        "writes_state": true,
+        "risk_level": "notification",
+        "reversibility": "irreversible",
+        "approval": "per-execution"
+      },
+      "first_seen": "2026-08-03"
+    },
+    "/api/v1/paper/education/session": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
+    },
+    "/api/v1/paper/education/session/{action}": {
+      "status": "candidate",
+      "method": "POST",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static session actions are open, heartbeat, close, and complete. Completion is an education/eligibility attestation and must remain human-driven until the legitimate flow and receipt are verified.",
+      "mutation": {
+        "writes_state": true,
+        "risk_level": "eligibility",
+        "reversibility": "unknown",
+        "approval": "human-only"
+      },
+      "first_seen": "2026-09-03"
+    },
+    "/api/v1/paper/education/summary": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static paper-education summary read. Response schema is not captured.",
+      "first_seen": "2026-09-03"
+    },
+    "/api/v1/paper/init": {
+      "status": "candidate",
+      "method": "POST",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static call contract has no request body. It initializes or applies for the paper-options environment after selecting an options account. Education/eligibility behavior and strict live-ledger isolation must be verified before implementation; no bypass parameter was found.",
+      "mutation": {
+        "writes_state": true,
+        "risk_level": "simulation-enrollment",
+        "reversibility": "unknown",
+        "approval": "per-execution"
+      },
+      "first_seen": "2026-09-03"
+    },
+    "/api/v1/paper/trading/markets/us-opt/orderable-quantity/sell": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
+    },
+    "/api/v1/paper/trading/orders/calculate/order-data": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
+    },
+    "/api/v1/paper/trading/orders/histories": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
+    },
+    "/api/v1/paper/trading/orders/histories/all/pending": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
     },
     "/api/v1/pension/frontend/certificate/contribution-certificate/issuable": {
       "status": "excluded",
@@ -5820,7 +5950,8 @@
       }
     },
     "/api/v1/reasoning-contents/alimy/subscription": {
-      "status": "implemented",
+      "status": "excluded",
+      "note": "redundant notification preference read (/user-alimies is canonical)",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -7015,9 +7146,12 @@
       }
     },
     "/api/v1/trade-purpose-verification/my-data/account/exists": {
-      "status": "implemented",
+      "status": "candidate",
       "method": "GET",
       "host": "wts-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static route is exact, but repeated read-only calls with a valid session alternated between boolean 200 and 400 on 2026-09-03. Removed from accumulate funding-status and monitoring until the missing state/header or stable response contract is identified.",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -8273,8 +8407,10 @@
     },
     "/api/v2/dashboard/asset/sections/all": {
       "status": "implemented",
+      "note": "Body-filtered dashboard sections. SORTED_OVERVIEW powers flat positions; FOLDER_OVERVIEW_V2 powers grouped holdings with fee-aware returns. Empty bodies are invalid for capability claims.",
       "method": "POST",
       "host": "wts-cert-api",
+      "evidence": "verified",
       "first_seen": "2026-06-19",
       "observed": {
         "method": "POST",
@@ -8300,8 +8436,11 @@
       }
     },
     "/api/v2/dashboard/intelligences/all": {
-      "status": "candidate",
-      "note": "POST {types, variable}. types 어휘 미상으로 400 (2026-08-04)",
+      "status": "excluded",
+      "note": "Exact MAIN request and live nullable intelligence response verified 2026-09-03. This is a homepage polling/composition placeholder, not a standalone user capability.",
+      "method": "POST",
+      "host": "wts-info-api",
+      "evidence": "verified",
       "first_seen": "2026-08-03",
       "probe": {
         "at": "2026-08-03",
@@ -8471,9 +8610,11 @@
       }
     },
     "/api/v2/index-infos/{code}": {
-      "status": "candidate",
+      "status": "implemented",
+      "note": "Exact read-only live schema verified 2026-09-03. Merged into market index detail as session hours, open state, and realtime/delayed feed metadata.",
       "method": "GET",
       "host": "wts-info-api",
+      "evidence": "verified",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -8993,6 +9134,82 @@
         "verdict": "needs-params"
       }
     },
+    "/api/v2/paper/dashboard/asset/sections/all": {
+      "status": "candidate",
+      "method": "POST",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Read-like static contract with {types:[section]}; response schema and paper-only account isolation remain unverified.",
+      "mutation": {
+        "writes_state": false,
+        "risk_level": "none",
+        "reversibility": "not-applicable",
+        "approval": "none"
+      },
+      "first_seen": "2026-09-03"
+    },
+    "/api/v2/paper/trading/commission-info": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
+    },
+    "/api/v2/paper/trading/my-orders/markets/us-opt/by-date/completed": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
+    },
+    "/api/v2/paper/trading/order/cancel/prepare": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
+    },
+    "/api/v2/paper/trading/order/cancel/prepare/{date}/{orderNo}": {
+      "status": "candidate",
+      "method": "POST",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static prepare body includes after-market/reservation flags, quantity, stockCode, tradeType, orderId, and withOrderKey. No state change is expected, but the receipt is unverified.",
+      "mutation": {
+        "writes_state": false,
+        "risk_level": "simulation",
+        "reversibility": "not-applicable",
+        "approval": "none"
+      },
+      "first_seen": "2026-09-03"
+    },
+    "/api/v2/paper/trading/order/create": {
+      "status": "candidate",
+      "method": "POST",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Exact paper-order create route is present in the static bundle. The full payload, orderKey propagation, response receipt, and strict live-ledger isolation remain unverified.",
+      "mutation": {
+        "writes_state": true,
+        "risk_level": "simulation",
+        "reversibility": "irreversible",
+        "approval": "per-execution"
+      },
+      "first_seen": "2026-09-03"
+    },
+    "/api/v2/paper/trading/order/prepare": {
+      "status": "candidate",
+      "method": "POST",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Exact paper-order prepare route is present in the static bundle. The complete request schema, validation branches, and receipt/orderKey contract are not yet isolated.",
+      "mutation": {
+        "writes_state": false,
+        "risk_level": "simulation",
+        "reversibility": "not-applicable",
+        "approval": "none"
+      },
+      "first_seen": "2026-09-03"
+    },
+    "/api/v2/paper/trading/orders/calculate": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
+    },
     "/api/v2/profit/daily/market": {
       "status": "candidate",
       "method": "POST",
@@ -9162,6 +9379,12 @@
         "at": "2026-09-03"
       }
     },
+    "/api/v2/search/stocks": {
+      "status": "implemented",
+      "method": "POST",
+      "host": "wts-info-api",
+      "first_seen": "2026-09-03"
+    },
     "/api/v2/settings/password/reset": {
       "status": "excluded",
       "note": "account security flow",
@@ -9263,35 +9486,48 @@
     },
     "/api/v2/share-holdings/folders": {
       "status": "candidate",
-      "first_seen": "2026-07-13",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 200,
-        "verdict": "thin"
-      }
+      "method": "POST",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static call contract: create a user-defined holdings folder with {folderType,name,items}. Exact enum and live UI response still require capture before implementation.",
+      "mutation": {
+        "writes_state": true,
+        "risk_level": "preference",
+        "reversibility": "reversible",
+        "approval": "per-execution"
+      },
+      "first_seen": "2026-07-13"
     },
     "/api/v2/share-holdings/folders/items": {
       "status": "candidate",
-      "first_seen": "2026-07-13",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "method": "POST",
-        "status": 405,
-        "verdict": "http-405"
-      }
+      "method": "PUT",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static call contract: move a holding with {folderItemKey,toFolderKey,beforeFolderItemKey}. Live UI capture is required before implementation.",
+      "mutation": {
+        "writes_state": true,
+        "risk_level": "preference",
+        "reversibility": "reversible",
+        "approval": "per-execution"
+      },
+      "first_seen": "2026-07-13"
     },
     "/api/v2/share-holdings/folders/move": {
       "status": "candidate",
-      "first_seen": "2026-07-13",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "method": "POST",
-        "status": 405,
-        "verdict": "http-405"
-      }
+      "method": "PUT",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static call contract: reorder folders with {folderKeys}. Live UI capture is required before implementation.",
+      "mutation": {
+        "writes_state": true,
+        "risk_level": "preference",
+        "reversibility": "reversible",
+        "approval": "per-execution"
+      },
+      "first_seen": "2026-07-13"
     },
     "/api/v2/share-holdings/folders/name": {
       "status": "candidate",
@@ -9304,16 +9540,50 @@
         "verdict": "http-405"
       }
     },
+    "/api/v2/share-holdings/folders/name/{folderKey}": {
+      "status": "candidate",
+      "method": "PUT",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static call contract: rename a holdings folder with {name}. Live UI capture is required before implementation.",
+      "mutation": {
+        "writes_state": true,
+        "risk_level": "preference",
+        "reversibility": "reversible",
+        "approval": "per-execution"
+      },
+      "first_seen": "2026-09-03"
+    },
     "/api/v2/share-holdings/folders/validate-name": {
       "status": "candidate",
-      "first_seen": "2026-07-13",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "method": "POST",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "method": "POST",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static read-like validation contract {name}; no state change expected, but live response is not captured.",
+      "mutation": {
+        "writes_state": false,
+        "risk_level": "none",
+        "reversibility": "not-applicable",
+        "approval": "none"
+      },
+      "first_seen": "2026-07-13"
+    },
+    "/api/v2/share-holdings/folders/{folderKey}": {
+      "status": "candidate",
+      "method": "DELETE",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static call contract: delete one holdings folder. Folder identity, ordering, and membership cannot be restored exactly; live UI capture is required before implementation.",
+      "mutation": {
+        "writes_state": true,
+        "risk_level": "destructive",
+        "reversibility": "irreversible",
+        "approval": "per-execution+irreversible-acknowledgement"
+      },
+      "first_seen": "2026-09-03"
     },
     "/api/v2/sms-auth/request": {
       "status": "candidate",
@@ -9811,36 +10081,15 @@
     },
     "/api/v2/wts/asap-provision": {
       "status": "candidate",
-      "first_seen": "2026-08-03",
-      "probe": {
-        "at": "2026-08-04",
-        "host": "wts-cert-api",
-        "method": "GET",
-        "status": 404,
-        "verdict": "not-found"
-      }
+      "first_seen": "2026-09-03"
     },
     "/api/v2/wts/asap-provision/apply": {
       "status": "candidate",
-      "first_seen": "2026-08-03",
-      "probe": {
-        "at": "2026-08-04",
-        "host": "wts-api",
-        "method": "GET",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "first_seen": "2026-09-03"
     },
     "/api/v2/wts/asap-provision/in-progress": {
       "status": "candidate",
-      "first_seen": "2026-08-03",
-      "probe": {
-        "at": "2026-08-04",
-        "host": "wts-api",
-        "method": "GET",
-        "status": 200,
-        "verdict": "thin"
-      }
+      "first_seen": "2026-09-03"
     },
     "/api/v2/wts/trading/order/cancel/prepare": {
       "status": "implemented",
@@ -10050,6 +10299,68 @@
         "body": [],
         "at": "2026-08-03"
       }
+    },
+    "/api/v3/paper/trading/order": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
+    },
+    "/api/v3/paper/trading/order/bulk-cancel": {
+      "status": "candidate",
+      "method": "POST",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static simulated bulk-cancel contract repeats the prepared orderCancels array. Result exposes failedCancelCount; exact per-order receipts are not captured.",
+      "mutation": {
+        "writes_state": true,
+        "risk_level": "simulation",
+        "reversibility": "irreversible",
+        "approval": "per-execution"
+      },
+      "first_seen": "2026-09-03"
+    },
+    "/api/v3/paper/trading/order/bulk-cancel/prepare": {
+      "status": "candidate",
+      "method": "POST",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static prepare body is {orderCancels:[{orderDate,orderNo,tradeType,isAfterMarketOrder,stockCode,isReservationOrder}]}.",
+      "mutation": {
+        "writes_state": false,
+        "risk_level": "simulation",
+        "reversibility": "not-applicable",
+        "approval": "none"
+      },
+      "first_seen": "2026-09-03"
+    },
+    "/api/v3/paper/trading/order/cancel": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
+    },
+    "/api/v3/paper/trading/order/cancel/{date}/{orderNo}": {
+      "status": "candidate",
+      "method": "POST",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static simulated-cancel contract uses the prepare orderKey in X-Order-Key and repeats the order identity/body. Post-cancel verification is not captured.",
+      "mutation": {
+        "writes_state": true,
+        "risk_level": "simulation",
+        "reversibility": "irreversible",
+        "approval": "per-execution"
+      },
+      "first_seen": "2026-09-03"
+    },
+    "/api/v3/paper/trading/order/{orderNo}/available-actions": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "priority": "deferred",
+      "note": "Static read contract for the actions currently allowed on one simulated order.",
+      "first_seen": "2026-09-03"
     },
     "/api/v3/promotion/account-open-quiz": {
       "status": "excluded",
@@ -10596,6 +10907,14 @@
         "verdict": "needs-params"
       }
     },
+    "/api/v4/stock-prices/bidoffer": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
+    },
+    "/api/v4/stock-prices/detail": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
+    },
     "/api/v4/trading/auto-trading": {
       "status": "candidate",
       "method": "GET",
@@ -10642,6 +10961,10 @@
         "status": 400,
         "verdict": "needs-params"
       }
+    },
+    "/api/v5/stock-prices": {
+      "status": "candidate",
+      "first_seen": "2026-09-03"
     }
   },
   "updated_at": "2026-09-03"

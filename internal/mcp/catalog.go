@@ -28,6 +28,7 @@ type (
 	BackendStatus  = ops.BackendStatus
 	Param          = ops.Param
 	Operation      = ops.Operation
+	MutationPolicy = ops.MutationPolicy
 	Catalog        = ops.Catalog
 	OfficialBroker = ops.OfficialBroker
 )

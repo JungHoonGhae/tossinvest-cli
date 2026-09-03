@@ -10,9 +10,9 @@ agents should use `--output json`.
 
 | Command | Description |
 |------|------|
-| `tossctl auth login [--headless] [--qr-output <path>]` | QR + phone-approval login |
+| `tossctl auth login [--link] [--headless] [--qr-output <path>]` | QR or tap-on-phone link + phone-approval login |
 | `tossctl auth status` | Session validity / expiry |
-| `tossctl auth extend [--timeout 120s]` | Extend session via phone push (~7 days) |
+| `tossctl auth extend [--timeout 120s] [--if-expiring 48h]` | Extend via phone push (~7 days), optionally skip while enough time remains |
 
 ## Account & Portfolio
 
@@ -22,6 +22,7 @@ agents should use `--output json`.
 | `tossctl account summary` | Total assets, P&L, by market |
 | `tossctl portfolio positions` | Holdings (USD shown for US) |
 | `tossctl portfolio allocation` | Allocation |
+| `tossctl portfolio folders [--account <key>]` | User-defined folder holdings and fee-adjusted P/L (account and internal folder keys omitted) |
 | `tossctl portfolio performance [--account <key>]` | One-month daily principal, valuation, return, and range high/low (all Securities accounts by default) |
 | `tossctl portfolio snapshots [--account <key>] [--cursor <key>] [--limit N]` | Cursor-paged dated portfolio valuation history |
 | `tossctl portfolio snapshot <YYYY-MM-DD> [--account <key>]` | Full market and holding detail for one valuation date |
@@ -53,7 +54,7 @@ agents should use `--output json`.
 
 | Command | Description |
 |------|------|
-| `tossctl market index [<code\|name>]` | Major indices / detail (OHLC, 52w) with an argument |
+| `tossctl market index [<code\|name>]` | Major indices / detail (OHLC, 52w, feed, session start/end/open state) with an argument |
 | `tossctl market ranking --size N` | Live popularity ranking |
 | `tossctl market investors` | Top net-buy by investor (foreign, institution, retail) |
 | `tossctl market sectors [<id>]` | Sector movements (top-level/sub, 1d·1m·1y) |
@@ -75,14 +76,14 @@ agents should use `--output json`.
 
 ## Orders & Trading
 
-Trading is disabled by default. See the [Safety Model](safety.en.md).
+Trading is disabled by default. See the [Safety Model](/en/docs/guide/safety).
 
 | Command | Description |
 |------|------|
 | `tossctl order preview --symbol <s> --side <buy\|sell> --qty <n> --price <p>` | dry-run preview (no order sent) |
 | `tossctl order place ... --execute --confirm <token>` | Live order (two-step gate) |
-| `tossctl order cancel --order-id <id> --symbol <s>` | Cancel |
-| `tossctl order amend --order-id <id> ...` | Amend |
+| `tossctl order cancel --order-id <id> --symbol <s> [--execute --confirm <token>]` | Preview by default; cancel with that command's token |
+| `tossctl order amend --order-id <id> ... [--execute --confirm <token>]` | Preview by default; amend with that command's token |
 | `tossctl orders list` · `orders completed` · `order show <id>` | Pending/filled/single lookup |
 
 Fractional (amount-based) order: `order place --fractional --amount <krw> --qty 0` (US market order).
@@ -103,21 +104,21 @@ Fractional (amount-based) order: `order place --fractional --amount <krw> --qty 
 | `tossctl account trading-settings [--account <key>]` | Read-only account-specific simple trade plus user-wide KRX/NXT, ATS notification, and option tick settings |
 | `tossctl account transfer-accounts [--account <key>] [--full]` | Securities own/recent transfer accounts (masked by default; never initiates a transfer) |
 | `tossctl account access-status [--account <key>]` | Last Securities login context and account-specific margin-freeze/accident-account status (read-only; raw account key omitted) |
-| `tossctl banking status [--full]` | Securities accumulation funding, automated-order registration, and trade-purpose MyData state (not general Banking/MyData; holder/account masked, internal ID never emitted) |
+| `tossctl accumulate funding-status [--full]` | Securities accumulation funding and automated-order registration (`banking status` is a deprecated alias; not general Banking/MyData; holder/account masked, internal ID never emitted) |
 | `tossctl notifications list` | Read-only WTS notification preferences (internal user ID omitted) |
-| `tossctl notifications status` | Read-only inbox, AI issue SNS release, FOMC live, and reasoning-content notification/agreement state |
+| `tossctl notifications status` | Read-only canonical preferences, inbox unread state, and AI-analysis agreement |
 
 ## Watchlist
 
 | Command | Description |
 |------|------|
 | `tossctl watchlist list [<group-id>] [--all]` · `watchlist groups` | Watchlist items by folder / folder list |
-| `tossctl watchlist group create\|rename\|delete` | Folder management |
-| `tossctl watchlist add\|remove --group <id>` | Add/remove symbols |
+| `tossctl watchlist group create\|rename\|delete [--execute --confirm <token>]` | Preview/confirm folder changes; delete also needs `--acknowledge-irreversible` |
+| `tossctl watchlist add\|remove <symbol or name> --group <id> [--execute --confirm <token>]` | Preview/confirm adding or removing symbols |
 
 ## Official Open API · Auto-routing
 
-Connect an official key and the read/trade features the official API supports route through OAuth (tokens auto-refresh); everything else uses the WTS path. All features work without a key too. See the [auto-routing guide](/docs/guide/hybrid-openapi).
+Connect an official key and supported reads/trades route through OAuth (tokens auto-refresh); other features use WTS. WTS features work with only a web session, while `account buying-power`, `market business-days|stocks`, `quote metadata`, conditional orders, and `stream` require the official key. See the [auto-routing guide](/en/docs/guide/hybrid-openapi).
 
 | Command | Description |
 |------|------|

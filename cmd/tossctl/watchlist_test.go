@@ -1,12 +1,20 @@
 package main
 
 import (
+	"bytes"
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
+	watchlistservice "github.com/JungHoonGhae/tossinvest-cli/internal/watchlist"
 	"github.com/spf13/cobra"
 )
+
+type failingWatchlistWriter struct{}
+
+func (failingWatchlistWriter) Write([]byte) (int, error) { return 0, errors.New("write failed") }
 
 // TestGroupItems verifies the pure groupItems mapping:
 // Item.ID = string representation of group ID, Item.Label contains group Name.
@@ -171,6 +179,93 @@ func TestFolderIntentResolverKeepsInteractiveIntent(t *testing.T) {
 	required, err := r.required("")
 	if err != nil || required.mode != folderIntentInteractive {
 		t.Fatalf("interactive required intent = %+v, %v", required, err)
+	}
+}
+
+func TestWatchlistMutationsDeclareGuardrails(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		path         []string
+		irreversible bool
+	}{
+		{path: []string{"watchlist", "group", "create"}},
+		{path: []string{"watchlist", "group", "rename"}},
+		{path: []string{"watchlist", "group", "delete"}, irreversible: true},
+		{path: []string{"watchlist", "add"}},
+		{path: []string{"watchlist", "remove"}},
+	}
+	for _, tc := range tests {
+		cmd, _, err := newRootCmd().Find(tc.path)
+		if err != nil || cmd.Name() != tc.path[len(tc.path)-1] {
+			t.Fatalf("%v: command=%v err=%v", tc.path, cmd, err)
+		}
+		if cmd.Annotations["writes_state"] != "true" || cmd.Annotations["mutating"] != "" {
+			t.Errorf("%v: annotations=%#v", tc.path, cmd.Annotations)
+		}
+		if cmd.Flags().Lookup("execute") == nil || cmd.Flags().Lookup("confirm") == nil {
+			t.Errorf("%v: missing execute/confirm guard", tc.path)
+		}
+		if tc.irreversible {
+			if cmd.Annotations["mutation_risk"] != "destructive" || cmd.Annotations["reversibility"] != "irreversible" || cmd.Flags().Lookup("acknowledge-irreversible") == nil {
+				t.Errorf("%v: incomplete irreversible guard: annotations=%#v", tc.path, cmd.Annotations)
+			}
+		} else if cmd.Annotations["reversibility"] != "reversible" {
+			t.Errorf("%v: reversible mutation not declared: %#v", tc.path, cmd.Annotations)
+		}
+	}
+}
+
+func TestRenderWatchlistPlanFormatsAndSafetyStates(t *testing.T) {
+	t.Parallel()
+	preview := watchlistservice.Plan{
+		Kind: "securities_watchlist_change", Action: watchlistservice.GroupDelete,
+		GroupID: 7, GroupName: "Long term", CurrentItemCount: 3,
+		Irreversible: true, RequiresIrreversibleAcknowledgement: true,
+		AffectedItems: []watchlistservice.PreviewItem{{ProductCode: "US.AAPL", Symbol: "AAPL", Name: "Apple"}},
+		ConfirmToken:  "confirm-123",
+	}
+	for _, tc := range []struct {
+		name   string
+		format output.Format
+		plan   watchlistservice.Plan
+		wants  []string
+		absent []string
+	}{
+		{name: "json", format: output.FormatJSON, plan: preview, wants: []string{`"action": "group_delete"`, `"confirm_token": "confirm-123"`, `"irreversible": true`, `"product_code": "US.AAPL"`}},
+		{name: "csv", format: output.FormatCSV, plan: preview, wants: []string{"kind,action,group_id", "securities_watchlist_change,group_delete,7", "confirm-123", "US.AAPL (AAPL, Apple)"}},
+		{name: "preview table", format: output.FormatTable, plan: preview, wants: []string{"Status:     preview", "irreversible deletion (3 current item(s))", "Affected:   US.AAPL (AAPL, Apple)", "--acknowledge-irreversible", "confirm-123"}},
+		{name: "noop table", format: output.FormatTable, plan: watchlistservice.Plan{Action: watchlistservice.GroupRename, GroupID: 7, GroupName: "Long term", Noop: true}, wants: []string{"Status:     up to date"}, absent: []string{"Confirm:"}},
+		{name: "reconciled table", format: output.FormatTable, plan: watchlistservice.Plan{Action: watchlistservice.ItemAdd, GroupID: 7, GroupName: "Long term", ProductCode: "US.AAPL", Applied: true, Reconciled: true}, wants: []string{"Status:     applied", "Product:    US.AAPL", "Verified:"}, absent: []string{"Confirm:"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var out bytes.Buffer
+			if err := renderWatchlistPlan(&out, tc.format, tc.plan); err != nil {
+				t.Fatal(err)
+			}
+			for _, want := range tc.wants {
+				if !strings.Contains(out.String(), want) {
+					t.Errorf("missing %q in %q", want, out.String())
+				}
+			}
+			for _, absent := range tc.absent {
+				if strings.Contains(out.String(), absent) {
+					t.Errorf("unexpected %q in %q", absent, out.String())
+				}
+			}
+		})
+	}
+}
+
+func TestRenderWatchlistPlanRejectsUnsupportedFormatAndPropagatesWrites(t *testing.T) {
+	t.Parallel()
+	plan := watchlistservice.Plan{Action: watchlistservice.GroupCreate, ConfirmToken: "token"}
+	if err := renderWatchlistPlan(&bytes.Buffer{}, output.Format("yaml"), plan); err == nil || !strings.Contains(err.Error(), "unsupported") {
+		t.Fatalf("unsupported format error = %v", err)
+	}
+	for _, format := range []output.Format{output.FormatTable, output.FormatJSON, output.FormatCSV} {
+		if err := renderWatchlistPlan(failingWatchlistWriter{}, format, plan); err == nil {
+			t.Errorf("%s did not propagate writer failure", format)
+		}
 	}
 }
 

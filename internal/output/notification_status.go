@@ -8,7 +8,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 )
 
-// WriteNotificationStatus renders specialized notification and AI content signals.
+// WriteNotificationStatus renders canonical preferences plus inbox and AI-agreement state.
 func WriteNotificationStatus(w io.Writer, format Format, status domain.NotificationStatus) error {
 	switch format {
 	case FormatJSON:
@@ -27,13 +27,12 @@ func WriteNotificationStatus(w io.Writer, format Format, status domain.Notificat
 		)
 	case FormatTable:
 		_, err := fmt.Fprintf(w,
-			"Inbox unread:                    %t\nAI issue SNS release alert:       %t\nFOMC live alert:                  %t\nReasoning contents alert:         %t\nReasoning agreement:              %t\nReasoning news count:             %d\n",
+			"Inbox unread:                    %t\nAI issue SNS release alert:       %t\nFOMC live alert:                  %t\nReasoning contents alert:         %t\nReasoning agreement:              %t\n",
 			status.InboxUnread,
 			status.AIIssueSNSReleaseAlertEnabled,
 			status.FOMCLiveAlertEnabled,
 			status.ReasoningContentsAlertEnabled,
 			status.ReasoningAgreement,
-			status.ReasoningNewsCount,
 		)
 		return err
 	default:

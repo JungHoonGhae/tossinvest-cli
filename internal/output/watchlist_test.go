@@ -10,8 +10,23 @@ import (
 )
 
 var testWatchlistItems = []domain.WatchlistItem{
-	{Group: "관심", Symbol: "005930", Name: "삼성전자", Currency: "KRW", Base: 70000, Last: 72000},
+	{Group: "관심", ProductCode: "A005930", Symbol: "005930", Name: "삼성전자", Currency: "KRW", Base: 70000, Last: 72000},
 	{Group: "관심", Symbol: "AAPL", Name: "Apple", Currency: "USD", Base: 150.0, Last: 145.0},
+}
+
+func TestWriteWatchlistCSVPreservesReleasedPrefix(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	if err := WriteWatchlist(&buf, FormatCSV, testWatchlistItems[:1]); err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	if lines[0] != "group,symbol,name,currency,base,last,product_code" {
+		t.Fatalf("CSV header reordered released columns: %q", lines[0])
+	}
+	if lines[1] != "관심,005930,삼성전자,KRW,70000,72000,A005930" {
+		t.Fatalf("CSV row does not match header: %q", lines[1])
+	}
 }
 
 func TestWriteWatchlistTable(t *testing.T) {

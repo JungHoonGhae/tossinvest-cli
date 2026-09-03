@@ -215,9 +215,23 @@ session.json cookies → [{name,value,domain:'.tossinvest.com',path:'/',
 404 난다.** 정확한 경로·메서드는 프로덕션 번들에서 뽑는다:
 
 ```
-GET / → buildId 추출 → _buildManifest.js → 청크 URL 수집 → 전부 fetch 후 concat
+GET / + 번들에서 발견한 라우트 HTML → 활성 buildId 집합 추출
+→ 각 build의 _buildManifest.js + 라우트 청크 URL 합집합 → 새 build·chunk·route가
+더 나오지 않는 고정점까지 반복 → 전부 concat
 번들에서: path:"/api/vN/..." + 근처 method:"GET|POST" 정규식으로 정확한 정의 추출
 ```
+
+WTS rolling deploy 중에는 `/`와 개별 라우트가 서로 다른 buildId를 줄 수
+있다. 하나만 고르지 않고 활성 build 전체의 manifest와 청크를 합쳐야 부분 배포가
+대량 endpoint 삭제로 오인되지 않는다. 생성 결과의 `build_ids`는 그 집합이고,
+`build_id`는 구버전 소비자가 manifest URL에 계속 사용할 수 있도록 `/` HTML에서 관측한
+단일 root build를 유지한다. 변화 감지와 부분 수집 판정은 `build_ids` 집합을 기준으로 하며,
+옛 catalog에 이 필드가 없을 때만 `build_id`를 fallback으로 사용한다.
+비정상 번들이 무제한 crawler로 번지는 것을 막기 위해 build 8개·chunk 1,000개·route
+2,000개, 응답당 16 MiB·전체 256 MiB의 넉넉한 상한을 두며, 초과하면 카탈로그를
+덮어쓰지 않고 실패한다. redirect 최종 origin도 `www.tossinvest.com`으로 제한한다. root,
+manifest, chunk의 404와 모든 일시적 fetch 실패는 전체 수집 실패다. 번들 정규식으로 추측한
+UI route의 확정 404만 “화면 없음”으로 건너뛰며 timeout·5xx·빈 응답은 부분 수집으로 거절한다.
 
 주의: minified 변수명(eP, o, c…)은 청크마다 재사용돼 **호출부(요청 바디) 정적 추적은
 신뢰도 낮다.** 경로·메서드까지만 번들로 얻고, 바디는 라이브로 확인.

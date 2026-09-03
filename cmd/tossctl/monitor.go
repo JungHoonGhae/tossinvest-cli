@@ -36,7 +36,7 @@ func newMonitorCmd(opts *rootOptions) *cobra.Command {
 			results := monitor.Run(cmd.Context(), app.session)
 			printResults(cmd.OutOrStdout(), cmd.OutOrStderr(), results, quiet)
 			for _, r := range results {
-				if !r.OK {
+				if !r.OK && !r.Skipped {
 					os.Exit(1)
 				}
 			}
@@ -50,9 +50,11 @@ func newMonitorCmd(opts *rootOptions) *cobra.Command {
 }
 
 func printResults(stdout, stderr io.Writer, results []monitor.Result, quiet bool) {
-	pass, fail := 0, 0
+	pass, fail, skipped := 0, 0, 0
 	for _, r := range results {
-		if r.OK {
+		if r.Skipped {
+			skipped++
+		} else if r.OK {
 			pass++
 		} else {
 			fail++
@@ -62,19 +64,21 @@ func printResults(stdout, stderr io.Writer, results []monitor.Result, quiet bool
 		for _, r := range results {
 			if r.OK {
 				fmt.Fprintf(stdout, "  ✓ %s — status=%d (%dms)\n", r.Probe.Name, r.Status, r.Duration.Milliseconds())
+			} else if r.Skipped {
+				fmt.Fprintf(stdout, "  - %s — %s\n", r.Probe.Name, r.Detail)
 			}
 		}
 	}
 	authFailures := 0
 	for _, r := range results {
-		if !r.OK {
+		if !r.OK && !r.Skipped {
 			fmt.Fprintf(stderr, "  ✗ %s — status=%d: %s\n", r.Probe.Name, r.Status, r.Detail)
 			if r.Status == http.StatusUnauthorized || r.Status == http.StatusForbidden {
 				authFailures++
 			}
 		}
 	}
-	fmt.Fprintf(stdout, "\n%d passed, %d failed\n", pass, fail)
+	fmt.Fprintf(stdout, "\n%d passed, %d failed, %d skipped\n", pass, fail, skipped)
 
 	// One expired session knocks out every account-scoped probe at once. Without
 	// this line the output is N separate 401s, which reads as "Toss broke N

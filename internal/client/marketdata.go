@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -494,26 +495,85 @@ func (c *Client) GetIndexDetail(ctx context.Context, query string) (domain.Index
 		return domain.IndexQuote{}, fmt.Errorf("index %q not found (available: %s)", query, strings.Join(names, ", "))
 	}
 
-	var envelope quoteEnvelope[struct {
-		Open    float64 `json:"open"`
-		High    float64 `json:"high"`
-		Low     float64 `json:"low"`
-		Close   float64 `json:"close"`
-		Volume  float64 `json:"volume"`
-		Base    float64 `json:"base"`
-		High52w float64 `json:"high52w"`
-		Low52w  float64 `json:"low52w"`
+	var priceEnvelope quoteEnvelope[struct {
+		Open    *float64 `json:"open"`
+		High    *float64 `json:"high"`
+		Low     *float64 `json:"low"`
+		Close   *float64 `json:"close"`
+		Volume  float64  `json:"volume"`
+		Base    *float64 `json:"base"`
+		High52w float64  `json:"high52w"`
+		Low52w  float64  `json:"low52w"`
 	}]
-	endpoint := fmt.Sprintf("%s/api/v1/index-prices/%s", c.infoBaseURL, url.PathEscape(matched.Code))
-	if err := c.getJSON(ctx, endpoint, &envelope); err != nil {
+	var infoEnvelope quoteEnvelope[struct {
+		Code      string `json:"code"`
+		Name      string `json:"name"`
+		PriceFeed *struct {
+			Code        *string `json:"code"`
+			Description *string `json:"description"`
+		} `json:"priceFeedType"`
+		TradingStartAt *string `json:"tradingStartAt"`
+		TradingEndAt   *string `json:"tradingEndAt"`
+		MarketOpen     *bool   `json:"isMarketOpen"`
+	}]
+	code := url.PathEscape(matched.Code)
+	if err := runReadBatch(
+		readTask{label: "index price", run: func() error {
+			if err := c.getJSON(ctx, fmt.Sprintf("%s/api/v1/index-prices/%s", c.infoBaseURL, code), &priceEnvelope); err != nil {
+				return err
+			}
+			price := priceEnvelope.Result
+			var missing []string
+			for name, value := range map[string]*float64{
+				"open": price.Open, "high": price.High, "low": price.Low,
+				"close": price.Close, "base": price.Base,
+			} {
+				if value == nil {
+					missing = append(missing, name)
+				}
+			}
+			if len(missing) > 0 {
+				sort.Strings(missing)
+				return fmt.Errorf("response missing required fields: %s", strings.Join(missing, ", "))
+			}
+			return nil
+		}},
+		readTask{label: "index session metadata", run: func() error {
+			return c.getJSON(ctx, fmt.Sprintf("%s/api/v2/index-infos/%s", c.infoBaseURL, code), &infoEnvelope)
+		}},
+	); err != nil {
 		return domain.IndexQuote{}, err
 	}
-	r := envelope.Result
+	info := infoEnvelope.Result
+	var missing []string
+	if info.PriceFeed == nil || info.PriceFeed.Code == nil {
+		missing = append(missing, "priceFeedType.code")
+	}
+	if info.PriceFeed == nil || info.PriceFeed.Description == nil {
+		missing = append(missing, "priceFeedType.description")
+	}
+	if info.TradingStartAt == nil {
+		missing = append(missing, "tradingStartAt")
+	}
+	if info.TradingEndAt == nil {
+		missing = append(missing, "tradingEndAt")
+	}
+	if info.MarketOpen == nil {
+		missing = append(missing, "isMarketOpen")
+	}
+	if len(missing) > 0 {
+		return domain.IndexQuote{}, fmt.Errorf("index session metadata missing required fields: %s", strings.Join(missing, ", "))
+	}
+	r := priceEnvelope.Result
 	out := domain.IndexQuote{
 		Code: matched.Code, Name: matched.Name, Nation: matched.Nation,
-		Open: r.Open, High: r.High, Low: r.Low, Close: r.Close, Base: r.Base,
+		Open: *r.Open, High: *r.High, Low: *r.Low, Close: *r.Close, Base: *r.Base,
 		Volume: r.Volume, High52w: r.High52w, Low52w: r.Low52w,
-		FetchedAt: time.Now().UTC(),
+		PriceFeed:      domain.IndexPriceFeed{Code: *info.PriceFeed.Code, Description: *info.PriceFeed.Description},
+		TradingStartAt: *info.TradingStartAt,
+		TradingEndAt:   *info.TradingEndAt,
+		MarketOpen:     *info.MarketOpen,
+		FetchedAt:      time.Now().UTC(),
 	}
 	out.Change = out.Close - out.Base
 	if out.Base != 0 {

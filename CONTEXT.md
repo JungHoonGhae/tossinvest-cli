@@ -21,19 +21,21 @@
 
 일반 토스 앱 안에는 증권 모바일 화면(MTS 성격)과 Banking/MyData 화면이 함께 있지만,
 같은 앱에 있다는 사실이 같은 API·토큰·동의를 뜻하지 않는다. 특히 일반 Banking/MyData에는
-대응하는 WTS 웹앱이 없다. 현재 `banking status`는 이름과 달리 `banking` 도메인이 아니라
-**토스증권 주식모으기 자금연결 상태**이므로 `securities + wts`다.
+대응하는 WTS 웹앱이 없다. 정식 명령 `accumulate funding-status`는
+**토스증권 주식모으기 자금연결 상태**이므로 `securities + wts`다. 이전 이름
+`banking status`는 호환용 deprecated alias이며 새 문서와 자동화에서는 사용하지 않는다.
 
 ### 접근 경로 (`Operation.Backend` / CLI `source`)
 
 **공식 Open API (official)** — 토스증권이 공개한 정식 API. `internal/official`.
 `tossctl openapi login` 으로 발급한 자격증명이 필요하다. 계약이 안정적이고 주문
-집행의 유일한 경로다.
+집행의 우선 경로다. ops/MCP 주문과 조건주문은 이 경로만 사용한다.
 
 **WTS** — 토스증권 웹 트레이딩 시스템의 내부 API. `internal/client`.
 `tossctl auth login` 으로 얻은 웹 세션 쿠키를 재사용한다. 공식 API 에 없는 조회(인기
-순위·수급·AI 시그널·스크리너·업종·어닝·브리핑·배당 등)를 제공하지만 **비공식이라 예고
-없이 바뀔 수 있다**.
+순위·수급·AI 시그널·스크리너·업종·어닝·브리핑·배당 등)를 제공한다. 최상위 CLI의 일반
+주문(`place/cancel/amend`)도 명시적으로 WTS를 선택하거나 공식 경로를 사용할 수 없을 때
+이 경로를 사용할 수 있지만 **비공식이라 예고 없이 바뀔 수 있다**.
 
 **mobile** — 일반 Toss Android/iOS 앱의 내부 API 경로. 증권 모바일 화면과
 Banking/MyData 화면을 포함할 수 있지만 각각의 client·interceptor·동의 범위가 다르다.
@@ -50,20 +52,22 @@ fallback 설정이 정한다. `official`은 입력 호환용 deprecated 별칭�
 
 - 읽기: official 을 먼저 시도하고, 폴백 대상 실패(전송·인증·IP·레이트리밋·서버 오류)
   면 WTS 로 재시도한다. 도메인 오류(404 등)는 폴백하지 않고 그대로 돌려준다.
-- 쓰기(주문): **절대 교차 재시도하지 않는다.** 한 백엔드로만 보내고 실패하면 거기서
-  멈춘다. 중복 주문을 막기 위한 규칙이다.
+- 쓰기(일반 주문): 최상위 `order` CLI는 시작 시 official 또는 WTS 한 경로를 고르고
+  **절대 교차 재시도하지 않는다.** `ops call`과 MCP 주문은 operation 계약대로 official-only다.
+  어느 경로든 transport error 뒤 결과는 불명확할 수 있으므로 상태 확인 전 재시도하지 않는다.
 - `wts`는 우선순위 힌트가 아니라 **공식 경로 비활성화**다. ops의 직접 공식 호출과 WTS
   우선 조회의 역방향 폴백까지 같은 정책을 따른다.
 
-CLI 와 MCP 는 **같은 라우터를 공유한다** — 사람이 부르든 에이전트가 부르든 같은 조회는
-같은 방식으로 해석된다.
+CLI 와 MCP 는 조회용 typed contract와 hybrid 정책을 공유한다. 다만 호출 표면도 독립된
+분류 축이다. 사람용 최상위 `order` CLI만 기존 WTS 일반주문 경로를 유지하고, operation
+catalog를 실행하는 `ops call`과 MCP 주문은 `backend=""`인 official-only 계약을 따른다.
 
 ## 오퍼레이션
 
 **operation** — 카탈로그에 등록된 하나의 API 동작. `internal/ops` 가 단일 레지스트리이며
-`ID`, `Domain`, `Params`, `Backend`, 그리고 typed client 를 호출하는 `handler` 로 이루어진다.
+`ID`, 호환용 `Aliases`, `Domain`, `Params`, `Backend`, 그리고 typed client 를 호출하는 `handler` 로 이루어진다.
 `internal/mcp`(에이전트용 3-tool 카탈로그)와 `internal/monitor`(헬스 probe)가 여기서
-파생된다.
+파생된다. alias는 이전 자동화 입력만 받아들이며 별도 operation·probe·카운트로 노출하지 않는다.
 
 **backend (오퍼레이션 필드)** — 그 오퍼레이션이 요구하는 자격증명. `Catalog.Call` 이
 디스패치 전에 검사한다. 같은 경계에서 `Params` 에 선언된 primitive 타입을 정규화하고,
@@ -107,7 +111,39 @@ CLI 와 MCP 는 **같은 라우터를 공유한다** — 사람이 부르든 에
 `trading.Service`에서 config 옵트인 + execute·confirm 토큰으로 이중 게이팅되며 official
 전용 브로커로만 라우팅된다. 되돌릴 수 있는 증권 설정(목표가 알림, 보유종목 숨김)은 별도
 도메인 서비스가 preview + 현재 상태에 결합된 confirm 토큰 + 실행 후 재조회 검증을 맡는다.
-`mutating: true` 에이전트 금지 표시는 실계좌 거래 주문에만 유지한다.
+typed 명령의 `mutating: true` 에이전트 금지 표시는 실계좌 거래 주문에만 유지하고,
+비거래 변경은 `writes_state: true`로 구분한다. 관심종목 폴더·종목은 별도 서비스가
+세션 결합 5분 token, 불가역 삭제 추가 승인, 사후 재조회 검증을 맡는다. 여러 operation을 디스패치하는 `ops call`은
+둘 다 실행할 수 있으므로 `mutating: true`, `writes_state: possible`로 보수적으로 표시한다.
+
+## 변경 승인
+
+**상태 확인 (state confirmation)** — 미리보기의 정확한 intent와 현재 서버 상태를 함께
+결합하는 확인. 설정 변경의 기본 방식이며 적용 뒤 상태가 달라지면 이전 token이 무효가 된다.
+이는 프로세스 간 single-use 보장은 아니다. 서버 idempotency나 조건부 쓰기가 확인되지 않은
+WTS 변경은 같은 preview를 동시에 실행하지 않는다. 관심종목 token은 추가로 WTS 세션에
+묶이고 5분 뒤 만료된다. machine value는 `state_confirmation`이다.
+
+**의도 확인 (intent confirmation)** — 정확한 주문 intent만 결합하는 실수 방지 확인.
+현재 주문 token은 결정적이고 만료·single-use가 아니므로 같은 token을 실행하면 같은 주문을
+다시 제출할 수 있다. machine value는 `intent_confirmation`이며
+`requires_fresh_confirmation=false`로 이 차이를 공개한다.
+_피할 말_: `permission`, `one-shot`, `confirm`만 단독으로 사용
+
+**자동화 위임 (automation mandate)** — 사용자가 미리 정한 대상·행동·금액 한도·유효기간
+안에서 반복 변경을 허용하는 제한된 위임. 전역 우회 권한이 아니며 범위 밖 요청에는 효력이 없다.
+_피할 말_: bypass, skip permissions, unlimited automation
+
+**서버 동의 (server consent)** — 주문·신청 도중 토스가 별도로 요구하는 환전·상품·약관 등의
+확인. 자동 수락은 자동화 위임에 이름이 명시된 동의 종류에만 적용한다.
+_피할 말_: confirmation (상태/의도 확인과 구분되지 않음)
+
+**킬스위치 (kill switch)** — 이미 부여된 자동화 위임의 실행을 즉시 멈추는 상태. 위임을
+새로 만들거나 범위를 넓히는 승인이 아니다.
+
+**모의투자 (paper trading)** — 실계좌 원장과 분리된 것으로 검증된 가상 잔고·주문 영역.
+경로 이름에 `paper`가 있다는 사실만으로 분리가 증명되지는 않는다.
+_피할 말_: test account (테스트용 실계좌와 혼동됨)
 
 ## 인증 상태
 

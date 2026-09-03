@@ -38,19 +38,19 @@ func (m InstallMethod) String() string {
 }
 
 // homebrewCellarPrefixes are path prefixes (after symlink resolution) that
-// indicate a Homebrew-managed install of the tossctl-cli formula, across the
+// indicate a Homebrew-managed install of the tossctl formula, across the
 // three common Homebrew prefix locations (Apple Silicon, Intel, Linuxbrew).
 var homebrewCellarPrefixes = []string{
-	"/opt/homebrew/Cellar/tossctl-cli/",
-	"/usr/local/Cellar/tossctl-cli/",
-	"/home/linuxbrew/.linuxbrew/Cellar/tossctl-cli/",
+	"/opt/homebrew/Cellar/tossctl/",
+	"/usr/local/Cellar/tossctl/",
+	"/home/linuxbrew/.linuxbrew/Cellar/tossctl/",
 }
 
 // DetectInstallMethod classifies how the running binary at execPath was
 // installed. execPath should already be symlink-resolved by the caller
 // (typically via filepath.EvalSymlinks(os.Executable()) — Homebrew's `brew
 // link` puts a symlink in .../bin, and only the resolved Cellar path
-// contains the "Cellar/tossctl-cli/" segment this function looks for).
+// contains the "Cellar/tossctl/" segment this function looks for).
 func DetectInstallMethod(execPath, currentVersion string) InstallMethod {
 	if currentVersion == "dev" {
 		return MethodDev

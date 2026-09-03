@@ -98,7 +98,8 @@ func writeOperations() []Operation {
 		{
 			ID: "place_order", Method: "POST", Path: "/api/v1/orders",
 			Category: "order", Summary: "Place a new order (US/KR, limit or US fractional market). Gated; preview unless execute=true.",
-			Write: true,
+			Write:    true,
+			Mutation: financialMutation("official response only; a transport error leaves outcome unknown—inspect pending and completed orders before retrying"),
 			Params: append([]Param{
 				{Name: "symbol", Type: "string", Required: true},
 				{Name: "side", Type: "string", Required: true, Desc: `"buy" or "sell"`},
@@ -116,7 +117,8 @@ func writeOperations() []Operation {
 		{
 			ID: "cancel_order", Method: "POST", Path: "/api/v1/orders/{orderId}/cancel",
 			Category: "order", Summary: "Cancel a pending order. Gated; preview unless execute=true.",
-			Write: true,
+			Write:    true,
+			Mutation: financialMutation("official response only; after a transport error, inspect pending and completed orders before retrying"),
 			Params: append([]Param{
 				{Name: "order_id", Type: "string", Required: true},
 				{Name: "symbol", Type: "string", Required: true},
@@ -126,7 +128,8 @@ func writeOperations() []Operation {
 		{
 			ID: "modify_order", Method: "POST", Path: "/api/v1/orders/{orderId}/modify",
 			Category: "order", Summary: "Modify a pending order's quantity/price. Gated; preview unless execute=true.",
-			Write: true,
+			Write:    true,
+			Mutation: financialMutation("official response only; a transport error leaves the replacement outcome unknown—inspect pending and completed orders before retrying"),
 			Params: append([]Param{
 				{Name: "order_id", Type: "string", Required: true},
 				{Name: "quantity", Type: "number", Desc: "new quantity (optional)"},
@@ -137,7 +140,8 @@ func writeOperations() []Operation {
 		{
 			ID: "place_conditional_order", Method: "POST", Path: "/api/v1/conditional-orders",
 			Category: "order", Summary: "Place a conditional order. Gated; preview unless execute=true.",
-			Write: true,
+			Write:    true,
+			Mutation: financialMutation("official response only; after a transport error, inspect conditional-order state before retrying"),
 			Params: append([]Param{
 				{Name: "symbol", Type: "string", Required: true},
 				{Name: "type", Type: "string", Desc: `"SINGLE" (default), "OCO", or "OTO"`},
@@ -158,7 +162,8 @@ func writeOperations() []Operation {
 		{
 			ID: "cancel_conditional_order", Method: "DELETE", Path: "/api/v1/conditional-orders/{conditionalOrderId}",
 			Category: "order", Summary: "Cancel a conditional order. Gated; preview unless execute=true.",
-			Write: true,
+			Write:    true,
+			Mutation: financialMutation("official response only; after a transport error, inspect conditional-order state before retrying"),
 			Params: append([]Param{
 				{Name: "conditional_order_id", Type: "string", Required: true},
 			}, executeParams...),
@@ -167,7 +172,8 @@ func writeOperations() []Operation {
 		{
 			ID: "modify_conditional_order", Method: "POST", Path: "/api/v1/conditional-orders/{conditionalOrderId}/modify",
 			Category: "order", Summary: "Modify a conditional order. Gated; preview unless execute=true.",
-			Write: true,
+			Write:    true,
+			Mutation: financialMutation("official response only; after a transport error, inspect conditional-order state before retrying"),
 			Params: append([]Param{
 				{Name: "conditional_order_id", Type: "string", Required: true},
 				{Name: "type", Type: "string", Desc: `"SINGLE" (default), "OCO", or "OTO"`},

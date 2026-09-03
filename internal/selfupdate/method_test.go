@@ -11,10 +11,11 @@ func TestDetectInstallMethod(t *testing.T) {
 		want     InstallMethod
 	}{
 		{"dev build", "/usr/local/bin/tossctl", "dev", MethodDev},
-		{"dev build even under cellar path", "/opt/homebrew/Cellar/tossctl-cli/0.14.0/bin/tossctl", "dev", MethodDev},
-		{"homebrew apple silicon", "/opt/homebrew/Cellar/tossctl-cli/0.14.0/bin/tossctl", "0.14.0", MethodHomebrew},
-		{"homebrew intel", "/usr/local/Cellar/tossctl-cli/0.14.0/bin/tossctl", "0.14.0", MethodHomebrew},
-		{"homebrew linuxbrew", "/home/linuxbrew/.linuxbrew/Cellar/tossctl-cli/0.14.0/bin/tossctl", "0.14.0", MethodHomebrew},
+		{"dev build even under cellar path", "/opt/homebrew/Cellar/tossctl/0.14.0/bin/tossctl", "dev", MethodDev},
+		{"homebrew apple silicon", "/opt/homebrew/Cellar/tossctl/0.14.0/bin/tossctl", "0.14.0", MethodHomebrew},
+		{"homebrew intel", "/usr/local/Cellar/tossctl/0.14.0/bin/tossctl", "0.14.0", MethodHomebrew},
+		{"homebrew linuxbrew", "/home/linuxbrew/.linuxbrew/Cellar/tossctl/0.14.0/bin/tossctl", "0.14.0", MethodHomebrew},
+		{"old incorrect formula path is not homebrew", "/opt/homebrew/Cellar/tossctl-cli/0.14.0/bin/tossctl", "0.14.0", MethodBinary},
 		{"install.sh binary in usr local bin", "/usr/local/bin/tossctl", "0.14.0", MethodBinary},
 		{"windows install.ps1 binary", `C:\Users\me\AppData\Local\tossctl\tossctl.exe`, "0.14.0", MethodBinary},
 		{"custom INSTALL_DIR binary", "/home/me/.local/bin/tossctl", "0.14.0", MethodBinary},

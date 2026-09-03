@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
@@ -74,6 +75,9 @@ func TestListWatchlistGroupsSymbolMapping(t *testing.T) {
 	// First group "미국 빅테크" should have symbol "NVDA" (from symbol field, not code).
 	if items[0].Symbol != "NVDA" {
 		t.Fatalf("expected symbol 'NVDA', got %q", items[0].Symbol)
+	}
+	if items[0].ProductCode == "" {
+		t.Fatal("expected stable product code for mutation reconciliation")
 	}
 	if items[1].Symbol != "GOOG" {
 		t.Fatalf("expected symbol 'GOOG', got %q", items[1].Symbol)
@@ -183,6 +187,61 @@ func TestGetWatchlistGroupItemsNotFound(t *testing.T) {
 	_, err := client.GetWatchlistGroupItems(context.Background(), 999)
 	if err == nil {
 		t.Fatal("expected error for non-existent group, got nil")
+	}
+}
+
+func TestListWatchlistGroupsRejectsMissingWatchlistsEnvelope(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{}`)
+	}))
+	defer server.Close()
+
+	client := New(Config{
+		HTTPClient:  server.Client(),
+		APIBaseURL:  server.URL,
+		InfoBaseURL: server.URL,
+		CertBaseURL: server.URL,
+		Session:     &session.Session{Cookies: map[string]string{"SESSION": "test-session"}},
+	})
+
+	_, err := client.ListWatchlistGroups(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "result.watchlists") {
+		t.Fatalf("error = %v, want missing result.watchlists", err)
+	}
+}
+
+func TestDetailedWatchlistReadsRejectIncompleteItemContracts(t *testing.T) {
+	t.Parallel()
+	tests := map[string]string{
+		"missing items":     `{"result":{"watchlists":[{"id":100,"name":"folder","itemCount":1}]}}`,
+		"null items":        `{"result":{"watchlists":[{"id":100,"name":"folder","itemCount":1,"items":null}]}}`,
+		"missing itemCount": `{"result":{"watchlists":[{"id":100,"name":"folder","items":[]}]}}`,
+		"partial items":     `{"result":{"watchlists":[{"id":100,"name":"folder","itemCount":2,"items":[{"code":"AAPL"}]}]}}`,
+		"missing code":      `{"result":{"watchlists":[{"id":100,"name":"folder","itemCount":1,"items":[{"symbol":"AAPL"}]}]}}`,
+	}
+	for name, response := range tests {
+		name, response := name, response
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				_, _ = w.Write([]byte(response))
+			}))
+			t.Cleanup(server.Close)
+			client := New(Config{
+				HTTPClient: server.Client(), APIBaseURL: server.URL, InfoBaseURL: server.URL,
+				CertBaseURL: server.URL,
+				Session:     &session.Session{Cookies: map[string]string{"SESSION": "test-session"}},
+			})
+
+			if _, err := client.GetWatchlistGroup(context.Background(), 100); err == nil {
+				t.Fatal("incomplete selected-folder response was accepted")
+			}
+			if _, err := client.ListAllWatchlistItems(context.Background()); err == nil {
+				t.Fatal("incomplete bulk response was accepted")
+			}
+		})
 	}
 }
 

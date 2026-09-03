@@ -29,8 +29,8 @@ type newWatchlistEnvelope struct {
 			Name      string `json:"name"`
 			Ordering  int    `json:"ordering"`
 			Type      string `json:"type"`
-			ItemCount int    `json:"itemCount"`
-			Items     []struct {
+			ItemCount *int   `json:"itemCount"`
+			Items     *[]struct {
 				Code     string `json:"code"`
 				Symbol   string `json:"symbol"`
 				Name     string `json:"name"`
@@ -58,28 +58,41 @@ func (c *Client) ListWatchlistGroups(ctx context.Context) ([]domain.WatchlistGro
 	if err := c.getJSON(ctx, url, &env); err != nil {
 		return nil, err
 	}
-	return mapWatchlistGroups(env), nil
+	return mapWatchlistGroups(env, false)
 }
 
-// GetWatchlistGroupItems returns items for a specific folder (per-group lazy loading).
+// GetWatchlistGroup returns one folder and its items (per-group lazy loading).
 // Uses GET /api/v1/new-watchlists/groups?ids={id}&includePrice=true — the same
 // endpoint the web frontend calls when a user selects a folder.
-func (c *Client) GetWatchlistGroupItems(ctx context.Context, groupID int64) ([]domain.WatchlistItem, error) {
+func (c *Client) GetWatchlistGroup(ctx context.Context, groupID int64) (domain.WatchlistGroup, error) {
 	if err := c.requireSession(); err != nil {
-		return nil, err
+		return domain.WatchlistGroup{}, err
 	}
 	var env newWatchlistEnvelope
 	url := fmt.Sprintf("%s%s/groups?ids=%d&includePrice=true", c.certBaseURL, watchlistBase, groupID)
 	if err := c.getJSON(ctx, url, &env); err != nil {
-		return nil, err
+		return domain.WatchlistGroup{}, err
 	}
-	groups := mapWatchlistGroups(env)
+	groups, err := mapWatchlistGroups(env, true)
+	if err != nil {
+		return domain.WatchlistGroup{}, err
+	}
 	for _, g := range groups {
 		if g.ID == groupID {
-			return g.Items, nil
+			return g, nil
 		}
 	}
-	return nil, fmt.Errorf("watchlist folder %d not found", groupID)
+	return domain.WatchlistGroup{}, fmt.Errorf("watchlist folder %d not found", groupID)
+}
+
+// GetWatchlistGroupItems preserves the item-only read contract used by the
+// typed CLI and operation registry.
+func (c *Client) GetWatchlistGroupItems(ctx context.Context, groupID int64) ([]domain.WatchlistItem, error) {
+	group, err := c.GetWatchlistGroup(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+	return group.Items, nil
 }
 
 // ListAllWatchlistItems returns all watchlist items from every folder, flattened
@@ -94,7 +107,10 @@ func (c *Client) ListAllWatchlistItems(ctx context.Context) ([]domain.WatchlistI
 	if err := c.getJSON(ctx, url, &env); err != nil {
 		return nil, err
 	}
-	groups := mapWatchlistGroups(env)
+	groups, err := mapWatchlistGroups(env, true)
+	if err != nil {
+		return nil, err
+	}
 	items := make([]domain.WatchlistItem, 0)
 	for _, g := range groups {
 		items = append(items, g.Items...)
@@ -104,25 +120,61 @@ func (c *Client) ListAllWatchlistItems(ctx context.Context) ([]domain.WatchlistI
 
 // mapWatchlistGroups converts the raw API envelope into domain objects,
 // fixing symbol/currency mapping and enforcing ordering.
-func mapWatchlistGroups(env newWatchlistEnvelope) []domain.WatchlistGroup {
+func mapWatchlistGroups(env newWatchlistEnvelope, requireItems bool) ([]domain.WatchlistGroup, error) {
+	// A valid empty watchlist is encoded as [], which unmarshals to a non-nil
+	// empty slice. Missing or null result.watchlists indicates schema drift and
+	// must not be mistaken for successful deletion during reconciliation.
+	if env.Result.Watchlists == nil {
+		return nil, fmt.Errorf("invalid watchlist response: missing result.watchlists array")
+	}
 	out := make([]domain.WatchlistGroup, 0, len(env.Result.Watchlists))
 	for _, g := range env.Result.Watchlists {
+		if g.ID <= 0 {
+			return nil, fmt.Errorf("invalid watchlist response: folder missing positive numeric id")
+		}
+		if g.ItemCount == nil || *g.ItemCount < 0 {
+			return nil, fmt.Errorf("invalid watchlist response: folder %d missing valid itemCount", g.ID)
+		}
+		if requireItems && g.Items == nil {
+			return nil, fmt.Errorf("invalid watchlist response: folder %d missing items array", g.ID)
+		}
+		items := []struct {
+			Code     string `json:"code"`
+			Symbol   string `json:"symbol"`
+			Name     string `json:"name"`
+			ItemType string `json:"itemType"`
+			Ordering int    `json:"ordering"`
+			Prices   struct {
+				Base     *float64 `json:"base"`
+				Close    *float64 `json:"close"`
+				Currency string   `json:"currency"`
+			} `json:"prices"`
+		}{}
+		if g.Items != nil {
+			items = *g.Items
+		}
+		if requireItems && *g.ItemCount != len(items) {
+			return nil, fmt.Errorf("invalid watchlist response: folder %d itemCount=%d but items has %d entries", g.ID, *g.ItemCount, len(items))
+		}
 		grp := domain.WatchlistGroup{
 			ID: g.ID, Name: g.Name, Ordering: g.Ordering,
-			Type: g.Type, ItemCount: g.ItemCount,
-			Items: make([]domain.WatchlistItem, 0, len(g.Items)),
+			Type: g.Type, ItemCount: *g.ItemCount,
+			Items: make([]domain.WatchlistItem, 0, len(items)),
 		}
 		// Sort items by ordering before mapping.
-		sort.SliceStable(g.Items, func(i, j int) bool {
-			return g.Items[i].Ordering < g.Items[j].Ordering
+		sort.SliceStable(items, func(i, j int) bool {
+			return items[i].Ordering < items[j].Ordering
 		})
-		for _, it := range g.Items {
+		for _, it := range items {
+			if it.Code == "" {
+				return nil, fmt.Errorf("invalid watchlist response: folder %d contains item without product code", g.ID)
+			}
 			sym := it.Symbol
 			if sym == "" {
 				sym = it.Code
 			}
 			grp.Items = append(grp.Items, domain.WatchlistItem{
-				Group: g.Name, Symbol: sym, Name: it.Name,
+				Group: g.Name, ProductCode: it.Code, Symbol: sym, Name: it.Name,
 				Currency: it.Prices.Currency,
 				Base:     coalesceMoney(it.Prices.Base),
 				Last:     coalesceMoney(it.Prices.Close),
@@ -134,7 +186,7 @@ func mapWatchlistGroups(env newWatchlistEnvelope) []domain.WatchlistGroup {
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].Ordering < out[j].Ordering
 	})
-	return out
+	return out, nil
 }
 
 // CreateWatchlistGroup creates a new folder and returns it.

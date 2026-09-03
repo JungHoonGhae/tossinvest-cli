@@ -6,10 +6,11 @@
 
 저장소의 주간 `WTS API Monitor` workflow는 서로 다른 두 접근 경로를 함께 보되 섞지 않습니다.
 
-- **증권 WTS**: build ID, chunk 수, endpoint 추가·삭제를
-  `docs/reverse-engineering/wts-endpoints.json`과 비교합니다. build만 바뀌어도 Discord 알림에
-  이전/현재 ID를 표시합니다. 수집 결과가 기존 endpoint의 75% 아래로 급감하면 부분 fetch로
-  판정해 카탈로그를 덮어쓰지 않습니다.
+- **증권 WTS**: root build ID, 라우트별 rolling deploy에서 관측한 active `build_ids` 집합,
+  chunk 수, endpoint 추가·삭제를 `docs/reverse-engineering/wts-endpoints.json`과 비교합니다.
+  root ID가 같아도 active 집합이 바뀌면 이전/현재 집합을 Discord 알림에 표시합니다. 수집
+  결과가 기존 endpoint의 75% 아래로 급감하거나 root build ID/manifest를 확인할 수 없으면
+  부분 fetch로 판정해 카탈로그를 덮어쓰지 않습니다.
 - **일반 Toss Android 앱**: `viva.republica.toss`의 공개 배포 후보 버전을
   `docs/reverse-engineering/android-app.json`의 마지막 정적 감사본과 비교합니다. Google Play가
   안정적인 기계용 version 필드를 제공하지 않아 APKPure 메타데이터를 **비신뢰 후보 신호**로만
@@ -59,11 +60,11 @@ jq . /tmp/android_diff.json
 
 | 보호 영역 | Probe (개수) |
 | --- | --- |
-| 계좌·포트폴리오 | `account-list`, `account-summary-overview`, `account-all-overview`, `account-receivable`, `account-interest-years`, `account-commission-info`, `account-last-login`, `account-margin-frozen`, `account-accident-count`, `portfolio-positions`, `hidden-holdings`, `trading-simple-trade`, `trading-exchange-choice`, `trading-ats-notification`, `option-real-time-tick`, `securities-transfer-my-accounts`, `securities-transfer-recent-accounts`, `asset-performance-all`, `asset-performance-account`, `asset-snapshots-all`, `asset-snapshots-account`, `asset-snapshot-detail-all`, `asset-snapshot-detail-account` (23) |
+| 계좌·포트폴리오 | `account-list`, `account-summary-overview`, `account-all-overview`, `account-receivable`, `account-interest-years`, `account-commission-info`, `account-last-login`, `account-margin-frozen`, `account-accident-count`, `portfolio-positions`, `portfolio-folders`, `hidden-holdings`, `trading-simple-trade`, `trading-exchange-choice`, `trading-ats-notification`, `option-real-time-tick`, `securities-transfer-my-accounts`, `securities-transfer-recent-accounts`, `asset-performance-all`, `asset-performance-account`, `asset-snapshots-all`, `asset-snapshots-account`, `asset-snapshot-detail-all`, `asset-snapshot-detail-account` (24) |
 | 주문·자금 | `pending-orders`, `order-funding`, `auto-trades` (3) |
-| 시세·종목 | `quote-stock-infos`, `quote-trades`, `quote-orderbook`, `quote-price-limits`, `quote-charts`, `quote-reasons`, `quote-crypto`, `quote-stock-signals`, `trading-flows`, `option-expiries` (10) |
-| 시장·리서치 | `market-index`, `index-prices`, `stock-ranking`, `investor-rankings`, `theme-rankings`, `sectors-tics`, `sector-detail-simple`, `sector-detail-overview`, `sector-detail-stocks`, `sector-detail-etfs`, `sector-detail-news`, `ai-signals`, `ai-signal-detail`, `screener-presets`, `screener-filter-range`, `earning-call`, `earning-call-home`, `earning-call-detail`, `news-briefing`, `market-news-briefing`, `market-issues`, `market-calendar`, `market-key-events`, `market-halt`, `market-trading-hours` (25) |
-| 개인화·계좌 부가기능 | `community-rankings`, `lending-expected`, `lending-top-revenue`, `accumulation-plans`, `profit-overview`, `ria-report`, `open-banking-status`, `open-banking-creatable`, `open-banking-registration`, `auto-trading-open-banking`, `trade-purpose-mydata-account`, `notification-settings`, `notification-inbox-unread`, `notification-ai-issue-release`, `notification-fomc-live`, `notification-reasoning-contents`, `notification-reasoning-agreement`, `notification-reasoning-news-count`, `price-alerts`, `watchlist`, `watchlist-groups` (21) |
+| 시세·종목 | `quote-stock-infos`, `quote-trades`, `quote-orderbook`, `quote-price-limits`, `quote-charts`, `quote-reasons`, `quote-crypto`, `quote-stock-signals`, `stock-search`, `trading-flows`, `option-expiries` (11) |
+| 시장·리서치 | `market-index`, `index-prices`, `index-info`, `stock-ranking`, `investor-rankings`, `theme-rankings`, `sectors-tics`, `sector-detail-simple`, `sector-detail-overview`, `sector-detail-stocks`, `sector-detail-etfs`, `sector-detail-news`, `ai-signals`, `ai-signal-detail`, `screener-presets`, `screener-filter-range`, `earning-call`, `earning-call-home`, `earning-call-detail`, `news-briefing`, `market-news-briefing`, `market-issues`, `market-calendar`, `market-key-events`, `market-halt`, `market-trading-hours` (26) |
+| 개인화·계좌 부가기능 | `community-rankings`, `lending-expected`, `lending-top-revenue`, `accumulation-plans`, `profit-overview`, `ria-report`, `open-banking-status`, `open-banking-creatable`, `open-banking-registration`, `auto-trading-open-banking`, `notification-settings`, `notification-inbox-unread`, `notification-reasoning-agreement`, `notification-reasoning-news-count`, `price-alerts`, `watchlist`, `watchlist-groups`, `watchlist-group` (18) |
 
 이름·method·endpoint 전체 매핑은 [`AGENTS.md`](../AGENTS.md) 의 “Probe 목록”에 있고,
 다음 명령으로 실제 런타임 구성을 검증할 수 있습니다.
@@ -98,8 +99,11 @@ Discord 외 Slack · ntfy · macOS notification · 이메일 등 다른 채널 �
   ✓ index-prices — status=200 (53ms)
   … remaining probes …
 
-82 passed, 0 failed
+82 passed, 0 failed, 0 skipped
 ```
+
+계정에 관심종목 폴더가 하나도 없으면 `watchlist-group` 상세 probe는 적용할 대상이 없어
+`skipped`가 됩니다. 이는 정상 상태이며 exit code는 0입니다(예: `81 passed, 0 failed, 1 skipped`).
 
 실패 (예: #29 같은 body-contract 회귀):
 
@@ -107,7 +111,7 @@ Discord 외 Slack · ntfy · macOS notification · 이메일 등 다른 채널 �
   ✗ portfolio-positions — status=200: result.sections is empty — likely body-contract regression (#29-class)
 … 81 passing probes omitted …
 
-81 passed, 1 failed
+81 passed, 1 failed, 0 skipped
 ```
 
 webhook 페이로드:

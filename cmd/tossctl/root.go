@@ -395,7 +395,7 @@ func updateActionHint(currentVersion string) string {
 		execPath = resolved
 	}
 	if selfupdate.DetectInstallMethod(execPath, currentVersion) == selfupdate.MethodHomebrew {
-		return "`brew upgrade tossctl-cli` or " + version.ReleasesLatestURL
+		return "`brew upgrade tossctl` or " + version.ReleasesLatestURL
 	}
 	return "`tossctl update` or " + version.ReleasesLatestURL
 }

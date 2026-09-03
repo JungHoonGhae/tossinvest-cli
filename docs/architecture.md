@@ -1,6 +1,9 @@
 # Architecture
 
-`tossinvest-cli`는 토스증권 웹 세션을 재사용하는 비공식 CLI입니다. 현재 구조는 `브라우저 로그인 보조 도구 + Go CLI + 로컬 상태 파일 + Toss 증권 웹 API`로 나뉘어 있습니다.
+`tossinvest-cli`는 토스증권 공식 Open API와 증권 웹 세션(WTS)을 하나의 CLI·MCP 표면으로
+연결합니다. 현재 구조는 `공식 API connector + WTS browser-session connector + Go
+application core + 로컬 상태 파일`로 나뉩니다. 일반 Toss Banking/MyData 모바일 API는
+정적 분석 대상일 뿐 아직 connector가 아닙니다.
 
 이 문서는 현재 저장소에 구현된 기준으로 아키텍처를 정리합니다. 목표는 두 가지입니다.
 
@@ -34,9 +37,38 @@
 - 기본은 `read-only`
 - 로그인 획득과 API 호출을 분리
 - 사람과 에이전트 모두 같은 CLI 표면을 사용
-- 거래 mutation은 별도 gate와 reconciliation을 거침
+- 거래 mutation은 별도 gate를 거치며, 검증 가능한 WTS 설정은 사후 재조회하고 주문의
+  transport error는 결과 불명확으로 취급해 상태 확인 전 재시도하지 않음
 - 상태는 로컬 파일로 명시적으로 저장
 - discovery 문서와 fixture는 코드와 분리해서 유지
+
+## 용어와 분류 축
+
+사용자에게 보이는 제품, 실제 호출 통로, 실행 입구를 한 단어인 “플랫폼”으로 합치지 않는다.
+기능을 다음 개념 축으로 독립 분류한다. 이 중 `domain`과 `backend`는 현재 operation
+레지스트리의 machine-readable 필드이고, surface와 UI provenance는 아키텍처·discovery
+문서의 분류다.
+
+| 축 | 질문 | 현재 값 |
+|---|---|---|
+| `domain` | 누구의 어떤 금융 기능인가? | `securities`, `banking`, `mydata`, `system` |
+| backend / source | 어떤 자격증명과 전송 계약으로 호출하는가? | operation: `""`, `wts`, `auto`, `none`; CLI annotation: `official`, `wts`, `both`, `local`; 향후 `mobile` |
+| surface | 사용자가 어디서 호출하는가? | CLI, ops, MCP |
+| UI provenance | 기능을 어디서 발견했는가? | WTS 화면, 일반 Toss 앱의 증권 화면, UI 없는 검증된 API |
+
+`증권`은 제품 domain이고 `WTS`는 backend다. 따라서 “웹 UI가 없다”는 이유만으로 mobile
+API가 되지 않으며, 일반 Toss 앱에 보인다는 이유만으로 Banking/MyData와 증권이 같은 토큰을
+쓰지도 않는다. 정식 예시는 `accumulation_funding_status = securities + wts`다. 예전
+`banking_status` 이름은 호환 alias일 뿐 일반 Banking 기능을 뜻하지 않는다.
+
+`portfolio folder`는 증권 보유종목을 앱의 사용자 정의 분류대로 보여주는 **읽기 전용
+보유종목 그룹**이다. `watchlist folder/group`는 관심종목 membership을 담고 생성·이름 변경·
+삭제할 수 있는 **관심종목 자원**이다. 둘 다 UI에서 “폴더”로 보이지만 API·키·쓰기 정책이
+다르므로 코드와 문서에서 서로의 줄임말로 사용하지 않는다.
+
+새 connector는 자격증명·host·header/cipher·동의·secret storage 경계를 모두 검증한 뒤에만
+backend로 추가한다. 자세한 결정은 [ADR 0003](adr/0003-separate-product-domain-from-access-channel.md)에
+기록한다.
 
 ## System Context
 
@@ -47,17 +79,21 @@ title System Context - tossinvest-cli
 Person(user, "User", "터미널에서 직접 조회와 거래를 실행")
 Person(agent, "Agent / Automation", "Claude, Codex, shell script, OpenClaw 같은 상위 자동화 계층")
 
-System(cli, "tossinvest-cli", "토스증권 웹 세션을 재사용하는 비공식 CLI")
+System(cli, "tossinvest-cli", "공식 Open API와 증권 WTS를 CLI·MCP로 노출")
 
-System_Ext(tossWeb, "Toss Securities Web", "브라우저 로그인과 웹 UI")
-System_Ext(tossApi, "Toss Securities Web APIs", "조회와 거래 요청 대상")
+System_Ext(tossWeb, "Toss Securities Web", "WTS 브라우저 로그인과 웹 UI")
+System_Ext(wtsApi, "Toss Securities WTS APIs", "비공식 조회·검증된 설정 변경·CLI 일반주문")
+System_Ext(officialApi, "Toss Securities Open API", "공식 조회·ops/MCP 주문·조건주문")
+System_Ext(mobileApi, "Toss Main-app Mobile APIs", "Banking/MyData 포함; 미연결 정적 분석 대상")
 System_Ext(playwright, "Playwright Chromium", "실제 브라우저 로그인 세션 확보")
 
 Rel(user, cli, "실행", "CLI")
 Rel(agent, cli, "호출", "CLI / JSON")
 Rel(cli, playwright, "로그인 시 실행", "Python helper")
 Rel(playwright, tossWeb, "브라우저 로그인", "HTTPS")
-Rel(cli, tossApi, "조회 / 거래 요청", "HTTPS + session cookies")
+Rel(cli, wtsApi, "조회 / 설정 / 선택된 CLI 일반주문", "HTTPS + WTS session")
+Rel(cli, officialApi, "조회 / official 주문", "HTTPS + official OAuth")
+Rel(cli, mobileApi, "호출하지 않음", "future connector boundary")
 Rel(playwright, cli, "storage state 전달", "JSON file")
 ```
 
@@ -78,7 +114,8 @@ System_Boundary(system, "tossinvest-cli") {
 }
 
 System_Ext(tossWeb, "Toss Securities Web", "브라우저 로그인 화면")
-System_Ext(tossApi, "Toss Securities Web APIs", "조회 / 거래 엔드포인트")
+System_Ext(wtsApi, "Toss Securities WTS APIs", "조회 / 설정 / CLI 일반주문 엔드포인트")
+System_Ext(officialApi, "Toss Securities Open API", "공식 조회 / 주문 엔드포인트")
 
 Rel(user, goCli, "Uses")
 Rel(agent, goCli, "Calls", "JSON / shell")
@@ -86,7 +123,8 @@ Rel(goCli, authHelper, "Starts for login", "subprocess")
 Rel(authHelper, tossWeb, "Captures login session", "browser automation")
 Rel(authHelper, localFiles, "Writes storage state-derived session", "JSON")
 Rel(goCli, localFiles, "Reads/writes config, session, lineage", "JSON files")
-Rel(goCli, tossApi, "Calls read-only and trading APIs", "HTTPS")
+Rel(goCli, wtsApi, "Calls WTS reads, guarded settings, selected CLI regular orders", "HTTPS + session")
+Rel(goCli, officialApi, "Calls official reads and guarded orders", "HTTPS + OAuth")
 Rel(goCli, docs, "Uses captured knowledge", "dev workflow")
 ```
 
@@ -100,11 +138,18 @@ Container(cli, "tossctl", "Go CLI", "Main binary")
 
 Container_Boundary(core, "Application Core") {
   Component(commands, "cmd/tossctl", "Cobra commands", "Command entrypoints and flag parsing")
+  Component(opsSvc, "internal/ops", "Operation registry", "Machine-readable domain/backend/params/mutation/probe contracts")
+  Component(mcpSvc, "internal/mcp", "MCP adapter", "Lists, describes, and calls the operation registry")
   Component(configSvc, "internal/config", "Config service", "Loads config.json and schema-aware defaults")
   Component(authSvc, "internal/auth", "Auth service", "Runs auth-helper and imports browser session")
   Component(doctorSvc, "internal/doctor", "Doctor service", "Checks local environment, config, session, helper readiness")
-  Component(clientSvc, "internal/client", "HTTP client", "Calls Toss web APIs and parses responses")
-  Component(tradingSvc, "internal/trading", "Trading service", "Preview, gate, mutation orchestration, reconciliation")
+  Component(routerSvc, "internal/hybrid", "Backend router", "Chooses official/WTS reads and one regular-order backend; never retries writes across backends")
+  Component(clientSvc, "internal/client", "WTS connector", "Uses the Securities web session and parses WTS responses")
+  Component(officialSvc, "internal/official", "Official connector", "Uses Open API OAuth and owns order transport")
+  Component(tradingSvc, "internal/trading", "Trading service", "Preview, gate, broker-agnostic mutation orchestration, unknown-outcome boundary")
+  Component(watchlistSvc, "internal/watchlist", "Watchlist mutation service", "Session-bound preview, irreversible acknowledgement, post-read")
+  Component(confirmSvc, "internal/confirmation", "Confirmation tokens", "Signs exact state and intent; not a distributed single-use lock")
+  Component(monitorSvc, "internal/monitor", "Contract monitor", "Runs registry-derived and CLI-only read probes")
   Component(intentSvc, "internal/orderintent", "Intent normalization", "Canonical order inputs and confirm tokens")
   Component(sessionSvc, "internal/session", "Session store", "Persists imported browser session")
   Component(outputSvc, "internal/output", "Renderers", "Table / JSON / CSV output")
@@ -113,10 +158,21 @@ Container_Boundary(core, "Application Core") {
 Rel(commands, configSvc, "Loads config")
 Rel(commands, authSvc, "Runs login/status/logout")
 Rel(commands, doctorSvc, "Runs doctor")
-Rel(commands, clientSvc, "Executes read-only commands")
+Rel(commands, routerSvc, "Executes routed reads")
 Rel(commands, tradingSvc, "Executes preview/place/cancel/amend")
+Rel(commands, watchlistSvc, "Executes guarded preference changes")
+Rel(mcpSvc, opsSvc, "Publishes operation contracts")
+Rel(opsSvc, routerSvc, "Dispatches typed reads")
+Rel(opsSvc, tradingSvc, "Dispatches guarded orders")
+Rel(opsSvc, watchlistSvc, "Dispatches guarded watchlist changes")
+Rel(monitorSvc, opsSvc, "Derives dependency probes")
+Rel(routerSvc, clientSvc, "Routes WTS reads")
+Rel(routerSvc, officialSvc, "Routes official reads")
 Rel(tradingSvc, intentSvc, "Uses canonical inputs")
-Rel(tradingSvc, clientSvc, "Runs trading prepare/create/cancel/correct")
+Rel(tradingSvc, routerSvc, "Top-level CLI regular orders use one selected broker")
+Rel(tradingSvc, officialSvc, "ops/MCP and conditional orders use official transport")
+Rel(watchlistSvc, clientSvc, "Runs WTS mutation + post-read")
+Rel(watchlistSvc, confirmSvc, "Binds session, state, intent, expiry")
 Rel(authSvc, sessionSvc, "Stores session")
 Rel(clientSvc, sessionSvc, "Reads session")
 Rel(commands, outputSvc, "Renders results")
@@ -145,7 +201,7 @@ sequenceDiagram
     CLI->>Session: import session.json
 ```
 
-### 2. Read-only command
+### 2. WTS read-only command
 
 ```mermaid
 sequenceDiagram
@@ -166,6 +222,10 @@ sequenceDiagram
     CLI-->>Caller: table/json/csv
 ```
 
+공식 지원 조회는 같은 command/operation에서 `internal/hybrid`가 `internal/official`로 보내며
+공식 자격증명을 사용한다. `auto` fallback은 조회에만 적용하고, 주문·설정 쓰기는 백엔드 사이를
+재시도하지 않는다.
+
 ### 3. Trading mutation with safety gates
 
 ```mermaid
@@ -174,8 +234,8 @@ sequenceDiagram
     participant Surface as CLI / ops / MCP
     participant Config as config.json
     participant Trading as internal/trading
-    participant Broker as official-only broker
-    participant API as Toss Open API
+    participant Broker as selected broker
+    participant API as Toss Open API or WTS
 
     Surface->>Config: load trading policy
     Caller->>Surface: regular/conditional preview
@@ -186,13 +246,20 @@ sequenceDiagram
     Caller->>Surface: execute=true + confirm token
     Surface->>Trading: typed intent + ExecuteOptions
     Trading->>Trading: config + execute + token guard
-    Trading->>Broker: typed mutation
-    Broker->>API: official mutation request
+    Trading->>Broker: typed mutation (one backend only)
+    Broker->>API: mutation request
     API-->>Broker: accepted / rejected
     Broker-->>Trading: result
     Trading-->>Surface: mutation result / acknowledgement
     Surface-->>Caller: success or error
 ```
+
+표면별 broker 구성이 다르다. 최상위 `tossctl order place|cancel|amend`는 실행 시작 때
+official 또는 WTS 한 경로를 선택하며, 실패 뒤 다른 경로로 넘어가지 않는다. `tossctl ops call`과
+MCP의 regular/conditional order operation은 machine-readable `backend=""` 계약대로
+official-only다. 조건주문은 모든 표면에서 official-only다. 현재 official 주문은 응답 뒤
+자동 post-read를 하지 않으므로 transport error가 나면 성공/실패를 단정하지 않고 관련 주문
+상태를 확인한 뒤에만 재시도한다.
 
 ## Safety Model
 
@@ -204,7 +271,7 @@ sequenceDiagram
    - **마스터 킬스위치:** `allow_live_order_actions` (실계좌 도달 차단)
    - **자동화:** `dangerous_automation.accept_fx_consent`
 2. `--execute`
-3. `--confirm <token>` (`order preview`에서 받은 주문별 토큰)
+3. `--confirm <token>` (해당 주문 명령의 preview 또는 `order preview`에서 받은 토큰)
 
 즉, config가 열려 있어도 매번 CLI 실행 시점의 명시적 확인이 필요합니다.
 
@@ -233,7 +300,14 @@ sequenceDiagram
 | `internal/auth` | 로그인 orchestration, 세션 import |
 | `auth-helper/` | Python + Playwright 로그인 보조 |
 | `internal/client` | Toss 웹 API 호출과 응답 파싱 |
+| `internal/official` | 공식 Open API OAuth 전송과 공식 응답 파싱 |
+| `internal/hybrid` | 조회 fallback과 CLI 일반주문의 단일 backend 선택 |
+| `internal/ops` | operation·parameter·mutation·probe 계약 레지스트리 |
+| `internal/mcp` | operation 레지스트리의 3-tool MCP adapter |
 | `internal/trading` | preview, gate, mutation orchestration |
+| `internal/watchlist` | 관심종목 폴더·membership preview/confirm/post-read |
+| `internal/confirmation` | deterministic·time-bound confirmation primitives |
+| `internal/monitor` | 레지스트리 파생 및 CLI 전용 read probe 실행 |
 | `internal/orderintent` | canonical input, confirm token |
 | `internal/session` | session.json 저장 |
 | `internal/output` | table/json/csv 렌더링 |

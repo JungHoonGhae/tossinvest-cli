@@ -207,7 +207,7 @@ func newOrderPlaceCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "place",
 		Short:       i18n.T("order.place.short"),
-		Annotations: map[string]string{"source": "both", "mutating": "true"},
+		Annotations: mutationAnnotations("both", "securities", "financial", "irreversible"),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -255,7 +255,7 @@ func newOrderCancelCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "cancel",
 		Short:       i18n.T("order.cancel.short"),
-		Annotations: map[string]string{"source": "both", "mutating": "true"},
+		Annotations: mutationAnnotations("both", "securities", "financial", "irreversible"),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			// Early non-TTY guard — before expensive app context creation.
 			if orderID == "" && !tui.IsInteractive(os.Stdin, os.Stdout) {
@@ -321,7 +321,7 @@ func newOrderAmendCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "amend",
 		Short:       i18n.T("order.amend.short"),
-		Annotations: map[string]string{"source": "both", "mutating": "true"},
+		Annotations: mutationAnnotations("both", "securities", "financial", "irreversible"),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			// Early non-TTY guard — before expensive app context creation.
 			if flags.orderID == "" && !tui.IsInteractive(os.Stdin, os.Stdout) {
@@ -444,7 +444,7 @@ func bindPlaceFlags(cmd *cobra.Command, flags *placeFlags) {
 
 func bindExecuteFlags(cmd *cobra.Command, flags *executeFlags) {
 	cmd.Flags().BoolVar(&flags.execute, "execute", false, "Perform the live mutation instead of a local preview")
-	cmd.Flags().StringVar(&flags.confirm, "confirm", "", "Confirmation token from `tossctl order preview`")
+	cmd.Flags().StringVar(&flags.confirm, "confirm", "", "Confirmation token from this command's preview output")
 
 	// Retired in v0.5.1: the live-mutation gate is now `--execute` + `--confirm <token>`.
 	// The old danger-acknowledgement flag is accepted (and ignored) for one release so
@@ -540,7 +540,7 @@ func newOrderConditionalCmd(opts *rootOptions) *cobra.Command {
 		Use:         "cancel <conditional-order-id>",
 		Short:       i18n.T("order.conditional.cancel.short"),
 		Args:        cobra.ExactArgs(1),
-		Annotations: map[string]string{"source": "official", "mutating": "true"},
+		Annotations: mutationAnnotations("official", "securities", "financial", "irreversible"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -578,7 +578,7 @@ func newOrderConditionalCmd(opts *rootOptions) *cobra.Command {
 		Use:         "place",
 		Short:       i18n.T("order.conditional.place.short"),
 		Long:        i18n.T("order.conditional.place.long"),
-		Annotations: map[string]string{"source": "official", "mutating": "true"},
+		Annotations: mutationAnnotations("official", "securities", "financial", "irreversible"),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -640,7 +640,7 @@ func newOrderConditionalCmd(opts *rootOptions) *cobra.Command {
 		Use:         "modify <conditional-order-id>",
 		Short:       i18n.T("order.conditional.modify.short"),
 		Args:        cobra.ExactArgs(1),
-		Annotations: map[string]string{"source": "official", "mutating": "true"},
+		Annotations: mutationAnnotations("official", "securities", "financial", "irreversible"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {

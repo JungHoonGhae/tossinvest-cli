@@ -37,7 +37,7 @@ func discoveryWTSDeps(t *testing.T, handler http.Handler) *Deps {
 func TestDiscoveryBatchOperationsAreCataloguedAndReadOnly(t *testing.T) {
 	t.Parallel()
 	catalog := NewCatalog()
-	for _, id := range []string{"market_key_events", "banking_status", "notification_settings"} {
+	for _, id := range []string{"market_key_events", "accumulation_funding_status", "notification_settings"} {
 		op, ok := catalog.Get(id)
 		if !ok {
 			t.Errorf("operation %q missing", id)
@@ -46,7 +46,7 @@ func TestDiscoveryBatchOperationsAreCataloguedAndReadOnly(t *testing.T) {
 		if op.Backend != "wts" || op.Write {
 			t.Errorf("operation %q metadata = %#v", id, op)
 		}
-		if op.Probe == nil {
+		if op.Probe == nil && !slices.Contains(op.ProbeRefs, "notification-settings") {
 			t.Errorf("operation %q needs a regression probe", id)
 		}
 	}
@@ -315,15 +315,13 @@ func TestBankingStatusOperationMasksIdentityUnlessFull(t *testing.T) {
 			_, _ = w.Write([]byte(`{"result":false}`))
 		case "/api/v1/trading/open-banking/auto-trading":
 			_, _ = w.Write([]byte(`{"result":{"connectedAccountBankCode":"039","isRegistered":true}}`))
-		case "/api/v1/trade-purpose-verification/my-data/account/exists":
-			_, _ = w.Write([]byte(`{"result":true}`))
 		default:
 			http.NotFound(w, r)
 		}
 	}))
 	catalog := NewCatalog()
 
-	maskedAny, err := catalog.Call(context.Background(), deps, "banking_status", nil)
+	maskedAny, err := catalog.Call(context.Background(), deps, "accumulation_funding_status", nil)
 	if err != nil {
 		t.Fatalf("masked: %v", err)
 	}
@@ -332,7 +330,7 @@ func TestBankingStatusOperationMasksIdentityUnlessFull(t *testing.T) {
 		t.Fatalf("MCP default leaked identity: %#v", masked)
 	}
 
-	fullAny, err := catalog.Call(context.Background(), deps, "banking_status", map[string]any{"full": true})
+	fullAny, err := catalog.Call(context.Background(), deps, "accumulation_funding_status", map[string]any{"full": true})
 	if err != nil {
 		t.Fatalf("full: %v", err)
 	}
@@ -351,9 +349,9 @@ func TestBankingStatusOperationMasksIdentityUnlessFull(t *testing.T) {
 
 func TestBankingStatusOperationOwnsEveryHTTPDependencyProbe(t *testing.T) {
 	t.Parallel()
-	op, ok := NewCatalog().Get("banking_status")
+	op, ok := NewCatalog().Get("accumulation_funding_status")
 	if !ok {
-		t.Fatal("banking_status operation missing")
+		t.Fatal("accumulation_funding_status operation missing")
 	}
 	probes := map[string]ProbeSpec{}
 	if op.Probe != nil {
@@ -362,7 +360,7 @@ func TestBankingStatusOperationOwnsEveryHTTPDependencyProbe(t *testing.T) {
 	for _, probe := range op.ExtraProbes {
 		probes[probe.Name] = probe
 	}
-	for _, name := range []string{"open-banking-status", "open-banking-creatable", "open-banking-registration", "auto-trading-open-banking", "trade-purpose-mydata-account"} {
+	for _, name := range []string{"open-banking-status", "open-banking-creatable", "open-banking-registration", "auto-trading-open-banking"} {
 		probe, found := probes[name]
 		if !found {
 			t.Errorf("dependency probe %q missing", name)

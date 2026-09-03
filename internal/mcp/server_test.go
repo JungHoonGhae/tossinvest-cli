@@ -16,6 +16,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/openapiip"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/ops"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
@@ -136,7 +137,11 @@ func TestToolsListExposesThreeCatalogTools(t *testing.T) {
 	tools := resultOf(t, resps[0])["tools"].([]any)
 	got := map[string]bool{}
 	for _, tl := range tools {
-		got[tl.(map[string]any)["name"].(string)] = true
+		definition := tl.(map[string]any)
+		got[definition["name"].(string)] = true
+		if definition["name"] == "list_operations" && !strings.Contains(definition["description"].(string), "mutation policy") {
+			t.Error("list_operations description must tell agents where write authorization policy lives")
+		}
 	}
 	for _, want := range []string{"list_operations", "describe_operation", "call_operation"} {
 		if !got[want] {
@@ -168,6 +173,31 @@ func TestListOperationsFiltersByQuery(t *testing.T) {
 	}
 	if payload.Count != 1 || payload.Operations[0].ID != "orderbook" {
 		t.Fatalf("query orderbook: got %+v", payload)
+	}
+}
+
+func TestListOperationsFindsLegacyAliasButReturnsCanonicalID(t *testing.T) {
+	c := dummyClient(t, nil)
+	resps := runServer(t, c,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_operations","arguments":{"query":"banking_status"}}}`,
+	)
+	text, isErr := toolText(t, resps[0])
+	if isErr {
+		t.Fatalf("unexpected error result: %s", text)
+	}
+	var payload struct {
+		Count      int `json:"count"`
+		Operations []struct {
+			ID      string   `json:"id"`
+			Aliases []string `json:"aliases"`
+		} `json:"operations"`
+	}
+	if err := json.Unmarshal([]byte(text), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload.Count != 1 || payload.Operations[0].ID != "accumulation_funding_status" ||
+		len(payload.Operations[0].Aliases) != 1 || payload.Operations[0].Aliases[0] != "banking_status" {
+		t.Fatalf("alias query payload = %+v", payload)
 	}
 }
 
@@ -257,23 +287,69 @@ func TestListOperationsRejectsNullQuery(t *testing.T) {
 	}
 }
 
-func TestListOperationsIncludesGatedWrites(t *testing.T) {
+func TestListOperationsKeepsWriteDetailsInDescribe(t *testing.T) {
 	c := dummyClient(t, nil)
 	resps := runServer(t, c,
 		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_operations","arguments":{"query":"place_order"}}}`,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"describe_operation","arguments":{"operation":"place_order"}}}`,
 	)
 	text, _ := toolText(t, resps[0])
 	var payload struct {
-		Operations []struct {
-			ID    string `json:"id"`
-			Write bool   `json:"write"`
-		} `json:"operations"`
+		Operations []map[string]any `json:"operations"`
 	}
 	if err := json.Unmarshal([]byte(text), &payload); err != nil {
 		t.Fatal(err)
 	}
-	if len(payload.Operations) != 1 || !payload.Operations[0].Write {
-		t.Fatalf("place_order should be listed as a write op: %+v", payload.Operations)
+	if len(payload.Operations) != 1 || payload.Operations[0]["write"] != true {
+		t.Fatalf("place_order should be listed as a write op: %s", text)
+	}
+	for _, detail := range []string{"method", "path", "mutation"} {
+		if _, exists := payload.Operations[0][detail]; exists {
+			t.Fatalf("%s belongs in describe_operation, not list_operations: %s", detail, text)
+		}
+	}
+
+	described, isErr := toolText(t, resps[1])
+	if isErr {
+		t.Fatalf("describe_operation failed: %s", described)
+	}
+	var operation struct {
+		Method   string              `json:"method"`
+		Path     string              `json:"path"`
+		Mutation *ops.MutationPolicy `json:"mutation"`
+	}
+	if err := json.Unmarshal([]byte(described), &operation); err != nil {
+		t.Fatal(err)
+	}
+	if operation.Method == "" || operation.Path == "" || operation.Mutation == nil ||
+		operation.Mutation.RiskLevel != ops.MutationRiskFinancial ||
+		operation.Mutation.AuthorizationMode != ops.MutationAuthorizationIntent ||
+		operation.Mutation.RequiresFreshConfirmation {
+		t.Fatalf("describe_operation lost write policy: %s", described)
+	}
+}
+
+func TestUnfilteredListOperationsFitsWithoutOmission(t *testing.T) {
+	c := dummyClient(t, nil)
+	resps := runServer(t, c,
+		`{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"list_operations","arguments":{}}}`,
+	)
+	text, isErr := toolText(t, resps[0])
+	if isErr {
+		t.Fatalf("list_operations failed: %s", text)
+	}
+	var payload struct {
+		Count      int              `json:"count"`
+		Operations []map[string]any `json:"operations"`
+	}
+	if err := json.Unmarshal([]byte(text), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload.Count != NewCatalog().Count() || len(payload.Operations) != payload.Count {
+		t.Fatalf("catalog was truncated: count=%d operations=%d bytes=%d", payload.Count, len(payload.Operations), len(text))
+	}
+	if strings.Contains(text, omittedKey) || len(text) > maxResultBytes {
+		t.Fatalf("catalog should fit without omission: bytes=%d", len(text))
 	}
 }
 
