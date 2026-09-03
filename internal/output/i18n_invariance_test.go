@@ -141,6 +141,24 @@ func TestJSONOutputLanguageInvariant(t *testing.T) {
 				return WriteOverseasTransferIncome(w, FormatJSON, dummyTransferIncome())
 			},
 		},
+		{
+			name: "assetPerformance",
+			render: func(w *bytes.Buffer) error {
+				return WriteAssetPerformance(w, FormatJSON, performanceFixture())
+			},
+		},
+		{
+			name: "assetSnapshots",
+			render: func(w *bytes.Buffer) error {
+				return WriteAssetSnapshots(w, FormatJSON, snapshotPageFixture())
+			},
+		},
+		{
+			name: "assetSnapshot",
+			render: func(w *bytes.Buffer) error {
+				return WriteAssetSnapshot(w, FormatJSON, snapshotDetailFixture())
+			},
+		},
 	}
 
 	for _, r := range renderers {
@@ -275,6 +293,24 @@ func TestCSVOutputLanguageInvariant(t *testing.T) {
 			name: "overseasTransferIncome",
 			render: func(w *bytes.Buffer) error {
 				return WriteOverseasTransferIncome(w, FormatCSV, dummyTransferIncome())
+			},
+		},
+		{
+			name: "assetPerformance",
+			render: func(w *bytes.Buffer) error {
+				return WriteAssetPerformance(w, FormatCSV, performanceFixture())
+			},
+		},
+		{
+			name: "assetSnapshots",
+			render: func(w *bytes.Buffer) error {
+				return WriteAssetSnapshots(w, FormatCSV, snapshotPageFixture())
+			},
+		},
+		{
+			name: "assetSnapshot",
+			render: func(w *bytes.Buffer) error {
+				return WriteAssetSnapshot(w, FormatCSV, snapshotDetailFixture())
 			},
 		},
 	}

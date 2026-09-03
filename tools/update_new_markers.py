@@ -101,6 +101,7 @@ FEATURE_DATES = {
 UNRELEASED_FEATURES = {
     "account trading-settings",
     "account transfer-accounts",
+    "portfolio performance",
 }
 
 _KEYS = sorted(set(FEATURE_DATES) | UNRELEASED_FEATURES, key=len, reverse=True)

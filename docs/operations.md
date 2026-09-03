@@ -35,7 +35,7 @@ jq . /tmp/android_diff.json
 - [#15 / #17](https://github.com/JungHoonGhae/tossinvest-cli/issues/15) — User-Agent 핑거프린팅 차단 (v0.3.6 fix)
 - [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) — `/sections/all` body 계약 변경 (v0.4.8 fix)
 
-`monitor api` 명령은 65개 read-only endpoint 를 schema-invariant probe 로 호출해 이런 변경을 사용자보다 먼저 감지합니다.
+`monitor api` 명령은 71개 read-only endpoint 를 schema-invariant probe 로 호출해 이런 변경을 사용자보다 먼저 감지합니다.
 
 ### 동작 흐름
 
@@ -53,13 +53,13 @@ jq . /tmp/android_diff.json
 
 ### Probe 목록
 
-런타임 목록인 `internal/monitor.Probes()` 가 단일 진실 소스입니다. 60개는
+런타임 목록인 `internal/monitor.Probes()` 가 단일 진실 소스입니다. 66개는
 `internal/ops` 레지스트리의 오퍼레이션 옆 `ProbeSpec` 또는 공용 probe에서 파생되고,
 카탈로그 오퍼레이션이 없는 CLI 전용 5개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
 
 | 보호 영역 | Probe (개수) |
 | --- | --- |
-| 계좌·포트폴리오 | `account-list`, `account-summary-overview`, `account-all-overview`, `account-receivable`, `account-interest-years`, `account-commission-info`, `portfolio-positions`, `hidden-holdings`, `trading-simple-trade`, `trading-exchange-choice`, `trading-ats-notification`, `option-real-time-tick`, `securities-transfer-my-accounts`, `securities-transfer-recent-accounts` (14) |
+| 계좌·포트폴리오 | `account-list`, `account-summary-overview`, `account-all-overview`, `account-receivable`, `account-interest-years`, `account-commission-info`, `portfolio-positions`, `hidden-holdings`, `trading-simple-trade`, `trading-exchange-choice`, `trading-ats-notification`, `option-real-time-tick`, `securities-transfer-my-accounts`, `securities-transfer-recent-accounts`, `asset-performance-all`, `asset-performance-account`, `asset-snapshots-all`, `asset-snapshots-account`, `asset-snapshot-detail-all`, `asset-snapshot-detail-account` (20) |
 | 주문·자금 | `pending-orders`, `order-funding`, `auto-trades` (3) |
 | 시세·종목 | `quote-stock-infos`, `quote-trades`, `quote-orderbook`, `quote-price-limits`, `quote-charts`, `quote-reasons`, `quote-crypto`, `quote-stock-signals`, `trading-flows`, `option-expiries` (10) |
 | 시장·리서치 | `market-index`, `index-prices`, `stock-ranking`, `investor-rankings`, `theme-rankings`, `sectors-tics`, `sector-detail-simple`, `sector-detail-overview`, `sector-detail-stocks`, `sector-detail-etfs`, `sector-detail-news`, `ai-signals`, `ai-signal-detail`, `screener-presets`, `screener-filter-range`, `earning-call`, `earning-call-home`, `earning-call-detail`, `news-briefing`, `market-news-briefing`, `market-issues`, `market-calendar`, `market-key-events`, `market-halt`, `market-trading-hours` (25) |
@@ -70,7 +70,7 @@ jq . /tmp/android_diff.json
 
 ```bash
 go run ./tools/wtsinventory -mode probes -root "$(pwd)" | jq 'length'
-# 65
+# 71
 ```
 
 각 probe 는 status 200 + 핵심 JSON 경로 존재 + 타입을 검사합니다. Toss 가 새 필드를 추가하는 변경은 통과시키고, 핵심 필드가 사라지거나 빈 응답을 받으면 실패합니다.
@@ -98,23 +98,23 @@ Discord 외 Slack · ntfy · macOS notification · 이메일 등 다른 채널 �
   ✓ index-prices — status=200 (53ms)
   … remaining probes …
 
-65 passed, 0 failed
+71 passed, 0 failed
 ```
 
 실패 (예: #29 같은 body-contract 회귀):
 
 ```
   ✗ portfolio-positions — status=200: result.sections is empty — likely body-contract regression (#29-class)
-… 64 passing probes omitted …
+… 70 passing probes omitted …
 
-64 passed, 1 failed
+70 passed, 1 failed
 ```
 
 webhook 페이로드:
 
 ```
 🚨 tossctl API regression detected (0.4.9)
-2026-05-13 10:00 UTC — 1/65 probes failed
+2026-05-13 10:00 UTC — 1/71 probes failed
 
 ❌ portfolio-positions — POST wts-cert-api.tossinvest.com/api/v2/dashboard/asset/sections/all
     status=200, result.sections is empty — likely body-contract regression (#29-class)

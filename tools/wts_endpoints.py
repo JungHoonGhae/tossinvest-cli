@@ -66,6 +66,11 @@ IMPLEMENTED = [
     r"^/api/v1/users/settings/me/ats-notification$",               # ATS notification preference
     r"^/api/v1/member-subscriptions/get-option-real-time-tick$",   # option tick subscription flags
     r"^/api/v1/securities-transfer/(my-accounts|recent-accounts)$", # stock-transfer account choices
+    # Asset-snapshot chart paths are dynamic in the bundle. Match the complete
+    # normalized template only: the old extractor's truncated `/chart` shadow
+    # is not a callable endpoint and must remain outside implemented coverage.
+    r"^/api/v1/asset-snapshot/(?:all-accounts/)?chart/(?:\{range\}/\{stepUnit\}|ONE_MONTH/DAY)$",
+    r"^/api/v1/asset-snapshot/(?:all-accounts/)?(?:page|detail-by-date)$",
     r"^/api/v1/calendar/ai-summary/key-events$",                   # current key events
     r"^/api/v1/user-alimies$",                                     # notification settings
     r"^/api/v1/user-price-alimy/[^/]+$",                           # price alert list/create
@@ -506,6 +511,11 @@ def discover_go_probes(repo_root):
 
 def _probe_inventory_path(path):
     """Turn fixed probe symbols into the reusable endpoint template they verify."""
+    path = re.sub(
+        r"(^/api/v1/asset-snapshot/(?:all-accounts/)?chart)/ONE_MONTH/DAY$",
+        r"\1/{range}/{stepUnit}",
+        path,
+    )
     path = re.sub(
         r"(^/api/v2/dashboard/wts/overview/tics/)[0-9]+(?=/)",
         r"\1{id}",

@@ -22,6 +22,9 @@ agents should use `--output json`.
 | `tossctl account summary` | Total assets, P&L, by market |
 | `tossctl portfolio positions` | Holdings (USD shown for US) |
 | `tossctl portfolio allocation` | Allocation |
+| `tossctl portfolio performance [--account <key>]` | One-month daily principal, valuation, return, and range high/low (all Securities accounts by default) |
+| `tossctl portfolio snapshots [--account <key>] [--cursor <key>] [--limit N]` | Cursor-paged dated portfolio valuation history |
+| `tossctl portfolio snapshot <YYYY-MM-DD> [--account <key>]` | Full market and holding detail for one valuation date |
 | `tossctl portfolio dividends [--year N] [--by-payment-date]` | Annual dividends (total, region, monthly, tax) |
 | `tossctl portfolio hidden list [--account <key>]` | Holdings hidden from the Securities portfolio (account key omitted) |
 | `tossctl portfolio hidden hide\|show <symbol> [--execute --confirm <token>]` | Preview/confirm hiding or restoring a holding |

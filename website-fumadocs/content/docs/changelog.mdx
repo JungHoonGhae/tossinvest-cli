@@ -10,6 +10,7 @@ description: tossctl 버전별 변경 사항 (사용자 관점)
 ## [Unreleased]
 
 ### 새 기능
+- **`portfolio performance`·`portfolio snapshots`·`portfolio snapshot <date>`** — 현재 웹 UI에는 없지만 같은 WTS 세션으로 호출 가능한 증권 자산 스냅샷 6개 계약을 연결했습니다. 모든 증권 계좌의 최근 1개월 일별 원금·평가액·수익률·기간 고저, 커서 기반 과거 평가 이력, 특정 날짜의 국내주식·미국주식·미국옵션·채권 및 보유종목 상세를 조회합니다. 기본값은 전 계좌 합산이고 `--account`로 단일 계좌를 고를 수 있으며, 원래 계좌 키는 결과에 노출하지 않습니다. CLI의 table·JSON·CSV와 ops/MCP가 같은 타입을 사용하고 모든 호출은 읽기 전용입니다.
 - **`account trading-settings [--account <key>]`** — 계좌별 간편주문 활성 상태와 사용자 공통 KRX/NXT 체결시장 선택·ATS 알림·옵션 실시간 시세 요청·서비스·과금 관련 서버 원문 플래그를 한 번에 조회합니다. 기본 계좌 외 다른 증권 계좌도 고를 수 있고 결과에는 원래 키 대신 세션 비밀로 서명한 불투명한 account scope를 표시합니다. 모두 증권 WTS의 읽기 계약이며 설정을 변경하지 않습니다.
 - **`account transfer-accounts [--account <key>] [--full]`** — 증권 주식이체 화면에서 제공하는 내 계좌와 최근 목적지 계좌를 조회합니다. 기본 계좌 외 다른 증권 계좌도 고를 수 있으며, 계좌번호는 CLI·ops/MCP에서 기본 마스킹하고 내부 `accountId`는 `--full`에서도 출력하지 않습니다. 이 명령은 이체를 시작하거나 계좌 상태를 바꾸지 않습니다.
 - **`banking status [--full]` 보강** — 기존 주식모으기 자금연결 정보에 새 연결 생성 가능 여부와 등록 필요 여부를 추가했습니다. 일반 Toss Banking이 아니라 계속 `securities + wts` 범위이며, 내부 `openBankingId`는 `--full`에서도 출력하지 않습니다.
@@ -26,10 +27,10 @@ description: tossctl 버전별 변경 사항 (사용자 관점)
 
 ### 변경
 - operation catalog에 기능 영역 `domain`을 추가해 접근 경로 `backend`와 분리했습니다. 현재 `banking_status`는 일반 Banking이 아니라 `securities + wts`, Open API IP 관리는 `system + wts`로 명시됩니다. 일반 Toss Banking/MyData API는 웹 UI 유무와 무관하게 존재하지만 main-app session·header·cipher connector가 필요한 별도 모바일 인증 영역으로 문서화했습니다.
-- API 회귀 감시를 65개로 확대해 목표가 알림·숨긴 보유종목, 국가별 브리핑, AI 시그널 상세, 업종 상세 5개 의존 API, 어닝콜 상세, 대여수익 랭킹에 더해 오픈뱅킹 상태 2개·증권 거래 설정 4개·주식이체 계좌 2개의 읽기 계약을 감시합니다. 여러 API를 합치는 operation은 `ExtraProbes`로 모든 의존성을 등록하고, 공용 `account-list` 의존성은 `ProbeRefs`로 중복 호출 없이 추적합니다. 계좌 범위 API probe에는 런타임에 확인한 기본 `accountKey`를 넣고, 비어 있지 않은 이체 계좌 항목의 필수 필드까지 검사합니다. 주간 모니터는 WTS build ID 변경과 일반 Toss Android 배포 후보도 함께 알리며, APK 후보는 서명·정적 감사를 마치기 전까지 `stale` 신호로만 취급합니다. Android 결과에는 `live`/`offline` 메타데이터 출처도 표시해 테스트 fixture가 실제 신규 배포처럼 보이지 않게 했습니다.
+- API 회귀 감시를 71개로 확대해 목표가 알림·숨긴 보유종목, 국가별 브리핑, AI 시그널 상세, 업종 상세 5개 의존 API, 어닝콜 상세, 대여수익 랭킹, 오픈뱅킹 상태 2개·증권 거래 설정 4개·주식이체 계좌 2개에 더해 전 계좌 합산/단일 계좌 자산 추이·이력·일자 상세 6개의 읽기 계약을 감시합니다. 여러 API를 합치는 operation은 `ExtraProbes`로 모든 의존성을 등록하고, 공용 `account-list` 의존성은 `ProbeRefs`로 중복 호출 없이 추적합니다. 계좌 범위 API probe에는 런타임에 확인한 기본 `accountKey`를 넣고, 커서 종료 페이지의 `nextCursorKey: null`도 정상 계약으로 처리합니다. 주간 모니터는 WTS build ID 변경과 일반 Toss Android 배포 후보도 함께 알리며, APK 후보는 서명·정적 감사를 마치기 전까지 `stale` 신호로만 취급합니다. Android 결과에는 `live`/`offline` 메타데이터 출처도 표시해 테스트 fixture가 실제 신규 배포처럼 보이지 않게 했습니다.
 - APK/XAPK/jadx 정적 분석본은 저장소 상대 경로 `.artifacts/android/`에 버전별로 보관하되 Git에서 제외합니다. 분석 명령이 매번 다른 Downloads 경로에 의존하지 않고, 대형 바이너리·역컴파일 산출물은 커밋되지 않습니다.
 - WTS endpoint 추출 결과가 기존 카탈로그의 75% 아래로 급감하면 부분 수집으로 보고 기존 파일을 보존합니다. 일시적인 route/chunk fetch 실패가 수백 개 endpoint 삭제로 기록되지 않으며, 재스윕 때 기존의 구체적인 정적 호출부 `source` 근거도 보존합니다.
-- 현재 WTS 번들의 정적 호출부와 읽기 전용 라이브 응답을 교차 검증한 8개 계약을 endpoint 카탈로그에 반영했습니다. 화면 노출 여부가 아니라 현재 세션으로 실제 호출 가능한 host·method·응답 타입을 구현 근거로 사용합니다.
+- 현재 WTS 번들의 정적 호출부와 읽기 전용 라이브 응답을 교차 검증한 14개 계약을 endpoint 카탈로그에 반영했습니다. 화면 노출 여부가 아니라 현재 세션으로 실제 호출 가능한 host·method·응답 타입을 구현 근거로 사용합니다.
 - 거래 설정·주식이체 계좌·오픈뱅킹 상태처럼 여러 독립 endpoint를 합치는 읽기는 병렬로 조회합니다. 호출 지연은 합산되지 않으며, 동시에 여러 요청이 실패해도 오류는 선언 순서대로 결정적으로 반환합니다. 계좌 키 선택과 account-scoped HTTP 처리는 전용 내부 모듈에 모아 모든 호출자가 같은 규칙을 사용합니다.
 - 검증 후 보류한 endpoint를 카탈로그 재생성이 다시 `priority: next`로 올리며 구체적인 보류 사유를 지우던 문제를 수정했습니다. 현재 미사용 `r-chart`, 중복 가능성이 큰 배당·업종 API, 대차 약정/지급 내역이 있어야 검증 가능한 API 등 16개는 `priority: deferred`와 재검증 트리거를 보존합니다.
 

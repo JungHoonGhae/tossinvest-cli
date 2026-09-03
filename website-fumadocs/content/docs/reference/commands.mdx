@@ -22,6 +22,9 @@ description: tossctl 전체 명령
 | `tossctl account summary` | 총자산·평가손익·시장별 |
 | `tossctl portfolio positions` | 보유 종목 (미국은 USD 병기) |
 | `tossctl portfolio allocation` | 자산 배분 |
+| `tossctl portfolio performance [--account <key>]` | 최근 1개월 일별 원금·평가액·수익률·기간 고저(기본: 모든 증권 계좌 합산) |
+| `tossctl portfolio snapshots [--account <key>] [--cursor <key>] [--limit N]` | 커서 기반 날짜별 포트폴리오 평가 이력 |
+| `tossctl portfolio snapshot <YYYY-MM-DD> [--account <key>]` | 특정 날짜의 시장·보유종목별 전체 평가 상세 |
 | `tossctl portfolio dividends [--year N] [--by-payment-date]` | 연간 배당 내역(총액·지역·월별·세금) |
 | `tossctl portfolio hidden list [--account <key>]` | 증권 포트폴리오에서 숨긴 보유종목 조회(계좌 키 비노출) |
 | `tossctl portfolio hidden hide\|show <symbol> [--execute --confirm <token>]` | 보유종목 숨김·복원 preview/confirm |
