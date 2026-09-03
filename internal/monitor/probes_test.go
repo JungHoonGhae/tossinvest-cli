@@ -1,8 +1,13 @@
 package monitor
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 )
 
 func TestProbesRegistryStableNames(t *testing.T) {
@@ -84,6 +89,35 @@ func TestProbesRegistryStableNames(t *testing.T) {
 	}
 	if len(got) != len(want) {
 		t.Errorf("expected exactly %d probes, got %d (%v)", len(want), len(got), got)
+	}
+}
+
+func TestAccountScopedProbeInjectsResolvedAccountKey(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("accountKey"); got != "primary-test" {
+			t.Errorf("accountKey = %q, want primary-test", got)
+		}
+		_, _ = w.Write([]byte(`{"result":true}`))
+	}))
+	t.Cleanup(server.Close)
+	probe := Probe{
+		Name: "scoped", Method: http.MethodGet, URL: server.URL,
+		AccountScoped: true, Check: statusAndPath("result", "bool"),
+	}
+	result := runOne(context.Background(), &session.Session{Headers: map[string]string{"accountKey": "stale-test"}}, probe, "primary-test")
+	if !result.OK {
+		t.Fatalf("probe failed: %s", result.Detail)
+	}
+}
+
+func TestAccountKeyFromListUsesPrimaryThenFirstAccount(t *testing.T) {
+	t.Parallel()
+	if got := accountKeyFromList([]byte(`{"result":{"primaryKey":"primary-test","accountList":[{"key":"first-test"}]}}`)); got != "primary-test" {
+		t.Fatalf("primary key = %q", got)
+	}
+	if got := accountKeyFromList([]byte(`{"result":{"accountList":[{"key":"first-test"}]}}`)); got != "first-test" {
+		t.Fatalf("fallback key = %q", got)
 	}
 }
 
@@ -201,8 +235,8 @@ func TestDiscoveryProbeChecksRejectBrokenSchemas(t *testing.T) {
 		"trading-exchange-choice":             {good: `{"result":"integrated"}`, bad: `{"result":true}`},
 		"trading-ats-notification":            {good: `{"result":true}`, bad: `{"result":"true"}`},
 		"option-real-time-tick":               {good: `{"result":{"requested":false,"serviced":true,"shouldCharged":false}}`, bad: `{"result":{"requested":false,"serviced":true}}`},
-		"securities-transfer-my-accounts":     {good: `{"result":[]}`, bad: `{"result":{}}`},
-		"securities-transfer-recent-accounts": {good: `{"result":[]}`, bad: `{"result":null}`},
+		"securities-transfer-my-accounts":     {good: `{"result":[]}`, bad: `{"result":[{"bankCode":"092","accountNo":"123"}]}`},
+		"securities-transfer-recent-accounts": {good: `{"result":[]}`, bad: `{"result":[{"bankCode":"088"}]}`},
 	}
 	probes := make(map[string]Probe)
 	for _, probe := range Probes() {

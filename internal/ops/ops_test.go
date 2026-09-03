@@ -20,6 +20,16 @@ func TestRegistryInvariants(t *testing.T) {
 
 	seenID := map[string]bool{}
 	seenProbe := map[string]bool{}
+	referencedProbe := map[string]bool{}
+	for _, probe := range sharedWTSProbes() {
+		if probe.Name == "" || probe.Check == nil {
+			t.Errorf("shared probe must have Name and Check")
+		}
+		if seenProbe[probe.Name] {
+			t.Errorf("duplicate shared probe name %q", probe.Name)
+		}
+		seenProbe[probe.Name] = true
+	}
 	for _, o := range all {
 		if o.ID == "" || o.Summary == "" || o.Category == "" {
 			t.Errorf("operation %+v: ID/Summary/Category must be set", o.ID)
@@ -68,11 +78,32 @@ func TestRegistryInvariants(t *testing.T) {
 				t.Errorf("%s: probe method %q must be GET or POST", o.ID, probe.Method)
 			}
 		}
+		for _, ref := range o.ProbeRefs {
+			if !seenProbe[ref] {
+				t.Errorf("%s: unknown shared probe reference %q", o.ID, ref)
+			}
+			referencedProbe[ref] = true
+		}
+	}
+	for _, probe := range sharedWTSProbes() {
+		if !referencedProbe[probe.Name] {
+			t.Errorf("shared probe %q is not referenced by any operation", probe.Name)
+		}
 	}
 
 	// Catalog.Probes() 는 선언된 probe 를 전부, 한 번씩 노출한다.
 	if got := len(c.Probes()); got != len(seenProbe) {
 		t.Errorf("Probes() returned %d specs, want %d", got, len(seenProbe))
+	}
+}
+
+func TestCatalogProbesIncludesOnlyReferencedSharedProbes(t *testing.T) {
+	local := ProbeSpec{Name: "local", Method: "GET", URL: "https://wts-api.tossinvest.com/local", Check: statusAndPath("result", "object")}
+	catalog := &Catalog{ops: []Operation{{ID: "example", Probe: &local}}}
+
+	probes := catalog.Probes()
+	if len(probes) != 1 || probes[0].Name != "local" {
+		t.Fatalf("unreferenced shared probes leaked into catalog: %#v", probes)
 	}
 }
 

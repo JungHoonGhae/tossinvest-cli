@@ -3,8 +3,11 @@ package ops
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
+	"strings"
 	"testing"
 
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
@@ -57,10 +60,8 @@ func TestTradingSettingsOperationIsCallableAndOwnsDependencyProbes(t *testing.T)
 	t.Parallel()
 	deps := discoveryWTSDeps(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/v1/account/list":
-			_, _ = w.Write([]byte(`{"result":{"accountList":[{"key":"primary-test"}],"primaryKey":"primary-test"}}`))
 		case "/api/v1/trading/settings/simple-trade":
-			if r.Header.Get("accountKey") != "primary-test" {
+			if r.Header.Get("accountKey") != "selected-test" {
 				t.Fatalf("simple-trade accountKey = %q", r.Header.Get("accountKey"))
 			}
 			_, _ = w.Write([]byte(`{"result":false}`))
@@ -79,15 +80,15 @@ func TestTradingSettingsOperationIsCallableAndOwnsDependencyProbes(t *testing.T)
 	if !ok {
 		t.Fatal("trading_settings operation missing")
 	}
-	if op.Backend != "wts" || op.Domain != "securities" || op.Write || op.Probe == nil || len(op.ExtraProbes) != 3 {
+	if op.Backend != "wts" || op.Domain != "securities" || op.Write || op.Probe == nil || len(op.ExtraProbes) != 3 || !slices.Contains(op.ProbeRefs, "account-list") {
 		t.Fatalf("operation metadata = %#v", op)
 	}
-	gotAny, err := catalog.Call(context.Background(), deps, "trading_settings", nil)
+	gotAny, err := catalog.Call(context.Background(), deps, "trading_settings", map[string]any{"account": "selected-test"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	got := gotAny.(domain.TradingSettings)
-	if got.InvestorExchangeChoice != "nxt" || !got.ATSNotificationEnabled || !got.OptionRealTimeTick.Serviced {
+	if got.AccountScope == "" || got.AccountScope == "selected-test" || got.InvestorExchangeChoice != "nxt" || !got.ATSNotificationEnabled || !got.OptionRealTimeTick.Serviced {
 		t.Fatalf("result = %#v", got)
 	}
 
@@ -124,11 +125,15 @@ func TestSecuritiesTransferAccountsOperationMasksNumbersAndOwnsDependencyProbes(
 	t.Parallel()
 	deps := discoveryWTSDeps(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/v1/account/list":
-			_, _ = w.Write([]byte(`{"result":{"accountList":[{"key":"primary-test"}],"primaryKey":"primary-test"}}`))
 		case "/api/v1/securities-transfer/my-accounts":
+			if r.Header.Get("accountKey") != "selected-test" {
+				t.Fatalf("my-accounts accountKey = %q", r.Header.Get("accountKey"))
+			}
 			_, _ = w.Write([]byte(`{"result":[{"bankCode":"092","accountNo":"123-456-789","accountId":"own-1"}]}`))
 		case "/api/v1/securities-transfer/recent-accounts":
+			if r.Header.Get("accountKey") != "selected-test" {
+				t.Fatalf("recent-accounts accountKey = %q", r.Header.Get("accountKey"))
+			}
 			_, _ = w.Write([]byte(`{"result":[{"bankCode":"088","accountNo":"987-654-321"}]}`))
 		default:
 			http.NotFound(w, r)
@@ -139,19 +144,19 @@ func TestSecuritiesTransferAccountsOperationMasksNumbersAndOwnsDependencyProbes(
 	if !ok {
 		t.Fatal("securities_transfer_accounts operation missing")
 	}
-	if op.Backend != "wts" || op.Domain != "securities" || op.Write || op.Probe == nil || len(op.ExtraProbes) != 1 {
+	if op.Backend != "wts" || op.Domain != "securities" || op.Write || op.Probe == nil || len(op.ExtraProbes) != 1 || !slices.Contains(op.ProbeRefs, "account-list") {
 		t.Fatalf("operation metadata = %#v", op)
 	}
 
-	maskedAny, err := catalog.Call(context.Background(), deps, "securities_transfer_accounts", nil)
+	maskedAny, err := catalog.Call(context.Background(), deps, "securities_transfer_accounts", map[string]any{"account": "selected-test"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	masked := maskedAny.(domain.SecuritiesTransferAccounts)
-	if masked.OwnAccounts[0].AccountNo == "123-456-789" || masked.RecentAccounts[0].AccountNo == "987-654-321" {
+	if masked.AccountScope == "" || masked.AccountScope == "selected-test" || masked.OwnAccounts[0].AccountNo == "123-456-789" || masked.OwnAccounts[0].AccountID != "" || masked.RecentAccounts[0].AccountNo == "987-654-321" {
 		t.Fatalf("default result leaked account numbers: %#v", masked)
 	}
-	fullAny, err := catalog.Call(context.Background(), deps, "securities_transfer_accounts", map[string]any{"full": true})
+	fullAny, err := catalog.Call(context.Background(), deps, "securities_transfer_accounts", map[string]any{"account": "selected-test", "full": true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,10 +164,23 @@ func TestSecuritiesTransferAccountsOperationMasksNumbersAndOwnsDependencyProbes(
 	if full.OwnAccounts[0].AccountNo != "123-456-789" || full.RecentAccounts[0].AccountNo != "987-654-321" {
 		t.Fatalf("full result = %#v", full)
 	}
+	encoded, err := json.Marshal(full)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), "own-1") || strings.Contains(string(encoded), "account_id") {
+		t.Fatalf("serialized full result leaked internal account ID: %s", encoded)
+	}
 
 	for _, probe := range append([]ProbeSpec{*op.Probe}, op.ExtraProbes...) {
+		if !probe.AccountScoped {
+			t.Errorf("%s must reproduce the accountKey-scoped request", probe.Name)
+		}
 		if err := probe.Check(http.StatusOK, []byte(`{"result":[]}`)); err != nil {
 			t.Errorf("%s rejected empty valid list: %v", probe.Name, err)
+		}
+		if err := probe.Check(http.StatusOK, []byte(`{"result":[{}]}`)); err == nil {
+			t.Errorf("%s accepted a non-empty item with missing fields", probe.Name)
 		}
 	}
 }

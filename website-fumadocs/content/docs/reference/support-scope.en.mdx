@@ -52,8 +52,8 @@ Use the global `--backend auto|wts|openapi` flag to override routing per request
 |------|------|:--:|:--:|
 | Accounts / summary | `account list`, `account summary` | ✅ | ✅ |
 | All-account overview | `account overview [--full]` | ❌ | ✅ |
-| Securities trading settings | `account trading-settings` | ❌ | ✅ |
-| Securities transfer accounts | `account transfer-accounts [--full]` (masked by default; never initiates a transfer) | ❌ | ✅ |
+| Securities trading settings | `account trading-settings [--account <key>]` | ❌ | ✅ |
+| Securities transfer accounts | `account transfer-accounts [--account <key>] [--full]` (masked by default; never initiates a transfer) | ❌ | ✅ |
 | Portfolio | `portfolio positions`, `portfolio allocation` | ✅ | ✅ |
 | Trade ticks / orderbook | `quote trades`, `quote orderbook` | ✅ | ✅ |
 | Price limits / buy cautions | `quote limits`, `quote warnings` | ✅ | ✅ |

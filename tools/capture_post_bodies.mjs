@@ -317,6 +317,7 @@ if (sweep) {
       query: merge(prev.query, [...u.searchParams.keys()]),
       body: merge(prev.body, bodyKeys(r.postData)),
       at: today,
+      ...(prev.source && { source: prev.source }),
     };
     hit++;
   }

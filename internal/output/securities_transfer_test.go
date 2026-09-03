@@ -11,6 +11,7 @@ import (
 func TestWriteSecuritiesTransferAccountsMasksEveryFormatByDefault(t *testing.T) {
 	t.Parallel()
 	accounts := domain.SecuritiesTransferAccounts{
+		AccountScope:   "scope-123",
 		OwnAccounts:    []domain.SecuritiesTransferAccount{{BankCode: "092", AccountNo: "123-456-789", AccountID: "own-1"}},
 		RecentAccounts: []domain.SecuritiesTransferAccount{{BankCode: "088", AccountNo: "987-654-321"}},
 	}
@@ -19,10 +20,10 @@ func TestWriteSecuritiesTransferAccountsMasksEveryFormatByDefault(t *testing.T) 
 		if err := WriteSecuritiesTransferAccounts(&out, format, accounts, false); err != nil {
 			t.Fatalf("%s: %v", format, err)
 		}
-		if strings.Contains(out.String(), "123-456-789") || strings.Contains(out.String(), "987-654-321") {
-			t.Fatalf("account number leaked in %s: %s", format, out.String())
+		if strings.Contains(out.String(), "123-456-789") || strings.Contains(out.String(), "987-654-321") || strings.Contains(out.String(), "own-1") {
+			t.Fatalf("account data leaked in %s: %s", format, out.String())
 		}
-		for _, want := range []string{"092", "088"} {
+		for _, want := range []string{"scope-123", "092", "088"} {
 			if !strings.Contains(out.String(), want) {
 				t.Fatalf("%s missing %q: %s", format, want, out.String())
 			}
@@ -33,7 +34,7 @@ func TestWriteSecuritiesTransferAccountsMasksEveryFormatByDefault(t *testing.T) 
 func TestWriteSecuritiesTransferAccountsFullRevealsNumbers(t *testing.T) {
 	t.Parallel()
 	accounts := domain.SecuritiesTransferAccounts{
-		OwnAccounts:    []domain.SecuritiesTransferAccount{{BankCode: "092", AccountNo: "123-456-789"}},
+		OwnAccounts:    []domain.SecuritiesTransferAccount{{BankCode: "092", AccountNo: "123-456-789", AccountID: "own-1"}},
 		RecentAccounts: []domain.SecuritiesTransferAccount{{BankCode: "088", AccountNo: "987-654-321"}},
 	}
 	var out bytes.Buffer
@@ -42,5 +43,8 @@ func TestWriteSecuritiesTransferAccountsFullRevealsNumbers(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "123-456-789") || !strings.Contains(out.String(), "987-654-321") {
 		t.Fatalf("full output missing account numbers: %s", out.String())
+	}
+	if strings.Contains(out.String(), "own-1") || strings.Contains(out.String(), "account_id") {
+		t.Fatalf("internal account ID leaked in full output: %s", out.String())
 	}
 }

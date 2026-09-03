@@ -254,8 +254,8 @@ token and consent boundary to be verified first.
 | **Cumulative realized profit** | `profit` (trading gains · dividends · lending · maturity · deposit interest, KRW/USD — a cumulative view distinct from account summary) | ❌ | ✅ |
 | **Account detail** | `account detail [--full]` (number · open date + **withdrawable cash and caps** + credit-trading status + **US dividend payout mode** — number and name masked by default) | ❌ | ✅ |
 | **🆕 All-account assets** | `account overview [--full]` (regular and minor accounts · pending-order counts — account numbers masked by default) | ❌ | ✅ |
-| **🆕 Securities trading settings** | `account trading-settings` (simple trade, KRX/NXT execution venue, ATS notifications, option real-time tick subscription; read-only) | ❌ | ✅ |
-| **🆕 Securities transfer accounts** | `account transfer-accounts [--full]` (own and recent destination accounts, masked by default; never initiates a transfer) | ❌ | ✅ |
+| **🆕 Securities trading settings** | `account trading-settings [--account <key>]` (simple trade, KRX/NXT execution venue, ATS notifications, option real-time tick subscription; read-only) | ❌ | ✅ |
+| **🆕 Securities transfer accounts** | `account transfer-accounts [--account <key>] [--full]` (own and recent destination accounts, masked by default; never initiates a transfer) | ❌ | ✅ |
 | **Automated trading** | `order autotrade` (stop-loss / target-profit / OCO / OTO rules with trigger and order prices — read-only) | ❌ | ✅ |
 | **Market news** | `market news [--type all\|watchlist\|holdings\|soaring\|latest\|recommended] [--limit N] [--full]` (each article's **related stocks and their moves** — what a headline list lacks) | ❌ | ✅ |
 | **Market issue board** | `market issues [--full]` (topics ranked by attention, with rank movement ▲▼ and backing articles) | ❌ | ✅ |
@@ -485,7 +485,8 @@ official first, web-session fallback), or official-only otherwise.
   a web session; without one, those operations return a `tossctl auth login` hint. A failed read
   is at worst a stale read, so exposing it to an agent is low-risk. Securities trading settings,
   stock-transfer accounts, and accumulation funding status are exposed as `trading_settings`,
-  `securities_transfer_accounts`, and `banking_status` respectively.
+  `securities_transfer_accounts`, and `banking_status` respectively. The first two accept an
+  optional `account` key for non-primary Securities accounts.
 - **Writes.** Regular and conditional place / cancel / modify always use the **official API path** (never WTS): if an
   agent can submit orders, the path should be one **Toss officially sanctions** — safer and more honest.
 - **WTS settings write (sole exception).** `openapi_ip_replace_current` changes only the official
@@ -687,8 +688,8 @@ python3 -m pip install -e .
 tossctl account list
 tossctl account summary
 tossctl account overview [--full]               # regular + minor accounts; numbers masked by default
-tossctl account trading-settings                 # simple trade, KRX/NXT, ATS, option tick settings
-tossctl account transfer-accounts [--full]       # Securities transfer destinations; masked by default
+tossctl account trading-settings [--account KEY] # simple trade, KRX/NXT, ATS, option tick settings
+tossctl account transfer-accounts [--account KEY] [--full] # transfer destinations; masked by default
 tossctl banking status [--full]                  # Securities accumulation funding/registration status
 tossctl notifications list                       # read-only notification preferences
 tossctl portfolio positions

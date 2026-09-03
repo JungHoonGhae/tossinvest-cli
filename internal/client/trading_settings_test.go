@@ -51,14 +51,48 @@ func TestGetTradingSettingsUsesVerifiedReadContracts(t *testing.T) {
 		CertBaseURL: cert.URL,
 		Session:     &session.Session{Cookies: map[string]string{"SESSION": "synthetic"}},
 	})
-	got, err := c.GetTradingSettings(context.Background())
+	got, err := c.GetTradingSettings(context.Background(), "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got.SimpleTradeEnabled || got.InvestorExchangeChoice != "integrated" || !got.ATSNotificationEnabled {
 		t.Fatalf("settings = %#v", got)
 	}
-	if !got.OptionRealTimeTick.Requested || got.OptionRealTimeTick.Serviced || !got.OptionRealTimeTick.ShouldCharged {
+	if !got.OptionRealTimeTick.Requested || got.OptionRealTimeTick.Serviced || !got.OptionRealTimeTick.RawShouldCharged {
 		t.Fatalf("option real-time tick = %#v", got.OptionRealTimeTick)
+	}
+	if got.AccountScope == "" || got.AccountScope == "primary-test" {
+		t.Fatalf("account scope is not opaque: %q", got.AccountScope)
+	}
+}
+
+func TestGetTradingSettingsUsesExplicitAccountWithoutAccountLookup(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v1/account/list" {
+			t.Fatal("explicit account must not trigger primary-account lookup")
+		}
+		if r.URL.Path == simpleTradeSettingPath && r.Header.Get("accountKey") != "selected-test" {
+			t.Fatalf("simple-trade accountKey = %q", r.Header.Get("accountKey"))
+		}
+		switch r.URL.Path {
+		case simpleTradeSettingPath, atsNotificationPath:
+			_, _ = w.Write([]byte(`{"result":false}`))
+		case investorExchangeChoicePath:
+			_, _ = w.Write([]byte(`{"result":"krx"}`))
+		case optionRealTimeTickPath:
+			_, _ = w.Write([]byte(`{"result":{"requested":false,"serviced":false,"shouldCharged":false}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(server.Close)
+	c := New(Config{HTTPClient: server.Client(), APIBaseURL: server.URL, CertBaseURL: server.URL, Session: &session.Session{Cookies: map[string]string{"SESSION": "synthetic"}}})
+	got, err := c.GetTradingSettings(context.Background(), " selected-test ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.AccountScope == "" || got.AccountScope == "selected-test" {
+		t.Fatalf("account scope is not opaque: %q", got.AccountScope)
 	}
 }

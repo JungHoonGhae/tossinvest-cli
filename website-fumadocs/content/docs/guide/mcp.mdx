@@ -67,7 +67,8 @@ MCP 는 **조회를 공식 Open API + WTS 전용 기능 모두** 노출하고, *
   스크리너·업종·어닝·브리핑·배당·실현손익·거래내역·관심종목 등, [공식으로 막히는 것 →
   tossctl 로 되는 것](/docs/guide/hybrid-openapi) 참고)을 함께 노출합니다. WTS 조회는 웹 세션이 필요하고, 없으면 해당 오퍼레이션이 `tossctl auth
   login` 안내를 돌려줍니다. 증권 거래 설정·주식이체 계좌·주식모으기 자금연결 상태는
-  `trading_settings`·`securities_transfer_accounts`·`banking_status`로 호출합니다.
+  `trading_settings`·`securities_transfer_accounts`·`banking_status`로 호출하며, 앞의 두
+  오퍼레이션은 선택적 `account`로 기본 계좌 외 계좌도 지정합니다.
 - **주문(write)** — 생성·취소·정정은 **항상 공식 API 경로만** 사용합니다(WTS 미경유). 에이전트에
   주문을 맡기는 이상 제출 경로는 토스가 공식 승인한 API 여야 안전하고 정직하기 때문입니다.
 - **WTS 설정 쓰기(유일한 예외)** — `openapi_ip_replace_current`는 공식 Open API 허용 목록만

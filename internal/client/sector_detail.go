@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
@@ -131,20 +130,14 @@ func (c *Client) GetSectorDetail(ctx context.Context, id int) (domain.SectorDeta
 		fmt.Sprintf("%s/api/v2/dashboard/wts/overview/tics/%d/etfs", c.infoBaseURL, id),
 		fmt.Sprintf("%s/api/v2/dashboard/wts/overview/tics/%d/news", c.infoBaseURL, id),
 	}
-	labels := []string{"simple metadata", "overview", "stocks", "ETFs", "news"}
-	errs := make([]error, len(endpoints))
-	var wg sync.WaitGroup
-	wg.Add(len(endpoints))
-	go func() { defer wg.Done(); errs[0] = c.getJSON(ctx, endpoints[0], &simple) }()
-	go func() { defer wg.Done(); errs[1] = c.getJSON(ctx, endpoints[1], &overview) }()
-	go func() { defer wg.Done(); errs[2] = c.postJSON(ctx, endpoints[2], json.RawMessage(`{}`), &stocks) }()
-	go func() { defer wg.Done(); errs[3] = c.postJSON(ctx, endpoints[3], json.RawMessage(`{}`), &etfs) }()
-	go func() { defer wg.Done(); errs[4] = c.getJSON(ctx, endpoints[4], &news) }()
-	wg.Wait()
-	for i, err := range errs {
-		if err != nil {
-			return domain.SectorDetail{}, fmt.Errorf("get sector %s: %w", labels[i], err)
-		}
+	if err := runReadBatch(
+		readTask{label: "get sector simple metadata", run: func() error { return c.getJSON(ctx, endpoints[0], &simple) }},
+		readTask{label: "get sector overview", run: func() error { return c.getJSON(ctx, endpoints[1], &overview) }},
+		readTask{label: "get sector stocks", run: func() error { return c.postJSON(ctx, endpoints[2], json.RawMessage(`{}`), &stocks) }},
+		readTask{label: "get sector ETFs", run: func() error { return c.postJSON(ctx, endpoints[3], json.RawMessage(`{}`), &etfs) }},
+		readTask{label: "get sector news", run: func() error { return c.getJSON(ctx, endpoints[4], &news) }},
+	); err != nil {
+		return domain.SectorDetail{}, err
 	}
 
 	out := domain.SectorDetail{

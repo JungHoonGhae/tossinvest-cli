@@ -72,7 +72,8 @@ Each operation is tagged in `list_operations` with
   [what the official API can't, tossctl can](/docs/guide/hybrid-openapi)).
   WTS reads need a web session; without one, that operation returns a `tossctl auth login` hint.
   Securities trading settings, transfer accounts, and accumulation funding status are
-  `trading_settings`, `securities_transfer_accounts`, and `banking_status` respectively.
+  `trading_settings`, `securities_transfer_accounts`, and `banking_status` respectively. The
+  first two accept an optional `account` key for non-primary Securities accounts.
 - **Writes** — create/cancel/amend always use the **official API path only** (never WTS). If you let
   an agent place orders, the submission path should be the API Toss officially sanctions.
 - **WTS settings write (sole exception)** — `openapi_ip_replace_current` changes only the official

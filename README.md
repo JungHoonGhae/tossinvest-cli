@@ -297,8 +297,8 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **누적 실현손익** | `profit` (매매손익·배당·대여·만기·예탁금이자, KRW/USD — account summary 와 다른 누적 관점) | ❌ | ✅ |
 | **계좌 상세** | `account detail [--full]` (계좌번호·개설일 + **출금 가능액/한도** + 미수거래 상태 + **미국 배당 수령 방식** — 번호·이름은 기본 마스킹) | ❌ | ✅ |
 | **🆕 전체 계좌 자산** | `account overview [--full]` (일반·미성년 계좌별 자산과 미체결 주문 수 — 번호는 table/JSON/CSV 모두 기본 마스킹) | ❌ | ✅ |
-| **🆕 증권 거래 설정 조회** | `account trading-settings` (간편주문·KRX/NXT 체결시장·ATS 알림·옵션 실시간 시세 구독 상태, 읽기 전용) | ❌ | ✅ |
-| **🆕 증권 주식이체 계좌 조회** | `account transfer-accounts [--full]` (내 계좌·최근 목적지 계좌, 번호 기본 마스킹; 이체 실행 없음) | ❌ | ✅ |
+| **🆕 증권 거래 설정 조회** | `account trading-settings [--account <key>]` (간편주문·KRX/NXT 체결시장·ATS 알림·옵션 실시간 시세 구독 상태, 읽기 전용) | ❌ | ✅ |
+| **🆕 증권 주식이체 계좌 조회** | `account transfer-accounts [--account <key>] [--full]` (내 계좌·최근 목적지 계좌, 번호 기본 마스킹; 이체 실행 없음) | ❌ | ✅ |
 | **자동매매 조회** | `order autotrade` (스탑로스·목표수익·OCO·OTO 설정과 감시가/주문가 — 조회 전용) | ❌ | ✅ |
 | **시장 뉴스** | `market news [--type all\|watchlist\|holdings\|soaring\|latest\|recommended] [--limit N] [--full]` (기사별 **관련 종목 등락률** 포함 — 헤드라인 목록에 없는 부분) | ❌ | ✅ |
 | **시장 이슈 랭킹** | `market issues [--full]` (지금 가장 많이 이야기되는 토픽 순위 + 등락 ▲▼ + 관련 기사) | ❌ | ✅ |
@@ -572,7 +572,8 @@ MCP 는 **조회를 공식 Open API + WTS 전용 기능 모두** 노출하고, *
   스크리너·업종·어닝·브리핑·배당 등 [토스 고유 기능](#왜-tossctl-인가--공식-api-는-토스-기능의-일부일-뿐))을
   함께 노출합니다. WTS 조회는 웹 세션이 필요하고, 없으면 해당 오퍼레이션이 `tossctl auth login`
   안내를 돌려줍니다. 증권 거래 설정·주식이체 계좌·주식모으기 자금연결은 각각
-  `trading_settings`·`securities_transfer_accounts`·`banking_status`로 조회합니다. 조회는 실패해도
+  `trading_settings`·`securities_transfer_accounts`·`banking_status`로 조회하며, 앞의 두
+  오퍼레이션은 선택적 `account` 키로 기본 계좌 외 계좌도 지정합니다. 조회는 실패해도
   stale read 수준이라 에이전트에 노출해도 위험이 낮습니다.
 - **주문(write)** — 일반·조건주문의 생성·취소·정정은 **항상 공식 API 경로만** 사용합니다(WTS 미경유). 에이전트에
   주문을 맡기는 이상 제출 경로는 **토스가 공식 승인한 API** 여야 안전하고 정직하기 때문입니다.
@@ -805,8 +806,8 @@ python3 -m pip install -e .
 tossctl account list
 tossctl account summary
 tossctl account overview [--full]               # 전체·미성년 계좌 합산, 번호 기본 마스킹
-tossctl account trading-settings                 # 간편주문·KRX/NXT·ATS·옵션 시세 구독 설정 조회
-tossctl account transfer-accounts [--full]       # 증권 이체용 내/최근 계좌 조회, 번호 기본 마스킹
+tossctl account trading-settings [--account KEY] # 간편주문·KRX/NXT·ATS·옵션 시세 구독 설정 조회
+tossctl account transfer-accounts [--account KEY] [--full] # 증권 이체용 내/최근 계좌 조회
 tossctl banking status [--full]                  # 증권 주식모으기 자금연결·등록 상태(일반 Banking 아님)
 tossctl notifications list                       # 알림 설정 조회(읽기 전용)
 tossctl portfolio positions

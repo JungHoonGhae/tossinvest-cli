@@ -101,6 +101,7 @@ func newAccountCmd(opts *rootOptions) *cobra.Command {
 
 func newAccountTransferAccountsCmd(opts *rootOptions) *cobra.Command {
 	var full bool
+	var account string
 	cmd := &cobra.Command{
 		Use:         "transfer-accounts",
 		Short:       i18n.T("account.transferAccounts.short"),
@@ -112,19 +113,21 @@ func newAccountTransferAccountsCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			accounts, err := app.client.GetSecuritiesTransferAccounts(cmd.Context())
+			accounts, err := app.client.GetSecuritiesTransferAccounts(cmd.Context(), account)
 			if err != nil {
 				return userFacingCommandError(err)
 			}
 			return output.WriteSecuritiesTransferAccounts(cmd.OutOrStdout(), app.format, accounts, full)
 		},
 	}
+	cmd.Flags().StringVar(&account, "account", "", "Securities account key (default: primary account)")
 	cmd.Flags().BoolVar(&full, "full", false, "show complete account numbers (default masks them)")
 	return cmd
 }
 
 func newAccountTradingSettingsCmd(opts *rootOptions) *cobra.Command {
-	return &cobra.Command{
+	var account string
+	cmd := &cobra.Command{
 		Use:         "trading-settings",
 		Short:       i18n.T("account.tradingSettings.short"),
 		Long:        i18n.T("account.tradingSettings.long"),
@@ -135,13 +138,15 @@ func newAccountTradingSettingsCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			settings, err := app.client.GetTradingSettings(cmd.Context())
+			settings, err := app.client.GetTradingSettings(cmd.Context(), account)
 			if err != nil {
 				return userFacingCommandError(err)
 			}
 			return output.WriteTradingSettings(cmd.OutOrStdout(), app.format, settings)
 		},
 	}
+	cmd.Flags().StringVar(&account, "account", "", "Securities account key (default: primary account)")
+	return cmd
 }
 
 func newAccountOverviewCmd(opts *rootOptions) *cobra.Command {

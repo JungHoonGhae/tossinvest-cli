@@ -2,9 +2,9 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/confirmation"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 )
 
@@ -21,25 +21,30 @@ type securitiesTransferAccountRaw struct {
 
 // GetSecuritiesTransferAccounts returns read-only account choices from the
 // Securities stock-transfer flow. It does not initiate a transfer.
-func (c *Client) GetSecuritiesTransferAccounts(ctx context.Context) (domain.SecuritiesTransferAccounts, error) {
+func (c *Client) GetSecuritiesTransferAccounts(ctx context.Context, accountKey string) (domain.SecuritiesTransferAccounts, error) {
 	if err := c.requireSession(); err != nil {
 		return domain.SecuritiesTransferAccounts{}, err
 	}
-	accountKey, err := c.primaryAccountKey(ctx)
+	accountKey, err := c.resolveAccountKey(ctx, accountKey)
 	if err != nil {
 		return domain.SecuritiesTransferAccounts{}, err
 	}
 
 	var own quoteEnvelope[[]securitiesTransferAccountRaw]
-	if err := c.getJSONWithAccountKey(ctx, c.certBaseURL+securitiesTransferMyAccountsPath, accountKey, &own); err != nil {
-		return domain.SecuritiesTransferAccounts{}, fmt.Errorf("securities transfer own accounts: %w", err)
-	}
 	var recent quoteEnvelope[[]securitiesTransferAccountRaw]
-	if err := c.getJSONWithAccountKey(ctx, c.certBaseURL+securitiesTransferRecentAccountsPath, accountKey, &recent); err != nil {
-		return domain.SecuritiesTransferAccounts{}, fmt.Errorf("securities transfer recent accounts: %w", err)
+	if err := runReadBatch(
+		readTask{label: "securities transfer own accounts", run: func() error {
+			return c.getJSONWithAccountKey(ctx, c.certBaseURL+securitiesTransferMyAccountsPath, accountKey, &own)
+		}},
+		readTask{label: "securities transfer recent accounts", run: func() error {
+			return c.getJSONWithAccountKey(ctx, c.certBaseURL+securitiesTransferRecentAccountsPath, accountKey, &recent)
+		}},
+	); err != nil {
+		return domain.SecuritiesTransferAccounts{}, err
 	}
 
 	out := domain.SecuritiesTransferAccounts{
+		AccountScope:   confirmation.Token("account:" + accountKey),
 		OwnAccounts:    make([]domain.SecuritiesTransferAccount, 0, len(own.Result)),
 		RecentAccounts: make([]domain.SecuritiesTransferAccount, 0, len(recent.Result)),
 		FetchedAt:      time.Now().UTC(),

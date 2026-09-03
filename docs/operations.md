@@ -53,9 +53,9 @@ jq . /tmp/android_diff.json
 
 ### Probe 목록
 
-런타임 목록인 `internal/monitor.Probes()` 가 단일 진실 소스입니다. 59개는
-`internal/ops` 레지스트리의 오퍼레이션 옆 `ProbeSpec` 에서 파생되고, 카탈로그
-오퍼레이션이 없는 CLI 전용 6개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
+런타임 목록인 `internal/monitor.Probes()` 가 단일 진실 소스입니다. 60개는
+`internal/ops` 레지스트리의 오퍼레이션 옆 `ProbeSpec` 또는 공용 probe에서 파생되고,
+카탈로그 오퍼레이션이 없는 CLI 전용 5개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
 
 | 보호 영역 | Probe (개수) |
 | --- | --- |
@@ -126,6 +126,9 @@ webhook 페이로드:
 항목에 `ProbeSpec` 을 같이 선언합니다. 여러 HTTP 요청을 합치는 오퍼레이션이면 첫
 의존성은 `Probe`, 나머지는 `ExtraProbes`에 선언해 모든 요청 계약을 감시합니다.
 오퍼레이션·probe 소유권이 한 곳에 남아 MCP, CLI, monitor 계약이 같이 바뀔 수 있습니다.
+공용 의존성은 `ProbeRefs`로 이름을 참조해 실제 probe는 한 번만 실행합니다. 계좌 범위
+요청은 `AccountScoped: true`로 표시하면 monitor가 먼저 검증한 `account-list` 응답에서
+기본 계좌 키를 구해 `accountKey` 헤더로 넣습니다.
 
 ```go
 Probe: &ProbeSpec{

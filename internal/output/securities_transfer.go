@@ -16,19 +16,23 @@ func WriteSecuritiesTransferAccounts(w io.Writer, format Format, accounts domain
 
 	rows := make([][]string, 0, len(view.OwnAccounts)+len(view.RecentAccounts))
 	for _, item := range view.OwnAccounts {
-		rows = append(rows, []string{"own", item.BankCode, item.AccountNo, item.AccountID})
+		rows = append(rows, []string{view.AccountScope, "own", item.BankCode, item.AccountNo})
 	}
 	for _, item := range view.RecentAccounts {
-		rows = append(rows, []string{"recent", item.BankCode, item.AccountNo, item.AccountID})
+		rows = append(rows, []string{view.AccountScope, "recent", item.BankCode, item.AccountNo})
 	}
 
 	switch format {
 	case FormatJSON:
 		return writeJSON(w, view)
 	case FormatCSV:
-		return writeCSV(w, []string{"kind", "bank_code", "account_no", "account_id"}, rows)
+		return writeCSV(w, []string{"account_scope", "kind", "bank_code", "account_no"}, rows)
 	case FormatTable:
-		if err := renderTable(w, []string{"KIND", "BANK", "ACCOUNT", "ACCOUNT ID"}, rows); err != nil {
+		if len(rows) == 0 {
+			_, err := fmt.Fprintf(w, "Account scope: %s\n(no transfer accounts)\n", view.AccountScope)
+			return err
+		}
+		if err := renderTable(w, []string{"ACCOUNT SCOPE", "KIND", "BANK", "ACCOUNT"}, rows); err != nil {
 			return err
 		}
 		if !full && len(rows) > 0 {

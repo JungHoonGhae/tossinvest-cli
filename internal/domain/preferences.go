@@ -34,15 +34,18 @@ type HiddenHoldings struct {
 
 // OptionRealTimeTickStatus preserves the three booleans exposed by the WTS
 // membership contract without inferring subscription or billing semantics.
+// RawShouldCharged intentionally keeps the upstream label visibly raw.
 type OptionRealTimeTickStatus struct {
-	Requested     bool `json:"requested"`
-	Serviced      bool `json:"serviced"`
-	ShouldCharged bool `json:"should_charged"`
+	Requested        bool `json:"requested"`
+	Serviced         bool `json:"serviced"`
+	RawShouldCharged bool `json:"raw_should_charged"`
 }
 
 // TradingSettings is the read-only set of independently stored Securities
-// trading preferences currently exposed by WTS.
+// trading preferences currently exposed by WTS. AccountScope is a stable
+// opaque label, not the account key sent to WTS.
 type TradingSettings struct {
+	AccountScope           string                   `json:"account_scope"`
 	SimpleTradeEnabled     bool                     `json:"simple_trade_enabled"`
 	InvestorExchangeChoice string                   `json:"investor_exchange_choice"`
 	ATSNotificationEnabled bool                     `json:"ats_notification_enabled"`

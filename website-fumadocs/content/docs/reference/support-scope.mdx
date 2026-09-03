@@ -51,8 +51,8 @@ app/device header, request/response cipher를 처리하는 mobile connector가 �
 |------|------|:--:|:--:|
 | 계좌 목록 / 요약 | `account list`, `account summary` | ✅ | ✅ |
 | 전체 계좌 자산 | `account overview [--full]` | ❌ | ✅ |
-| 증권 거래 설정 조회 | `account trading-settings` | ❌ | ✅ |
-| 증권 주식이체 계좌 조회 | `account transfer-accounts [--full]` (번호 기본 마스킹, 이체 실행 없음) | ❌ | ✅ |
+| 증권 거래 설정 조회 | `account trading-settings [--account <key>]` | ❌ | ✅ |
+| 증권 주식이체 계좌 조회 | `account transfer-accounts [--account <key>] [--full]` (번호 기본 마스킹, 이체 실행 없음) | ❌ | ✅ |
 | 포트폴리오 | `portfolio positions`, `portfolio allocation` | ✅ | ✅ |
 | 체결 틱 / 호가 | `quote trades`, `quote orderbook` | ✅ | ✅ |
 | 상·하한가 / 매수 유의 | `quote limits`, `quote warnings` | ✅ | ✅ |

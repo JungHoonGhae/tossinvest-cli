@@ -97,6 +97,18 @@ class TestDerivePaths(unittest.TestCase):
 
 
 class TestClassify(unittest.TestCase):
+    def test_capture_sweep_preserves_existing_source_evidence(self):
+        repo = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        with open(
+            os.path.join(repo, "tools", "capture_post_bodies.mjs"), encoding="utf-8"
+        ) as source:
+            script = source.read()
+        self.assertIn(
+            "...(prev.source && { source: prev.source })",
+            script,
+            "an authenticated sweep must not erase hand-audited bundle-call evidence",
+        )
+
     def test_override_beats_everything(self):
         ov = {"/api/v1/account/list": {"status": "candidate", "note": "손으로 뒤집음"}}
         status, note = W.classify("/api/v1/account/list", ov)
@@ -477,7 +489,7 @@ class TestClassify(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "internal/monitor"):
                 W.discover_go_exposures(repo)
 
-    def test_discover_go_probes_includes_hand_listed_monitor_probes(self):
+    def test_discover_go_probes_includes_shared_and_hand_listed_probes(self):
         repo = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
         probes = W.discover_go_probes(repo)
         names = {probe["name"] for probe in probes}

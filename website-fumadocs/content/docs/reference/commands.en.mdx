@@ -97,8 +97,8 @@ Fractional (amount-based) order: `order place --fractional --amount <krw> --qty 
 | Command | Description |
 |------|------|
 | `tossctl account overview [--full]` | All-account and minor-account assets (account numbers masked by default) |
-| `tossctl account trading-settings` | Read-only Securities simple-trade, KRX/NXT, ATS notification, and option tick settings |
-| `tossctl account transfer-accounts [--full]` | Securities own/recent transfer accounts (masked by default; never initiates a transfer) |
+| `tossctl account trading-settings [--account <key>]` | Read-only Securities simple-trade, KRX/NXT, ATS notification, and option tick settings |
+| `tossctl account transfer-accounts [--account <key>] [--full]` | Securities own/recent transfer accounts (masked by default; never initiates a transfer) |
 | `tossctl banking status [--full]` | Securities accumulation funding/registration status (not general Banking; holder/account masked) |
 | `tossctl notifications list` | Read-only WTS notification preferences (internal user ID omitted) |
 

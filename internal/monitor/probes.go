@@ -10,6 +10,7 @@ package monitor
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
@@ -23,11 +24,12 @@ import (
 
 // Probe describes one endpoint to validate.
 type Probe struct {
-	Name   string
-	Method string
-	URL    string
-	Body   string
-	Check  func(status int, body []byte) error
+	Name          string
+	Method        string
+	URL           string
+	Body          string
+	AccountScoped bool
+	Check         func(status int, body []byte) error
 }
 
 // Result of one probe execution.
@@ -56,16 +58,10 @@ func Probes() []Probe {
 	)
 	var out []Probe
 	for _, spec := range ops.NewCatalog().Probes() {
-		out = append(out, Probe{Name: spec.Name, Method: spec.Method, URL: spec.URL, Body: spec.Body, Check: spec.Check})
+		out = append(out, Probe{Name: spec.Name, Method: spec.Method, URL: spec.URL, Body: spec.Body, AccountScoped: spec.AccountScoped, Check: spec.Check})
 	}
 	// CLI-surface probes without a registry operation (covered by cmd quote/market).
 	out = append(out,
-		Probe{
-			Name:   "account-list",
-			Method: "GET",
-			URL:    api + "/api/v1/account/list",
-			Check:  statusAndPath("result.accountList", "array"),
-		},
 		Probe{
 			Name:   "quote-stock-infos",
 			Method: "GET",
@@ -130,23 +126,48 @@ const maxConcurrentProbes = 8
 func Run(ctx context.Context, sess *session.Session) []Result {
 	probes := Probes()
 	results := make([]Result, len(probes))
+	accountListIndex := -1
+	accountKey := ""
+	for i, probe := range probes {
+		if probe.Name == "account-list" {
+			accountListIndex = i
+			var body []byte
+			results[i], body = executeProbe(ctx, sess, probe, "")
+			if results[i].OK {
+				accountKey = accountKeyFromList(body)
+			}
+			break
+		}
+	}
 
 	sem := make(chan struct{}, maxConcurrentProbes)
 	var wg sync.WaitGroup
 	for i, p := range probes {
+		if i == accountListIndex {
+			continue
+		}
 		wg.Add(1)
 		sem <- struct{}{}
 		go func(i int, p Probe) {
 			defer wg.Done()
 			defer func() { <-sem }()
-			results[i] = runOne(ctx, sess, p)
+			if p.AccountScoped && accountKey == "" {
+				results[i] = Result{Probe: p, Detail: "account-list did not return a primary account key"}
+				return
+			}
+			results[i] = runOne(ctx, sess, p, accountKey)
 		}(i, p)
 	}
 	wg.Wait()
 	return results
 }
 
-func runOne(ctx context.Context, sess *session.Session, p Probe) Result {
+func runOne(ctx context.Context, sess *session.Session, p Probe, accountKey string) Result {
+	result, _ := executeProbe(ctx, sess, p, accountKey)
+	return result
+}
+
+func executeProbe(ctx context.Context, sess *session.Session, p Probe, accountKey string) (Result, []byte) {
 	res := Result{Probe: p}
 	reqCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -158,7 +179,7 @@ func runOne(ctx context.Context, sess *session.Session, p Probe) Result {
 	req, err := http.NewRequestWithContext(reqCtx, p.Method, p.URL, bodyReader)
 	if err != nil {
 		res.Detail = "build request: " + err.Error()
-		return res
+		return res, nil
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", tossclient.DefaultBrowserUserAgent)
@@ -175,23 +196,47 @@ func runOne(ctx context.Context, sess *session.Session, p Probe) Result {
 			req.Header.Set(k, v)
 		}
 	}
+	if p.AccountScoped && accountKey != "" {
+		req.Header.Set("accountKey", accountKey)
+	}
 
 	start := time.Now()
 	resp, err := (&http.Client{}).Do(req)
 	res.Duration = time.Since(start)
 	if err != nil {
 		res.Detail = "transport: " + err.Error()
-		return res
+		return res, nil
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	res.Status = resp.StatusCode
 	if checkErr := p.Check(resp.StatusCode, body); checkErr != nil {
 		res.Detail = checkErr.Error()
-		return res
+		return res, body
 	}
 	res.OK = true
-	return res
+	return res, body
+}
+
+func accountKeyFromList(body []byte) string {
+	var envelope struct {
+		Result struct {
+			PrimaryKey  string `json:"primaryKey"`
+			AccountList []struct {
+				Key string `json:"key"`
+			} `json:"accountList"`
+		} `json:"result"`
+	}
+	if json.Unmarshal(body, &envelope) != nil {
+		return ""
+	}
+	if key := strings.TrimSpace(envelope.Result.PrimaryKey); key != "" {
+		return key
+	}
+	if len(envelope.Result.AccountList) > 0 {
+		return strings.TrimSpace(envelope.Result.AccountList[0].Key)
+	}
+	return ""
 }
 
 // expectStatus / expectPath moved to internal/ops (probe specs live next to

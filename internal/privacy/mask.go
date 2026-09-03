@@ -96,6 +96,7 @@ func redactSecuritiesTransferAccountItems(items []domain.SecuritiesTransferAccou
 	copy(out, items)
 	for i := range out {
 		out[i].AccountNo = AccountNumber(out[i].AccountNo)
+		out[i].AccountID = ""
 	}
 	return out
 }

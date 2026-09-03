@@ -83,8 +83,8 @@ Rules for agents:
 
 현재 `monitor api` 는 65개 read-only endpoint 를 감시합니다. 단일 진실 소스는
 `internal/monitor.Probes()` 런타임 결과입니다. 대부분은 `internal/ops`
-레지스트리의 오퍼레이션 옆 `ProbeSpec` 에서 파생되고, 카탈로그 오퍼레이션이
-없는 CLI 전용 6개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
+레지스트리의 오퍼레이션 옆 `ProbeSpec`과 공용 `ProbeRefs`에서 파생되고, 카탈로그
+오퍼레이션이 없는 CLI 전용 5개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
 
 - `market-index` — `GET /api/v1/dashboard/wts/overview/indicator/index`
 - `index-prices` — `GET /api/v1/index-prices/KGG01P`
@@ -153,6 +153,8 @@ Rules for agents:
 - `market-trading-hours` — `GET /api/v2/system/trading-hours/integrated`
 
 새 카탈로그 endpoint 의존이 생기면 해당 `internal/ops` 오퍼레이션에 `ProbeSpec`을
-붙입니다. 한 기능이 여러 endpoint를 합치면 나머지는 `ExtraProbes`에 모두 선언합니다.
+붙입니다. 한 기능이 여러 endpoint를 합치면 나머지는 `ExtraProbes`에 모두 선언하고,
+여러 오퍼레이션이 같은 요청을 공유하면 공용 probe 하나를 `ProbeRefs`로 참조합니다.
+`AccountScoped` probe는 monitor가 `account-list`에서 확인한 기본 `accountKey`를 넣습니다.
 CLI 전용 의존성만 `internal/monitor/probes.go` 에 추가합니다. 가이드:
 `docs/operations.md`.

@@ -72,7 +72,7 @@
       "method": "GET",
       "host": "wts-cert-api",
       "evidence": "verified",
-      "note": "Exact accountKey-scoped GET contract + non-empty live bankCode/accountNo/accountId schema verified 2026-09-03. Read only through account transfer-accounts; account numbers are masked by default."
+      "note": "Exact accountKey-scoped GET contract + non-empty live bankCode/accountNo/accountId schema verified 2026-09-03. Read only through account transfer-accounts; account numbers are masked by default and internal accountId is never emitted."
     },
     "/api/v1/securities-transfer/recent-accounts": {
       "status": "implemented",
@@ -1761,7 +1761,8 @@
           "guid"
         ],
         "body": [],
-        "at": "2026-09-03"
+        "at": "2026-09-03",
+        "source": "bundle-literal: pages/bonds/[guid] — FH.get(`${INFO}/api/v1/bond-infos`,{params:{guid}})"
       }
     },
     "/api/v1/bond-infos/simple": {
@@ -6358,7 +6359,7 @@
     },
     "/api/v1/securities-transfer/my-accounts": {
       "status": "implemented",
-      "note": "Exact accountKey-scoped GET contract + non-empty live bankCode/accountNo/accountId schema verified 2026-09-03. Read only through account transfer-accounts; account numbers are masked by default.",
+      "note": "Exact accountKey-scoped GET contract + non-empty live bankCode/accountNo/accountId schema verified 2026-09-03. Read only through account transfer-accounts; account numbers are masked by default and internal accountId is never emitted.",
       "method": "GET",
       "host": "wts-cert-api",
       "evidence": "verified",

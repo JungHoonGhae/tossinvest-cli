@@ -25,8 +25,6 @@ FILES = ["README.md", "README.en.md"]
 # Longest keys are matched first so e.g. "market ranking" never matches a
 # "community rankings" row. Date = CHANGELOG version date of first appearance.
 FEATURE_DATES = {
-    "account trading-settings": "2026-09-03",
-    "account transfer-accounts": "2026-09-03",
     "account overview": "2026-09-03",
     "market key-events": "2026-09-03",
     "banking status": "2026-09-03",
@@ -97,7 +95,15 @@ FEATURE_DATES = {
     "portfolio positions": "2026-04-23",
     "account list": "2026-03-21",
 }
-_KEYS = sorted(FEATURE_DATES, key=len, reverse=True)
+
+# Commands documented on main but not released yet. Move each entry into
+# FEATURE_DATES with the actual changelog release date when it ships.
+UNRELEASED_FEATURES = {
+    "account trading-settings",
+    "account transfer-accounts",
+}
+
+_KEYS = sorted(set(FEATURE_DATES) | UNRELEASED_FEATURES, key=len, reverse=True)
 
 # first table cell: | [**]['🆕 ']<name>[**] |
 cell_re = re.compile(r"^(\| )(\*\*)?(?:🆕 )?(.*?)(\*\*)?( \|)")
@@ -108,6 +114,8 @@ since_re = re.compile(r"\s*<!--since:\d{4}-\d{2}-\d{2}-->")
 def row_date(line):
     for k in _KEYS:
         if "`" + k in line:
+            if k in UNRELEASED_FEATURES:
+                return "unreleased"
             return FEATURE_DATES[k]
     return None
 
@@ -134,7 +142,7 @@ def main():
             if date is None:
                 lines[i] = ln
                 continue
-            is_new = datetime.date.fromisoformat(date) >= cutoff
+            is_new = date == "unreleased" or datetime.date.fromisoformat(date) >= cutoff
             if is_new:
                 new_count += 1
 
@@ -150,7 +158,7 @@ def main():
             changed_any = True
             if not check:
                 open(path, "w", encoding="utf-8").write(out)
-        print(f"{path}: {new_count} rows marked 🆕 (released >= {cutoff})"
+        print(f"{path}: {new_count} rows marked 🆕 (unreleased or released >= {cutoff})"
               + (" [WOULD CHANGE]" if check and out != src else ""))
 
     if check and changed_any:
