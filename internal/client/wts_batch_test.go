@@ -141,6 +141,34 @@ func TestGetEarningCallHome(t *testing.T) {
 	}
 }
 
+func TestGetEarningCallDetail(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/earning-call/events/42/info" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Write([]byte(`{"result":{"eventId":42,"marketCountry":"US","category":"EARNINGS_CALL","defaultSummarizationCategory":"SUMMARY","status":"ENDED","title":"Q2 call","liveAt":"2026-08-01T06:00:00+09:00","wentLiveAt":"2026-08-01T06:01:00+09:00","audioUrl":"https://example.invalid/audio","transcriptUrl":"https://example.invalid/transcript","slideFileUrl":"https://example.invalid/slides","companyCode":"DUMMY","companyName":"Dummy Inc.","companyLogoImageUrl":"https://example.invalid/logo","representativeStockSymbol":"DUM","representativeStockGuid":"guid-42","representativeStockCode":"USDUMMY","reportId":"report-42","reportItem":"Q2","mtsLandingPath":"/stocks/USDUMMY","consensusGapRate":1.25,"isGapRateVisible":true,"stockChangeRate":2.5}}`))
+	}))
+	defer srv.Close()
+
+	detail, err := testClientFor(srv).GetEarningCallDetail(context.Background(), 42)
+	if err != nil {
+		t.Fatalf("GetEarningCallDetail error: %v", err)
+	}
+	if detail.EventID != 42 || detail.CompanyName != "Dummy Inc." || detail.AudioURL == nil || *detail.AudioURL == "" {
+		t.Fatalf("unexpected detail: %+v", detail)
+	}
+	if detail.ConsensusGapRate == nil || *detail.ConsensusGapRate != 1.25 || detail.StockChangeRate == nil || *detail.StockChangeRate != 2.5 {
+		t.Fatalf("optional rates were not preserved: %+v", detail)
+	}
+}
+
+func TestGetEarningCallDetailRejectsInvalidID(t *testing.T) {
+	if _, err := New(Config{}).GetEarningCallDetail(context.Background(), 0); err == nil {
+		t.Fatal("expected invalid event id error")
+	}
+}
+
 func TestGetIndexDetail(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {

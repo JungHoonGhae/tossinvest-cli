@@ -82,6 +82,55 @@ func TestWriteMarketKeyEventsRendersBothSections(t *testing.T) {
 	}
 }
 
+func TestWriteEarningCallsExposesEventIDForDetailLookup(t *testing.T) {
+	t.Parallel()
+	calls := domain.EarningCalls{Events: []domain.EarningCall{{EventID: 42, CompanyName: "Dummy Inc.", Title: "Q2 call"}}}
+	for _, format := range []Format{FormatTable, FormatCSV} {
+		var out bytes.Buffer
+		if err := WriteEarningCalls(&out, format, calls); err != nil {
+			t.Fatalf("%s: %v", format, err)
+		}
+		if !strings.Contains(out.String(), "42") {
+			t.Fatalf("event id missing in %s: %s", format, out.String())
+		}
+	}
+}
+
+func TestWriteEarningCallDetailPreservesVerifiedFields(t *testing.T) {
+	t.Parallel()
+	gap := 1.25
+	audio := "https://example.invalid/audio"
+	detail := domain.EarningCallDetail{
+		EventID: 42, CompanyName: "Dummy Inc.", Title: "Q2 call", Status: "ENDED",
+		RepresentativeStockCode: "USDUMMY", ReportID: "report-42", AudioURL: &audio,
+		ConsensusGapRate: &gap,
+	}
+	for _, format := range []Format{FormatTable, FormatJSON, FormatCSV} {
+		var out bytes.Buffer
+		if err := WriteEarningCallDetail(&out, format, detail); err != nil {
+			t.Fatalf("%s: %v", format, err)
+		}
+		for _, want := range []string{"42", "Dummy Inc.", "USDUMMY", "report-42"} {
+			if !strings.Contains(out.String(), want) {
+				t.Fatalf("%q missing in %s: %s", want, format, out.String())
+			}
+		}
+	}
+}
+
+func TestWriteEarningCallDetailJSONPreservesNullPublicationState(t *testing.T) {
+	t.Parallel()
+	var out bytes.Buffer
+	if err := WriteEarningCallDetail(&out, FormatJSON, domain.EarningCallDetail{EventID: 42}); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`"audio_url": null`, `"transcript_url": null`, `"slide_file_url": null`, `"consensus_gap_rate": null`, `"stock_change_rate": null`} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatalf("nullable field %q missing: %s", want, out.String())
+		}
+	}
+}
+
 func TestWriteMarketKeyEventsShowsMissingFutureValues(t *testing.T) {
 	t.Parallel()
 	events := domain.MarketKeyEvents{Indicators: []domain.MarketKeyIndicator{{Title: "Upcoming", Unit: "%"}}}

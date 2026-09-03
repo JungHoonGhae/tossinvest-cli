@@ -634,15 +634,16 @@ func WriteEarningCalls(w io.Writer, format Format, ec domain.EarningCalls) error
 	case FormatCSV:
 		var csvRows [][]string
 		for _, e := range ec.Events {
-			csvRows = append(csvRows, []string{e.LiveAt, e.CompanyName, e.CompanyCode, e.Title, e.Status, e.Category})
+			csvRows = append(csvRows, []string{strconv.FormatInt(e.EventID, 10), e.LiveAt, e.CompanyName, e.CompanyCode, e.Title, e.Status, e.Category})
 		}
-		return writeCSV(w, []string{"live_at", "company_name", "company_code", "title", "status", "category"}, csvRows)
+		return writeCSV(w, []string{"event_id", "live_at", "company_name", "company_code", "title", "status", "category"}, csvRows)
 	case FormatTable:
 		if len(ec.Events) == 0 {
 			_, err := fmt.Fprint(w, i18n.T("output.earnings.empty"))
 			return err
 		}
 		headers := []string{
+			i18n.T("output.earnings.header.eventID"),
 			i18n.T("output.earnings.header.dateTime"),
 			i18n.T("output.earnings.header.company"),
 			i18n.T("output.earnings.header.category"),
@@ -653,10 +654,10 @@ func WriteEarningCalls(w io.Writer, format Format, ec domain.EarningCalls) error
 			if len(when) >= 16 {
 				when = when[:16]
 			}
-			rows = append(rows, []string{when, e.CompanyName, e.Category})
+			rows = append(rows, []string{strconv.FormatInt(e.EventID, 10), when, e.CompanyName, e.Category})
 		}
 
-		return renderTable(w, headers, rows, AlignLeft, AlignLeft, AlignLeft)
+		return renderTable(w, headers, rows, AlignRight, AlignLeft, AlignLeft, AlignLeft)
 	default:
 		return fmt.Errorf("unsupported output format: %s", format)
 	}

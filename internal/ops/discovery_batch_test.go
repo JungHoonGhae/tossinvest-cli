@@ -135,6 +135,42 @@ func TestAISignalDetailOperationIsCallableAndMonitored(t *testing.T) {
 	}
 }
 
+func TestEarningCallDetailOperationIsCallableAndMonitored(t *testing.T) {
+	t.Parallel()
+	deps := discoveryWTSDeps(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/earning-call/events/228692/info" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"result":{"eventId":228692,"status":"UPCOMING","title":"Example call","companyCode":"NYS001FR9-E0","companyName":"Example","liveAt":"2026-09-10T20:00:00+09:00","audioUrl":null,"transcriptUrl":null,"slideFileUrl":null}}`))
+	}))
+	catalog := NewCatalog()
+
+	op, ok := catalog.Get("earning_call_detail")
+	if !ok {
+		t.Fatal("earning_call_detail operation missing")
+	}
+	if op.Backend != "wts" || op.Domain != "securities" || op.Write || op.Probe == nil {
+		t.Fatalf("operation metadata = %#v", op)
+	}
+	if len(op.Params) != 1 || op.Params[0].Name != "event_id" || !op.Params[0].Required {
+		t.Fatalf("event_id parameter = %#v", op.Params)
+	}
+	result, err := catalog.Call(context.Background(), deps, "earning_call_detail", map[string]any{
+		"event_id": 228692,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := result.(domain.EarningCallDetail)
+	if got.EventID != 228692 || got.Title != "Example call" || got.AudioURL != nil {
+		t.Fatalf("result = %#v", got)
+	}
+	if err := op.Probe.Check(http.StatusOK, []byte(`{"result":{"eventId":228692}}`)); err != nil {
+		t.Fatalf("probe rejected valid detail payload: %v", err)
+	}
+}
+
 func TestBankingStatusOperationMasksIdentityUnlessFull(t *testing.T) {
 	t.Parallel()
 	deps := discoveryWTSDeps(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

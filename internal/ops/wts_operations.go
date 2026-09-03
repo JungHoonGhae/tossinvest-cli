@@ -266,6 +266,21 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "earning_call_detail", Method: "GET", Path: "wts:market/earnings/{event_id}", Backend: "wts", Domain: "securities",
+			Category: "market", Summary: "Earnings-call report metadata and published audio, transcript, and slide links. WTS-only.",
+			Params: []Param{{Name: "event_id", Type: "integer", Required: true, Desc: "event id returned by earning_calls"}},
+			Probe: &ProbeSpec{Name: "earning-call-detail", Method: "GET",
+				URL:   probeCert + "/api/v1/earning-call/events/228692/info",
+				Check: statusAndPath("result.eventId", "number")},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				eventID, err := argInt(args, "event_id")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetEarningCallDetail(ctx, int64(eventID))
+			},
+		},
+		{
 			ID: "news_briefing", Method: "GET", Path: "wts:market/briefing", Backend: "wts",
 			Category: "market", Summary: "Personalized AI briefing enriched with the related holding/watchlist asset, return, signal direction, reasoning title, and source headlines. WTS-only.",
 			Probe: &ProbeSpec{Name: "news-briefing", Method: "GET",

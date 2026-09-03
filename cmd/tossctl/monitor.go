@@ -13,6 +13,7 @@ import (
 )
 
 func newMonitorCmd(opts *rootOptions) *cobra.Command {
+	var quiet bool
 	cmd := &cobra.Command{
 		Use:   "monitor",
 		Short: i18n.T("monitor.short"),
@@ -33,7 +34,7 @@ func newMonitorCmd(opts *rootOptions) *cobra.Command {
 			}
 
 			results := monitor.Run(cmd.Context(), app.session)
-			printResults(cmd.OutOrStdout(), cmd.OutOrStderr(), results, monitorQuiet)
+			printResults(cmd.OutOrStdout(), cmd.OutOrStderr(), results, quiet)
 			for _, r := range results {
 				if !r.OK {
 					os.Exit(1)
@@ -42,13 +43,11 @@ func newMonitorCmd(opts *rootOptions) *cobra.Command {
 			return nil
 		},
 	}
-	apiCmd.Flags().BoolVar(&monitorQuiet, "quiet", false, "Only print failed probes")
+	apiCmd.Flags().BoolVar(&quiet, "quiet", false, "Only print failed probes")
 
 	cmd.AddCommand(apiCmd)
 	return cmd
 }
-
-var monitorQuiet bool
 
 func printResults(stdout, stderr io.Writer, results []monitor.Result, quiet bool) {
 	pass, fail := 0, 0

@@ -1006,6 +1006,56 @@ func (c *Client) GetEarningCalls(ctx context.Context) (domain.EarningCalls, erro
 	return out, nil
 }
 
+// GetEarningCallDetail returns the full metadata and published media links for
+// one event from the earnings-call calendar. The exact path-only contract was
+// verified against the current WTS bundle and a read-only live response.
+func (c *Client) GetEarningCallDetail(ctx context.Context, eventID int64) (domain.EarningCallDetail, error) {
+	if eventID <= 0 {
+		return domain.EarningCallDetail{}, fmt.Errorf("event id must be a positive integer")
+	}
+	var envelope quoteEnvelope[struct {
+		EventID                      int64    `json:"eventId"`
+		MarketCountry                string   `json:"marketCountry"`
+		Category                     string   `json:"category"`
+		DefaultSummarizationCategory string   `json:"defaultSummarizationCategory"`
+		Status                       string   `json:"status"`
+		Title                        string   `json:"title"`
+		LiveAt                       string   `json:"liveAt"`
+		WentLiveAt                   *string  `json:"wentLiveAt"`
+		AudioURL                     *string  `json:"audioUrl"`
+		TranscriptURL                *string  `json:"transcriptUrl"`
+		SlideFileURL                 *string  `json:"slideFileUrl"`
+		CompanyCode                  string   `json:"companyCode"`
+		CompanyName                  string   `json:"companyName"`
+		CompanyLogoImageURL          string   `json:"companyLogoImageUrl"`
+		RepresentativeStockSymbol    string   `json:"representativeStockSymbol"`
+		RepresentativeStockGUID      string   `json:"representativeStockGuid"`
+		RepresentativeStockCode      string   `json:"representativeStockCode"`
+		ReportID                     string   `json:"reportId"`
+		ReportItem                   string   `json:"reportItem"`
+		MTSLandingPath               string   `json:"mtsLandingPath"`
+		ConsensusGapRate             *float64 `json:"consensusGapRate"`
+		IsGapRateVisible             bool     `json:"isGapRateVisible"`
+		StockChangeRate              *float64 `json:"stockChangeRate"`
+	}]
+	endpoint := fmt.Sprintf("%s/api/v1/earning-call/events/%d/info", c.certBaseURL, eventID)
+	if err := c.getJSON(ctx, endpoint, &envelope); err != nil {
+		return domain.EarningCallDetail{}, err
+	}
+	raw := envelope.Result
+	return domain.EarningCallDetail{
+		EventID: raw.EventID, MarketCountry: raw.MarketCountry, Category: raw.Category,
+		DefaultSummarizationCategory: raw.DefaultSummarizationCategory, Status: raw.Status,
+		Title: raw.Title, LiveAt: raw.LiveAt, WentLiveAt: raw.WentLiveAt,
+		AudioURL: raw.AudioURL, TranscriptURL: raw.TranscriptURL, SlideFileURL: raw.SlideFileURL,
+		CompanyCode: raw.CompanyCode, CompanyName: raw.CompanyName, CompanyLogoImageURL: raw.CompanyLogoImageURL,
+		RepresentativeStockSymbol: raw.RepresentativeStockSymbol, RepresentativeStockGUID: raw.RepresentativeStockGUID,
+		RepresentativeStockCode: raw.RepresentativeStockCode, ReportID: raw.ReportID, ReportItem: raw.ReportItem,
+		MTSLandingPath: raw.MTSLandingPath, ConsensusGapRate: raw.ConsensusGapRate,
+		IsGapRateVisible: raw.IsGapRateVisible, StockChangeRate: raw.StockChangeRate, FetchedAt: time.Now().UTC(),
+	}, nil
+}
+
 // haltMarketNames maps Toss's market code to a readable name. An unmapped code
 // keeps its raw form rather than becoming blank.
 var haltMarketNames = map[string]string{"KSP": "KOSPI", "KSQ": "KOSDAQ"}

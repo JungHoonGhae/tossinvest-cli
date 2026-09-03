@@ -130,6 +130,7 @@ IMPLEMENTED = [
     r"^/api/v1/dashboard/wts/overview/rankings/by-investors$",  # market investors
     r"^/api/v1/earning-call/upcoming$",                          # market earnings
     r"^/api/v1/earning-call/home$",                              # market earnings --major
+    r"^/api/v1/earning-call/events/[^/]+/info$",                 # market earnings <event-id>
     r"^/api/v1/community/top-rankings(?:/[^/]+)?$",              # community rankings
     r"^/api/v1/dashboard/wts/overview/ai-signals/personalized$", # market briefing
     r"^/api/v1/dashboard/wts/overview/ai-signals/latest$",       # market briefing --scope kr|us
@@ -441,6 +442,18 @@ def classify(path, overrides, known_paths=None):
     return "candidate", ""
 
 
+def recommendation(path, status, note, override):
+    """Return candidate priority without discarding audited triage context."""
+    if status != "candidate":
+        return "", note
+    if override and override.get("priority") == "deferred":
+        return "deferred", note
+    for pattern, default_note in RECOMMENDED:
+        if re.search(pattern, path):
+            return "next", note or default_note
+    return "", note
+
+
 def _run_go_inventory(repo_root, mode):
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     command = [
@@ -491,6 +504,12 @@ def _probe_inventory_path(path):
     path = re.sub(
         r"(^/api/v2/dashboard/wts/overview/tics/)[0-9]+(?=/)",
         r"\1{id}",
+        path,
+        count=1,
+    )
+    path = re.sub(
+        r"(^/api/v1/earning-call/events/)(?:[0-9]+|\{id\})(?=/info$)",
+        r"\1{eventId}",
         path,
         count=1,
     )
@@ -606,18 +625,19 @@ def main():
     endpoints, counts = {}, {"implemented": 0, "candidate": 0, "excluded": 0}
     next_count = 0
     for p in sorted(paths):
+        override = find_override(p, overrides, paths)
         status, note = classify(p, overrides, paths)
+        priority, note = recommendation(p, status, note, override)
         entry = {"status": status}
         if note:
             entry["note"] = note
         # priority="next": curated high-value candidates worth adding next.
-        if status == "candidate":
-            for pat, why in RECOMMENDED:
-                if re.search(pat, p):
-                    entry["priority"] = "next"
-                    entry["note"] = why
-                    next_count += 1
-                    break
+        # An audited blocker is retained as deferred until its stated trigger
+        # changes; regeneration must not put it back into the active queue.
+        if priority:
+            entry["priority"] = priority
+        if priority == "next":
+            next_count += 1
         # first_seen lifecycle: preserve prior date so churn is visible.
         # 번들 삼중에서 온 호스트·메서드. 프로브가 호스트를 추측하지 않도록 남긴다.
         if m := meta.get(p):
@@ -625,7 +645,7 @@ def main():
         # 일부 쓰기 계약은 번들에서 메서드가 동적으로 조립돼 추출기가 놓친다.
         # 별도로 검증해 override 에 남긴 사실은 빈칸만 보완하고, 새 번들 관측값은
         # 절대 덮어쓰지 않는다.
-        apply_override_metadata(entry, find_override(p, overrides, paths))
+        apply_override_metadata(entry, override)
         # first_seen lifecycle: 잘린 옛 키(`/api/v1/profit`)에서 정식 키
         # (`/api/v1/profit/{profitType}/{key}`)로 옮겨온 것은 이력을 이어받는다.
         legacy = _legacy_key(p)

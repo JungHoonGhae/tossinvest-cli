@@ -231,14 +231,33 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 
 	var earningsMajor bool
 	earningsCmd := &cobra.Command{
-		Use:         "earnings",
+		Use:         "earnings [event-id]",
 		Short:       i18n.T("market.earnings.short"),
 		Long:        i18n.T("market.earnings.long"),
-		Annotations: map[string]string{"source": "wts"},
-		RunE: func(cmd *cobra.Command, _ []string) error {
+		Args:        cobra.MaximumNArgs(1),
+		Annotations: map[string]string{"source": "wts", "domain": "securities"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 1 && earningsMajor {
+				return fmt.Errorf("--major cannot be used with an event id")
+			}
+			var eventID int64
+			if len(args) == 1 {
+				var parseErr error
+				eventID, parseErr = strconv.ParseInt(args[0], 10, 64)
+				if parseErr != nil || eventID <= 0 {
+					return fmt.Errorf("invalid event id %q: expected a positive integer", args[0])
+				}
+			}
 			app, err := newAppContext(opts)
 			if err != nil {
 				return err
+			}
+			if len(args) == 1 {
+				detail, detailErr := app.client.GetEarningCallDetail(cmd.Context(), eventID)
+				if detailErr != nil {
+					return userFacingCommandError(detailErr)
+				}
+				return output.WriteEarningCallDetail(cmd.OutOrStdout(), app.format, detail)
 			}
 			get := app.client.GetEarningCalls
 			if earningsMajor {

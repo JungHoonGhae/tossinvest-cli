@@ -4,10 +4,10 @@
   "chunk_count": 77,
   "total": 1113,
   "counts": {
-    "implemented": 146,
-    "candidate": 311,
+    "implemented": 147,
+    "candidate": 310,
     "excluded": 656,
-    "candidate_next": 17,
+    "candidate_next": 0,
     "meaningful": 457
   },
   "overrides": {
@@ -66,6 +66,13 @@
       "host": "wts-cert-api",
       "evidence": "verified",
       "note": "WTS bundle contract + read-only live earnings and economic-indicator schema verified 2026-09-02."
+    },
+    "/api/v1/earning-call/events/{eventId}/info": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "Exact path-only callsite and read-only live detail schema verified 2026-09-03. Exposed by market earnings <event-id> and earning_call_detail."
     },
     "/api/v1/user-alimies": {
       "status": "implemented",
@@ -135,11 +142,84 @@
     },
     "/api/v1/earning-call/major-companies": {
       "status": "candidate",
-      "note": "웹 화면 없음 — /calendar 캡처에서 미관측. market earnings 는 earning-call/upcoming·home 을 쓴다 (2026-08-04)"
+      "priority": "deferred",
+      "note": "현재 /calendar 캡처에서 미관측. 읽기 전용 라이브 호출은 필수 query parameter 누락 400이며 현재 77개 chunk에서 소비 호출부를 찾지 못했다. market earnings 는 upcoming·home을 쓴다 (2026-09-03 재검증)."
     },
     "/api/v1/earning-call/user-based": {
       "status": "candidate",
-      "note": "웹 화면 없음 — /calendar 캡처에서 미관측 (2026-08-04)"
+      "priority": "deferred",
+      "note": "현재 /calendar 캡처에서 미관측. 읽기 전용 라이브 호출은 필수 query parameter 누락 400이며 현재 77개 chunk에서 소비 호출부를 찾지 못했다 (2026-09-03 재검증)."
+    },
+    "/api/v1/r-chart": {
+      "status": "candidate",
+      "priority": "deferred",
+      "method": "GET",
+      "host": "wts-info-api",
+      "evidence": "partial",
+      "note": "현재 bundle에 URL 조립 함수 정의만 있고 그 export를 소비하는 호출부가 없다. 실제 종목 화면은 일별 c-chart와 실시간 ticks를 사용한다. range/step enum을 추측하지 않고 미사용 계약으로 보류 (2026-09-03)."
+    },
+    "/api/v1/r-chart/fx/EXCHANGE_RATE": {
+      "status": "candidate",
+      "priority": "deferred",
+      "method": "GET",
+      "host": "wts-info-api",
+      "evidence": "partial",
+      "note": "현재 bundle에 함수 정의만 있고 소비 호출부가 없다. 기존 market fx와 중복 가능성이 있으며 range/step enum과 응답 계약이 미검증이라 보류 (2026-09-03)."
+    },
+    "/api/v1/dashboard/wts/overview/tics/{id}/comparison-chart": {
+      "status": "candidate",
+      "priority": "deferred",
+      "note": "GET descriptor는 확인했지만 현재 bundle에 소비 호출부가 없고 인자 없는 읽기 전용 호출은 400이다. range/query 계약을 추측하지 않고 보류 (2026-09-03)."
+    },
+    "/api/v2/dashboard/wts/overview/tics/ranking": {
+      "status": "candidate",
+      "priority": "deferred",
+      "note": "POST descriptor는 확인했지만 현재 bundle에 소비 호출부와 body 계약이 없다. 구현된 /api/v1/tics/rankings와 중복 여부도 미확정이라 보류 (2026-09-03)."
+    },
+    "/api/v1/dividends/accounts/{key}": {
+      "status": "candidate",
+      "priority": "deferred",
+      "note": "현재 bundle에 소비 호출부가 없고 key 의미·응답 계약이 미확인이다. portfolio dividends의 검증된 annual/history가 더 풍부하므로 중복 추측 구현을 보류 (2026-09-03)."
+    },
+    "/api/v1/lending/revenue/account": {
+      "status": "candidate",
+      "priority": "deferred",
+      "note": "읽기 전용 라이브 응답은 200이지만 items가 비어 있어 payment schedule item schema를 확인할 수 없다. 트리거 = 대차 지급 내역 발생 (2026-09-03)."
+    },
+    "/api/v1/lending/revenue/account/payment/{paymentScheduleId}/transaction-detail": {
+      "status": "candidate",
+      "priority": "deferred",
+      "note": "paymentScheduleId와 item schema가 현재 계좌의 빈 lending history 때문에 미확인이다. 트리거 = 대차 지급 내역 발생 (2026-09-03)."
+    },
+    "/api/v1/lending/revenue/account/summary/{paymentScheduleId}/unpaid": {
+      "status": "candidate",
+      "priority": "deferred",
+      "note": "paymentScheduleId가 현재 계좌에서 관측되지 않았고 대차 약정도 없어 응답 계약을 검증할 수 없다. 트리거 = 대차 약정·지급 내역 발생 (2026-09-03)."
+    },
+    "/api/v1/lending/revenue/account/{paymentScheduleId}/unpaid": {
+      "status": "candidate",
+      "priority": "deferred",
+      "note": "paymentScheduleId가 현재 계좌에서 관측되지 않았고 대차 약정도 없어 응답 계약을 검증할 수 없다. 트리거 = 대차 약정·지급 내역 발생 (2026-09-03)."
+    },
+    "/api/v2/lending/revenue/account/payment": {
+      "status": "candidate",
+      "priority": "deferred",
+      "note": "번들 선언 host에서 읽기 전용 호출이 404이고 현재 소비 호출부도 없다. 활성 계약 근거가 생길 때까지 보류 (2026-09-03)."
+    },
+    "/api/v2/lending/revenue/account/payment/{paymentDate}/stock": {
+      "status": "candidate",
+      "priority": "deferred",
+      "note": "상위 v2 payment 계약이 404이고 유효 paymentDate도 현재 계좌에서 관측되지 않았다. 트리거 = 활성 호출부 또는 대차 지급 내역 발생 (2026-09-03)."
+    },
+    "/api/v2/lending/revenue/account/payment/{paymentDate}/summary": {
+      "status": "candidate",
+      "priority": "deferred",
+      "note": "상위 v2 payment 계약이 404이고 유효 paymentDate도 현재 계좌에서 관측되지 않았다. 트리거 = 활성 호출부 또는 대차 지급 내역 발생 (2026-09-03)."
+    },
+    "/api/v2/lending/revenue/account/summary": {
+      "status": "candidate",
+      "priority": "deferred",
+      "note": "번들 선언 host에서 읽기 전용 호출이 404이고 현재 소비 호출부도 없다. 활성 계약 근거가 생길 때까지 보류 (2026-09-03)."
     },
     "/api/v1/exchange/calculate/for-buy-amount": {
       "status": "candidate",
@@ -155,7 +235,8 @@
     },
     "/api/v1/lending/revenue/account/summary": {
       "status": "candidate",
-      "note": "400 lending.agreement-not-found — 대차 약정이 없는 계좌. 트리거 = 대차 약정 체결 (2026-08-04)"
+      "priority": "deferred",
+      "note": "읽기 전용 라이브 호출은 400 lending.agreement-not-found. 트리거 = 대차 약정 체결 (2026-09-03 재검증)."
     },
     "/api/v1/mds/info/trading-trend": {
       "status": "candidate",
@@ -2693,8 +2774,8 @@
     },
     "/api/v1/dashboard/wts/overview/tics/{id}/comparison-chart": {
       "status": "candidate",
-      "priority": "next",
-      "note": "업종(TICS) 개요·랭킹",
+      "note": "GET descriptor는 확인했지만 현재 bundle에 소비 호출부가 없고 인자 없는 읽기 전용 호출은 400이다. range/query 계약을 추측하지 않고 보류 (2026-09-03).",
+      "priority": "deferred",
       "method": "GET",
       "host": "wts-info-api",
       "first_seen": "2026-06-29",
@@ -2752,8 +2833,8 @@
     },
     "/api/v1/dividends/accounts/{key}": {
       "status": "candidate",
-      "priority": "next",
-      "note": "배당 내역/캘린더",
+      "note": "현재 bundle에 소비 호출부가 없고 key 의미·응답 계약이 미확인이다. portfolio dividends의 검증된 annual/history가 더 풍부하므로 중복 추측 구현을 보류 (2026-09-03).",
+      "priority": "deferred",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -2774,17 +2855,17 @@
       }
     },
     "/api/v1/earning-call/events/{eventId}/info": {
-      "status": "candidate",
-      "priority": "next",
-      "note": "실적발표(어닝콜) 일정",
+      "status": "implemented",
+      "note": "Exact path-only callsite and read-only live detail schema verified 2026-09-03. Exposed by market earnings <event-id> and earning_call_detail.",
       "method": "GET",
       "host": "wts-cert-api",
+      "evidence": "verified",
       "first_seen": "2026-06-19",
       "probe": {
-        "at": "2026-08-03",
+        "at": "2026-09-03",
         "host": "wts-cert-api",
-        "status": 404,
-        "verdict": "not-found"
+        "status": 200,
+        "verdict": "verified"
       },
       "observed": {
         "method": "GET",
@@ -2802,8 +2883,8 @@
     },
     "/api/v1/earning-call/major-companies": {
       "status": "candidate",
-      "note": "실적발표(어닝콜) 일정",
-      "priority": "next",
+      "note": "현재 /calendar 캡처에서 미관측. 읽기 전용 라이브 호출은 필수 query parameter 누락 400이며 현재 77개 chunk에서 소비 호출부를 찾지 못했다. market earnings 는 upcoming·home을 쓴다 (2026-09-03 재검증).",
+      "priority": "deferred",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -2823,8 +2904,8 @@
     },
     "/api/v1/earning-call/user-based": {
       "status": "candidate",
-      "note": "실적발표(어닝콜) 일정",
-      "priority": "next",
+      "note": "현재 /calendar 캡처에서 미관측. 읽기 전용 라이브 호출은 필수 query parameter 누락 400이며 현재 77개 chunk에서 소비 호출부를 찾지 못했다 (2026-09-03 재검증).",
+      "priority": "deferred",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -3279,8 +3360,8 @@
     },
     "/api/v1/lending/revenue/account": {
       "status": "candidate",
-      "priority": "next",
-      "note": "대주(주식대여) 수익",
+      "note": "읽기 전용 라이브 응답은 200이지만 items가 비어 있어 payment schedule item schema를 확인할 수 없다. 트리거 = 대차 지급 내역 발생 (2026-09-03).",
+      "priority": "deferred",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -3300,8 +3381,8 @@
     },
     "/api/v1/lending/revenue/account/payment/{paymentScheduleId}/transaction-detail": {
       "status": "candidate",
-      "priority": "next",
-      "note": "대주(주식대여) 수익",
+      "note": "paymentScheduleId와 item schema가 현재 계좌의 빈 lending history 때문에 미확인이다. 트리거 = 대차 지급 내역 발생 (2026-09-03).",
+      "priority": "deferred",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -3314,8 +3395,8 @@
     },
     "/api/v1/lending/revenue/account/summary": {
       "status": "candidate",
-      "note": "대주(주식대여) 수익",
-      "priority": "next",
+      "note": "읽기 전용 라이브 호출은 400 lending.agreement-not-found. 트리거 = 대차 약정 체결 (2026-09-03 재검증).",
+      "priority": "deferred",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -3329,8 +3410,8 @@
     },
     "/api/v1/lending/revenue/account/summary/{paymentScheduleId}/unpaid": {
       "status": "candidate",
-      "priority": "next",
-      "note": "대주(주식대여) 수익",
+      "note": "paymentScheduleId가 현재 계좌에서 관측되지 않았고 대차 약정도 없어 응답 계약을 검증할 수 없다. 트리거 = 대차 약정·지급 내역 발생 (2026-09-03).",
+      "priority": "deferred",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-08-24"
@@ -3350,8 +3431,8 @@
     },
     "/api/v1/lending/revenue/account/{paymentScheduleId}/unpaid": {
       "status": "candidate",
-      "priority": "next",
-      "note": "대주(주식대여) 수익",
+      "note": "paymentScheduleId가 현재 계좌에서 관측되지 않았고 대차 약정도 없어 응답 계약을 검증할 수 없다. 트리거 = 대차 약정·지급 내역 발생 (2026-09-03).",
+      "priority": "deferred",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-08-24"
@@ -5579,27 +5660,21 @@
     },
     "/api/v1/r-chart": {
       "status": "candidate",
-      "priority": "next",
-      "note": "실시간 차트",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-cert-api",
-        "status": 404,
-        "verdict": "not-found"
-      }
+      "note": "현재 bundle에 URL 조립 함수 정의만 있고 그 export를 소비하는 호출부가 없다. 실제 종목 화면은 일별 c-chart와 실시간 ticks를 사용한다. range/step enum을 추측하지 않고 미사용 계약으로 보류 (2026-09-03).",
+      "priority": "deferred",
+      "method": "GET",
+      "host": "wts-info-api",
+      "evidence": "partial",
+      "first_seen": "2026-06-19"
     },
     "/api/v1/r-chart/fx/EXCHANGE_RATE": {
       "status": "candidate",
-      "priority": "next",
-      "note": "실시간 차트",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-cert-api",
-        "status": 404,
-        "verdict": "not-found"
-      }
+      "note": "현재 bundle에 함수 정의만 있고 소비 호출부가 없다. 기존 market fx와 중복 가능성이 있으며 range/step enum과 응답 계약이 미검증이라 보류 (2026-09-03).",
+      "priority": "deferred",
+      "method": "GET",
+      "host": "wts-info-api",
+      "evidence": "partial",
+      "first_seen": "2026-06-19"
     },
     "/api/v1/rankings/realtime/stock": {
       "status": "implemented",
@@ -8150,8 +8225,8 @@
     },
     "/api/v2/dashboard/wts/overview/tics/ranking": {
       "status": "candidate",
-      "priority": "next",
-      "note": "업종(TICS) 개요·랭킹",
+      "note": "POST descriptor는 확인했지만 현재 bundle에 소비 호출부와 body 계약이 없다. 구현된 /api/v1/tics/rankings와 중복 여부도 미확정이라 보류 (2026-09-03).",
+      "priority": "deferred",
       "method": "POST",
       "host": "wts-info-api",
       "first_seen": "2026-06-29",
@@ -8320,8 +8395,8 @@
     },
     "/api/v2/lending/revenue/account/payment": {
       "status": "candidate",
-      "priority": "next",
-      "note": "대주(주식대여) 수익",
+      "note": "번들 선언 host에서 읽기 전용 호출이 404이고 현재 소비 호출부도 없다. 활성 계약 근거가 생길 때까지 보류 (2026-09-03).",
+      "priority": "deferred",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-29",
@@ -8334,24 +8409,24 @@
     },
     "/api/v2/lending/revenue/account/payment/{paymentDate}/stock": {
       "status": "candidate",
-      "priority": "next",
-      "note": "대주(주식대여) 수익",
+      "note": "상위 v2 payment 계약이 404이고 유효 paymentDate도 현재 계좌에서 관측되지 않았다. 트리거 = 활성 호출부 또는 대차 지급 내역 발생 (2026-09-03).",
+      "priority": "deferred",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-08-24"
     },
     "/api/v2/lending/revenue/account/payment/{paymentDate}/summary": {
       "status": "candidate",
-      "priority": "next",
-      "note": "대주(주식대여) 수익",
+      "note": "상위 v2 payment 계약이 404이고 유효 paymentDate도 현재 계좌에서 관측되지 않았다. 트리거 = 활성 호출부 또는 대차 지급 내역 발생 (2026-09-03).",
+      "priority": "deferred",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-08-24"
     },
     "/api/v2/lending/revenue/account/summary": {
       "status": "candidate",
-      "priority": "next",
-      "note": "대주(주식대여) 수익",
+      "note": "번들 선언 host에서 읽기 전용 호출이 404이고 현재 소비 호출부도 없다. 활성 계약 근거가 생길 때까지 보류 (2026-09-03).",
+      "priority": "deferred",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-29",

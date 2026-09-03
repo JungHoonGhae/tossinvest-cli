@@ -89,3 +89,32 @@ func TestMarketAISignalDetailRejectsUnobservedTypeBeforeAuthentication(t *testin
 		t.Fatalf("error = %v", err)
 	}
 }
+
+func TestMarketEarningsDetailCommandContract(t *testing.T) {
+	t.Parallel()
+	cmd, _, err := newRootCmd().Find([]string{"market", "earnings"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cmd.Use != "earnings [event-id]" {
+		t.Fatalf("use = %q", cmd.Use)
+	}
+	if err := cmd.Args(cmd, []string{"42"}); err != nil {
+		t.Fatalf("one event id rejected: %v", err)
+	}
+	if err := cmd.Args(cmd, []string{"42", "43"}); err == nil {
+		t.Fatal("two event ids must be rejected")
+	}
+	if cmd.Annotations["source"] != "wts" || cmd.Annotations["domain"] != "securities" || cmd.Annotations["mutating"] != "" {
+		t.Fatalf("annotations = %#v", cmd.Annotations)
+	}
+}
+
+func TestMarketEarningsRejectsInvalidDetailIDBeforeAuthentication(t *testing.T) {
+	cmd := newMarketCmd(&rootOptions{})
+	cmd.SetArgs([]string{"earnings", "not-an-id"})
+	err := cmd.Execute()
+	if err == nil || !strings.Contains(err.Error(), "positive integer") {
+		t.Fatalf("error = %v", err)
+	}
+}

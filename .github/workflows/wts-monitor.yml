@@ -50,6 +50,7 @@ jobs:
             echo "audit_stale=$(jq -r '.audit_stale' /tmp/android_diff.json)"
             echo "candidate=$(jq -r '.current_candidate' /tmp/android_diff.json)"
             echo "audited=$(jq -r '.audited_version' /tmp/android_diff.json)"
+            echo "metadata_source=$(jq -r '.metadata_source' /tmp/android_diff.json)"
           } >> "$GITHUB_OUTPUT"
 
       - name: Compose embed
@@ -63,7 +64,7 @@ jobs:
           trunc() { head -c 1400; }
           CATALOG_URL="https://github.com/${GITHUB_REPOSITORY}/blob/main/docs/reverse-engineering/wts-endpoints.json"
           WTS_BUILD="**WTS build**"$'\n'"${{ steps.scan.outputs.previous_build }} → ${{ steps.scan.outputs.current_build }}"
-          ANDROID="**일반 토스 Android 앱**"$'\n'"candidate ${{ steps.android.outputs.candidate }} · audited ${{ steps.android.outputs.audited }} · stale=${{ steps.android.outputs.audit_stale }}"
+          ANDROID="**일반 토스 Android 앱**"$'\n'"candidate ${{ steps.android.outputs.candidate }} · audited ${{ steps.android.outputs.audited }} · stale=${{ steps.android.outputs.audit_stale }} · source=${{ steps.android.outputs.metadata_source }}"
 
           # Components V2 (flags 32768): 웹/API 또는 앱 감사 변동 주황 Container.
           jq -n \
