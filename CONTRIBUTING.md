@@ -27,18 +27,24 @@ python3 -m pip install -e .
   - `fix(auth): 브라우저 차단 해결`
   - `feat(portfolio): CSV 내보내기 추가`
   - `docs: README 업데이트`
+- PR 제목도 같은 형식을 사용합니다. GitHub가 `feat`·`fix`·`docs`·의존성·기타 변경을
+  릴리즈 노트 라벨로 자동 분류합니다.
 
 ## PR 가이드
 
 1. `make test`와 `make lint`가 통과하는지 확인합니다.
 2. PR 템플릿의 체크리스트를 채워주세요.
 3. 거래(mutation) 관련 변경은 안전장치(config gate, confirm token 등)가 유지되는지 반드시 확인합니다.
+4. `main`은 ruleset으로 보호됩니다. 사람과 정기 자동화 모두 PR을 거쳐야 하고 필수
+   `test-and-build` 체크가 최신 `main` 기준으로 통과해야 합니다. 정기 카탈로그·통계 갱신은
+   `automation/*` 브랜치에 PR을 만든 뒤 CI가 통과해야 자동 병합됩니다.
 
 ### 기여자 크레딧과 멘션
 
 - 릴리즈에 반영된 제보·패치는 `CHANGELOG.md`의 `### 기여자` 아래에 기록합니다.
 - GitHub 알림이 가도록 사용자명은 반드시 일반 텍스트 `@handle`로 쓰고, 백틱이나 링크 안에 넣지 않습니다.
-- 같은 문장을 GitHub Release 본문에도 복사하고, 관련 PR 링크를 함께 남깁니다.
+- CHANGELOG의 기여자 문장은 GitHub Release 본문에 자동으로 포함됩니다. GitHub가 같은
+  릴리즈 범위의 병합 PR과 신규 기여자 목록도 별도로 생성합니다.
 - `python3 -m unittest discover -s tools/tests -p 'test_*.py'`가 코드 스팬 안의 멘션을 자동으로 잡습니다.
 
 ## 프로젝트 구조

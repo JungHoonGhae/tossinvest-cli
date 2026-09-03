@@ -10,7 +10,9 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: write
   contents: write
+  pull-requests: write
 
 concurrency:
   group: wts-monitor
@@ -20,12 +22,13 @@ jobs:
   monitor:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
 
       - name: Extract + classify WTS endpoints
         id: scan
         run: |
-          export WTS_DATE="$(date -u +%F)"
+          WTS_DATE="$(date -u +%F)"
+          export WTS_DATE
           export WTS_DIFF_OUT=/tmp/wts_diff.json
           python3 tools/wts_endpoints.py | tee /tmp/wts_summary.txt
           {
@@ -37,15 +40,17 @@ jobs:
             echo "current_build=$(jq -r '.current_build_id' /tmp/wts_diff.json)"
             echo "previous_builds=$(jq -c '.previous_build_ids' /tmp/wts_diff.json)"
             echo "current_builds=$(jq -c '.current_build_ids' /tmp/wts_diff.json)"
+            echo "rollout_changed=$(jq -r '.rolling_features_changed' /tmp/wts_diff.json)"
+            echo "rollout_features=$(jq -c '.rolling_feature_changes' /tmp/wts_diff.json)"
           } >> "$GITHUB_OUTPUT"
 
       - name: Check general Toss Android app version
         id: android
         env:
-          ANDROID_DATE: ${{ github.run_started_at }}
           ANDROID_DIFF_OUT: /tmp/android_diff.json
         run: |
-          export ANDROID_DATE="${ANDROID_DATE%%T*}"
+          ANDROID_DATE="$(date -u +%F)"
+          export ANDROID_DATE
           python3 tools/android_app_monitor.py
           {
             echo "candidate_changed=$(jq -r '.candidate_changed' /tmp/android_diff.json)"
@@ -56,7 +61,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Compose embed
-        if: steps.scan.outputs.added != '0' || steps.scan.outputs.removed != '0' || steps.scan.outputs.build_changed == 'true' || steps.android.outputs.candidate_changed == 'true'
+        if: steps.scan.outputs.added != '0' || steps.scan.outputs.removed != '0' || steps.scan.outputs.build_changed == 'true' || steps.scan.outputs.rollout_changed == 'true' || steps.android.outputs.candidate_changed == 'true'
         env:
           PREVIOUS_BUILD: ${{ steps.scan.outputs.previous_build }}
           CURRENT_BUILD: ${{ steps.scan.outputs.current_build }}
@@ -71,13 +76,14 @@ jobs:
           trunc() { head -c 1400; }
           CATALOG_URL="https://github.com/${GITHUB_REPOSITORY}/blob/main/docs/reverse-engineering/wts-endpoints.json"
           WTS_BUILD="**WTS builds**"$'\n'"root: $PREVIOUS_BUILD → $CURRENT_BUILD"$'\n'"active: $PREVIOUS_BUILDS → $CURRENT_BUILDS"
+          ROLLOUT="**롤아웃 기능 계약**"$'\n'"changed=${{ steps.scan.outputs.rollout_changed }} · features=${{ steps.scan.outputs.rollout_features }}"
           ANDROID="**일반 토스 Android 앱**"$'\n'"candidate ${{ steps.android.outputs.candidate }} · audited ${{ steps.android.outputs.audited }} · stale=${{ steps.android.outputs.audit_stale }} · source=${{ steps.android.outputs.metadata_source }}"
 
           # Components V2 (flags 32768): 웹/API 또는 앱 감사 변동 주황 Container.
           jq -n \
             --arg title "## Toss 클라이언트/API 변동 감지" \
             --arg desc  "$SUMMARY" \
-            --arg builds "$WTS_BUILD"$'\n\n'"$ANDROID" \
+            --arg builds "$WTS_BUILD"$'\n\n'"$ROLLOUT"$'\n\n'"$ANDROID" \
             --arg added   "**신규**"$'\n'"$(printf '%s' "$ADDED"   | trunc)" \
             --arg removed "**삭제/변경**"$'\n'"$(printf '%s' "$REMOVED" | trunc)" \
             --arg foot  "-# Android candidate는 제3자 메타데이터 신호이며 APK 서명·정적 분석 전까지 미감사 상태" \
@@ -101,7 +107,7 @@ jobs:
           cat /tmp/wts_payload.json
 
       - name: Send Discord
-        if: steps.scan.outputs.added != '0' || steps.scan.outputs.removed != '0' || steps.scan.outputs.build_changed == 'true' || steps.android.outputs.candidate_changed == 'true'
+        if: steps.scan.outputs.added != '0' || steps.scan.outputs.removed != '0' || steps.scan.outputs.build_changed == 'true' || steps.scan.outputs.rollout_changed == 'true' || steps.android.outputs.candidate_changed == 'true'
         env:
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
@@ -111,10 +117,14 @@ jobs:
           echo "Discord status: $HTTP"
 
       - name: Commit catalog if changed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add docs/reverse-engineering/wts-endpoints.json docs/reverse-engineering/android-app.json
           git diff --cached --quiet && { echo "변동 없음 — commit skip"; exit 0; }
           git commit -m "chore(wts-monitor): WTS API 카탈로그 갱신 [skip ci]"
-          git push origin HEAD:main
+          bash tools/open_automation_pr.sh \
+            automation/wts-monitor \
+            "chore(wts-monitor): WTS API 카탈로그 갱신"

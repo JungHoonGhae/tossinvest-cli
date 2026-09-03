@@ -25,6 +25,10 @@ Every leaf command carries machine-readable annotations:
 - `writes_state: true`: a non-trading command changes a preference or resource.
   `writes_state: possible` on `ops call` means the selected operation decides;
   inspect its `mutation` policy before calling it.
+- `environment`: `live` or `paper` when the target ledger matters. It is
+  independent of product `domain` and credential `source`.
+- `experimental`: the opt-in feature gate. `paper-trading` is hidden and blocked
+  unless `experimental.paper_trading=true`.
 
 Rules for agents:
 
@@ -36,6 +40,11 @@ Rules for agents:
   변경을 승인한 경우에만 방금 조회한 영향 상태·intent에 결합된 `confirm_token`으로 실행하고, 불가역 작업은 별도
   acknowledgement까지 확인합니다. Open API IP 교체·목표가 알림·숨김 종목·관심종목
   폴더/종목 관리가 이 범주입니다.
+- paper 명령은 실거래 `mutating: true`가 아니라 `writes_state: true`,
+  `mutation_risk: simulation`, `authorization: simulation_execute`입니다. 그래도
+  `--execute`는 사용자가 현재 요청에서 모의 원장 변경을 명시적으로 허용한 경우에만
+  사용합니다. paper 승인을 live 승인으로 재사용하지 말고, `paper order live-preview`가
+  만든 결과도 사람이 일반 live confirm 경계를 다시 통과하게 둡니다.
 - Open API IP 교체는 새 IP 추가와 검증을 먼저 하고, 실패하면 기존 목록을 복구합니다.
 - Prefer `--output json` for machine-readable output.
 - Treat `source: wts` results as best-effort; add a `monitor api` probe when you
@@ -90,6 +99,14 @@ Rules for agents:
 `internal/monitor.Probes()` 런타임 결과입니다. 대부분은 `internal/ops`
 레지스트리의 오퍼레이션 옆 `ProbeSpec`과 공용 `ProbeRefs`에서 파생되고, 카탈로그
 오퍼레이션이 없는 CLI 전용 5개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
+`experimental.paper_trading=true`인 사용자는 여기에 paper 잔고·교육 요약·대기 주문·완료
+주문 4개 probe가 더해집니다. 실험 기능 실패가 옵트인하지 않은 사용자의 안정 표면 장애로
+보이지 않도록 기본 목록과 분리합니다.
+
+실험 기능은 endpoint 구현 여부와 별도로 `docs/reverse-engineering/wts-endpoints.json`의
+`rolling_features`에서 UI flag, 활성 WTS build, critical endpoint, live 관측과 stable 승격
+심사를 추적합니다. 최소 3개 연속 build, 7일·7회 연속 probe, 공식 UI 일반 공개, 상태
+일관성, 미해결 5xx 없음이 모두 확인되기 전에는 experimental 표기를 제거하지 않습니다.
 
 - `market-index` — `GET /api/v1/dashboard/wts/overview/indicator/index`
 - `index-prices` — `GET /api/v1/index-prices/KGG01P`
@@ -173,6 +190,13 @@ Rules for agents:
 - `quote-orderbook` — `GET /api/v3/stock-prices/A005930/quotes`
 - `quote-price-limits` — `GET /api/v2/stock-prices/A005930/upper-lower`
 - `market-trading-hours` — `GET /api/v2/system/trading-hours/integrated`
+
+옵트인 전용 paper probe:
+
+- `paper-cash-balance` — `GET /api/v1/paper/cash-balance`
+- `paper-education-summary` — `GET /api/v1/paper/education/summary`
+- `paper-pending-orders` — `GET /api/v1/paper/trading/orders/histories/all/pending`
+- `paper-completed-orders` — `GET /api/v2/paper/trading/my-orders/markets/us-opt/by-date/completed`
 
 새 카탈로그 endpoint 의존이 생기면 해당 `internal/ops` 오퍼레이션에 `ProbeSpec`을
 붙입니다. 한 기능이 여러 endpoint를 합치면 나머지는 `ExtraProbes`에 모두 선언하고,

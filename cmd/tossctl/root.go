@@ -13,6 +13,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/auth"
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/featuregate"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
@@ -63,6 +64,15 @@ func newRootCmd() *cobra.Command {
 			format, err := output.ParseFormat(opts.outputFormat)
 			if err != nil {
 				return err
+			}
+			if feature := commandExperiment(cmd); feature != "" {
+				enabled, err := experimentEnabled(opts, feature)
+				if err != nil {
+					return err
+				}
+				if !enabled {
+					return experimentalDisabledError(feature)
+				}
 			}
 			store := session.NewFileStore(resolveSessionFile(opts))
 			sess, _ := store.Load(cmd.Context())
@@ -133,6 +143,7 @@ func newRootCmd() *cobra.Command {
 	)
 	cmd.PersistentFlags().String("lang", "", "UI language for help, prompts, and table output: en|ko (also TOSSCTL_LANG / LANG)")
 
+	paperCmd := newPaperCmd(opts)
 	cmd.AddCommand(
 		newInitCmd(opts),
 		newVersionCmd(opts),
@@ -156,6 +167,7 @@ func newRootCmd() *cobra.Command {
 		newMarketCmd(opts),
 		newCommunityCmd(opts),
 		newOrderCmd(opts),
+		paperCmd,
 		newExportCmd(opts),
 		newPushCmd(opts),
 		newNotificationsCmd(opts),
@@ -165,7 +177,61 @@ func newRootCmd() *cobra.Command {
 		newOpsCmd(opts),
 	)
 
+	// Experimental commands remain addressable so an opted-out invocation can
+	// explain how to enable them, but do not appear in help discovery until the
+	// user's config explicitly opts in.
+	defaultHelp := cmd.HelpFunc()
+	cmd.SetHelpFunc(func(c *cobra.Command, args []string) {
+		enabled, err := experimentEnabled(opts, featuregate.PaperTrading)
+		paperCmd.Hidden = err != nil || !enabled
+		if commandExperiment(c) == featuregate.PaperTrading && !enabled {
+			if err != nil {
+				fmt.Fprintln(c.ErrOrStderr(), err)
+				return
+			}
+			fmt.Fprintln(c.ErrOrStderr(), experimentalDisabledError(featuregate.PaperTrading))
+			return
+		}
+		defaultHelp(c, args)
+	})
+
 	return cmd
+}
+
+func commandExperiment(cmd *cobra.Command) string {
+	for current := cmd; current != nil; current = current.Parent() {
+		if feature := current.Annotations["experimental"]; feature != "" {
+			return feature
+		}
+	}
+	return ""
+}
+
+func enabledExperiments(cfg config.File) []string {
+	if cfg.Experimental.PaperTrading {
+		return []string{featuregate.PaperTrading}
+	}
+	return nil
+}
+
+func experimentEnabled(opts *rootOptions, feature string) (bool, error) {
+	cfg, err := loadConfig(opts)
+	if err != nil {
+		return false, err
+	}
+	for _, enabled := range enabledExperiments(cfg) {
+		if enabled == feature {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func experimentalDisabledError(feature string) error {
+	if feature == featuregate.PaperTrading {
+		return fmt.Errorf("experimental feature %q is disabled; run `tossctl config experimental paper-trading --enable` to opt in", feature)
+	}
+	return fmt.Errorf("experimental feature %q is disabled", feature)
 }
 
 // resolveSessionFile mirrors the resolution done in newAppContext but without

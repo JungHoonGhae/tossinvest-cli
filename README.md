@@ -551,7 +551,7 @@ tossctl 의 API 표면은 **111개 오퍼레이션**(공식·WTS 조회, 일반�
 tossctl 은 KIS_MCP_Server 의 catalog 모드를 참조해, 앞단에 **고정 3개 툴만** 노출하고 나머지
 오퍼레이션 전부는 **필요할 때만 스키마를 꺼내오는** 구조로 뒤에 둡니다:
 
-- `list_operations` — 사용 가능한 오퍼레이션의 compact 색인(id·도메인·요약·backend·write 여부·필수 파라미터) 조회, `query` 로 필터
+- `list_operations` — 사용 가능한 오퍼레이션의 compact 색인(id·도메인·environment·experimental·요약·backend·write 여부·필수 파라미터) 조회, `query` 로 필터
 - `describe_operation` — 특정 오퍼레이션의 method/path·전체 파라미터·쓰기 위험/승인/복구 정책을 **그 순간에만** 조회
 - `call_operation` — id + 파라미터로 실제 호출
 
@@ -566,9 +566,9 @@ tossctl 은 KIS_MCP_Server 의 catalog 모드를 참조해, 앞단에 **고정 3
 호출하기 전에 오류로 반환합니다. 오래된 스키마의 인자를 섞어 보내는 대신 호출 직전에
 `describe_operation` 을 다시 읽으세요.
 
-#### MCP 가 노출하는 범위 — 조회·설정은 공식+WTS, 주문은 공식 전용
+#### MCP 가 노출하는 범위 — 조회·설정은 공식+WTS, 실주문은 공식 전용
 
-MCP 는 **조회와 검증된 설정 변경을 공식 Open API + WTS에 걸쳐** 노출하고, **주문(write)은 공식 API 경로만**
+MCP 는 **조회와 검증된 설정 변경을 공식 Open API + WTS에 걸쳐** 노출하고, **실주문(write)은 공식 API 경로만**
 씁니다. `list_operations`는 `backend`와 write 여부를 표시하고, 쓰기의 전체 `mutation` 정책은 반드시 `describe_operation`에서 확인합니다. `backend`는 `"wts"`(웹 세션 필요),
 `"auto"`(공식·웹 세션 **둘 중 하나면 동작**, 공식 우선 후 웹 세션 폴백), 그 외는 공식 전용.
 
@@ -579,13 +579,17 @@ MCP 는 **조회와 검증된 설정 변경을 공식 Open API + WTS에 걸쳐**
   `trading_settings`·`securities_transfer_accounts`·`accumulation_funding_status`로 조회하며, 마지막 오퍼레이션은 이전 `banking_status`도 alias로 허용합니다. 앞의 두
   오퍼레이션은 선택적 `account` 키로 기본 계좌 외 계좌도 지정합니다. 조회는 실패해도
   stale read 수준이라 에이전트에 노출해도 위험이 낮습니다.
-- **주문(write)** — 일반·조건주문의 생성·취소·정정은 **항상 공식 API 경로만** 사용합니다(WTS 미경유). 에이전트에
+- **실주문(write)** — 일반·조건주문의 생성·취소·정정은 **항상 공식 API 경로만** 사용합니다(WTS 미경유). 에이전트에
   주문을 맡기는 이상 제출 경로는 **토스가 공식 승인한 API** 여야 안전하고 정직하기 때문입니다.
 - **WTS 설정 쓰기** — Open API 허용 IP, 목표가 알림, 숨긴 보유종목, 관심종목 폴더·종목을 변경합니다.
   모두 기본 preview이고 `execute:true` + 유효한 `confirm` 토큰이 필요하며 적용 뒤 서버 상태를
   재조회합니다. 관심종목 토큰은 현재 WTS 세션에 묶이고 5분 뒤 만료됩니다. 폴더 삭제는
   되돌릴 수 없어 `acknowledge_irreversible:true`도 필요합니다. 이 토큰은 정확한 의도를
   승인하지만 서버측 single-use/idempotency key는 아니므로 같은 preview를 동시에 실행하면 안 됩니다.
+- **실험적 모의주문** — `experimental.paper_trading=true`일 때만 8개 paper 오퍼레이션이
+  discovery에 추가됩니다. `environment=paper`, `experimental=paper-trading`으로 표시되고
+  WTS의 격리된 모의 원장만 사용합니다. 쓰기는 `simulation_execute`라 confirm token 대신
+  `execute:true`를 요구하며, 실주문 권한으로 승격되지 않습니다.
 - **인증 분리.** 공식 조회·주문은 공식 키(`openapi login`), WTS 조회는 웹 세션(`auth login`).
   둘 중 **하나만 있어도 MCP 서버는 뜨고**, 각 오퍼레이션이 자기에게 필요한 인증을 확인합니다.
 
@@ -664,7 +668,7 @@ tossctl config show
 ```json
 {
   "$schema": "https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/schemas/config.schema.json",
-  "schema_version": 3,
+  "schema_version": 5,
   "trading": {
     "place": false,
     "sell": false,
@@ -679,6 +683,9 @@ tossctl config show
   },
   "update_check": {
     "enabled": true
+  },
+  "experimental": {
+    "paper_trading": false
   }
 }
 ```
@@ -694,12 +701,48 @@ tossctl config show
 | `allow_live_order_actions` | 마스터 킬스위치 — 위 `place/cancel/amend/conditional` 중 하나라도 실제 broker에 도달하려면 이 값도 `true`여야 함 |
 | `accept_fx_consent` | post-prepare FX confirmation 자동 진행 |
 | `update_check.enabled` | 새 버전 알림 (24h 캐시, GitHub Releases API, 실패 시 silent). 기본 `true`. JSON/CSV 출력·non-tty·dev 빌드에서는 자동 skip |
+| `experimental.paper_trading` | 미국 옵션 모의투자 CLI·ops·MCP·전용 probe 노출. 기본 `false` |
 
 > **두 가지 유형의 토글:**
 > - **경로 게이트** (`place`, `cancel`, `amend`, `conditional`) — broker API 분기가 다른 일반·조건주문 동작을 각각 독립적으로 켬/끔
 > - **스코프 선언** (`sell`, `fractional`) — 유저가 스스로 "난 이 범주의 주문은 안 낸다"고 선언하여 실수/버그/agent 오작동 방지
 >
 > `v0.4.3`에서 `trading.grant`, `dangerous_automation.complete_trade_auth`, `dangerous_automation.accept_product_ack`가, `v0.5.2`에서 `trading.kr`(비대칭 시장 게이트 — KR 주문은 US 보다 위험하지 않아 제거, 시장 대칭 취급)이 제거되었습니다. 남아있는 구 설정은 자동 무시되며, 일반 명령 실행 시 stderr 경고 1줄(24h backoff)로 안내되고 `config status`/`doctor`에서도 표시됩니다.
+
+### 미국 옵션 모의투자 (experimental)
+
+모의투자는 아직 WTS에서 롤아웃 중이므로 기본 도움말·ops·MCP에 나타나지 않습니다. 원하는
+사용자만 명시적으로 켭니다.
+
+```bash
+tossctl config experimental paper-trading --enable
+tossctl paper status
+tossctl paper init                                      # 초기화/apply preview (현재 일부 계정에서 500)
+tossctl paper deposit 1000000                           # 가상 입금 preview; 실행은 --execute
+tossctl quote options SPY                         # option-code 찾기
+tossctl paper order place <option-code> --side buy --type limit --price 0.01 --quantity 1
+tossctl paper order place <option-code> --side buy --type limit --price 0.01 --quantity 1 --execute
+tossctl paper order live-preview <option-code> --side buy --type limit --price 0.01 --quantity 1
+tossctl paper orders pending
+tossctl paper orders completed
+tossctl paper order cancel <order-id>                   # preview; 실행은 --execute
+tossctl paper orders cancel-all                   # preview
+tossctl paper orders cancel-all --execute
+```
+
+`--execute`는 실계좌가 아닌 모의 원장에만 적용되는 `simulation_execute`입니다. 모의 주문을
+실주문으로 바꾸려면 `paper order live-preview`로 같은 경제적 의도를 일반 실주문 preview에
+넘긴 뒤, 기존 live config와 별도 confirm 절차를 다시 통과해야 합니다. 이 명령 자체는 실주문을
+제출하지 않습니다.
+
+현재 가상 입금·잔고·대기/완료 주문·prepare/create·단건/일괄 취소는 실호출로 검증했습니다.
+반면 `/paper/init`은 불투명한 500을 반환하고 교육/파생상품 자격 플래그와 실제 주문 허용 상태가
+일치하지 않아 `rolling_out / experimental`을 유지합니다. 최소 3개 연속 WTS build, 7일·7회
+연속 probe, 공식 UI 일반 공개, 상태 일관성, 미해결 5xx 없음이 모두 충족된 뒤에만 stable로
+격상합니다. 교육 완료를 우회하거나 가장하는 기능은 제공하지 않습니다.
+
+paper 상태·주문 목록·모의 쓰기 결과는 JSON으로 출력하며 `--output csv`는 지원하지 않습니다.
+`paper order live-preview`만 일반 실주문 preview 출력 형식을 사용합니다.
 
 ## 주문 예시
 

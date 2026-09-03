@@ -114,6 +114,34 @@ func TestProbesRegistryStableNames(t *testing.T) {
 	}
 }
 
+func TestPaperProbesRequireExplicitExperimentOptIn(t *testing.T) {
+	t.Parallel()
+	paperNames := map[string]bool{
+		"paper-cash-balance":      false,
+		"paper-education-summary": false,
+		"paper-pending-orders":    false,
+		"paper-completed-orders":  false,
+	}
+	for _, probe := range Probes() {
+		if _, ok := paperNames[probe.Name]; ok {
+			t.Fatalf("experimental probe %q appeared in the stable set", probe.Name)
+		}
+	}
+	for _, probe := range Probes("paper-trading") {
+		if _, ok := paperNames[probe.Name]; ok {
+			paperNames[probe.Name] = true
+		}
+	}
+	for name, found := range paperNames {
+		if !found {
+			t.Errorf("opted-in probe %q is missing", name)
+		}
+	}
+	if got, want := len(Probes("paper-trading")), len(Probes())+len(paperNames); got != want {
+		t.Fatalf("opted-in probe count = %d, want %d", got, want)
+	}
+}
+
 func TestDocumentedSurfaceCountsMatchRuntime(t *testing.T) {
 	t.Parallel()
 	_, filename, _, ok := runtime.Caller(0)

@@ -2,7 +2,7 @@ import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server
 import { createI18nMiddleware } from 'fumadocs-core/i18n/middleware';
 import { i18n } from '@/lib/i18n';
 
-const i18nMiddleware = createI18nMiddleware(i18n);
+const i18nProxy = createI18nMiddleware(i18n);
 
 // Some external tools that scan the Next.js app directory for routes don't
 // know that a parenthesized folder (app/[lang]/(home)/page.tsx) is a route
@@ -12,14 +12,14 @@ const i18nMiddleware = createI18nMiddleware(i18n);
 // here rather than relying on the external tool to be fixed.
 const HOME_ALIAS = /^\/(?:(en)\/)?home\/?$/;
 
-export default function middleware(request: NextRequest, event: NextFetchEvent) {
+export default function proxy(request: NextRequest, event: NextFetchEvent) {
   const match = request.nextUrl.pathname.match(HOME_ALIAS);
   if (match) {
     const url = request.nextUrl.clone();
     url.pathname = match[1] ? `/${match[1]}` : '/';
     return NextResponse.redirect(url);
   }
-  return i18nMiddleware(request, event);
+  return i18nProxy(request, event);
 }
 
 export const config = {

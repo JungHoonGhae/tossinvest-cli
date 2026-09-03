@@ -26,6 +26,19 @@ explicitly allow them in `config.json`.
 
 ## Two-step execution gate
 
+```mermaid
+flowchart LR
+    intent["Order intent"] --> preview["Preview"]
+    preview --> review{"Human review"}
+    review -- "Reject or revise" --> stop["Do not execute"]
+    review -- "Approve" --> gates{"Config + execute + confirm"}
+    gates -- "Any gate fails" --> blocked["Blocked"]
+    gates -- "All pass" --> submit["Submit through one selected backend"]
+    submit --> outcome{"Outcome"}
+    outcome -- "Known" --> done["Return result"]
+    outcome -- "Unknown" --> reconcile["Inspect order state before retry"]
+```
+
 A live trade requires both:
 
 ```bash

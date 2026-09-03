@@ -26,6 +26,19 @@ tossctl 은 조회는 자유롭게, **거래는 여러 단계로 막아** 사고
 
 ## 실행 2단계 게이트
 
+```mermaid
+flowchart LR
+    intent["주문 의도"] --> preview["preview"]
+    preview --> review{"사람이 내용 확인"}
+    review -- "거절 또는 수정" --> stop["실행하지 않음"]
+    review -- "승인" --> gates{"config + execute + confirm"}
+    gates -- "하나라도 실패" --> blocked["게이트에서 차단"]
+    gates -- "모두 통과" --> submit["선택된 단일 백엔드로 제출"]
+    submit --> outcome{"응답 결과"}
+    outcome -- "명확" --> done["결과 반환"]
+    outcome -- "불명확" --> reconcile["주문 상태 확인 후 재시도 판단"]
+```
+
 실거래는 두 가지를 모두 줘야 나갑니다.
 
 ```bash

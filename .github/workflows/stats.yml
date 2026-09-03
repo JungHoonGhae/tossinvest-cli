@@ -6,7 +6,9 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: write
   contents: write
+  pull-requests: write
 
 concurrency:
   group: stats
@@ -16,7 +18,7 @@ jobs:
   stats:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
 
       - name: Update STATS.md (stars backfill + download snapshot)
         env:
@@ -24,6 +26,8 @@ jobs:
         run: python3 tools/update_stats.py
 
       - name: Commit if changed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -32,6 +36,7 @@ jobs:
             echo "no stats changes"
           else
             git commit -m "chore(stats): 일일 별점·다운로드 갱신"
-            git pull --rebase origin "${GITHUB_REF_NAME}" || true
-            git push
+            bash tools/open_automation_pr.sh \
+              automation/stats \
+              "chore(stats): 일일 별점·다운로드 갱신"
           fi

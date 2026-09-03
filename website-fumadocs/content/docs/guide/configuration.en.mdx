@@ -14,7 +14,7 @@ tossctl config status
 
 ```json
 {
-  "schema_version": 3,
+  "schema_version": 5,
   "trading": {
     "place": false,
     "sell": false,
@@ -29,6 +29,9 @@ tossctl config status
   },
   "update_check": {
     "enabled": true
+  },
+  "experimental": {
+    "paper_trading": false
   }
 }
 ```
@@ -41,6 +44,16 @@ tossctl config status
 | `trading.allow_live_order_actions` | Master kill switch for every live-account order |
 | `trading.dangerous_automation.accept_fx_consent` | Automatically accept the server consent for supported orders that require FX |
 | `update_check.enabled` | New-version notice on/off (never pollutes automation output) |
+| `experimental.paper_trading` | Expose the rolling-out US-options paper CLI, ops/MCP operations, and dedicated probes. Default `false` |
+
+Opt in explicitly:
+
+```bash
+tossctl config experimental paper-trading --enable
+```
+
+Paper-ledger writes preview by default and apply only with `--execute`. They do not reuse live
+account config or confirm tokens, and `paper order live-preview` never submits a live order.
 
 - The schema version is managed automatically; outdated/unused keys trigger a one-line
   notice at runtime and show up in `config status` / `doctor`.

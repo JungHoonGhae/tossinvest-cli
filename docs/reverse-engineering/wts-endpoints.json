@@ -7,8 +7,8 @@
   "chunk_count": 77,
   "total": 1147,
   "counts": {
-    "implemented": 154,
-    "candidate": 333,
+    "implemented": 166,
+    "candidate": 321,
     "excluded": 660,
     "candidate_next": 0,
     "meaningful": 487
@@ -4775,26 +4775,24 @@
       }
     },
     "/api/v1/paper/cash-balance": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-cert-api",
-      "evidence": "partial",
-      "priority": "deferred",
-      "note": "Static read contract returns a simulated orderableAmount. Safe exposure still depends on proving the paper account/session cannot resolve to the live ledger.",
+      "evidence": "verified",
+      "note": "Live-verified on 2026-09-03: returns isolated simulated orderableAmount; paper order and cancellation changed only the paper ledger.",
       "first_seen": "2026-09-03"
     },
     "/api/v1/paper/deposit": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "POST",
       "host": "wts-cert-api",
-      "evidence": "partial",
-      "priority": "deferred",
-      "note": "Static contract changes simulated cash; the observed UI submits an amount. Exact validation/receipt and paper-only isolation remain unverified.",
+      "evidence": "verified",
+      "note": "Live-verified on 2026-09-03 with a whole-number amount; the receipt and follow-up balance remained isolated to the paper ledger.",
       "mutation": {
         "writes_state": true,
         "risk_level": "simulation",
         "reversibility": "unknown",
-        "approval": "per-execution"
+        "approval": "simulation-execute"
       },
       "first_seen": "2026-09-03"
     },
@@ -4842,26 +4840,25 @@
       "first_seen": "2026-09-03"
     },
     "/api/v1/paper/education/summary": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-cert-api",
-      "evidence": "partial",
-      "priority": "deferred",
-      "note": "Static paper-education summary read. Response schema is not captured.",
+      "evidence": "verified",
+      "note": "Live-verified on 2026-09-03. Eligibility and allCompleted were false while paper prepare/create still succeeded, so these flags are reported but not treated as a client-side order prerequisite.",
       "first_seen": "2026-09-03"
     },
     "/api/v1/paper/init": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "POST",
       "host": "wts-cert-api",
       "evidence": "partial",
       "priority": "deferred",
-      "note": "Static call contract has no request body. It initializes or applies for the paper-options environment after selecting an options account. Education/eligibility behavior and strict live-ledger isolation must be verified before implementation; no bypass parameter was found.",
+      "note": "The exact empty-body contract is implemented behind the paper-trading experiment. A controlled live call returned an opaque 500 on 2026-09-03, so enrollment remains rollout-blocked; no education bypass parameter was found.",
       "mutation": {
         "writes_state": true,
         "risk_level": "simulation-enrollment",
         "reversibility": "unknown",
-        "approval": "per-execution"
+        "approval": "simulation-execute"
       },
       "first_seen": "2026-09-03"
     },
@@ -4878,7 +4875,11 @@
       "first_seen": "2026-09-03"
     },
     "/api/v1/paper/trading/orders/histories/all/pending": {
-      "status": "candidate",
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "Live-verified on 2026-09-03 before and after a simulated cancellation; the created order appeared only in this paper pending ledger and disappeared after cancel.",
       "first_seen": "2026-09-03"
     },
     "/api/v1/pension/frontend/certificate/contribution-certificate/issuable": {
@@ -9154,7 +9155,11 @@
       "first_seen": "2026-09-03"
     },
     "/api/v2/paper/trading/my-orders/markets/us-opt/by-date/completed": {
-      "status": "candidate",
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "Live-verified on 2026-09-03; the cancelled simulated option order appeared in the completed paper history.",
       "first_seen": "2026-09-03"
     },
     "/api/v2/paper/trading/order/cancel/prepare": {
@@ -9162,12 +9167,11 @@
       "first_seen": "2026-09-03"
     },
     "/api/v2/paper/trading/order/cancel/prepare/{date}/{orderNo}": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "POST",
       "host": "wts-cert-api",
-      "evidence": "partial",
-      "priority": "deferred",
-      "note": "Static prepare body includes after-market/reservation flags, quantity, stockCode, tradeType, orderId, and withOrderKey. No state change is expected, but the receipt is unverified.",
+      "evidence": "verified",
+      "note": "Live-verified on 2026-09-03 against an isolated pending order. The response may omit orderKey; the execute request must omit X-Order-Key in that case.",
       "mutation": {
         "writes_state": false,
         "risk_level": "simulation",
@@ -9177,27 +9181,25 @@
       "first_seen": "2026-09-03"
     },
     "/api/v2/paper/trading/order/create": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "POST",
       "host": "wts-cert-api",
-      "evidence": "partial",
-      "priority": "deferred",
-      "note": "Exact paper-order create route is present in the static bundle. The full payload, orderKey propagation, response receipt, and strict live-ledger isolation remain unverified.",
+      "evidence": "verified",
+      "note": "Live-verified on 2026-09-03. The client propagates X-Order-Key only when prepare supplies one; an observed no-key response created an order exclusively in the paper pending ledger.",
       "mutation": {
         "writes_state": true,
         "risk_level": "simulation",
         "reversibility": "irreversible",
-        "approval": "per-execution"
+        "approval": "simulation-execute"
       },
       "first_seen": "2026-09-03"
     },
     "/api/v2/paper/trading/order/prepare": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "POST",
       "host": "wts-cert-api",
-      "evidence": "partial",
-      "priority": "deferred",
-      "note": "Exact paper-order prepare route is present in the static bundle. The complete request schema, validation branches, and receipt/orderKey contract are not yet isolated.",
+      "evidence": "verified",
+      "note": "Live-verified on 2026-09-03 with the implemented normalized option intent. authRequired:null and an absent orderKey are valid paper responses and do not authorize any live order.",
       "mutation": {
         "writes_state": false,
         "risk_level": "simulation",
@@ -10305,27 +10307,25 @@
       "first_seen": "2026-09-03"
     },
     "/api/v3/paper/trading/order/bulk-cancel": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "POST",
       "host": "wts-cert-api",
-      "evidence": "partial",
-      "priority": "deferred",
-      "note": "Static simulated bulk-cancel contract repeats the prepared orderCancels array. Result exposes failedCancelCount; exact per-order receipts are not captured.",
+      "evidence": "verified",
+      "note": "Live-verified on 2026-09-03: two simulated orders were cancelled with failedCancelCount=0 and the follow-up pending list was empty.",
       "mutation": {
         "writes_state": true,
         "risk_level": "simulation",
         "reversibility": "irreversible",
-        "approval": "per-execution"
+        "approval": "simulation-execute"
       },
       "first_seen": "2026-09-03"
     },
     "/api/v3/paper/trading/order/bulk-cancel/prepare": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "POST",
       "host": "wts-cert-api",
-      "evidence": "partial",
-      "priority": "deferred",
-      "note": "Static prepare body is {orderCancels:[{orderDate,orderNo,tradeType,isAfterMarketOrder,stockCode,isReservationOrder}]}.",
+      "evidence": "verified",
+      "note": "Live-verified on 2026-09-03 with two pending simulated orders. The exact orderCancels array preserves after-market and reservation flags independently.",
       "mutation": {
         "writes_state": false,
         "risk_level": "simulation",
@@ -10339,17 +10339,16 @@
       "first_seen": "2026-09-03"
     },
     "/api/v3/paper/trading/order/cancel/{date}/{orderNo}": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "POST",
       "host": "wts-cert-api",
-      "evidence": "partial",
-      "priority": "deferred",
-      "note": "Static simulated-cancel contract uses the prepare orderKey in X-Order-Key and repeats the order identity/body. Post-cancel verification is not captured.",
+      "evidence": "verified",
+      "note": "Live-verified on 2026-09-03. Cancellation cleared the paper pending ledger and the order appeared as cancelled in paper completed history; no live account state was touched.",
       "mutation": {
         "writes_state": true,
         "risk_level": "simulation",
         "reversibility": "irreversible",
-        "approval": "per-execution"
+        "approval": "simulation-execute"
       },
       "first_seen": "2026-09-03"
     },
@@ -10965,6 +10964,119 @@
     "/api/v5/stock-prices": {
       "status": "candidate",
       "first_seen": "2026-09-03"
+    }
+  },
+  "rolling_features": {
+    "paper-trading-us-options": {
+      "lifecycle": "rolling_out",
+      "stability": "experimental",
+      "checked_at": "2026-09-03",
+      "active_build_ids": [
+        "S2JOk3dbR30ziH6ToNktG"
+      ],
+      "bundle_markers": {
+        "option.paper.wts.open": true
+      },
+      "endpoint_presence": {
+        "/api/v1/paper/cash-balance": true,
+        "/api/v1/paper/education/summary": true,
+        "/api/v1/paper/trading/orders/histories/all/pending": true,
+        "/api/v2/paper/trading/my-orders/markets/us-opt/by-date/completed": true,
+        "/api/v2/paper/trading/order/prepare": true,
+        "/api/v2/paper/trading/order/create": true,
+        "/api/v2/paper/trading/order/cancel/prepare/{date}/{orderNo}": false,
+        "/api/v3/paper/trading/order/cancel/{date}/{orderNo}": false,
+        "/api/v3/paper/trading/order/bulk-cancel/prepare": true,
+        "/api/v3/paper/trading/order/bulk-cancel": true
+      },
+      "critical_surface_complete": false,
+      "promotion_criteria": {
+        "target": "stable",
+        "minimum_consecutive_builds": 3,
+        "minimum_consecutive_live_probe_passes": 7,
+        "minimum_observation_days": 7,
+        "requires_official_ui_general_availability": true,
+        "requires_complete_critical_surface": true,
+        "requires_no_unresolved_5xx": true,
+        "requires_consistent_init_education_order_state": true
+      },
+      "live_observations": {
+        "verified_at": "2026-09-03",
+        "account_context": "ordinary brokerage account only; no live options or derivatives account",
+        "eligibility": {
+          "overseas_derivative_eligible": false,
+          "education_all_completed": false
+        },
+        "endpoints": {
+          "init": {
+            "status": 500,
+            "outcome": "opaque server error"
+          },
+          "deposit": {
+            "status": 200,
+            "outcome": "simulated cash balance increased"
+          },
+          "prepare": {
+            "status": 200,
+            "auth_required": null,
+            "order_key_present": false
+          },
+          "create": {
+            "status": 200,
+            "outcome": "order appeared only in paper pending ledger"
+          },
+          "cancel": {
+            "status": 200,
+            "outcome": "pending cleared and completed history showed cancelled"
+          },
+          "bulk_cancel": {
+            "status": 200,
+            "requested_count": 2,
+            "failed_count": 0,
+            "outcome": "paper pending ledger empty after execution"
+          },
+          "education_open": {
+            "status": 400,
+            "code": "papertrading.education-progress-not-initialized"
+          }
+        },
+        "live_probe_passes": {
+          "consecutive": 1,
+          "required": 7,
+          "last_result": "86 passed, 0 failed, 0 skipped"
+        }
+      },
+      "implementation": {
+        "cli": true,
+        "ops": true,
+        "mcp": true,
+        "opt_in": "experimental.paper_trading",
+        "authorization": "simulation_execute",
+        "monitor_probes": [
+          "paper-cash-balance",
+          "paper-education-summary",
+          "paper-pending-orders",
+          "paper-completed-orders"
+        ]
+      },
+      "promotion_review": {
+        "status": "blocked",
+        "reviewed_at": "2026-09-03",
+        "consecutive_builds_observed": 1,
+        "consecutive_live_probe_passes": 1,
+        "observation_days": 1,
+        "official_ui_general_availability": false,
+        "blockers": [
+          "paper init returns an unresolved opaque 500",
+          "education and derivatives eligibility flags are inconsistent with actual order permission",
+          "minimum build and live-probe observation windows are not met",
+          "two dynamically assembled cancel routes are not directly recoverable from the current bundle path extractor"
+        ]
+      },
+      "notes": [
+        "Prepare, create, single cancel, and bulk cancel worked while eligibility and education flags were false.",
+        "Paper authorization never carries into the live trading guardrail."
+      ]
     }
   },
   "updated_at": "2026-09-03"

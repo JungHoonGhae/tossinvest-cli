@@ -69,7 +69,7 @@ func argFloatPtr(args map[string]any, name string) (*float64, error) {
 	return &f, nil
 }
 
-// executeArgs pulls the shared execute/confirm parameters common to all writes.
+// executeArgs pulls the shared execute/confirm parameters common to live order writes.
 //
 // The two-step flow mirrors `tossctl order … --execute --confirm <token>`:
 //   - execute omitted/false → return a dry-run Preview (with confirm_token).

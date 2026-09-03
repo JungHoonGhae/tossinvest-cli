@@ -8,7 +8,7 @@
 | 파일 | 내용 |
 |---|---|
 | **[capture-workflow.md](capture-workflow.md)** | **신규 기능 발굴 실전 플레이북** — 세션 주입 → 번들에서 경로 추출 → 라이브 프로브 → POST 바디 캡처 → 웹UI 유무 판정 → 구현. 새 기능을 붙인다면 여기서 시작한다. "막힌 방법" 절도 함께 읽을 것 |
-| [wts-endpoints.json](wts-endpoints.json) | WTS API 전체 카탈로그(구현/후보/의도적 제외). `tools/wts_endpoints.py` 로 갱신, 주간 `wts-monitor.yml` 이 변화를 추적 |
+| [wts-endpoints.json](wts-endpoints.json) | WTS API 전체 카탈로그(구현/후보/의도적 제외)와 `rolling_features` 수명주기. `tools/wts_endpoints.py` 로 갱신, 주간 `wts-monitor.yml` 이 endpoint·UI flag·활성 build·승격 기준 변화를 추적 |
 | [mutation-inventory.md](mutation-inventory.md) | 호출 가능한 쓰기와 정적 분석에서 발견만 된 쓰기를 분리하고 위험·복구·승인 방식을 기록 |
 | [android-app.json](android-app.json) | 일반 Toss Android 앱의 마지막 정적 감사 artifact와 최신 공개 후보. 후보가 새로우면 감사 stale로 표시하되 자동 신뢰하지 않음 |
 | [rpc-catalog.md](rpc-catalog.md) | 엔드포인트별 요청/응답 형태 메모 |
@@ -37,6 +37,13 @@ python3 tools/fetch_public_fixtures.py fixtures/responses/public
 
 Android 결과와 diff의 `metadata_source`는 네트워크 후보 조회를 `live`,
 `--metadata-file`을 쓴 fixture 재현을 `offline`으로 구분합니다.
+
+`rolling_features`는 endpoint의 `implemented` 판정과 별개입니다. 구현됐더라도 상류 UI가
+롤아웃 중이면 `lifecycle=rolling_out`, 사용자 노출은 `stability=experimental`로 유지합니다.
+scanner가 현재 번들에서 UI marker와 critical endpoint를 다시 만들고, 개인정보를 제거한
+`live_observations`·`implementation`·`promotion_review`는 보존합니다. 모의투자는 최소 3개
+연속 WTS build와 7일/7회 live probe, 공식 UI 일반 공개, 상태 일관성, 미해결 5xx 없음이
+모두 확인되어야 stable로 격상합니다.
 
 **번들 파싱과 라이브 캡처는 상호보완이다.** `wts_endpoints.py` 는 번들에서 경로를
 전수로 뽑지만 호출 형태(바디)는 모르고, 번들에 안 실린 엔드포인트는 못 본다 —

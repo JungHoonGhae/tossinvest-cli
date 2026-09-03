@@ -4,35 +4,84 @@ on:
   push:
     branches:
       - main
+      - "analysis/**"
+      - "automation/**"
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.0.0
         with:
           go-version-file: go.mod
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.0.0
         with:
           python-version: "3.11"
 
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.0.0
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Run Go tests
         run: go test ./...
+
+      - name: Check Go vulnerabilities
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
+          govulncheck ./...
 
       # gofmt + go vet, same target contributors run locally.
       - name: Lint
         run: make lint
 
+      - name: Lint GitHub Actions workflows
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+          actionlint
+          bash -n tools/open_automation_pr.sh
+          bash -n tools/codex_api_analysis.sh
+
       - name: Build CLI
         run: make build
+
+      - name: Install website dependencies
+        working-directory: website-fumadocs
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit website production dependencies
+        working-directory: website-fumadocs
+        run: pnpm audit --prod --audit-level high
+
+      - name: Build documentation website
+        working-directory: website-fumadocs
+        run: pnpm build
+
+      - name: Review dependency changes
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
 
       - name: Check auth helper syntax
         run: python -m compileall auth-helper

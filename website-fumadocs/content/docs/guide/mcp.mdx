@@ -42,13 +42,32 @@ tossctl 은 [KIS_MCP_Server](https://github.com/pineconedata/kis-mcp-server) 의
 
 | 툴 | 역할 |
 |---|---|
-| `list_operations` | compact 탐색 색인(id·도메인·요약·`backend`·write 여부·필수 파라미터) 조회, `query` 로 필터 |
+| `list_operations` | compact 탐색 색인(id·도메인·environment·experimental·요약·`backend`·write 여부·필수 파라미터) 조회, `query` 로 필터 |
 | `describe_operation` | 특정 오퍼레이션의 method/path·전체 파라미터·쓰기 위험/승인/복구 정책을 **그 순간에만** 조회 |
 | `call_operation` | id + 파라미터로 실제 호출 |
 
 결과: 상시 컨텍스트 = **딱 3개 툴 스키마**. 오퍼레이션이 40개든 111개든 상주 비용은 3으로
 고정됩니다. 에이전트는 `list_operations` 로 찾고 → `describe_operation` 으로 그때 스키마를 읽고 →
 `call_operation` 으로 호출하므로, 안 쓰는 오퍼레이션의 스키마가 컨텍스트를 차지하지 않습니다.
+
+```mermaid
+sequenceDiagram
+    actor Agent as 에이전트
+    participant Catalog as list_operations
+    participant Schema as describe_operation
+    participant Call as call_operation
+    participant Registry as tossctl operation registry
+
+    Agent->>Catalog: 원하는 기능을 검색
+    Catalog->>Registry: compact 색인 조회
+    Registry-->>Agent: 후보 operation id
+    Agent->>Schema: 선택한 id 설명 요청
+    Schema->>Registry: 파라미터와 mutation 정책 조회
+    Registry-->>Agent: 실행 계약
+    Agent->>Call: id + 검증된 params
+    Call->>Registry: typed operation 실행
+    Registry-->>Agent: 결과 또는 안전 게이트 오류
+```
 
 <Callout type="info" title="업데이트는 자동입니다">
 호스트는 `tossctl mcp` 라는 **명령어**를 저장해 세션마다 새로 실행하므로, `brew upgrade
@@ -57,9 +76,9 @@ tossctl`(또는 `tossctl update`)로 바이너리만 갱신하면 다음 세션�
 오퍼레이션 전체 목록은 항상 `list_operations` 가 정답입니다.
 </Callout>
 
-## 노출 범위 — 조회·설정은 공식+WTS, 주문은 공식 전용
+## 노출 범위 — 조회·설정은 공식+WTS, 실주문은 공식 전용
 
-MCP 는 **조회와 검증된 설정 변경을 공식 Open API + WTS에 걸쳐** 노출하고, **주문(write)은 공식 API 경로만**
+MCP 는 **조회와 검증된 설정 변경을 공식 Open API + WTS에 걸쳐** 노출하고, **실주문(write)은 공식 API 경로만**
 씁니다. `list_operations`는 `backend`와 write 여부를 표시하며, 쓰기의 전체 `mutation` 정책은 `describe_operation`에서 확인합니다.
 
 - **조회(read)** — 공식 API(계좌·시세·호가·체결·캔들 등)와 **WTS 전용**(인기 순위·수급·AI 시그널·
@@ -68,12 +87,16 @@ MCP 는 **조회와 검증된 설정 변경을 공식 Open API + WTS에 걸쳐**
   login` 안내를 돌려줍니다. 증권 거래 설정·주식이체 계좌·주식모으기 자금연결 상태는
   `trading_settings`·`securities_transfer_accounts`·`accumulation_funding_status`로 호출합니다. 마지막 오퍼레이션은 이전 `banking_status`도 alias로 허용하며, 앞의 두
   오퍼레이션은 선택적 `account`로 기본 계좌 외 계좌도 지정합니다.
-- **주문(write)** — 생성·취소·정정은 **항상 공식 API 경로만** 사용합니다(WTS 미경유). 에이전트에
+- **실주문(write)** — 생성·취소·정정은 **항상 공식 API 경로만** 사용합니다(WTS 미경유). 에이전트에
   주문을 맡기는 이상 제출 경로는 토스가 공식 승인한 API 여야 안전하고 정직하기 때문입니다.
 - **WTS 설정 쓰기** — Open API 허용 IP, 목표가 알림, 숨긴 보유종목, 관심종목 폴더·종목을 변경합니다.
   모두 기본 preview, `execute:true` + 유효한 `confirm`, 변경 후 서버 재조회를 거칩니다. 관심종목
   토큰은 현재 WTS 세션에 묶이고 5분 뒤 만료됩니다. 폴더 삭제는 되돌릴 수 없어
   `acknowledge_irreversible:true`도 필요합니다.
+- **실험적 모의주문** — `experimental.paper_trading=true`일 때만 8개 오퍼레이션이 추가됩니다.
+  `environment=paper`, `experimental=paper-trading`으로 표시되며 WTS의 격리된 모의 원장만
+  사용합니다. 모의 쓰기는 `simulation_execute`라 `execute:true`만 요구하고 실계좌 confirm이나
+  권한으로 승격되지 않습니다. `/paper/init` 500이 남아 있어 현재 stable이 아닙니다.
 - **인증 분리** — 공식 조회·주문은 공식 키(`openapi login`), WTS 조회는 웹 세션(`auth login`). 둘 중
   **하나만 있어도 MCP 서버는 뜨고**, 각 오퍼레이션이 자기에게 필요한 인증을 확인합니다.
   `auth_status` 오퍼레이션으로 어떤 백엔드가 연결됐는지·언제 만료되는지 진단할 수 있습니다.

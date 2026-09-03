@@ -1,0 +1,67 @@
+name: PR Release Labels
+
+on:
+  pull_request_target:
+    types: [opened, edited, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Classify conventional PR title
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const title = pr.title
+              .replace(/^v\d+\.\d+\.\d+(?:\.\d+)?\s+/i, "")
+              .trim();
+            const labels = [];
+
+            if (/^feat(?:\([^)]*\))?!?:/i.test(title)) {
+              labels.push("enhancement");
+            } else if (/^fix(?:\([^)]*\))?!?:/i.test(title)) {
+              labels.push("bug");
+            } else if (/^docs(?:\([^)]*\))?!?:/i.test(title)) {
+              labels.push("documentation");
+            } else if (/^(?:chore|build)(?:\(deps\))?!?:/i.test(title) &&
+                       /(?:\(deps\)|dependenc)/i.test(title)) {
+              labels.push("dependencies");
+            } else {
+              labels.push("maintenance");
+            }
+
+            const managedTypes = [
+              "enhancement",
+              "bug",
+              "documentation",
+              "dependencies",
+              "maintenance",
+            ];
+            const current = new Set(pr.labels.map(({ name }) => name));
+            for (const name of managedTypes) {
+              if (current.has(name) && !labels.includes(name)) {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  name,
+                });
+              }
+            }
+
+            if (/^[a-z]+(?:\([^)]*\))?!:/i.test(title) ||
+                /BREAKING[ -]CHANGE:/i.test(pr.body || "")) {
+              labels.push("breaking-change");
+            }
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              labels,
+            });

@@ -12,6 +12,8 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CHANGELOG = ROOT / "CHANGELOG.md"
+RELEASE_WORKFLOW = ROOT / ".github/workflows/release.yml"
+RELEASE_NOTES_CONFIG = ROOT / ".github/release.yml"
 WEBSITE_CHANGELOGS = (
     ROOT / "website-fumadocs/content/docs/changelog.mdx",
     ROOT / "website-fumadocs/content/docs/changelog.en.mdx",
@@ -61,6 +63,22 @@ class TestChangelogCredits(unittest.TestCase):
                     source_body,
                     f"{generated} is stale; run tools/sync_changelog.py",
                 )
+
+    def test_release_combines_curated_and_github_generated_notes(self):
+        workflow = RELEASE_WORKFLOW.read_text(encoding="utf-8")
+        self.assertIn("--generate-notes", workflow)
+        self.assertIn('--notes "$(cat /tmp/release-notes.md)"', workflow)
+
+        config = RELEASE_NOTES_CONFIG.read_text(encoding="utf-8")
+        for label in (
+            "breaking-change",
+            "enhancement",
+            "bug",
+            "documentation",
+            "dependencies",
+            "maintenance",
+        ):
+            self.assertIn(f"- {label}", config)
 
 
 if __name__ == "__main__":

@@ -68,7 +68,39 @@ func newConfigCmd(opts *rootOptions) *cobra.Command {
 				return output.WriteConfigStatus(cmd.OutOrStdout(), output.FormatTable, result.Status)
 			},
 		},
+		newConfigExperimentalCmd(opts),
 	)
 
 	return cmd
+}
+
+func newConfigExperimentalCmd(opts *rootOptions) *cobra.Command {
+	group := &cobra.Command{Use: "experimental", Short: "Manage opt-in rolling features"}
+	var enable, disable bool
+	paper := &cobra.Command{
+		Use: "paper-trading", Short: "Enable or disable the rolling paper-trading surface",
+		Annotations: mutationAnnotations("local", "system", "preference", "reversible"),
+		Args:        cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if enable == disable {
+				return fmt.Errorf("set exactly one of --enable or --disable")
+			}
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			if err := app.configService.SetExperimentalPaperTrading(cmd.Context(), enable); err != nil {
+				return err
+			}
+			status, err := app.configService.Status(cmd.Context())
+			if err != nil {
+				return err
+			}
+			return output.WriteConfigStatus(cmd.OutOrStdout(), app.format, status)
+		},
+	}
+	paper.Flags().BoolVar(&enable, "enable", false, "Opt in to paper-trading commands and operations")
+	paper.Flags().BoolVar(&disable, "disable", false, "Hide and block paper-trading commands and operations")
+	group.AddCommand(paper)
+	return group
 }

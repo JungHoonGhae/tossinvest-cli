@@ -461,7 +461,7 @@ burning tokens and adding tool-choice noise (mis-picks between similar tools).
 Following KIS_MCP_Server's catalog mode, tossctl fronts everything with **just three fixed
 tools** and keeps the 111 operations behind an **on-demand schema fetch**:
 
-- `list_operations` — fetch a compact discovery index (id, domain, summary, backend, write flag, required parameter names), filter with `query`
+- `list_operations` — fetch a compact discovery index (id, domain, environment, experimental gate, summary, backend, write flag, required parameter names), filter with `query`
 - `describe_operation` — fetch one operation's method/path, full parameter schema, and mutation risk/approval/recovery policy **only at that moment**
 - `call_operation` — call by id with parameters
 
@@ -476,10 +476,10 @@ Arguments to `call_operation` must match the names and primitive types declared 
 that would lose precision when converted to `float64` fail before any backend call. Refresh the
 operation schema immediately before calling instead of mixing in parameters from an older copy.
 
-### What MCP exposes — reads/settings: official + WTS; orders: official only
+### What MCP exposes — reads/settings: official + WTS; live orders: official only
 
 MCP exposes **reads and verified settings changes across the official Open API and WTS**, and keeps
-**order writes on the official API path only**. `list_operations` tags each operation with a `backend`
+**live order writes on the official API path only**. `list_operations` tags each operation with a `backend`
 and write flag; inspect every write's full `mutation` policy through `describe_operation`.
 Backends are `"wts"` (needs a web session), `"auto"` (**either credential works** —
 official first, web-session fallback), or official-only otherwise.
@@ -492,7 +492,7 @@ official first, web-session fallback), or official-only otherwise.
   stock-transfer accounts, and accumulation funding status are exposed as `trading_settings`,
   `securities_transfer_accounts`, and `accumulation_funding_status` respectively. The last operation also accepts the legacy `banking_status` alias. The first two accept an
   optional `account` key for non-primary Securities accounts.
-- **Writes.** Regular and conditional place / cancel / modify always use the **official API path** (never WTS): if an
+- **Live writes.** Regular and conditional place / cancel / modify always use the **official API path** (never WTS): if an
   agent can submit orders, the path should be one **Toss officially sanctions** — safer and more honest.
 - **WTS settings writes.** Open API allowed IPs, target-price alerts, hidden holdings, and watchlist
   folders/items are changeable. Each previews by default, requires `execute:true` plus a valid
@@ -500,6 +500,11 @@ official first, web-session fallback), or official-only otherwise.
   and expire after five minutes. Irreversible folder deletion also requires
   `acknowledge_irreversible:true`. The token authorizes an exact intent but is not a server-side
   single-use/idempotency key, so do not execute the same preview concurrently.
+- **Experimental paper orders.** Eight paper operations join discovery only when
+  `experimental.paper_trading=true`. They declare `environment=paper` and
+  `experimental=paper-trading`, use only WTS's isolated simulation ledger, and require
+  `simulation_execute` (`execute:true`, no live confirm token). Paper authorization never promotes
+  to live authorization.
 - **Split auth.** Official reads/orders use the official key (`openapi login`); WTS reads use the
   web session (`auth login`). **Either alone starts the server**, and each operation checks the
   auth it needs.
@@ -562,7 +567,7 @@ tossctl config show
 ```json
 {
   "$schema": "https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/schemas/config.schema.json",
-  "schema_version": 3,
+  "schema_version": 5,
   "trading": {
     "place": false,
     "sell": false,
@@ -577,6 +582,9 @@ tossctl config show
   },
   "update_check": {
     "enabled": true
+  },
+  "experimental": {
+    "paper_trading": false
   }
 }
 ```
@@ -592,12 +600,49 @@ tossctl config show
 | `allow_live_order_actions` | Master kill-switch — for any of `place/cancel/amend/conditional` to reach the real broker, this must also be `true` |
 | `accept_fx_consent` | Auto-proceed through post-prepare FX confirmation |
 | `update_check.enabled` | New-version notice (24h cache, GitHub Releases API, silent on failure). Default `true`. Auto-skipped for JSON/CSV output, non-tty, and dev builds |
+| `experimental.paper_trading` | Expose the US-options paper-trading CLI, ops/MCP operations, and dedicated probes. Default `false` |
 
 > **Two kinds of toggles:**
 > - **Path gates** (`place`, `cancel`, `amend`, `conditional`) — independently switch the regular and conditional actions whose broker API branches differ.
 > - **Scope declarations** (`sell`, `fractional`) — let you declare "I never place this category of order" to guard against mistakes/bugs/agent misbehavior.
 >
 > `trading.grant`, `dangerous_automation.complete_trade_auth`, `dangerous_automation.accept_product_ack` were removed in v0.4.3, and `trading.kr` (an asymmetric market gate — a KR order is no riskier than a US one, so markets are now symmetric) in v0.5.2. Leftover keys are ignored, surfaced as a one-line stderr warning (24h backoff), and flagged by `config status`/`doctor`.
+
+### US-options paper trading (experimental)
+
+Paper trading is still rolling out upstream, so it is hidden from default help, ops discovery, and
+MCP. Users who want it must opt in explicitly:
+
+```bash
+tossctl config experimental paper-trading --enable
+tossctl paper status
+tossctl paper init                                      # initialization/application preview; currently 500 for some accounts
+tossctl paper deposit 1000000                           # simulated-deposit preview; add --execute to apply
+tossctl quote options SPY
+tossctl paper order place <option-code> --side buy --type limit --price 0.01 --quantity 1
+tossctl paper order place <option-code> --side buy --type limit --price 0.01 --quantity 1 --execute
+tossctl paper order live-preview <option-code> --side buy --type limit --price 0.01 --quantity 1
+tossctl paper orders pending
+tossctl paper orders completed
+tossctl paper order cancel <order-id>                   # preview; add --execute to apply
+tossctl paper orders cancel-all
+tossctl paper orders cancel-all --execute
+```
+
+`--execute` uses `simulation_execute` and can only affect the isolated paper ledger. To carry the
+same economic intent toward a real account, run `paper order live-preview`; it creates a fresh live
+preview and still requires the ordinary live config and confirm boundary. It never submits a live
+order by itself.
+
+Cash deposit, balance, pending/completed history, prepare/create, and single/bulk cancellation have
+been verified live. `/paper/init` still returns an opaque 500, and education/derivatives eligibility
+flags do not consistently describe server order permission, so the surface remains
+`rolling_out / experimental`. Promotion to stable requires three consecutive WTS builds, seven
+successful probes across at least seven days, general UI availability, consistent state, and no
+unresolved 5xx. tossctl does not bypass or fake education completion.
+
+Paper status, order lists, and simulated-write results are JSON; `--output csv` is unsupported.
+Only `paper order live-preview` uses the ordinary live-preview output formats.
 
 ## Order Examples
 

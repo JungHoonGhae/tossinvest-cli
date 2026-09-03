@@ -15,6 +15,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/openapiip"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderlineage"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/papertrading"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/pricealert"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
@@ -36,7 +37,7 @@ func mcpOfficialBackends(cfg config.File, creds *official.Credentials, tokenFile
 }
 
 // newMCPCmd builds the `tossctl mcp` command: a stdio Model Context Protocol
-// server exposing the official Toss Open API through a catalog tool surface
+// server exposing official, WTS, and enabled experimental operations through a catalog tool surface
 // (list_operations / describe_operation / call_operation).
 //
 // It speaks JSON-RPC 2.0 over stdin/stdout and is meant to be launched by an
@@ -51,9 +52,10 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 			"order place/cancel/modify) and, when a web session is present, the WTS-only " +
 			"reads (rankings, flows, AI signals, screener, sectors, earnings, briefing, " +
 			"community, dividends, Prime, transactions), plus safely gated account-setting " +
-			"writes. Every write publishes its risk, reversibility, approval, and verification " +
-			"policy. Order mutations follow the same config gate and execute/confirm " +
-			"flow as `tossctl order` and use the official " +
+			"writes. Opted-in paper-trading operations are labeled experimental and target " +
+			"only the isolated paper environment. Every write publishes its risk, reversibility, " +
+			"approval, and verification policy. Live order mutations follow the same config " +
+			"gate and execute/confirm flow as `tossctl order` and use the official " +
 			"API only (no WTS). Needs at least one credential: `tossctl openapi login` " +
 			"(official) and/or `tossctl auth login` (WTS web session).",
 		Annotations:  map[string]string{"source": "both"},
@@ -126,6 +128,8 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 				PriceAlerts:    pricealert.NewService(routed),
 				HiddenHoldings: hiddenholding.NewService(routed),
 				Watchlists:     watchlistservice.NewService(routed),
+				Paper:          papertrading.NewService(routed),
+				Experiments:    enabledExperiments(cfg),
 			}, "tossinvest-cli", version.Current().Version)
 
 			// Read-only auth snapshot for the auth_status operation (no secrets —

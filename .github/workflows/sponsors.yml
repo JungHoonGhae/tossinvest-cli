@@ -13,7 +13,9 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: write
   contents: write
+  pull-requests: write
 
 concurrency:
   group: sponsors
@@ -23,7 +25,7 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
 
       - name: Guard — SPONSORS_TOKEN 존재 확인
         id: guard
@@ -45,10 +47,14 @@ jobs:
 
       - name: Commit if changed
         if: steps.guard.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add README.md README.en.md
           git diff --cached --quiet && { echo "후원 섹션 최신"; exit 0; }
           git commit -m "docs(readme): 후원자 목록 자동 갱신 [skip ci]"
-          git push origin HEAD:main
+          bash tools/open_automation_pr.sh \
+            automation/sponsors \
+            "docs(readme): 후원자 목록 자동 갱신"

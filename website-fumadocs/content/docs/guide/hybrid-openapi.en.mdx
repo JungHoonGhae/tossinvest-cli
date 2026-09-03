@@ -102,6 +102,22 @@ account data are sent with that request.
 
 For each request, the router checks "is it officially supported → is a key present → preference".
 
+```mermaid
+flowchart TD
+    request["Read or order request"] --> supported{"Supported by the official API?"}
+    supported -- "No" --> wts["WTS web session"]
+    supported -- "Yes" --> key{"Official key available?"}
+    key -- "No" --> wts
+    key -- "Yes" --> official["Official Open API"]
+    official --> success{"Call succeeded?"}
+    success -- "Yes" --> result["Return result"]
+    success -- "No · read" --> fallback{"WTS fallback enabled?"}
+    fallback -- "Yes" --> wts
+    fallback -- "No" --> error["Return error"]
+    success -- "No · order" --> error
+    wts --> result
+```
+
 | Request | Path |
 |---|---|
 | Not officially supported | → **WTS web session** |
