@@ -20,8 +20,25 @@ func TestWriteOpenBankingStatusMasksEveryFormatByDefault(t *testing.T) {
 		if err := WriteOpenBankingStatus(&out, format, status, false); err != nil {
 			t.Fatalf("%s: %v", format, err)
 		}
-		if strings.Contains(out.String(), "홍길동") || strings.Contains(out.String(), "123-456-789") {
+		if strings.Contains(out.String(), "홍길동") || strings.Contains(out.String(), "123-456-789") || strings.Contains(out.String(), "open_banking_id") || strings.Contains(out.String(), "987654321") {
 			t.Fatalf("identity leaked in %s: %s", format, out.String())
+		}
+	}
+}
+
+func TestWriteOpenBankingStatusNeverEmitsInternalConnectionID(t *testing.T) {
+	t.Parallel()
+	status := domain.OpenBankingStatus{
+		HolderName:       "홍길동",
+		ConnectedAccount: &domain.OpenBankingAccount{AccountNo: "123-456-789", BankCode: "088", OpenBankingID: 987654321},
+	}
+	for _, format := range []Format{FormatTable, FormatJSON, FormatCSV} {
+		var out bytes.Buffer
+		if err := WriteOpenBankingStatus(&out, format, status, true); err != nil {
+			t.Fatalf("%s: %v", format, err)
+		}
+		if strings.Contains(out.String(), "open_banking_id") || strings.Contains(out.String(), "987654321") {
+			t.Fatalf("internal connection id leaked in full %s: %s", format, out.String())
 		}
 	}
 }
@@ -60,6 +77,30 @@ func TestWriteOpenBankingStatusShowsDisconnectedWithoutRevealHint(t *testing.T) 
 	}
 	if !strings.Contains(out.String(), "not connected") || strings.Contains(out.String(), "--full") || strings.Contains(out.String(), "Account:") {
 		t.Fatalf("disconnected table = %q", out.String())
+	}
+}
+
+func TestWriteOpenBankingStatusShowsConnectionCapabilitiesInEveryFormat(t *testing.T) {
+	t.Parallel()
+	status := domain.OpenBankingStatus{ConnectionCreatable: true, RegistrationRequired: false}
+	tests := []struct {
+		format Format
+		want   []string
+	}{
+		{format: FormatTable, want: []string{"Connection creatable:  true", "Registration required: false"}},
+		{format: FormatJSON, want: []string{`"connection_creatable": true`, `"registration_required": false`}},
+		{format: FormatCSV, want: []string{"connection_creatable", "registration_required", "true,false"}},
+	}
+	for _, tc := range tests {
+		var out bytes.Buffer
+		if err := WriteOpenBankingStatus(&out, tc.format, status, false); err != nil {
+			t.Fatalf("%s: %v", tc.format, err)
+		}
+		for _, want := range tc.want {
+			if !strings.Contains(out.String(), want) {
+				t.Fatalf("%s missing %q: %s", tc.format, want, out.String())
+			}
+		}
 	}
 }
 

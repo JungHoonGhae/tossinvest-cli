@@ -2,10 +2,7 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
@@ -15,47 +12,6 @@ const (
 	dividendsHistoryPath              = "/api/v1/dividends/accounts/annual/history"
 	dividendsHistoryByPaymentDatePath = "/api/v1/dividends/accounts/annual/history/by-payment-date"
 )
-
-// getJSONWithAccountKey is getJSON with the account-scoping header the web app
-// sends on per-account endpoints (dividends 등).
-func (c *Client) getJSONWithAccountKey(ctx context.Context, endpoint, accountKey string, target any) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return err
-	}
-	c.applySession(req)
-	if accountKey != "" {
-		req.Header.Set("accountKey", accountKey)
-	}
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return newStatusError(resp.StatusCode, endpoint, data)
-	}
-	return json.Unmarshal(data, target)
-}
-
-// primaryAccountKey returns the primary account's key for account-scoped calls.
-func (c *Client) primaryAccountKey(ctx context.Context) (string, error) {
-	accounts, primary, err := c.ListAccounts(ctx)
-	if err != nil {
-		return "", err
-	}
-	if primary != "" {
-		return primary, nil
-	}
-	if len(accounts) > 0 {
-		return accounts[0].ID, nil
-	}
-	return "", fmt.Errorf("no account found")
-}
 
 type divAmt struct {
 	KRW float64 `json:"krw"`

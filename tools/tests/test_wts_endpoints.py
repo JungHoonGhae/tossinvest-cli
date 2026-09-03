@@ -97,6 +97,19 @@ class TestDerivePaths(unittest.TestCase):
 
 
 class TestClassify(unittest.TestCase):
+    def test_capture_sweep_preserves_existing_source_evidence(self):
+        repo = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        with open(
+            os.path.join(repo, "docs", "reverse-engineering", "wts-endpoints.json"),
+            encoding="utf-8",
+        ) as source:
+            catalog = json.load(source)
+        self.assertIn(
+            "bundle-literal:",
+            catalog["endpoints"]["/api/v1/bond-infos"]["observed"]["source"],
+            "the generated catalog must retain hand-audited bundle-call evidence",
+        )
+
     def test_override_beats_everything(self):
         ov = {"/api/v1/account/list": {"status": "candidate", "note": "손으로 뒤집음"}}
         status, note = W.classify("/api/v1/account/list", ov)
@@ -152,6 +165,21 @@ class TestClassify(unittest.TestCase):
             "/api/v1/my-assets/hidden-stocks/hide",
             "/api/v1/my-assets/hidden-stocks/show",
             "/api/v2/hidden-stocks",
+        ]:
+            with self.subTest(path=path):
+                status, _ = W.classify(path, {})
+                self.assertEqual(status, "implemented")
+
+    def test_account_services_batch_endpoints_are_implemented(self):
+        for path in [
+            "/api/v1/autotrade/open-banking/creatable",
+            "/api/v1/autotrade/open-banking/need-registration",
+            "/api/v1/trading/settings/simple-trade",
+            "/api/v2/trading/settings/investor-exchange-choice-type",
+            "/api/v1/users/settings/me/ats-notification",
+            "/api/v1/member-subscriptions/get-option-real-time-tick",
+            "/api/v1/securities-transfer/my-accounts",
+            "/api/v1/securities-transfer/recent-accounts",
         ]:
             with self.subTest(path=path):
                 status, _ = W.classify(path, {})
@@ -462,7 +490,7 @@ class TestClassify(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "internal/monitor"):
                 W.discover_go_exposures(repo)
 
-    def test_discover_go_probes_includes_hand_listed_monitor_probes(self):
+    def test_discover_go_probes_includes_shared_and_hand_listed_probes(self):
         repo = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
         probes = W.discover_go_probes(repo)
         names = {probe["name"] for probe in probes}

@@ -60,10 +60,28 @@ func TestRedactOpenBankingStatusMasksNameAndAccount(t *testing.T) {
 	if got.HolderName != "홍**" || got.ConnectedAccount.AccountNo == "123-456-789" {
 		t.Fatalf("identity not redacted: %#v", got)
 	}
-	if got.ConnectedAccount.BankCode != "088" || got.ConnectedAccount.OpenBankingID != 42 {
-		t.Fatalf("non-secret connection metadata changed: %#v", got)
+	if got.ConnectedAccount.BankCode != "088" || got.ConnectedAccount.OpenBankingID != 0 {
+		t.Fatalf("internal connection id was not removed: %#v", got)
 	}
-	if input.ConnectedAccount.AccountNo != "123-456-789" {
+	if input.ConnectedAccount.AccountNo != "123-456-789" || input.ConnectedAccount.OpenBankingID != 42 {
+		t.Fatalf("input mutated: %#v", input)
+	}
+}
+
+func TestRedactSecuritiesTransferAccountsMasksEveryNumberWithoutMutatingInput(t *testing.T) {
+	t.Parallel()
+	input := domain.SecuritiesTransferAccounts{
+		OwnAccounts:    []domain.SecuritiesTransferAccount{{BankCode: "092", AccountNo: "123-456-789", AccountID: "own-1"}},
+		RecentAccounts: []domain.SecuritiesTransferAccount{{BankCode: "088", AccountNo: "987-654-321"}},
+	}
+	got := RedactSecuritiesTransferAccounts(input)
+	if got.OwnAccounts[0].AccountNo == "123-456-789" || got.RecentAccounts[0].AccountNo == "987-654-321" {
+		t.Fatalf("account numbers not redacted: %#v", got)
+	}
+	if got.OwnAccounts[0].BankCode != "092" || got.OwnAccounts[0].AccountID != "" || got.RecentAccounts[0].BankCode != "088" {
+		t.Fatalf("non-secret metadata changed: %#v", got)
+	}
+	if input.OwnAccounts[0].AccountNo != "123-456-789" || input.OwnAccounts[0].AccountID != "own-1" || input.RecentAccounts[0].AccountNo != "987-654-321" {
 		t.Fatalf("input mutated: %#v", input)
 	}
 }

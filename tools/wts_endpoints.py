@@ -60,7 +60,12 @@ IMPLEMENTED = [
     r"^/api/v1/dashboard/all-accounts$",                         # account overview (Android + live verified)
     r"^/api/v1/openapi/client$",                                  # openapi status / doctor
     r"^/api/v1/openapi/client/allowed-ips(?:/[^/]+)?$",            # openapi IP allowlist
-    r"^/api/v1/autotrade/open-banking/info/find$",                 # banking status (read-only)
+    r"^/api/v1/autotrade/open-banking/(info/find|creatable|need-registration)$", # accumulation funding status
+    r"^/api/v1/trading/settings/simple-trade$",                    # trading settings (read-only)
+    r"^/api/v2/trading/settings/investor-exchange-choice-type$",   # KRX/NXT routing preference
+    r"^/api/v1/users/settings/me/ats-notification$",               # ATS notification preference
+    r"^/api/v1/member-subscriptions/get-option-real-time-tick$",   # option tick subscription flags
+    r"^/api/v1/securities-transfer/(my-accounts|recent-accounts)$", # stock-transfer account choices
     r"^/api/v1/calendar/ai-summary/key-events$",                   # current key events
     r"^/api/v1/user-alimies$",                                     # notification settings
     r"^/api/v1/user-price-alimy/[^/]+$",                           # price alert list/create

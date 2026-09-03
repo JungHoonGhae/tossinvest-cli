@@ -1,11 +1,9 @@
 package client
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
@@ -36,13 +34,10 @@ func (c *Client) ListHiddenHoldings(ctx context.Context, accountKey string) (dom
 	if err := c.requireSession(); err != nil {
 		return domain.HiddenHoldings{}, err
 	}
-	accountKey = strings.TrimSpace(accountKey)
-	if accountKey == "" {
-		var err error
-		accountKey, err = c.primaryAccountKey(ctx)
-		if err != nil {
-			return domain.HiddenHoldings{}, err
-		}
+	var err error
+	accountKey, err = c.resolveAccountKey(ctx, accountKey)
+	if err != nil {
+		return domain.HiddenHoldings{}, err
 	}
 	var envelope hiddenHoldingsEnvelope
 	if err := c.getJSONWithAccountKey(ctx, c.certBaseURL+hiddenHoldingsListPath, accountKey, &envelope); err != nil {
@@ -58,7 +53,7 @@ func (c *Client) ListHiddenHoldings(ctx context.Context, accountKey string) (dom
 			TradableQuantity: item.TradableQuantity,
 		})
 	}
-	return domain.HiddenHoldings{AccountKey: accountKey, Holdings: holdings}, nil
+	return domain.HiddenHoldings{AccountKey: accountKey, AccountScope: c.accountScope(accountKey), Holdings: holdings}, nil
 }
 
 // HideHolding hides one holding in the account's Securities portfolio.
@@ -88,27 +83,4 @@ func (c *Client) setHoldingHidden(ctx context.Context, accountKey, productCode, 
 		return err
 	}
 	return c.mutateJSONWithAccountKey(ctx, http.MethodPost, c.apiBaseURL+path, body, accountKey)
-}
-
-func (c *Client) mutateJSONWithAccountKey(ctx context.Context, method, endpoint string, body []byte, accountKey string) error {
-	req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	c.applySession(req)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("accountKey", accountKey)
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return newStatusError(resp.StatusCode, endpoint, data)
-	}
-	return nil
 }

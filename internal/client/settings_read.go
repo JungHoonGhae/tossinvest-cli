@@ -25,7 +25,19 @@ func (c *Client) GetOpenBankingStatus(ctx context.Context) (domain.OpenBankingSt
 		RegistrableAccounts []struct{} `json:"registrableAccounts"`
 		SavingCount         int        `json:"savingCount"`
 	}]
-	if err := c.getJSON(ctx, c.apiBaseURL+"/api/v1/autotrade/open-banking/info/find", &env); err != nil {
+	var creatable quoteEnvelope[bool]
+	var registration quoteEnvelope[bool]
+	if err := runReadBatch(
+		readTask{label: "open banking connection info", run: func() error {
+			return c.getJSON(ctx, c.apiBaseURL+"/api/v1/autotrade/open-banking/info/find", &env)
+		}},
+		readTask{label: "open banking connection eligibility", run: func() error {
+			return c.getJSON(ctx, c.apiBaseURL+"/api/v1/autotrade/open-banking/creatable", &creatable)
+		}},
+		readTask{label: "open banking registration requirement", run: func() error {
+			return c.getJSON(ctx, c.apiBaseURL+"/api/v1/autotrade/open-banking/need-registration", &registration)
+		}},
+	); err != nil {
 		return domain.OpenBankingStatus{}, err
 	}
 
@@ -34,6 +46,8 @@ func (c *Client) GetOpenBankingStatus(ctx context.Context) (domain.OpenBankingSt
 		LinkedAccountCount:      len(env.Result.OpenBankingAccounts),
 		RegistrableAccountCount: len(env.Result.RegistrableAccounts),
 		SavingCount:             env.Result.SavingCount,
+		ConnectionCreatable:     creatable.Result,
+		RegistrationRequired:    registration.Result,
 		FetchedAt:               time.Now().UTC(),
 	}
 	if item := env.Result.ConnectedAccount; item != nil {

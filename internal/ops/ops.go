@@ -91,11 +91,12 @@ type Param struct {
 // (bypassing the typed client on purpose) plus the smallest schema invariant
 // that catches a contract change without false-positiving on unrelated fields.
 type ProbeSpec struct {
-	Name   string // probe name (stable; may differ from the operation ID)
-	Method string
-	URL    string
-	Body   string
-	Check  func(status int, body []byte) error
+	Name          string // probe name (stable; may differ from the operation ID)
+	Method        string
+	URL           string
+	Body          string
+	AccountScoped bool // inject the primary Securities accountKey header at runtime
+	Check         func(status int, body []byte) error
 }
 
 // Operation is one callable API operation in the registry.
@@ -124,6 +125,9 @@ type Operation struct {
 	// ExtraProbes cover additional HTTP dependencies of aggregate operations.
 	// They are kept out of the public operation schema just like Probe.
 	ExtraProbes []ProbeSpec `json:"-"`
+	// ProbeRefs name shared probe specs used by more than one operation. The
+	// shared request runs once even when several operations depend on it.
+	ProbeRefs []string `json:"-"`
 	// handler executes the operation against the given backends.
 	handler func(ctx context.Context, d *Deps, args map[string]any) (any, error)
 }
@@ -175,6 +179,15 @@ func (c *Catalog) List(query string, limit int) []Operation {
 	return out
 }
 
+// Count returns the complete registry size without applying List's public
+// response cap. Use it for runtime-derived documentation and health checks.
+func (c *Catalog) Count() int {
+	if c == nil {
+		return 0
+	}
+	return len(c.ops)
+}
+
 // Get returns the operation with the given ID.
 func (c *Catalog) Get(id string) (Operation, bool) {
 	o, ok := c.byID[id]
@@ -184,11 +197,20 @@ func (c *Catalog) Get(id string) (Operation, bool) {
 // Probes returns the probe specs declared by registry entries, in catalog order.
 func (c *Catalog) Probes() []ProbeSpec {
 	var out []ProbeSpec
+	referenced := make(map[string]bool)
 	for _, o := range c.ops {
 		if o.Probe != nil {
 			out = append(out, *o.Probe)
 		}
 		out = append(out, o.ExtraProbes...)
+		for _, name := range o.ProbeRefs {
+			referenced[name] = true
+		}
+	}
+	for _, probe := range sharedWTSProbes() {
+		if referenced[probe.Name] {
+			out = append(out, probe)
+		}
 	}
 	return out
 }
@@ -392,9 +414,9 @@ func ExpectStatus(got, want int) error {
 	return fmt.Errorf("status %d (want %d)", got, want)
 }
 
-// ExpectPath walks a dotted JSON path (a.b.c) and asserts the value's type.
+// ExpectPath walks a dotted JSON path (a.b.0.c) and asserts the value's type.
 // Supported types: "string", "number", "bool", "object", "array", "null".
-// Array indexing not supported — for nested-array checks, use a custom Check.
+// Numeric segments index arrays; error messages never include response values.
 // (moved verbatim from internal/monitor.)
 func ExpectPath(body []byte, path, wantType string) error {
 	var v any

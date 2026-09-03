@@ -8,13 +8,17 @@ import (
 func TestDiscoveryBatchCommandContracts(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		path     []string
-		wantName string
-		wantFull bool
+		path        []string
+		wantName    string
+		wantFull    bool
+		wantAccount bool
+		wantDomain  string
 	}{
 		{path: []string{"market", "key-events"}, wantName: "key-events"},
-		{path: []string{"banking", "status"}, wantName: "status", wantFull: true},
+		{path: []string{"banking", "status"}, wantName: "status", wantFull: true, wantDomain: "securities"},
 		{path: []string{"notifications", "list"}, wantName: "list"},
+		{path: []string{"account", "trading-settings"}, wantName: "trading-settings", wantAccount: true, wantDomain: "securities"},
+		{path: []string{"account", "transfer-accounts"}, wantName: "transfer-accounts", wantFull: true, wantAccount: true, wantDomain: "securities"},
 	}
 	for _, tc := range tests {
 		cmd, _, err := newRootCmd().Find(tc.path)
@@ -27,8 +31,14 @@ func TestDiscoveryBatchCommandContracts(t *testing.T) {
 		if cmd.Annotations["source"] != "wts" || cmd.Annotations["mutating"] != "" {
 			t.Fatalf("%v: annotations = %#v", tc.path, cmd.Annotations)
 		}
+		if tc.wantDomain != "" && cmd.Annotations["domain"] != tc.wantDomain {
+			t.Fatalf("%v: domain annotation = %#v", tc.path, cmd.Annotations)
+		}
 		if tc.wantFull && cmd.Flags().Lookup("full") == nil {
 			t.Fatalf("%v: --full missing", tc.path)
+		}
+		if tc.wantAccount && cmd.Flags().Lookup("account") == nil {
+			t.Fatalf("%v: --account missing", tc.path)
 		}
 	}
 }

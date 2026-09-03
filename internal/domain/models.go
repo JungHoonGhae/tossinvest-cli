@@ -1007,7 +1007,7 @@ type MarketKeyEvents struct {
 type OpenBankingAccount struct {
 	AccountNo     string `json:"account_no"`
 	BankCode      string `json:"bank_code"`
-	OpenBankingID int64  `json:"open_banking_id"`
+	OpenBankingID int64  `json:"-"` // retained for wire fidelity; never emitted
 }
 
 // OpenBankingStatus intentionally carries only fields observed with stable
@@ -1019,6 +1019,8 @@ type OpenBankingStatus struct {
 	LinkedAccountCount      int                 `json:"linked_account_count"`
 	RegistrableAccountCount int                 `json:"registrable_account_count"`
 	SavingCount             int                 `json:"saving_count"`
+	ConnectionCreatable     bool                `json:"connection_creatable"`
+	RegistrationRequired    bool                `json:"registration_required"`
 	FetchedAt               time.Time           `json:"fetched_at"`
 }
 

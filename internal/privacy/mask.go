@@ -79,7 +79,25 @@ func RedactOpenBankingStatus(value domain.OpenBankingStatus) domain.OpenBankingS
 	if value.ConnectedAccount != nil {
 		account := *value.ConnectedAccount
 		account.AccountNo = AccountNumber(account.AccountNo)
+		account.OpenBankingID = 0
 		out.ConnectedAccount = &account
+	}
+	return out
+}
+
+func RedactSecuritiesTransferAccounts(value domain.SecuritiesTransferAccounts) domain.SecuritiesTransferAccounts {
+	out := value
+	out.OwnAccounts = redactSecuritiesTransferAccountItems(value.OwnAccounts)
+	out.RecentAccounts = redactSecuritiesTransferAccountItems(value.RecentAccounts)
+	return out
+}
+
+func redactSecuritiesTransferAccountItems(items []domain.SecuritiesTransferAccount) []domain.SecuritiesTransferAccount {
+	out := make([]domain.SecuritiesTransferAccount, len(items))
+	copy(out, items)
+	for i := range out {
+		out[i].AccountNo = AccountNumber(out[i].AccountNo)
+		out[i].AccountID = ""
 	}
 	return out
 }

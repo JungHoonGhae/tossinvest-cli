@@ -48,7 +48,7 @@ func (c *opsHiddenClient) ListHiddenHoldings(_ context.Context, accountKey strin
 	if accountKey == "" {
 		accountKey = "primary-test"
 	}
-	return domain.HiddenHoldings{AccountKey: accountKey, Holdings: append([]domain.HiddenHolding(nil), c.holdings...)}, nil
+	return domain.HiddenHoldings{AccountKey: accountKey, AccountScope: "scope-test", Holdings: append([]domain.HiddenHolding(nil), c.holdings...)}, nil
 }
 func (c *opsHiddenClient) HideHolding(_ context.Context, _ string, code string) error {
 	c.holdings = append(c.holdings, domain.HiddenHolding{ProductCode: code})

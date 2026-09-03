@@ -21,6 +21,18 @@ const (
 	probeInfo = "https://wts-info-api.tossinvest.com"
 )
 
+// sharedWTSProbes are runtime dependencies reused by multiple operations.
+// Operations point at these names through ProbeRefs so the dependency graph is
+// explicit without issuing the same health-check request more than once.
+func sharedWTSProbes() []ProbeSpec {
+	return []ProbeSpec{{
+		Name:   "account-list",
+		Method: "GET",
+		URL:    probeAPI + "/api/v1/account/list",
+		Check:  statusAndPath("result.accountList", "array"),
+	}}
+}
+
 func statusAndPath(path, typ string) func(int, []byte) error {
 	return statusAndPaths([2]string{path, typ})
 }
@@ -32,6 +44,32 @@ func statusAndPaths(expected ...[2]string) func(int, []byte) error {
 		}
 		for _, item := range expected {
 			if err := ExpectPath(body, item[0], item[1]); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+func statusAndOptionalArrayItemPaths(expected ...[2]string) func(int, []byte) error {
+	return func(status int, body []byte) error {
+		if err := ExpectStatus(status, 200); err != nil {
+			return err
+		}
+		if err := ExpectPath(body, "result", "array"); err != nil {
+			return err
+		}
+		var envelope struct {
+			Result []json.RawMessage `json:"result"`
+		}
+		if err := json.Unmarshal(body, &envelope); err != nil {
+			return fmt.Errorf("decode result array: %v", err)
+		}
+		if len(envelope.Result) == 0 {
+			return nil
+		}
+		for _, item := range expected {
+			if err := ExpectPath(envelope.Result[0], item[0], item[1]); err != nil {
 				return err
 			}
 		}
@@ -950,9 +988,81 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "trading_settings", Method: "GET", Path: "wts:account/trading-settings", Backend: "wts", Domain: "securities",
+			Category:  "settings",
+			Summary:   "Read-only Securities trading preferences: account-specific simple trade plus user-wide KRX/NXT execution venue, ATS notifications, and option real-time tick subscription flags. WTS-only; not general Toss Banking.",
+			Params:    []Param{{Name: "account", Type: "string", Desc: "Securities account key; primary account when omitted"}},
+			ProbeRefs: []string{"account-list"},
+			Probe: &ProbeSpec{Name: "trading-exchange-choice", Method: "GET",
+				URL:   probeCert + "/api/v2/trading/settings/investor-exchange-choice-type",
+				Check: statusAndPath("result", "string")},
+			ExtraProbes: []ProbeSpec{
+				{Name: "trading-simple-trade", Method: "GET", AccountScoped: true,
+					URL:   probeCert + "/api/v1/trading/settings/simple-trade",
+					Check: statusAndPath("result", "bool")},
+				{Name: "trading-ats-notification", Method: "GET",
+					URL:   probeCert + "/api/v1/users/settings/me/ats-notification",
+					Check: statusAndPath("result", "bool")},
+				{Name: "option-real-time-tick", Method: "GET",
+					URL: probeCert + "/api/v1/member-subscriptions/get-option-real-time-tick",
+					Check: statusAndPaths(
+						[2]string{"result.requested", "bool"},
+						[2]string{"result.serviced", "bool"},
+						[2]string{"result.shouldCharged", "bool"},
+					)},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				account, err := argString(args, "account")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetTradingSettings(ctx, account)
+			},
+		},
+		{
+			ID: "securities_transfer_accounts", Method: "GET", Path: "wts:account/transfer-accounts", Backend: "wts", Domain: "securities",
+			Category: "account",
+			Summary:  "Own and recent destination accounts from the Securities stock-transfer flow. Read-only; account numbers are masked unless full=true. WTS-only; not general Toss Banking.",
+			Params: []Param{
+				{Name: "account", Type: "string", Desc: "Securities account key; primary account when omitted"},
+				{Name: "full", Type: "boolean", Desc: "reveal complete account numbers; false/omitted masks them"},
+			},
+			ProbeRefs: []string{"account-list"},
+			Probe: &ProbeSpec{Name: "securities-transfer-my-accounts", Method: "GET", AccountScoped: true,
+				URL: probeCert + "/api/v1/securities-transfer/my-accounts",
+				Check: statusAndOptionalArrayItemPaths(
+					[2]string{"bankCode", "string"},
+					[2]string{"accountNo", "string"},
+					[2]string{"accountId", "string"},
+				)},
+			ExtraProbes: []ProbeSpec{
+				{Name: "securities-transfer-recent-accounts", Method: "GET", AccountScoped: true,
+					URL: probeCert + "/api/v1/securities-transfer/recent-accounts",
+					Check: statusAndOptionalArrayItemPaths(
+						[2]string{"bankCode", "string"},
+						[2]string{"accountNo", "string"},
+					)},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				account, err := argString(args, "account")
+				if err != nil {
+					return nil, err
+				}
+				full, err := argBool(args, "full")
+				if err != nil {
+					return nil, err
+				}
+				value, err := d.WTS.GetSecuritiesTransferAccounts(ctx, account)
+				if err != nil || full {
+					return value, err
+				}
+				return privacy.RedactSecuritiesTransferAccounts(value), nil
+			},
+		},
+		{
 			ID: "banking_status", Method: "GET", Path: "wts:autotrade/open-banking/info/find", Backend: "wts", Domain: "securities",
 			Category: "accumulate",
-			Summary:  "Funding account used by Securities stock accumulation (not general Toss Banking), plus linked/registrable counts. Holder and account are masked unless full=true. WTS-only.",
+			Summary:  "Funding account used by Securities stock accumulation (not general Toss Banking), linked/registrable counts, connection eligibility, and registration-required state. Holder and account are masked unless full=true; internal connection IDs are never emitted. WTS-only.",
 			Params:   []Param{{Name: "full", Type: "boolean", Desc: "reveal the account holder and complete account number; false/omitted masks them"}},
 			Probe: &ProbeSpec{Name: "open-banking-status", Method: "GET",
 				URL: probeAPI + "/api/v1/autotrade/open-banking/info/find",
@@ -962,6 +1072,14 @@ func wtsOperations() []Operation {
 					}
 					return ExpectPath(body, "result.savingCount", "number")
 				}},
+			ExtraProbes: []ProbeSpec{
+				{Name: "open-banking-creatable", Method: "GET",
+					URL:   probeAPI + "/api/v1/autotrade/open-banking/creatable",
+					Check: statusAndPath("result", "bool")},
+				{Name: "open-banking-registration", Method: "GET",
+					URL:   probeAPI + "/api/v1/autotrade/open-banking/need-registration",
+					Check: statusAndPath("result", "bool")},
+			},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				full, err := argBool(args, "full")
 				if err != nil {

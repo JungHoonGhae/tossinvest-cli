@@ -1,69 +1,87 @@
 package monitor
 
 import (
+	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/JungHoonGhae/tossinvest-cli/internal/ops"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 )
 
 func TestProbesRegistryStableNames(t *testing.T) {
 	want := map[string]bool{
-		"account-commission-info":  true,
-		"account-interest-years":   true,
-		"ria-report":               true,
-		"order-funding":            true,
-		"account-list":             true,
-		"account-summary-overview": true,
-		"account-all-overview":     true,
-		"portfolio-positions":      true,
-		"watchlist":                true,
-		"quote-stock-infos":        true,
-		"pending-orders":           true,
-		"quote-trades":             true,
-		"quote-orderbook":          true,
-		"quote-price-limits":       true,
-		"quote-crypto":             true,
-		"quote-stock-signals":      true,
-		"account-receivable":       true,
-		"option-expiries":          true,
-		"screener-filter-range":    true,
-		"market-trading-hours":     true,
-		"market-index":             true,
-		"stock-ranking":            true,
-		"investor-rankings":        true,
-		"index-prices":             true,
-		"earning-call":             true,
-		"earning-call-home":        true,
-		"earning-call-detail":      true,
-		"community-rankings":       true,
-		"lending-expected":         true,
-		"lending-top-revenue":      true,
-		"accumulation-plans":       true,
-		"profit-overview":          true,
-		"news-briefing":            true,
-		"market-news-briefing":     true,
-		"sectors-tics":             true,
-		"sector-detail-simple":     true,
-		"sector-detail-overview":   true,
-		"sector-detail-stocks":     true,
-		"sector-detail-etfs":       true,
-		"sector-detail-news":       true,
-		"theme-rankings":           true,
-		"trading-flows":            true,
-		"ai-signals":               true,
-		"ai-signal-detail":         true,
-		"screener-presets":         true,
-		"watchlist-groups":         true,
-		"market-calendar":          true,
-		"market-halt":              true,
-		"quote-reasons":            true,
-		"quote-charts":             true,
-		"auto-trades":              true,
-		"market-issues":            true,
-		"market-key-events":        true,
-		"open-banking-status":      true,
-		"notification-settings":    true,
-		"price-alerts":             true,
-		"hidden-holdings":          true,
+		"account-commission-info":             true,
+		"account-interest-years":              true,
+		"ria-report":                          true,
+		"order-funding":                       true,
+		"account-list":                        true,
+		"account-summary-overview":            true,
+		"account-all-overview":                true,
+		"portfolio-positions":                 true,
+		"watchlist":                           true,
+		"quote-stock-infos":                   true,
+		"pending-orders":                      true,
+		"quote-trades":                        true,
+		"quote-orderbook":                     true,
+		"quote-price-limits":                  true,
+		"quote-crypto":                        true,
+		"quote-stock-signals":                 true,
+		"account-receivable":                  true,
+		"option-expiries":                     true,
+		"screener-filter-range":               true,
+		"market-trading-hours":                true,
+		"market-index":                        true,
+		"stock-ranking":                       true,
+		"investor-rankings":                   true,
+		"index-prices":                        true,
+		"earning-call":                        true,
+		"earning-call-home":                   true,
+		"earning-call-detail":                 true,
+		"community-rankings":                  true,
+		"lending-expected":                    true,
+		"lending-top-revenue":                 true,
+		"accumulation-plans":                  true,
+		"profit-overview":                     true,
+		"news-briefing":                       true,
+		"market-news-briefing":                true,
+		"sectors-tics":                        true,
+		"sector-detail-simple":                true,
+		"sector-detail-overview":              true,
+		"sector-detail-stocks":                true,
+		"sector-detail-etfs":                  true,
+		"sector-detail-news":                  true,
+		"theme-rankings":                      true,
+		"trading-flows":                       true,
+		"ai-signals":                          true,
+		"ai-signal-detail":                    true,
+		"screener-presets":                    true,
+		"watchlist-groups":                    true,
+		"market-calendar":                     true,
+		"market-halt":                         true,
+		"quote-reasons":                       true,
+		"quote-charts":                        true,
+		"auto-trades":                         true,
+		"market-issues":                       true,
+		"market-key-events":                   true,
+		"open-banking-status":                 true,
+		"open-banking-creatable":              true,
+		"open-banking-registration":           true,
+		"notification-settings":               true,
+		"price-alerts":                        true,
+		"hidden-holdings":                     true,
+		"trading-simple-trade":                true,
+		"trading-exchange-choice":             true,
+		"trading-ats-notification":            true,
+		"option-real-time-tick":               true,
+		"securities-transfer-my-accounts":     true,
+		"securities-transfer-recent-accounts": true,
 	}
 	got := map[string]bool{}
 	for _, p := range Probes() {
@@ -76,6 +94,84 @@ func TestProbesRegistryStableNames(t *testing.T) {
 	}
 	if len(got) != len(want) {
 		t.Errorf("expected exactly %d probes, got %d (%v)", len(want), len(got), got)
+	}
+}
+
+func TestDocumentedSurfaceCountsMatchRuntime(t *testing.T) {
+	t.Parallel()
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("resolve test file path")
+	}
+	repo := filepath.Clean(filepath.Join(filepath.Dir(filename), "..", ".."))
+	operationCount := ops.NewCatalog().Count()
+	registryProbeCount := len(ops.NewCatalog().Probes())
+	probeCount := len(Probes())
+	directProbeCount := probeCount - registryProbeCount
+
+	claims := map[string][]string{
+		"AGENTS.md": {
+			fmt.Sprintf("현재 `monitor api` 는 %d개 read-only endpoint", probeCount),
+		},
+		"README.md": {
+			fmt.Sprintf("API 표면은 **%d개 오퍼레이션**", operationCount),
+			fmt.Sprintf("monitor api           # %d개 endpoint", probeCount),
+		},
+		"README.en.md": {
+			fmt.Sprintf("surface is **%d operations**", operationCount),
+			fmt.Sprintf("schema-probe %d endpoints", probeCount),
+		},
+		"docs/operations.md": {
+			fmt.Sprintf("`monitor api` 명령은 %d개 read-only endpoint", probeCount),
+			fmt.Sprintf("%d개는\n`internal/ops` 레지스트리", registryProbeCount),
+			fmt.Sprintf("CLI 전용 %d개", directProbeCount),
+		},
+		"website-fumadocs/content/docs/guide/mcp.mdx": {
+			fmt.Sprintf("표면은 **%d개 오퍼레이션**", operationCount),
+		},
+		"website-fumadocs/content/docs/guide/mcp.en.mdx": {
+			fmt.Sprintf("surface is **%d operations**", operationCount),
+		},
+	}
+	for relative, expected := range claims {
+		data, err := os.ReadFile(filepath.Join(repo, relative))
+		if err != nil {
+			t.Fatalf("read %s: %v", relative, err)
+		}
+		for _, text := range expected {
+			if !strings.Contains(string(data), text) {
+				t.Errorf("%s is missing runtime-derived count claim %q", relative, text)
+			}
+		}
+	}
+}
+
+func TestAccountScopedProbeInjectsResolvedAccountKey(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get("accountKey"); got != "primary-test" {
+			t.Errorf("accountKey = %q, want primary-test", got)
+		}
+		_, _ = w.Write([]byte(`{"result":true}`))
+	}))
+	t.Cleanup(server.Close)
+	probe := Probe{
+		Name: "scoped", Method: http.MethodGet, URL: server.URL,
+		AccountScoped: true, Check: statusAndPath("result", "bool"),
+	}
+	result := runOne(context.Background(), &session.Session{Headers: map[string]string{"accountKey": "stale-test"}}, probe, "primary-test")
+	if !result.OK {
+		t.Fatalf("probe failed: %s", result.Detail)
+	}
+}
+
+func TestAccountKeyFromListUsesPrimaryThenFirstAccount(t *testing.T) {
+	t.Parallel()
+	if got := accountKeyFromList([]byte(`{"result":{"primaryKey":"primary-test","accountList":[{"key":"first-test"}]}}`)); got != "primary-test" {
+		t.Fatalf("primary key = %q", got)
+	}
+	if got := accountKeyFromList([]byte(`{"result":{"accountList":[{"key":"first-test"}]}}`)); got != "first-test" {
+		t.Fatalf("fallback key = %q", got)
 	}
 }
 
@@ -174,19 +270,27 @@ func TestDiscoveryProbeChecksRejectBrokenSchemas(t *testing.T) {
 		good string
 		bad  string
 	}{
-		"news-briefing":          {good: `{"result":{"items":[]}}`, bad: `{"result":{}}`},
-		"market-news-briefing":   {good: `{"result":{"items":[]}}`, bad: `{"result":{}}`},
-		"lending-top-revenue":    {good: `{"result":{"items":[]}}`, bad: `{"result":{}}`},
-		"sector-detail-overview": {good: `{"result":{"ticsId":1}}`, bad: `{"result":{}}`},
-		"sector-detail-stocks":   {good: `{"result":{"stocks":[],"totalCount":0}}`, bad: `{"result":{"stocks":[]}}`},
-		"sector-detail-etfs":     {good: `{"result":{"etfs":[],"totalCount":0}}`, bad: `{"result":{"etfs":[]}}`},
-		"sector-detail-news":     {good: `{"result":{"body":[],"totalCount":0}}`, bad: `{"result":{"body":[]}}`},
-		"market-key-events":      {good: `{"result":{"earnings":[],"eci":{"indicators":[]}}}`, bad: `{"result":{"earnings":[]}}`},
-		"open-banking-status":    {good: `{"result":{"savingCount":0}}`, bad: `{"result":{}}`},
-		"notification-settings":  {good: `{"result":[]}`, bad: `{"result":{}}`},
-		"price-alerts":           {good: `{"result":[]}`, bad: `{"result":{}}`},
-		"hidden-holdings":        {good: `{"result":{"hiddenStocks":[]}}`, bad: `{"result":{}}`},
-		"account-all-overview":   {good: `{"result":[{"data":{"accountOverviews":[],"minorAccountOverviews":[],"totalAssetAmount":0}}]}`, bad: `{"result":[{"data":{"accountOverviews":[]}}]}`},
+		"news-briefing":                       {good: `{"result":{"items":[]}}`, bad: `{"result":{}}`},
+		"market-news-briefing":                {good: `{"result":{"items":[]}}`, bad: `{"result":{}}`},
+		"lending-top-revenue":                 {good: `{"result":{"items":[]}}`, bad: `{"result":{}}`},
+		"sector-detail-overview":              {good: `{"result":{"ticsId":1}}`, bad: `{"result":{}}`},
+		"sector-detail-stocks":                {good: `{"result":{"stocks":[],"totalCount":0}}`, bad: `{"result":{"stocks":[]}}`},
+		"sector-detail-etfs":                  {good: `{"result":{"etfs":[],"totalCount":0}}`, bad: `{"result":{"etfs":[]}}`},
+		"sector-detail-news":                  {good: `{"result":{"body":[],"totalCount":0}}`, bad: `{"result":{"body":[]}}`},
+		"market-key-events":                   {good: `{"result":{"earnings":[],"eci":{"indicators":[]}}}`, bad: `{"result":{"earnings":[]}}`},
+		"open-banking-status":                 {good: `{"result":{"savingCount":0}}`, bad: `{"result":{}}`},
+		"open-banking-creatable":              {good: `{"result":true}`, bad: `{"result":"true"}`},
+		"open-banking-registration":           {good: `{"result":false}`, bad: `{"result":0}`},
+		"notification-settings":               {good: `{"result":[]}`, bad: `{"result":{}}`},
+		"price-alerts":                        {good: `{"result":[]}`, bad: `{"result":{}}`},
+		"hidden-holdings":                     {good: `{"result":{"hiddenStocks":[]}}`, bad: `{"result":{}}`},
+		"account-all-overview":                {good: `{"result":[{"data":{"accountOverviews":[],"minorAccountOverviews":[],"totalAssetAmount":0}}]}`, bad: `{"result":[{"data":{"accountOverviews":[]}}]}`},
+		"trading-simple-trade":                {good: `{"result":false}`, bad: `{"result":null}`},
+		"trading-exchange-choice":             {good: `{"result":"integrated"}`, bad: `{"result":true}`},
+		"trading-ats-notification":            {good: `{"result":true}`, bad: `{"result":"true"}`},
+		"option-real-time-tick":               {good: `{"result":{"requested":false,"serviced":true,"shouldCharged":false}}`, bad: `{"result":{"requested":false,"serviced":true}}`},
+		"securities-transfer-my-accounts":     {good: `{"result":[]}`, bad: `{"result":[{"bankCode":"092","accountNo":"123"}]}`},
+		"securities-transfer-recent-accounts": {good: `{"result":[]}`, bad: `{"result":[{"bankCode":"088"}]}`},
 	}
 	probes := make(map[string]Probe)
 	for _, probe := range Probes() {

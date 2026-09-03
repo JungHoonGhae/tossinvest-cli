@@ -33,7 +33,7 @@ Claude Desktop·Codex 등 **JSON 설정 방식** 호스트는 아래 [JSON 설�
 
 MCP 의 고질적 비용은 **툴 스키마가 모델 컨텍스트에 상시 상주**한다는 점입니다. API 하나당 툴 하나로
 등록하면 그 툴의 이름·설명·파라미터 스키마 전부가 대화 내내 컨텍스트를 차지합니다. tossctl 의 API
-표면은 **40여 개 오퍼레이션**(계속 증가) — 개별 툴로 노출하면 그만큼의 스키마가 항상 떠 있어 토큰을
+표면은 **100개 오퍼레이션**(계속 증가) — 개별 툴로 노출하면 그만큼의 스키마가 항상 떠 있어 토큰을
 먹고, 비슷한 툴 사이 오판(툴 선택 노이즈)도 커집니다.
 
 tossctl 은 [KIS_MCP_Server](https://github.com/pineconedata/kis-mcp-server) 의 catalog 모드를
@@ -66,7 +66,9 @@ MCP 는 **조회를 공식 Open API + WTS 전용 기능 모두** 노출하고, *
 - **조회(read)** — 공식 API(계좌·시세·호가·체결·캔들 등)와 **WTS 전용**(인기 순위·수급·AI 시그널·
   스크리너·업종·어닝·브리핑·배당·실현손익·거래내역·관심종목 등, [공식으로 막히는 것 →
   tossctl 로 되는 것](/docs/guide/hybrid-openapi) 참고)을 함께 노출합니다. WTS 조회는 웹 세션이 필요하고, 없으면 해당 오퍼레이션이 `tossctl auth
-  login` 안내를 돌려줍니다.
+  login` 안내를 돌려줍니다. 증권 거래 설정·주식이체 계좌·주식모으기 자금연결 상태는
+  `trading_settings`·`securities_transfer_accounts`·`banking_status`로 호출하며, 앞의 두
+  오퍼레이션은 선택적 `account`로 기본 계좌 외 계좌도 지정합니다.
 - **주문(write)** — 생성·취소·정정은 **항상 공식 API 경로만** 사용합니다(WTS 미경유). 에이전트에
   주문을 맡기는 이상 제출 경로는 토스가 공식 승인한 API 여야 안전하고 정직하기 때문입니다.
 - **WTS 설정 쓰기(유일한 예외)** — `openapi_ip_replace_current`는 공식 Open API 허용 목록만

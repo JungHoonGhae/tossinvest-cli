@@ -59,7 +59,7 @@ func TestHiddenHoldingsContract(t *testing.T) {
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
-	if holdings.AccountKey != "primary-test" || len(holdings.Holdings) != 1 || holdings.Holdings[0].ProductCode != "A005930" || holdings.Holdings[0].TradableQuantity != 2 {
+	if holdings.AccountKey != "primary-test" || holdings.AccountScope == "" || holdings.AccountScope == holdings.AccountKey || len(holdings.Holdings) != 1 || holdings.Holdings[0].ProductCode != "A005930" || holdings.Holdings[0].TradableQuantity != 2 {
 		t.Fatalf("unexpected holdings: %#v", holdings)
 	}
 	if err := c.HideHolding(context.Background(), "primary-test", "A005930"); err != nil {
