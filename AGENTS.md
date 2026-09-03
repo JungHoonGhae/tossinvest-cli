@@ -81,7 +81,7 @@ Rules for agents:
 
 ## Probe 목록
 
-현재 `monitor api` 는 48개 read-only endpoint 를 감시합니다. 단일 진실 소스는
+현재 `monitor api` 는 54개 read-only endpoint 를 감시합니다. 단일 진실 소스는
 `internal/monitor.Probes()` 런타임 결과입니다. 대부분은 `internal/ops`
 레지스트리의 오퍼레이션 옆 `ProbeSpec` 에서 파생되고, 카탈로그 오퍼레이션이
 없는 CLI 전용 6개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
@@ -92,13 +92,19 @@ Rules for agents:
 - `investor-rankings` — `GET /api/v1/dashboard/wts/overview/rankings/by-investors`
 - `theme-rankings` — `GET /api/v1/tics/rankings`
 - `sectors-tics` — `GET /api/v1/tics/all`
+- `sector-detail-overview` — `GET /api/v2/dashboard/wts/overview/tics/1/overview`
+- `sector-detail-stocks` — `POST /api/v2/dashboard/wts/overview/tics/1/stocks`
+- `sector-detail-etfs` — `POST /api/v2/dashboard/wts/overview/tics/1/etfs`
+- `sector-detail-news` — `GET /api/v2/dashboard/wts/overview/tics/1/news`
 - `ai-signals` — `GET /api/v2/reasoning-contents/interest`
 - `screener-presets` — `GET /api/v2/screener/presets/common`
 - `trading-flows` — `GET /api/v1/stock-infos/trade/trend/trading-trend`
 - `earning-call` — `GET /api/v1/earning-call/upcoming`
 - `news-briefing` — `GET /api/v2/reasoning/personalized`
+- `market-news-briefing` — `GET /api/v1/dashboard/wts/overview/ai-signals/latest?nationCode=KOR`
 - `community-rankings` — `GET /api/v1/community/top-rankings/INFLUENCER`
 - `lending-expected` — `GET /api/v1/lending/revenue/account/expected`
+- `lending-top-revenue` — `GET /api/v1/lending/revenue/account/top-revenue`
 - `accumulation-plans` — `GET /api/v2/autotrade/plan/find`
 - `profit-overview` — `POST /api/v1/profit/overview`
 - `market-issues` — `GET /api/v1/lens/issues`
@@ -136,5 +142,6 @@ Rules for agents:
 - `market-trading-hours` — `GET /api/v2/system/trading-hours/integrated`
 
 새 카탈로그 endpoint 의존이 생기면 해당 `internal/ops` 오퍼레이션에 `ProbeSpec`을
-붙입니다. CLI 전용 의존성만 `internal/monitor/probes.go` 에 추가합니다. 가이드:
+붙입니다. 한 기능이 여러 endpoint를 합치면 나머지는 `ExtraProbes`에 모두 선언합니다.
+CLI 전용 의존성만 `internal/monitor/probes.go` 에 추가합니다. 가이드:
 `docs/operations.md`.

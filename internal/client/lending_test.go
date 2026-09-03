@@ -42,3 +42,26 @@ func TestGetLendingExpectedNoSession(t *testing.T) {
 		t.Fatal("want error without a session")
 	}
 }
+
+func TestGetTopLendingRevenuePreservesServerRanking(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/v1/lending/revenue/account/top-revenue" {
+			t.Fatalf("request = %s %s", r.Method, r.URL.Path)
+		}
+		_, _ = w.Write([]byte(`{"result":{"items":[` +
+			`{"userName":"user-a","revenue":12.34,"revenueKrw":16900},` +
+			`{"userName":"user-b","revenue":9.87,"revenueKrw":13500}` +
+			`]}}`))
+	}))
+	defer srv.Close()
+
+	c := New(Config{CertBaseURL: srv.URL, Session: &session.Session{Cookies: map[string]string{"SESSION": "s"}}})
+	got, err := c.GetTopLendingRevenue(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("GetTopLendingRevenue: %v", err)
+	}
+	if len(got.Items) != 1 || got.Items[0].Rank != 1 || got.Items[0].UserName != "user-a" || got.Items[0].Revenue != 12.34 || got.Items[0].RevenueKRW != 16900 {
+		t.Fatalf("ranking = %#v", got)
+	}
+}

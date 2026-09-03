@@ -47,20 +47,25 @@ func TestRegistryInvariants(t *testing.T) {
 			}
 		}
 
+		var probes []ProbeSpec
 		if o.Probe != nil {
-			if o.Probe.Name == "" || o.Probe.Check == nil {
+			probes = append(probes, *o.Probe)
+		}
+		probes = append(probes, o.ExtraProbes...)
+		for _, probe := range probes {
+			if probe.Name == "" || probe.Check == nil {
 				t.Errorf("%s: probe must have Name and Check", o.ID)
 			}
-			if seenProbe[o.Probe.Name] {
-				t.Errorf("%s: duplicate probe name %q", o.ID, o.Probe.Name)
+			if seenProbe[probe.Name] {
+				t.Errorf("%s: duplicate probe name %q", o.ID, probe.Name)
 			}
-			seenProbe[o.Probe.Name] = true
-			u, err := url.Parse(o.Probe.URL)
+			seenProbe[probe.Name] = true
+			u, err := url.Parse(probe.URL)
 			if err != nil || u.Scheme != "https" || !strings.HasSuffix(u.Host, ".tossinvest.com") {
-				t.Errorf("%s: probe URL %q must be https on *.tossinvest.com", o.ID, o.Probe.URL)
+				t.Errorf("%s: probe URL %q must be https on *.tossinvest.com", o.ID, probe.URL)
 			}
-			if o.Probe.Method != "GET" && o.Probe.Method != "POST" {
-				t.Errorf("%s: probe method %q must be GET or POST", o.ID, o.Probe.Method)
+			if probe.Method != "GET" && probe.Method != "POST" {
+				t.Errorf("%s: probe method %q must be GET or POST", o.ID, probe.Method)
 			}
 		}
 	}

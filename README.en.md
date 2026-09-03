@@ -8,7 +8,7 @@
   <h1>tossinvest-cli</h1>
   <p><strong>The most flexible way to connect Toss Securities. Via CLI, via MCP server, from any AI agent — 100% of the official API, plus the features only the web app had.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — any AI agent drives Toss Securities accounts, quotes, and trades through one <code>tossctl</code>. <strong>Attach it as an MCP server (<code>tossctl mcp</code>) or run it by hand</strong>, <strong>with no key at all — or auto-routed through the official path when you connect one.</strong></p>
-  <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — 53 tossctl-only capabilities beyond the official Open API, with <strong>100% of the official Open API's coverage included too.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
+  <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — 55 tossctl-only capabilities beyond the official Open API, with <strong>100% of the official Open API's coverage included too.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
   <p><sub><em>An unofficial Toss Securities CLI for AI agents. Auto-routes through the official OAuth path when you connect an official key.</em></sub></p>
 </div>
 
@@ -268,10 +268,11 @@ token and consent boundary to be verified first.
 | **🆕 US options trading hours** | `market option-hours` (previous · today · next business-day sessions) | ❌ | ✅ |
 | **🆕 Popular community lounges** | `community boards` (lounges by follower count · comment counts · joined) | ❌ | ✅ |
 | **Expected lending income** | `lending expected` (projected share-lending income: monthly/yearly USD + per-stock) | ❌ | ✅ |
+| **Share-lending revenue ranking** | `lending top [--size N]` (top anonymized users by cumulative revenue) | ❌ | ✅ |
 | **Community rankings** | `community rankings --type influencer\|profit\|followers` | ❌ | ✅ |
-| **Sector movements** | `market sectors [id]` (industry tree, 1d·1m·1y returns) | ❌ | ✅ |
+| **Sector movements & detail** | `market sectors [id]` (tree and returns), `market sector <id>` (overview + first-page stocks, ETFs, and news with total counts) | ❌ | ✅ |
 | **Theme fluctuation ranking** | `market themes` (today's top-moving themes, rising-stock counts) | ❌ | ✅ |
-| **Personalized news briefing** | `market briefing` (holding/watchlist asset · return · AI reasoning · news and related stocks) | ❌ | ✅ |
+| **AI news briefing** | `market briefing [--scope personalized\|kr\|us]` (personalized or latest KR/US briefing) | ❌ | ✅ |
 | **🆕 Key earnings & economic releases** | `market key-events` (estimates · actuals · surprises · previous values) | ❌ | ✅ |
 | **🆕 Securities stock-accumulation funding status** | `banking status [--full]` (not general Banking; holder/account masked by default) | ❌ | ✅ |
 | **🆕 Notification preferences** | `notifications list` (read-only; internal user ID omitted) | ❌ | ✅ |
@@ -697,7 +698,11 @@ tossctl order funding                            # buyable? deposit/exchange sti
 tossctl market option-hours                      # US options business days
 tossctl community boards                         # popular lounges by followers
 tossctl accumulate list|status <symbol>          # found in Securities mobile UI, WTS-call verified
-tossctl market investors|earnings|briefing|sectors|themes|index|ranking|signals
+tossctl lending expected|top                     # expected income or anonymized revenue ranking
+tossctl market briefing --scope personalized|kr|us
+tossctl market sectors                           # sector ids and returns
+tossctl market sector <id>                       # overview, stocks, ETFs, and news
+tossctl market investors|earnings|themes|index|ranking|signals
 tossctl market key-events                        # current key earnings and economic releases
 tossctl community rankings --type influencer|profit|followers
 tossctl orders list
@@ -780,11 +785,11 @@ tossctl auth extend --if-expiring 48h   # extend only when close to expiry (cron
 ### API regression watch
 
 ```bash
-tossctl monitor api           # schema-probe 48 endpoints (parallel); exit 0 pass, 1 fail
+tossctl monitor api           # schema-probe 54 endpoints (parallel); exit 0 pass, 1 fail
 tossctl monitor api --quiet   # for cron
 ```
 
-Checks the response schema of 48 read-only endpoints in parallel, using your own session on your own machine — to catch Toss server-side body-contract changes (like [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29)) early. It only returns an exit code, so you compose alert channels (Discord / Slack / ntfy / macOS / email) on the right side of `|| <command>` in your cron line. Recipes: [`AGENTS.md`](AGENTS.md), setup guide: [`docs/operations.md`](docs/operations.md).
+Checks the response schema of 54 read-only endpoints in parallel, using your own session on your own machine — to catch Toss server-side body-contract changes (like [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29)) early. It only returns an exit code, so you compose alert channels (Discord / Slack / ntfy / macOS / email) on the right side of `|| <command>` in your cron line. Recipes: [`AGENTS.md`](AGENTS.md), setup guide: [`docs/operations.md`](docs/operations.md).
 
 ## Development
 

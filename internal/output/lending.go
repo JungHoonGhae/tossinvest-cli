@@ -42,3 +42,38 @@ func WriteLendingExpected(w io.Writer, format Format, l domain.LendingExpected) 
 		return renderTable(w, headers, rows, aligns...)
 	}
 }
+
+// WriteLendingRevenueRanking renders the anonymized share-lending leaderboard.
+func WriteLendingRevenueRanking(w io.Writer, format Format, ranking domain.LendingRevenueRanking) error {
+	switch format {
+	case FormatJSON:
+		return writeJSON(w, ranking)
+	case FormatCSV:
+		rows := make([][]string, 0, len(ranking.Items))
+		for _, item := range ranking.Items {
+			rows = append(rows, []string{
+				strconv.Itoa(item.Rank), item.UserName,
+				formatFloat(item.Revenue), formatFloat(item.RevenueKRW),
+			})
+		}
+		return writeCSV(w, []string{"rank", "user_name", "revenue", "revenue_krw"}, rows)
+	case FormatTable:
+		if len(ranking.Items) == 0 {
+			_, err := fmt.Fprint(w, i18n.T("output.lendingTop.empty"))
+			return err
+		}
+		rows := make([][]string, 0, len(ranking.Items))
+		for _, item := range ranking.Items {
+			rows = append(rows, []string{
+				strconv.Itoa(item.Rank), item.UserName,
+				formatFloat(item.Revenue), formatFloat(item.RevenueKRW),
+			})
+		}
+		return renderTable(w, []string{
+			i18n.T("output.lendingTop.header.rank"), i18n.T("output.lendingTop.header.user"),
+			i18n.T("output.lendingTop.header.revenue"), i18n.T("output.lendingTop.header.revenueKRW"),
+		}, rows, AlignRight, AlignLeft, AlignRight, AlignRight)
+	default:
+		return fmt.Errorf("unsupported output format: %s", format)
+	}
+}

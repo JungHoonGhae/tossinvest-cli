@@ -42,7 +42,7 @@ type Result struct {
 // Probes returns the read-only endpoints we monitor.
 //
 // Most probes are declared next to their operation in the internal/ops
-// registry (one entry = the operation + its probe) and derived here. The
+// registry (an operation owns probes for all of its HTTP dependencies) and
 // remainder are CLI-surface probes with no registry operation (quote/market
 // commands that call the WTS client directly) and stay hand-listed below.
 //

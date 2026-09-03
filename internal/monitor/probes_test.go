@@ -35,10 +35,16 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"earning-call-home":        true,
 		"community-rankings":       true,
 		"lending-expected":         true,
+		"lending-top-revenue":      true,
 		"accumulation-plans":       true,
 		"profit-overview":          true,
 		"news-briefing":            true,
+		"market-news-briefing":     true,
 		"sectors-tics":             true,
+		"sector-detail-overview":   true,
+		"sector-detail-stocks":     true,
+		"sector-detail-etfs":       true,
+		"sector-detail-news":       true,
 		"theme-rankings":           true,
 		"trading-flows":            true,
 		"ai-signals":               true,
@@ -165,13 +171,19 @@ func TestDiscoveryProbeChecksRejectBrokenSchemas(t *testing.T) {
 		good string
 		bad  string
 	}{
-		"news-briefing":         {good: `{"result":{"items":[]}}`, bad: `{"result":{}}`},
-		"market-key-events":     {good: `{"result":{"earnings":[],"eci":{"indicators":[]}}}`, bad: `{"result":{"earnings":[]}}`},
-		"open-banking-status":   {good: `{"result":{"savingCount":0}}`, bad: `{"result":{}}`},
-		"notification-settings": {good: `{"result":[]}`, bad: `{"result":{}}`},
-		"price-alerts":          {good: `{"result":[]}`, bad: `{"result":{}}`},
-		"hidden-holdings":       {good: `{"result":{"hiddenStocks":[]}}`, bad: `{"result":{}}`},
-		"account-all-overview":  {good: `{"result":[{"data":{"accountOverviews":[],"minorAccountOverviews":[],"totalAssetAmount":0}}]}`, bad: `{"result":[{"data":{"accountOverviews":[]}}]}`},
+		"news-briefing":          {good: `{"result":{"items":[]}}`, bad: `{"result":{}}`},
+		"market-news-briefing":   {good: `{"result":{"items":[]}}`, bad: `{"result":{}}`},
+		"lending-top-revenue":    {good: `{"result":{"items":[]}}`, bad: `{"result":{}}`},
+		"sector-detail-overview": {good: `{"result":{"ticsId":1}}`, bad: `{"result":{}}`},
+		"sector-detail-stocks":   {good: `{"result":{"stocks":[],"totalCount":0}}`, bad: `{"result":{"stocks":[]}}`},
+		"sector-detail-etfs":     {good: `{"result":{"etfs":[],"totalCount":0}}`, bad: `{"result":{"etfs":[]}}`},
+		"sector-detail-news":     {good: `{"result":{"body":[],"totalCount":0}}`, bad: `{"result":{"body":[]}}`},
+		"market-key-events":      {good: `{"result":{"earnings":[],"eci":{"indicators":[]}}}`, bad: `{"result":{"earnings":[]}}`},
+		"open-banking-status":    {good: `{"result":{"savingCount":0}}`, bad: `{"result":{}}`},
+		"notification-settings":  {good: `{"result":[]}`, bad: `{"result":{}}`},
+		"price-alerts":           {good: `{"result":[]}`, bad: `{"result":{}}`},
+		"hidden-holdings":        {good: `{"result":{"hiddenStocks":[]}}`, bad: `{"result":{}}`},
+		"account-all-overview":   {good: `{"result":[{"data":{"accountOverviews":[],"minorAccountOverviews":[],"totalAssetAmount":0}}]}`, bad: `{"result":[{"data":{"accountOverviews":[]}}]}`},
 	}
 	probes := make(map[string]Probe)
 	for _, probe := range Probes() {

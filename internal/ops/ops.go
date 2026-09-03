@@ -10,8 +10,8 @@
 // A probe deliberately bypasses the typed client (raw method/URL/body plus a
 // schema invariant) so that server-side contract changes are caught even when
 // the client code is in lockstep — see the #29 regression. Probes are curated,
-// not mandatory: one representative endpoint per CLI surface (Probe stays nil
-// on the rest to keep the live-API cron cheap and quiet).
+// not mandatory; aggregate operations may declare extra dependency probes while
+// already-covered surfaces leave Probe nil to keep the live-API cron quiet.
 //
 // ponytail: operations are hand-registered. When the official OpenAPI surface
 // stabilises further, this registry is the natural seam to generate directly
@@ -118,9 +118,12 @@ type Operation struct {
 	// dispatching.
 	Backend string  `json:"backend,omitempty"`
 	Params  []Param `json:"params"`
-	// Probe, when set, is the monitoring spec derived by internal/monitor.
+	// Probe, when set, is the primary monitoring spec derived by internal/monitor.
 	// Curated — nil on operations whose surface is already covered.
 	Probe *ProbeSpec `json:"-"`
+	// ExtraProbes cover additional HTTP dependencies of aggregate operations.
+	// They are kept out of the public operation schema just like Probe.
+	ExtraProbes []ProbeSpec `json:"-"`
 	// handler executes the operation against the given backends.
 	handler func(ctx context.Context, d *Deps, args map[string]any) (any, error)
 }
@@ -185,6 +188,7 @@ func (c *Catalog) Probes() []ProbeSpec {
 		if o.Probe != nil {
 			out = append(out, *o.Probe)
 		}
+		out = append(out, o.ExtraProbes...)
 	}
 	return out
 }
