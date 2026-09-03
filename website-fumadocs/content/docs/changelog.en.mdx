@@ -9,39 +9,27 @@ Version history below (source: the Korean-language [CHANGELOG.md](https://github
 
 ## [Unreleased]
 
+## [0.50.0] - 2026-09-03
+
 ### 새 기능
-- **`portfolio folders [--account <key>]`** — 일반 보유종목 목록과 별개로 토스증권 앱의 사용자 정의 폴더별 보유종목, 원금·평가액·수익률, 수수료 반영 손익과 숨김 요약을 조회합니다. `FOLDER_OVERVIEW_V2` 요청 계약을 별도 typed 모델로 연결했고 계좌·폴더·item 내부 키는 CLI·JSON·CSV·MCP 출력에서 제외합니다.
-- **관심종목 폴더·종목 안전 쓰기** — 기존에 즉시 적용되던 `watchlist group create|rename|delete`와 `watchlist add|remove --group`를 CLI와 ops/MCP의 공통 안전 워크플로우로 전환했습니다. 이제 기본 동작은 preview이며 `--execute --confirm <token>`으로 실행하고, 토큰은 현재 WTS 세션·서버 상태에 묶여 5분 뒤 만료됩니다. 적용 뒤 서버 상태를 재조회하며, 폴더 삭제 preview는 내부 key 없이 삭제될 종목 코드·심볼·이름을 보여주고 별도 `--acknowledge-irreversible` 승인을 요구합니다. 일반 `watchlist list` JSON에는 `product_code`가 추가되고 CSV에는 같은 이름의 마지막 열이 추가됩니다. WTS가 검증된 idempotency key를 제공하지 않으므로 같은 preview의 동시 실행은 지원하지 않습니다.
-- **`market index <code|name>` 상세 보강** — 기존 가격·OHLC·52주 정보에 실제 시세원과 거래 시작·종료 시각, 현재 장 운영 여부를 추가했습니다. 가격과 `/api/v2/index-infos/{code}` 메타데이터를 병렬 조회하며 두 계약 모두 회귀 감시에 포함합니다.
-- **`portfolio performance`·`portfolio snapshots`·`portfolio snapshot <date>`** — 현재 웹 UI에는 없지만 같은 WTS 세션으로 호출 가능한 증권 자산 스냅샷 6개 계약을 연결했습니다. 모든 증권 계좌의 최근 1개월 일별 원금·평가액·수익률·기간 고저, 커서 기반 과거 평가 이력, 특정 날짜의 국내주식·미국주식·미국옵션·채권 및 보유종목 상세를 조회합니다. 기본값은 전 계좌 합산이고 `--account`로 단일 계좌를 고를 수 있으며, 원래 계좌 키는 결과에 노출하지 않습니다. CLI의 table·JSON·CSV와 ops/MCP가 같은 타입을 사용하고 모든 호출은 읽기 전용입니다.
-- **`account access-status [--account <key>]`** — 토스증권의 최근 접속 환경과 선택한 증권계좌의 신용거래 동결 여부·기간, 사고계좌 수를 한 번에 조회합니다. 원래 계좌 키 대신 세션 비밀로 서명한 불투명한 account scope만 출력하며, 계좌 잠금을 해제하거나 상태를 변경하지 않는 읽기 전용 기능입니다.
-- **`notifications status`** — 통합 알림 설정에서 AI 이슈·FOMC·AI 분석 콘텐츠 플래그를 읽고, 받은함 미확인 여부와 분석 동의를 함께 조회합니다. 알림별 중복 GET 3개를 제거해 설정의 진실 소스를 `/user-alimies`로 단일화했습니다. 상류가 실제로 반환하는 이름 없는 설정 행은 `notifications list`에서 `(untyped)`로 보존하고, 모든 행의 boolean과 요약에 필요한 type·뉴스 수가 누락되면 비활성/0으로 오인하지 않고 오류로 보고합니다. 계정 알림이 아닌 전역 콘텐츠 수 `reasoning_news_count`는 기존 JSON/CSV 계약의 실제 값을 유지하되 deprecated로 표시하고 table에서는 숨깁니다.
-- **`account trading-settings [--account <key>]`** — 계좌별 간편주문 활성 상태와 사용자 공통 KRX/NXT 체결시장 선택·ATS 알림·옵션 실시간 시세 요청·서비스·과금 관련 서버 원문 플래그를 한 번에 조회합니다. 기본 계좌 외 다른 증권 계좌도 고를 수 있고 결과에는 원래 키 대신 세션 비밀로 서명한 불투명한 account scope를 표시합니다. 모두 증권 WTS의 읽기 계약이며 설정을 변경하지 않습니다.
-- **`account transfer-accounts [--account <key>] [--full]`** — 증권 주식이체 화면에서 제공하는 내 계좌와 최근 목적지 계좌를 조회합니다. 기본 계좌 외 다른 증권 계좌도 고를 수 있으며, 계좌번호는 CLI·ops/MCP에서 기본 마스킹하고 내부 `accountId`는 `--full`에서도 출력하지 않습니다. 이 명령은 이체를 시작하거나 계좌 상태를 바꾸지 않습니다.
-- **`accumulate funding-status [--full]` 보강** — 기존 주식모으기 자금연결 정보에 새 연결 생성 가능 여부·등록 필요 여부와 자동주문 자금연결 등록 상태를 추가했습니다. 일반 Toss Banking이 아닌 `securities + wts` 기능이며, 이전 `banking status`와 `banking_status`는 deprecated alias로 계속 동작합니다. 내부 `openBankingId`는 `--full`에서도 출력하지 않습니다.
-- **`market earnings [event-id]`** — 일정 목록의 이벤트 ID로 어닝콜 보고서 메타데이터와 공개된 오디오·대본·발표자료 링크를 조회합니다. 현재 WTS 번들의 정확한 호출부와 읽기 전용 라이브 응답을 함께 검증했으며 CLI·ops/MCP가 같은 상세 타입을 사용합니다. 일정의 table·CSV에도 상세 조회에 필요한 이벤트 ID를 보존합니다.
-- **`quote alert list|add|remove <symbol>`** — 토스증권 목표가 알림을 조회하고 추가·삭제합니다. 변경은 기본 preview이며 현재 알림 전체에 결합된 `confirm_token`을 `--execute --confirm`으로 다시 전달해야 합니다. 최대 10개·통화·가격을 로컬에서 검증하고, 요청 응답이 유실돼도 서버 상태를 재조회해 실제 적용 여부를 판정합니다.
-- **`portfolio hidden list|hide|show`** — 증권 포트폴리오에서 숨긴 보유종목을 조회·숨김·복원합니다. 기본 계좌 또는 `--account`를 선택할 수 있고 계좌 키는 출력하지 않습니다. 변경은 목표가 알림과 같은 preview/confirm/재검증 경계를 사용합니다.
-- **`market briefing --scope personalized|kr|us`** — 기존 개인화 브리핑뿐 아니라 한국·미국 시장의 최신 AI 브리핑을 조회합니다. 웹 UI 노출 여부가 아니라 현재 WTS 세션으로 호출과 응답 계약이 검증된 API를 기준으로 연결했습니다.
-- **`market signal <symbol> [--type stocks|equity_etf]`** — 종목·주식형 ETF 하나의 현재 AI 시그널을 전체 근거·키워드·출처 뉴스·연관 종목 흐름까지 조회합니다. 현재 시그널이 없는 정상 종목은 오류가 아닌 명시적인 빈 상태로 반환하며 CLI·ops/MCP에서 같은 타입을 사용합니다.
-- **`market sector <id>`** — `market sectors`에서 찾은 업종 id로 개요와 현재 등락·기간·연관 업종 트리, 구성 종목·관련 ETF·뉴스의 서버 기본 첫 페이지를 한 번에 조회합니다. WTS 화면에서 따로 호출하는 5개 읽기 API를 CLI·MCP의 단일 타입 응답으로 합치고, 각 배열의 반환 건수와 전체 건수를 함께 제공합니다.
-- **`lending top [--size N]`** — 익명 처리된 사용자별 주식대여 누적 수익 상위 랭킹을 조회합니다. 기존 `lending expected`의 내 계좌 예상 수익과 구분됩니다.
+- **실험적 미국 옵션 모의투자** — 옵트인하면 CLI·ops/MCP에서 가상 잔고·교육 상태·주문을 조회하고, 가상 입금과 옵션 주문·취소를 실행할 수 있습니다. 모의 쓰기는 별도 `simulation_execute` 승인을 사용하며 실계좌로 전송되지 않습니다. 같은 주문 의도를 실주문 preview로 옮기는 기능도 실제 주문은 실행하지 않습니다. 현재 `/paper/init`이 일부 계정에서 500을 반환하므로 기본 화면에서는 숨긴 실험 기능으로 제공합니다.
+- **증권 자산·계좌 조회 확대** — 포트폴리오 폴더와 기간별 성과·스냅샷, 접속·계좌 제한 상태, 거래 설정, 주식이체 대상 계좌, 주식모으기 자금연결 상태를 조회할 수 있습니다. 계좌번호와 내부 키는 기본적으로 마스킹하거나 출력하지 않습니다.
+- **시장·리서치 조회 확대** — 지수 장 운영 정보, 어닝콜 자료, 한국·미국·개인화 브리핑, 종목 AI 시그널, 업종 상세, 주식대여 수익 랭킹을 CLI와 ops/MCP에서 조회할 수 있습니다.
+- **설정 변경의 공통 안전 흐름** — 관심종목 폴더·종목, 목표가 알림, 포트폴리오 숨김 설정은 기본 preview 후 confirm token으로 실행하며, 적용 뒤 서버 상태를 다시 확인합니다.
 
 ### 버그 수정
-- 임베디드 환경이나 병렬 테스트에서 root command를 여러 개 만들면 `monitor api --quiet`의 전역 flag 상태가 서로 경합하던 문제를 수정했습니다. quiet 상태는 이제 각 command 인스턴스 안에만 유지됩니다.
-- 거래목적 확인용 MyData 존재 여부 endpoint가 같은 정상 세션에서도 `200`과 `400`을 번갈아 반환해 자금연결 전체 조회와 회귀 감시를 간헐적으로 실패시키던 문제를 제거했습니다. 신뢰할 수 있는 header/state 계약이 확인될 때까지 해당 신호는 callable 기능이 아닌 `candidate/deferred`로 보존합니다.
+- 모의 일괄취소의 예약주문 필드 오류를 고쳤습니다. 빈 2xx·불완전한 prepare/영수증을 성공으로 오인하지 않으며, 가상 입금은 전후 잔고 증가를, 취소는 실제 미체결 상태를 재검증합니다.
+- MCP 대형 결과 축소 과정의 정수 overflow와 상류 `_omitted_items` 충돌을 막고, 병렬 CLI 인스턴스의 monitor quiet flag 경합을 제거했습니다.
+- 간헐적으로 400을 반환하던 거래목적 MyData 후보를 호출·감시 대상에서 제외해 자금연결 조회와 회귀 감시의 오탐을 줄였습니다.
 
 ### 변경
-- 111개로 늘어난 `list_operations`·`ops list`를 탐색용 색인으로 축소했습니다. 목록에는 ID·도메인·분류·요약·backend·쓰기 여부·필수 파라미터만 남기고 HTTP method/path와 전체 mutation 정책은 `describe_operation`·`ops describe`에서 제공합니다. MCP 목록만 compact JSON으로 인코딩해 30KB 결과 상한에서 항목이 잘리지 않으며, summary를 유지해 기능 선택 정보는 잃지 않습니다([#125](https://github.com/JungHoonGhae/tossinvest-cli/issues/125)).
-- operation catalog에 기능 영역 `domain`을 추가해 접근 경로 `backend`와 분리했습니다. 증권 주식모으기 자금연결은 정식 ID `accumulation_funding_status`(`securities + wts`), Open API IP 관리는 `system + wts`로 명시됩니다. 일반 Toss Banking/MyData API는 웹 UI 유무와 무관하게 존재하지만 main-app session·header·cipher connector가 필요한 별도 모바일 인증 영역으로 문서화했습니다.
-- **쓰기 안전 계약을 operation 메타데이터로 승격했습니다.** 16개 callable write가 위험도·가역성·승인 방식(`state_confirmation`/`intent_confirmation`)·config 옵트인·불가역 승인·검증 또는 불확실 결과 처리 방식을 machine-readable `mutation` 정책으로 공개합니다. WTS 설정 변경은 현재 서버 상태에 결합하지만, 주문 확인 토큰은 만료·single-use가 아닌 정확한 의도 확인용이므로 재사용 시 중복 주문이 가능합니다. official 주문은 현재 응답 기반이라 transport error가 나면 결과를 불명확으로 보고 상태 확인 전 재시도하지 않아야 합니다. 향후 자동투자는 전역 bypass가 아니라 종목·시장·방향·금액·유효기간·전략·킬스위치가 묶인 별도 `bounded_mandate`로만 확장합니다.
-- API 회귀 감시는 중복 알림 설정 endpoint와 불안정한 거래목적 MyData 신호를 제거하고 정확한 전역 뉴스 수 계약·지수 메타데이터·포트폴리오 폴더·종목 검색·선택 관심종목 폴더를 추가한 **82개** 계약을 검사합니다(레지스트리 파생 77개 + CLI 전용 5개). 여러 API를 합치는 operation은 `ExtraProbes`로 모든 의존성을 등록하고, 공용 의존성은 `ProbeRefs`로 중복 호출 없이 추적합니다. 계좌 범위 API probe에는 런타임에 확인한 기본 `accountKey`를 넣고, 커서 종료 페이지의 `nextCursorKey: null`도 정상 계약으로 처리합니다. 관심종목 폴더가 없는 계정은 상세 probe를 실패가 아닌 `skipped`로 표시하고, 폴더가 있으면 요청 ID·items 완전성을 검증합니다. 주간 모니터는 WTS build ID 변경과 일반 Toss Android 배포 후보도 함께 알립니다. WTS rolling deploy 중 라우트별로 섞여 서빙되는 활성 build 집합을 합쳐 결정적으로 수집하고, root `build_id`는 manifest에 사용할 수 있는 단일 값으로 유지합니다. 변화 감지와 부분 수집 판정은 활성 `build_ids` 집합을 기준으로 하며, 같은 집합의 chunk 수가 감소하거나 필수 asset fetch·origin·byte budget 검증이 실패하면 기존 카탈로그를 보존합니다. APK 후보는 서명·정적 감사를 마치기 전까지 `stale` 신호로만 취급합니다.
-- APK/XAPK/jadx 정적 분석본은 저장소 상대 경로 `.artifacts/android/`에 버전별로 보관하되 Git에서 제외합니다. 분석 명령이 매번 다른 Downloads 경로에 의존하지 않고, 대형 바이너리·역컴파일 산출물은 커밋되지 않습니다.
-- WTS endpoint 추출 결과가 기존 카탈로그의 75% 아래로 급감하면 부분 수집으로 보고 기존 파일을 보존합니다. 일시적인 route/chunk fetch 실패가 수백 개 endpoint 삭제로 기록되지 않으며, 재스윕 때 기존의 구체적인 정적 호출부 `source` 근거도 보존합니다.
-- 현재 WTS 번들의 정적 경로·호출 근거와 읽기 전용 라이브 응답을 교차 검증한 24개 계약을 endpoint 카탈로그에 반영했습니다. 화면 노출 여부가 아니라 현재 세션으로 실제 호출 가능한 host·method·응답 타입을 구현 근거로 사용합니다.
-- 모의투자 초기화·가상입금·교육·잔고/주문 조회·주문 prepare/create·단건/일괄 취소 경로를 정적 카탈로그와 mutation inventory에 분류했습니다. 전체 주문 payload/receipt, 교육 자격, 실계좌 원장과의 격리가 검증되지 않아 CLI/MCP에는 아직 노출하지 않으며 교육을 우회하는 파라미터도 발견되지 않았습니다.
-- 거래 설정·주식이체 계좌·오픈뱅킹 상태처럼 여러 독립 endpoint를 합치는 읽기는 병렬로 조회합니다. 호출 지연은 합산되지 않으며, 동시에 여러 요청이 실패해도 오류는 선언 순서대로 결정적으로 반환합니다. 계좌 키 선택과 account-scoped HTTP 처리는 전용 내부 모듈에 모아 모든 호출자가 같은 규칙을 사용합니다.
-- 검증 후 보류한 endpoint를 카탈로그 재생성이 다시 `priority: next`로 올리며 구체적인 보류 사유를 지우던 문제를 수정했습니다. 현재 미사용 `r-chart`, 중복 가능성이 큰 배당·업종 API, 대차 약정/지급 내역이 있어야 검증 가능한 API 등 16개는 `priority: deferred`와 재검증 트리거를 보존합니다.
+- operation catalog는 기능 영역(`domain`), 접근 경로(`backend`), 실행 환경(`live/paper`)과 쓰기 승인·가역성 정책을 분리해 공개합니다. 안정 기능 111개와 옵트인 모의투자 기능 8개를 구분합니다.
+- API 감시는 안정 계약 82개에 옵트인 모의투자 계약 4개를 더해 실행할 수 있으며, WTS build 변동과 Android APK 후보도 추적합니다. 불완전한 수집은 기존 카탈로그를 덮어쓰지 않습니다.
+- GitHub Actions·CodeQL·Dependabot·의존성 감사를 강화하고 외부 Action을 commit SHA로 고정했습니다. 문서 사이트는 필요한 흐름만 Mermaid로 표시하며 Next.js 16의 `proxy.ts` 규약을 사용합니다.
+- 릴리즈 노트는 이 요약을 먼저 제공하고, GitHub가 병합 PR·신규 기여자·전체 비교 링크를 자동으로 덧붙이도록 바꿨습니다.
+
+### 기여자
+- 관심종목 그룹 계약을 상세히 제보하고 직접 수정해 주신 @anthonyminyungi 님께 감사드립니다. 이번 릴리즈의 관심종목 안전 쓰기 개선은 해당 기여를 바탕으로 확장했습니다([#176](https://github.com/JungHoonGhae/tossinvest-cli/issues/176), [#177](https://github.com/JungHoonGhae/tossinvest-cli/pull/177)).
 
 ## [0.49.0] - 2026-09-03
 
