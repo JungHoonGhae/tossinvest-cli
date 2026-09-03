@@ -15,19 +15,18 @@ func WriteOpenBankingStatus(w io.Writer, format Format, status domain.OpenBankin
 	if !full {
 		view = privacy.RedactOpenBankingStatus(status)
 	}
-	accountNo, bankCode, connectedID := "", "", ""
+	accountNo, bankCode := "", ""
 	if view.ConnectedAccount != nil {
 		accountNo = view.ConnectedAccount.AccountNo
 		bankCode = view.ConnectedAccount.BankCode
-		connectedID = strconv.FormatInt(view.ConnectedAccount.OpenBankingID, 10)
 	}
 	switch format {
 	case FormatJSON:
 		return writeJSON(w, view)
 	case FormatCSV:
 		return writeCSV(w,
-			[]string{"holder_name", "connected_account_no", "bank_code", "open_banking_id", "linked_account_count", "registrable_account_count", "saving_count", "connection_creatable", "registration_required"},
-			[][]string{{view.HolderName, accountNo, bankCode, connectedID, strconv.Itoa(view.LinkedAccountCount), strconv.Itoa(view.RegistrableAccountCount), strconv.Itoa(view.SavingCount), strconv.FormatBool(view.ConnectionCreatable), strconv.FormatBool(view.RegistrationRequired)}},
+			[]string{"holder_name", "connected_account_no", "bank_code", "linked_account_count", "registrable_account_count", "saving_count", "connection_creatable", "registration_required"},
+			[][]string{{view.HolderName, accountNo, bankCode, strconv.Itoa(view.LinkedAccountCount), strconv.Itoa(view.RegistrableAccountCount), strconv.Itoa(view.SavingCount), strconv.FormatBool(view.ConnectionCreatable), strconv.FormatBool(view.RegistrationRequired)}},
 		)
 	case FormatTable:
 		state := "not connected"

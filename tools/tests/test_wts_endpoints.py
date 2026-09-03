@@ -100,13 +100,14 @@ class TestClassify(unittest.TestCase):
     def test_capture_sweep_preserves_existing_source_evidence(self):
         repo = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
         with open(
-            os.path.join(repo, "tools", "capture_post_bodies.mjs"), encoding="utf-8"
+            os.path.join(repo, "docs", "reverse-engineering", "wts-endpoints.json"),
+            encoding="utf-8",
         ) as source:
-            script = source.read()
+            catalog = json.load(source)
         self.assertIn(
-            "...(prev.source && { source: prev.source })",
-            script,
-            "an authenticated sweep must not erase hand-audited bundle-call evidence",
+            "bundle-literal:",
+            catalog["endpoints"]["/api/v1/bond-infos"]["observed"]["source"],
+            "the generated catalog must retain hand-audited bundle-call evidence",
         )
 
     def test_override_beats_everything(self):

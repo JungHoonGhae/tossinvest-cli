@@ -28,7 +28,7 @@ func (f *fakeClient) ListHiddenHoldings(_ context.Context, accountKey string) (d
 	if accountKey == "" {
 		accountKey = "primary-test"
 	}
-	return domain.HiddenHoldings{AccountKey: accountKey, Holdings: append([]domain.HiddenHolding(nil), f.holdings...)}, nil
+	return domain.HiddenHoldings{AccountKey: accountKey, AccountScope: "scope-test", Holdings: append([]domain.HiddenHolding(nil), f.holdings...)}, nil
 }
 
 func (f *fakeClient) HideHolding(_ context.Context, _ string, productCode string) error {

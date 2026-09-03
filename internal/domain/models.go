@@ -1007,7 +1007,7 @@ type MarketKeyEvents struct {
 type OpenBankingAccount struct {
 	AccountNo     string `json:"account_no"`
 	BankCode      string `json:"bank_code"`
-	OpenBankingID int64  `json:"open_banking_id"`
+	OpenBankingID int64  `json:"-"` // retained for wire fidelity; never emitted
 }
 
 // OpenBankingStatus intentionally carries only fields observed with stable

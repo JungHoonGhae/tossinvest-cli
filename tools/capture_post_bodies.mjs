@@ -41,6 +41,8 @@ import { mkdtempSync, rmSync, readFileSync, writeFileSync, existsSync, readdirSy
 import { tmpdir, homedir } from "node:os";
 import { join } from "node:path";
 
+import { mergeObservedMetadata } from "./catalog_observed.mjs";
+
 const args = process.argv.slice(2);
 const target = args.find((a) => !a.startsWith("--")) ?? "/";
 const raw = args.includes("--raw");
@@ -310,15 +312,12 @@ if (sweep) {
     const entry = key ? cat.endpoints[key] : null;
     if (!entry) { miss++; continue; }
     const prev = entry.observed ?? {};
-    const merge = (a = [], b = []) => [...new Set([...a, ...b])].sort();
-    entry.observed = {
+    entry.observed = mergeObservedMetadata(prev, {
       method: r.method,
       host: u.hostname.split(".")[0],
-      query: merge(prev.query, [...u.searchParams.keys()]),
-      body: merge(prev.body, bodyKeys(r.postData)),
-      at: today,
-      ...(prev.source && { source: prev.source }),
-    };
+      query: [...u.searchParams.keys()],
+      body: bodyKeys(r.postData),
+    }, today);
     hit++;
   }
   writeFileSync(CATALOG, JSON.stringify(cat, null, 2) + "\n");

@@ -3,12 +3,17 @@ package client
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 )
+
+const accountScopeTokenLength = 12
 
 // getJSONWithAccountKey is getJSON with the account-scoping header used by
 // per-account Securities endpoints.
@@ -85,4 +90,29 @@ func (c *Client) resolveAccountKey(ctx context.Context, accountKey string) (stri
 		return key, nil
 	}
 	return c.primaryAccountKey(ctx)
+}
+
+// accountScope returns a session-bound opaque identifier for an account. A
+// plain hash is insufficient because WTS account keys can have very little
+// entropy; keying the digest with the authenticated session prevents an
+// observer from recovering the account key by enumerating likely values.
+func (c *Client) accountScope(accountKey string) string {
+	var secret []byte
+	if c.session != nil {
+		secret = []byte(c.session.Cookies["SESSION"])
+		if len(secret) == 0 {
+			// encoding/json sorts string map keys, producing stable key material
+			// for providers that authenticate with cookies other than SESSION.
+			secret, _ = json.Marshal(c.session.Cookies)
+		}
+	}
+	if len(secret) == 0 {
+		// Account-scoped public methods require a session before reaching here.
+		// Keep this private helper fail-closed if that invariant is broken.
+		return "unavailable"
+	}
+	mac := hmac.New(sha256.New, secret)
+	_, _ = mac.Write([]byte("tossctl/account-scope/v1\x00"))
+	_, _ = mac.Write([]byte(accountKey))
+	return hex.EncodeToString(mac.Sum(nil))[:accountScopeTokenLength]
 }

@@ -53,7 +53,7 @@ func (c *Client) ListHiddenHoldings(ctx context.Context, accountKey string) (dom
 			TradableQuantity: item.TradableQuantity,
 		})
 	}
-	return domain.HiddenHoldings{AccountKey: accountKey, Holdings: holdings}, nil
+	return domain.HiddenHoldings{AccountKey: accountKey, AccountScope: c.accountScope(accountKey), Holdings: holdings}, nil
 }
 
 // HideHolding hides one holding in the account's Securities portfolio.

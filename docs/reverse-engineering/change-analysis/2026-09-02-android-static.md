@@ -123,7 +123,8 @@ CLI·ops/MCP는 예금주명과 계좌번호를 기본 마스킹한다. 같은 �
 서버 기본 첫 페이지를 반환하며 응답의 `totalCount`를 보존한다. 확인되지 않은 페이지 요청
 필드를 추측해 전체 목록인 것처럼 표시하지 않는다. 두 계좌 범위 명령은 `--account`가 없으면
 기본 증권 계좌를 쓰고, 지정하면 해당 키를 `accountKey` 헤더로 전달하되 결과에는 원본 키 대신
-불투명한 account scope만 표시한다. `account trading-settings`는 설정값을 읽기만 하고 변경
+세션 비밀로 서명한 불투명한 account scope만 표시한다. 네 설정 중 간편주문만 계좌별이고 나머지는
+사용자 공통이다. `account trading-settings`는 설정값을 읽기만 하고 변경
 endpoint를 노출하지 않는다. `account transfer-accounts`도 주식이체 화면의 선택 후보만 조회하며
 이체를 시작하거나 계좌 상태를 변경하지 않는다.
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/JungHoonGhae/tossinvest-cli/internal/confirmation"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 )
 
@@ -44,7 +43,7 @@ func (c *Client) GetSecuritiesTransferAccounts(ctx context.Context, accountKey s
 	}
 
 	out := domain.SecuritiesTransferAccounts{
-		AccountScope:   confirmation.Token("account:" + accountKey),
+		AccountScope:   c.accountScope(accountKey),
 		OwnAccounts:    make([]domain.SecuritiesTransferAccount, 0, len(own.Result)),
 		RecentAccounts: make([]domain.SecuritiesTransferAccount, 0, len(recent.Result)),
 		FetchedAt:      time.Now().UTC(),

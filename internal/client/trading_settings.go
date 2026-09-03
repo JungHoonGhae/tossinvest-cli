@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/JungHoonGhae/tossinvest-cli/internal/confirmation"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 )
 
@@ -52,7 +51,7 @@ func (c *Client) GetTradingSettings(ctx context.Context, accountKey string) (dom
 	}
 
 	return domain.TradingSettings{
-		AccountScope:           confirmation.Token("account:" + accountKey),
+		AccountScope:           c.accountScope(accountKey),
 		SimpleTradeEnabled:     simpleTrade.Result,
 		InvestorExchangeChoice: exchangeChoice.Result,
 		ATSNotificationEnabled: atsNotification.Result,

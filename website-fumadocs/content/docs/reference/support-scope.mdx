@@ -51,7 +51,7 @@ app/device header, request/response cipher를 처리하는 mobile connector가 �
 |------|------|:--:|:--:|
 | 계좌 목록 / 요약 | `account list`, `account summary` | ✅ | ✅ |
 | 전체 계좌 자산 | `account overview [--full]` | ❌ | ✅ |
-| 증권 거래 설정 조회 | `account trading-settings [--account <key>]` | ❌ | ✅ |
+| 증권 거래 설정 조회 | `account trading-settings [--account <key>]` (간편주문만 계좌별) | ❌ | ✅ |
 | 증권 주식이체 계좌 조회 | `account transfer-accounts [--account <key>] [--full]` (번호 기본 마스킹, 이체 실행 없음) | ❌ | ✅ |
 | 포트폴리오 | `portfolio positions`, `portfolio allocation` | ✅ | ✅ |
 | 체결 틱 / 호가 | `quote trades`, `quote orderbook` | ✅ | ✅ |
@@ -67,7 +67,7 @@ app/device header, request/response cipher를 처리하는 mobile connector가 �
 | 실적(어닝콜) 일정·상세 | `market earnings [event-id]` (`--major`: 주요 기업) | ❌ | ✅ |
 | 개인화 뉴스 브리핑 | `market briefing` (종목·수익률·AI 사유·뉴스) | ❌ | ✅ |
 | 핵심 실적·경제지표 | `market key-events` | ❌ | ✅ |
-| 증권 주식모으기 자금연결 상태 | `banking status [--full]` (일반 Banking 아님, 연결 생성·등록 필요 상태 포함) | ❌ | ✅ |
+| 증권 주식모으기 자금연결 상태 | `banking status [--full]` (일반 Banking 아님, 연결 생성·등록 필요 상태 포함, 내부 ID 미출력) | ❌ | ✅ |
 | 알림 설정 조회 | `notifications list` | ❌ | ✅ |
 | 목표가 알림 조회·관리 | `quote alert list/add/remove` | ❌ | ✅ |
 | 숨긴 보유종목 조회·관리 | `portfolio hidden list/hide/show` | ❌ | ✅ |

@@ -2,11 +2,16 @@ package monitor
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/ops"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 )
 
@@ -89,6 +94,55 @@ func TestProbesRegistryStableNames(t *testing.T) {
 	}
 	if len(got) != len(want) {
 		t.Errorf("expected exactly %d probes, got %d (%v)", len(want), len(got), got)
+	}
+}
+
+func TestDocumentedSurfaceCountsMatchRuntime(t *testing.T) {
+	t.Parallel()
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("resolve test file path")
+	}
+	repo := filepath.Clean(filepath.Join(filepath.Dir(filename), "..", ".."))
+	operationCount := len(ops.NewCatalog().List("", 0))
+	registryProbeCount := len(ops.NewCatalog().Probes())
+	probeCount := len(Probes())
+	directProbeCount := probeCount - registryProbeCount
+
+	claims := map[string][]string{
+		"AGENTS.md": {
+			fmt.Sprintf("현재 `monitor api` 는 %d개 read-only endpoint", probeCount),
+		},
+		"README.md": {
+			fmt.Sprintf("API 표면은 **%d개 오퍼레이션**", operationCount),
+			fmt.Sprintf("monitor api           # %d개 endpoint", probeCount),
+		},
+		"README.en.md": {
+			fmt.Sprintf("surface is **%d operations**", operationCount),
+			fmt.Sprintf("schema-probe %d endpoints", probeCount),
+		},
+		"docs/operations.md": {
+			fmt.Sprintf("`monitor api` 명령은 %d개 read-only endpoint", probeCount),
+			fmt.Sprintf("%d개는\n`internal/ops` 레지스트리", registryProbeCount),
+			fmt.Sprintf("CLI 전용 %d개", directProbeCount),
+		},
+		"website-fumadocs/content/docs/guide/mcp.mdx": {
+			fmt.Sprintf("표면은 **%d개 오퍼레이션**", operationCount),
+		},
+		"website-fumadocs/content/docs/guide/mcp.en.mdx": {
+			fmt.Sprintf("surface is **%d operations**", operationCount),
+		},
+	}
+	for relative, expected := range claims {
+		data, err := os.ReadFile(filepath.Join(repo, relative))
+		if err != nil {
+			t.Fatalf("read %s: %v", relative, err)
+		}
+		for _, text := range expected {
+			if !strings.Contains(string(data), text) {
+				t.Errorf("%s is missing runtime-derived count claim %q", relative, text)
+			}
+		}
 	}
 }
 

@@ -297,7 +297,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **누적 실현손익** | `profit` (매매손익·배당·대여·만기·예탁금이자, KRW/USD — account summary 와 다른 누적 관점) | ❌ | ✅ |
 | **계좌 상세** | `account detail [--full]` (계좌번호·개설일 + **출금 가능액/한도** + 미수거래 상태 + **미국 배당 수령 방식** — 번호·이름은 기본 마스킹) | ❌ | ✅ |
 | **🆕 전체 계좌 자산** | `account overview [--full]` (일반·미성년 계좌별 자산과 미체결 주문 수 — 번호는 table/JSON/CSV 모두 기본 마스킹) | ❌ | ✅ |
-| **🆕 증권 거래 설정 조회** | `account trading-settings [--account <key>]` (간편주문·KRX/NXT 체결시장·ATS 알림·옵션 실시간 시세 구독 상태, 읽기 전용) | ❌ | ✅ |
+| **🆕 증권 거래 설정 조회** | `account trading-settings [--account <key>]` (계좌별 간편주문 + 사용자 공통 KRX/NXT 체결시장·ATS 알림·옵션 실시간 시세 상태, 읽기 전용) | ❌ | ✅ |
 | **🆕 증권 주식이체 계좌 조회** | `account transfer-accounts [--account <key>] [--full]` (내 계좌·최근 목적지 계좌, 번호 기본 마스킹; 이체 실행 없음) | ❌ | ✅ |
 | **자동매매 조회** | `order autotrade` (스탑로스·목표수익·OCO·OTO 설정과 감시가/주문가 — 조회 전용) | ❌ | ✅ |
 | **시장 뉴스** | `market news [--type all\|watchlist\|holdings\|soaring\|latest\|recommended] [--limit N] [--full]` (기사별 **관련 종목 등락률** 포함 — 헤드라인 목록에 없는 부분) | ❌ | ✅ |
@@ -319,7 +319,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **테마 등락 랭킹** | `market themes` (오늘 가장 많이 오른 테마, 상승종목 수) | ❌ | ✅ |
 | **AI 뉴스 브리핑** | `market briefing [--scope personalized\|kr\|us]` (개인화 또는 한국·미국 최신 브리핑) | ❌ | ✅ |
 | **🆕 핵심 실적·경제지표** | `market key-events` (실적 예상·발표·서프라이즈, 경제지표 실제·예상·직전값) | ❌ | ✅ |
-| **🆕 증권 주식모으기 자금연결 상태** | `banking status [--full]` (일반 Banking 아님; 연결 생성 가능·등록 필요 여부 포함, 예금주·계좌번호 기본 마스킹) | ❌ | ✅ |
+| **🆕 증권 주식모으기 자금연결 상태** | `banking status [--full]` (일반 Banking 아님; 연결 생성 가능·등록 필요 여부 포함, 예금주·계좌번호 기본 마스킹, 내부 ID 항상 미출력) | ❌ | ✅ |
 | **🆕 알림 설정 조회** | `notifications list` (읽기 전용, 내부 사용자 ID 제외) | ❌ | ✅ |
 | **🆕 목표가 알림 조회·관리** | `quote alert list\|add\|remove <symbol>` (변경은 preview + `--execute --confirm`) | ❌ | ✅ |
 | **🆕 숨긴 보유종목 조회·관리** | `portfolio hidden list\|hide\|show` (계좌 키 비노출, 변경 후 재검증) | ❌ | ✅ |

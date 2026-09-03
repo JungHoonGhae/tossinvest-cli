@@ -60,10 +60,10 @@ func TestRedactOpenBankingStatusMasksNameAndAccount(t *testing.T) {
 	if got.HolderName != "홍**" || got.ConnectedAccount.AccountNo == "123-456-789" {
 		t.Fatalf("identity not redacted: %#v", got)
 	}
-	if got.ConnectedAccount.BankCode != "088" || got.ConnectedAccount.OpenBankingID != 42 {
-		t.Fatalf("non-secret connection metadata changed: %#v", got)
+	if got.ConnectedAccount.BankCode != "088" || got.ConnectedAccount.OpenBankingID != 0 {
+		t.Fatalf("internal connection id was not removed: %#v", got)
 	}
-	if input.ConnectedAccount.AccountNo != "123-456-789" {
+	if input.ConnectedAccount.AccountNo != "123-456-789" || input.ConnectedAccount.OpenBankingID != 42 {
 		t.Fatalf("input mutated: %#v", input)
 	}
 }

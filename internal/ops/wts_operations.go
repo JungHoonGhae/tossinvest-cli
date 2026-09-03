@@ -990,7 +990,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "trading_settings", Method: "GET", Path: "wts:account/trading-settings", Backend: "wts", Domain: "securities",
 			Category:  "settings",
-			Summary:   "Read-only Securities trading preferences: simple trade, KRX/NXT execution venue, ATS notifications, and option real-time tick subscription flags. WTS-only; not general Toss Banking.",
+			Summary:   "Read-only Securities trading preferences: account-specific simple trade plus user-wide KRX/NXT execution venue, ATS notifications, and option real-time tick subscription flags. WTS-only; not general Toss Banking.",
 			Params:    []Param{{Name: "account", Type: "string", Desc: "Securities account key; primary account when omitted"}},
 			ProbeRefs: []string{"account-list"},
 			Probe: &ProbeSpec{Name: "trading-exchange-choice", Method: "GET",
@@ -1062,7 +1062,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "banking_status", Method: "GET", Path: "wts:autotrade/open-banking/info/find", Backend: "wts", Domain: "securities",
 			Category: "accumulate",
-			Summary:  "Funding account used by Securities stock accumulation (not general Toss Banking), plus linked/registrable counts. Holder and account are masked unless full=true. WTS-only.",
+			Summary:  "Funding account used by Securities stock accumulation (not general Toss Banking), linked/registrable counts, connection eligibility, and registration-required state. Holder and account are masked unless full=true; internal connection IDs are never emitted. WTS-only.",
 			Params:   []Param{{Name: "full", Type: "boolean", Desc: "reveal the account holder and complete account number; false/omitted masks them"}},
 			Probe: &ProbeSpec{Name: "open-banking-status", Method: "GET",
 				URL: probeAPI + "/api/v1/autotrade/open-banking/info/find",

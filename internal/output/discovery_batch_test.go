@@ -20,8 +20,25 @@ func TestWriteOpenBankingStatusMasksEveryFormatByDefault(t *testing.T) {
 		if err := WriteOpenBankingStatus(&out, format, status, false); err != nil {
 			t.Fatalf("%s: %v", format, err)
 		}
-		if strings.Contains(out.String(), "홍길동") || strings.Contains(out.String(), "123-456-789") {
+		if strings.Contains(out.String(), "홍길동") || strings.Contains(out.String(), "123-456-789") || strings.Contains(out.String(), "open_banking_id") || strings.Contains(out.String(), "987654321") {
 			t.Fatalf("identity leaked in %s: %s", format, out.String())
+		}
+	}
+}
+
+func TestWriteOpenBankingStatusNeverEmitsInternalConnectionID(t *testing.T) {
+	t.Parallel()
+	status := domain.OpenBankingStatus{
+		HolderName:       "홍길동",
+		ConnectedAccount: &domain.OpenBankingAccount{AccountNo: "123-456-789", BankCode: "088", OpenBankingID: 987654321},
+	}
+	for _, format := range []Format{FormatTable, FormatJSON, FormatCSV} {
+		var out bytes.Buffer
+		if err := WriteOpenBankingStatus(&out, format, status, true); err != nil {
+			t.Fatalf("%s: %v", format, err)
+		}
+		if strings.Contains(out.String(), "open_banking_id") || strings.Contains(out.String(), "987654321") {
+			t.Fatalf("internal connection id leaked in full %s: %s", format, out.String())
 		}
 	}
 }

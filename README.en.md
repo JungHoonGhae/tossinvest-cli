@@ -254,7 +254,7 @@ token and consent boundary to be verified first.
 | **Cumulative realized profit** | `profit` (trading gains · dividends · lending · maturity · deposit interest, KRW/USD — a cumulative view distinct from account summary) | ❌ | ✅ |
 | **Account detail** | `account detail [--full]` (number · open date + **withdrawable cash and caps** + credit-trading status + **US dividend payout mode** — number and name masked by default) | ❌ | ✅ |
 | **🆕 All-account assets** | `account overview [--full]` (regular and minor accounts · pending-order counts — account numbers masked by default) | ❌ | ✅ |
-| **🆕 Securities trading settings** | `account trading-settings [--account <key>]` (simple trade, KRX/NXT execution venue, ATS notifications, option real-time tick subscription; read-only) | ❌ | ✅ |
+| **🆕 Securities trading settings** | `account trading-settings [--account <key>]` (account-specific simple trade + user-wide KRX/NXT venue, ATS notifications, and option tick status; read-only) | ❌ | ✅ |
 | **🆕 Securities transfer accounts** | `account transfer-accounts [--account <key>] [--full]` (own and recent destination accounts, masked by default; never initiates a transfer) | ❌ | ✅ |
 | **Automated trading** | `order autotrade` (stop-loss / target-profit / OCO / OTO rules with trigger and order prices — read-only) | ❌ | ✅ |
 | **Market news** | `market news [--type all\|watchlist\|holdings\|soaring\|latest\|recommended] [--limit N] [--full]` (each article's **related stocks and their moves** — what a headline list lacks) | ❌ | ✅ |
@@ -276,7 +276,7 @@ token and consent boundary to be verified first.
 | **Theme fluctuation ranking** | `market themes` (today's top-moving themes, rising-stock counts) | ❌ | ✅ |
 | **AI news briefing** | `market briefing [--scope personalized\|kr\|us]` (personalized or latest KR/US briefing) | ❌ | ✅ |
 | **🆕 Key earnings & economic releases** | `market key-events` (estimates · actuals · surprises · previous values) | ❌ | ✅ |
-| **🆕 Securities stock-accumulation funding status** | `banking status [--full]` (not general Banking; includes connection-creatable/registration-required flags, holder/account masked by default) | ❌ | ✅ |
+| **🆕 Securities stock-accumulation funding status** | `banking status [--full]` (not general Banking; includes connection/registration flags, holder/account masked by default, internal ID never emitted) | ❌ | ✅ |
 | **🆕 Notification preferences** | `notifications list` (read-only; internal user ID omitted) | ❌ | ✅ |
 | **🆕 Target-price alert reads & writes** | `quote alert list\|add\|remove <symbol>` (writes use preview + `--execute --confirm`) | ❌ | ✅ |
 | **🆕 Hidden-holding reads & writes** | `portfolio hidden list\|hide\|show` (account key omitted; post-write verification) | ❌ | ✅ |

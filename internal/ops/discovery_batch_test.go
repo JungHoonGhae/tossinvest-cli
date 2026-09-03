@@ -336,6 +336,13 @@ func TestBankingStatusOperationMasksIdentityUnlessFull(t *testing.T) {
 	if full.HolderName != "홍길동" || full.ConnectedAccount.AccountNo != "123-456-789" {
 		t.Fatalf("full view missing identity: %#v", full)
 	}
+	encoded, err := json.Marshal(full)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(encoded, []byte("open_banking_id")) {
+		t.Fatalf("MCP serialization leaked internal open banking id: %s", encoded)
+	}
 }
 
 func TestBankingStatusOperationOwnsEveryHTTPDependencyProbe(t *testing.T) {

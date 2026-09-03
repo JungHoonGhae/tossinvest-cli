@@ -25,7 +25,8 @@ type HiddenHolding struct {
 
 // HiddenHoldings contains the hidden holdings for one account. AccountKey is
 // intentionally excluded from serialization because it is an internal account
-// identifier; callers can use AccountScope when a stable display value is needed.
+// identifier; callers can use the session-bound AccountScope when a distinct
+// display value is needed without exposing that identifier.
 type HiddenHoldings struct {
 	AccountKey   string          `json:"-"`
 	AccountScope string          `json:"account_scope"`
@@ -42,8 +43,8 @@ type OptionRealTimeTickStatus struct {
 }
 
 // TradingSettings is the read-only set of independently stored Securities
-// trading preferences currently exposed by WTS. AccountScope is a stable
-// opaque label, not the account key sent to WTS.
+// trading preferences currently exposed by WTS. AccountScope is a
+// session-bound opaque label, not the account key sent to WTS.
 type TradingSettings struct {
 	AccountScope           string                   `json:"account_scope"`
 	SimpleTradeEnabled     bool                     `json:"simple_trade_enabled"`

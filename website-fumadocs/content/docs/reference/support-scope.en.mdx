@@ -52,7 +52,7 @@ Use the global `--backend auto|wts|openapi` flag to override routing per request
 |------|------|:--:|:--:|
 | Accounts / summary | `account list`, `account summary` | ✅ | ✅ |
 | All-account overview | `account overview [--full]` | ❌ | ✅ |
-| Securities trading settings | `account trading-settings [--account <key>]` | ❌ | ✅ |
+| Securities trading settings | `account trading-settings [--account <key>]` (only simple trade is account-specific) | ❌ | ✅ |
 | Securities transfer accounts | `account transfer-accounts [--account <key>] [--full]` (masked by default; never initiates a transfer) | ❌ | ✅ |
 | Portfolio | `portfolio positions`, `portfolio allocation` | ✅ | ✅ |
 | Trade ticks / orderbook | `quote trades`, `quote orderbook` | ✅ | ✅ |
@@ -68,7 +68,7 @@ Use the global `--backend auto|wts|openapi` flag to override routing per request
 | Earnings calendar & detail | `market earnings [event-id]` (`--major`: major companies) | ❌ | ✅ |
 | Personalized news briefing | `market briefing` (asset, return, reasoning, news) | ❌ | ✅ |
 | Key earnings & economic releases | `market key-events` | ❌ | ✅ |
-| Securities stock-accumulation funding status | `banking status [--full]` (not general Banking; includes connection/registration flags) | ❌ | ✅ |
+| Securities stock-accumulation funding status | `banking status [--full]` (not general Banking; includes connection/registration flags; internal ID omitted) | ❌ | ✅ |
 | Notification preferences | `notifications list` | ❌ | ✅ |
 | Target-price alert read & management | `quote alert list/add/remove` | ❌ | ✅ |
 | Hidden-holding read & management | `portfolio hidden list/hide/show` | ❌ | ✅ |

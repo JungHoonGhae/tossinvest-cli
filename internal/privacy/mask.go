@@ -79,6 +79,7 @@ func RedactOpenBankingStatus(value domain.OpenBankingStatus) domain.OpenBankingS
 	if value.ConnectedAccount != nil {
 		account := *value.ConnectedAccount
 		account.AccountNo = AccountNumber(account.AccountNo)
+		account.OpenBankingID = 0
 		out.ConnectedAccount = &account
 	}
 	return out

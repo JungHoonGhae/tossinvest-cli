@@ -14,7 +14,7 @@ type SecuritiesTransferAccount struct {
 
 // SecuritiesTransferAccounts separates the user's own source accounts from
 // recent destination accounts so callers cannot mistake one for the other.
-// AccountScope is a stable opaque label, not the account key sent to WTS.
+// AccountScope is a session-bound opaque label, not the account key sent to WTS.
 type SecuritiesTransferAccounts struct {
 	AccountScope   string                      `json:"account_scope"`
 	OwnAccounts    []SecuritiesTransferAccount `json:"own_accounts"`

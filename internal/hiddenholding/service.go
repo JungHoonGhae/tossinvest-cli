@@ -62,7 +62,9 @@ func (s *Service) List(ctx context.Context, accountKey string) (domain.HiddenHol
 	if err != nil {
 		return domain.HiddenHoldings{}, err
 	}
-	result.AccountScope = confirmation.Token("account:" + result.AccountKey)
+	if strings.TrimSpace(result.AccountScope) == "" {
+		return domain.HiddenHoldings{}, fmt.Errorf("hidden holding account scope is unavailable")
+	}
 	sort.Slice(result.Holdings, func(i, j int) bool { return result.Holdings[i].ProductCode < result.Holdings[j].ProductCode })
 	return result, nil
 }
