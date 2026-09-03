@@ -48,6 +48,9 @@ func TestWriteConfigStatusTable(t *testing.T) {
 	if !strings.Contains(output, "Trading Sell: false") {
 		t.Fatalf("expected Trading Sell: false, got %s", output)
 	}
+	if !strings.Contains(output, "Experimental Paper Trading: false") {
+		t.Fatalf("expected paper experiment state, got %s", output)
+	}
 }
 
 func TestWriteConfigStatusCSV(t *testing.T) {
@@ -67,5 +70,8 @@ func TestWriteConfigStatusCSV(t *testing.T) {
 	}
 	if !strings.Contains(lines[0], "allow_live_order_actions") {
 		t.Fatalf("expected allow_live_order_actions column in CSV header, got %s", lines[0])
+	}
+	if !strings.Contains(lines[0], "experimental_paper_trading") {
+		t.Fatalf("expected experimental_paper_trading column in CSV header, got %s", lines[0])
 	}
 }

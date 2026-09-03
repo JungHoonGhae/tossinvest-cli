@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/featuregate"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hiddenholding"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/jsoninput"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/openapiip"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/ops"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/papertrading"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/pricealert"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 	watchlistservice "github.com/JungHoonGhae/tossinvest-cli/internal/watchlist"
@@ -43,11 +45,19 @@ func newOpsCmd(opts *rootOptions) *cobra.Command {
 			"For agents and scripts. Humans want the typed commands (`tossctl account`, " +
 			"`tossctl order`, ...), which format for reading and mask account numbers.",
 	}
-	cmd.AddCommand(newOpsListCmd(), newOpsDescribeCmd(), newOpsCallCmd(opts))
+	cmd.AddCommand(newOpsListCmd(opts), newOpsDescribeCmd(opts), newOpsCallCmd(opts))
 	return cmd
 }
 
-func newOpsListCmd() *cobra.Command {
+func operationCatalog(opts *rootOptions) (*ops.Catalog, error) {
+	cfg, err := loadConfig(opts)
+	if err != nil {
+		return nil, err
+	}
+	return ops.NewCatalog(enabledExperiments(cfg)...), nil
+}
+
+func newOpsListCmd(opts *rootOptions) *cobra.Command {
 	var query string
 	cmd := &cobra.Command{
 		Use:   "list",
@@ -65,7 +75,11 @@ func newOpsListCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			// No --limit: the whole catalog is under Catalog.List's 200-item
 			// cap, so a limit flag could not currently bind.
-			items := ops.NewCatalog().ListItems(query, 0)
+			catalog, err := operationCatalog(opts)
+			if err != nil {
+				return err
+			}
+			items := catalog.ListItems(query, 0)
 			return output.WriteJSON(cmd.OutOrStdout(), map[string]any{
 				"count": len(items), "operations": items,
 			})
@@ -75,7 +89,7 @@ func newOpsListCmd() *cobra.Command {
 	return cmd
 }
 
-func newOpsDescribeCmd() *cobra.Command {
+func newOpsDescribeCmd(opts *rootOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "describe <operation>",
 		Short: "Show one operation's parameter schema",
@@ -87,7 +101,11 @@ func newOpsDescribeCmd() *cobra.Command {
 		Args:         cobra.ExactArgs(1),
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			op, ok := ops.NewCatalog().Get(args[0])
+			catalog, err := operationCatalog(opts)
+			if err != nil {
+				return err
+			}
+			op, ok := catalog.Get(args[0])
 			if !ok {
 				return fmt.Errorf("unknown operation %q; run `tossctl ops list` to see the available ids", args[0])
 			}
@@ -106,8 +124,8 @@ func newOpsCallCmd(opts *rootOptions) *cobra.Command {
 			"what an operation accepts.\n\n" +
 			"Output is raw — account numbers and real names appear unmasked, unlike the " +
 			"typed commands. Do not paste it into an issue or a chat without checking it.\n\n" +
-			"Every write defaults to a dry-run preview carrying a confirm token. Execution " +
-			"requires execute + that preview token in --params. Inspect `ops describe` for " +
+			"Every write defaults to a dry-run preview. Live and preference execution " +
+			"requires execute + its preview token; isolated simulation_execute operations require execute without a live token. Inspect `ops describe` for " +
 			"the operation's risk, reversibility, config opt-in, irreversible acknowledgement, " +
 			"and verification policy before executing it.",
 		// Marked mutating because the write operations reachable here (place,
@@ -121,10 +139,6 @@ func newOpsCallCmd(opts *rootOptions) *cobra.Command {
 		Args:         cobra.ExactArgs(1),
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			catalog := ops.NewCatalog()
-			if _, ok := catalog.Get(args[0]); !ok {
-				return fmt.Errorf("unknown operation %q; run `tossctl ops list` to see the available ids", args[0])
-			}
 			// Decoded before touching credentials so a typo in the JSON is
 			// reported as a typo, not as a login problem.
 			callArgs := map[string]any{}
@@ -141,6 +155,13 @@ func newOpsCallCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			catalog := ops.NewCatalog(enabledExperiments(app.config)...)
+			if _, ok := catalog.Get(args[0]); !ok {
+				if raw, exists := ops.NewCatalog(featuregate.PaperTrading).Get(args[0]); exists && raw.Experimental != "" {
+					return experimentalDisabledError(raw.Experimental)
+				}
+				return fmt.Errorf("unknown operation %q; run `tossctl ops list` to see the available ids", args[0])
+			}
 			officialClient := app.client.Official()
 			// The operation catalog declares regular and conditional orders as
 			// official-only. Keep this machine surface identical to MCP even though
@@ -156,6 +177,7 @@ func newOpsCallCmd(opts *rootOptions) *cobra.Command {
 				PriceAlerts:    pricealert.NewService(app.client),
 				HiddenHoldings: hiddenholding.NewService(app.client),
 				Watchlists:     watchlistservice.NewService(app.client),
+				Paper:          papertrading.NewService(app.client),
 				Auth:           authSnapshot(app.session, app.client.Official(), app.tokenFile),
 			}
 			result, err := catalog.Call(cmd.Context(), deps, args[0], callArgs)

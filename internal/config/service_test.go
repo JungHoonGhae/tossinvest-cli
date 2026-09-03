@@ -311,6 +311,37 @@ func TestInitCreatesDangerousAutomationDefaults(t *testing.T) {
 	if result.Status.Trading.DangerousAutomation.AcceptFXConsent {
 		t.Fatal("expected accept_fx_consent to be disabled by default")
 	}
+	if result.Status.Experimental.PaperTrading {
+		t.Fatal("expected paper trading experiment to be disabled by default")
+	}
+}
+
+func TestExperimentalPaperTradingOptInPersistsAndCanBeDisabled(t *testing.T) {
+	t.Parallel()
+	service := NewService(filepath.Join(t.TempDir(), "config.json"))
+	if _, err := service.Init(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.SetExperimentalPaperTrading(context.Background(), true); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := service.Load(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.Experimental.PaperTrading {
+		t.Fatal("expected paper trading experiment to be enabled")
+	}
+	if err := service.SetExperimentalPaperTrading(context.Background(), false); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err = service.Load(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Experimental.PaperTrading {
+		t.Fatal("expected paper trading experiment to be disabled")
+	}
 }
 
 func TestLoadDefaultsOpenAPI(t *testing.T) {

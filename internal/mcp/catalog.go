@@ -34,4 +34,4 @@ type (
 )
 
 // NewCatalog builds the shared operation catalog.
-func NewCatalog() *Catalog { return ops.NewCatalog() }
+func NewCatalog(enabledExperiments ...string) *Catalog { return ops.NewCatalog(enabledExperiments...) }

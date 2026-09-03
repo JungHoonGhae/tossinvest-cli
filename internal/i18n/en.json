@@ -296,6 +296,7 @@
   "output.conditional.leg.header.trigger": "Trigger",
   "output.conditional.leg.second": "second",
   "output.config.dangerousAutomation.none": "none",
+  "output.config.experimentalPaperTrading": "Experimental Paper Trading: %t\n",
   "output.config.file": "Config File: %s\nExists: %t\nSchema: %s\nSchema Version: %d\n",
   "output.config.legacyFields": "Legacy Fields: %s\n",
   "output.config.sourceSchemaVersion": "Source Schema Version: %d\n",

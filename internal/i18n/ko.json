@@ -296,6 +296,7 @@
   "output.conditional.leg.header.trigger": "트리거가",
   "output.conditional.leg.second": "2차",
   "output.config.dangerousAutomation.none": "없음",
+  "output.config.experimentalPaperTrading": "실험적 모의투자: %t\n",
   "output.config.file": "설정 파일: %s\n존재 여부: %t\n스키마: %s\n스키마 버전: %d\n",
   "output.config.legacyFields": "레거시 필드: %s\n",
   "output.config.sourceSchemaVersion": "원본 스키마 버전: %d\n",

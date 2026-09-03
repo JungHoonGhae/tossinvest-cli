@@ -34,6 +34,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/jsoninput"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/openapiip"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/papertrading"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/pricealert"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 	watchlistservice "github.com/JungHoonGhae/tossinvest-cli/internal/watchlist"
@@ -64,6 +65,7 @@ type Deps struct {
 	PriceAlerts    *pricealert.Service
 	HiddenHoldings *hiddenholding.Service
 	Watchlists     *watchlistservice.Service
+	Paper          *papertrading.Service
 	Auth           AuthStatus
 }
 
@@ -99,6 +101,7 @@ const (
 	MutationRiskPreference  MutationRiskLevel = "preference"
 	MutationRiskDestructive MutationRiskLevel = "destructive"
 	MutationRiskFinancial   MutationRiskLevel = "financial"
+	MutationRiskSimulation  MutationRiskLevel = "simulation"
 
 	MutationReversible   MutationReversibility = "reversible"
 	MutationCompensating MutationReversibility = "compensating"
@@ -110,9 +113,10 @@ const (
 	// current server state; applying the change normally invalidates that token.
 	// Bounded mandates are reserved for future automation operations whose
 	// scope, limits, expiry, and kill switch are validated by a dedicated module.
-	MutationAuthorizationIntent  MutationAuthorizationMode = "intent_confirmation"
-	MutationAuthorizationState   MutationAuthorizationMode = "state_confirmation"
-	MutationAuthorizationMandate MutationAuthorizationMode = "bounded_mandate"
+	MutationAuthorizationIntent     MutationAuthorizationMode = "intent_confirmation"
+	MutationAuthorizationState      MutationAuthorizationMode = "state_confirmation"
+	MutationAuthorizationMandate    MutationAuthorizationMode = "bounded_mandate"
+	MutationAuthorizationSimulation MutationAuthorizationMode = "simulation_execute"
 )
 
 // MutationPolicy makes every callable write's safety contract discoverable by
@@ -164,6 +168,14 @@ func destructiveMutation(verification string) *MutationPolicy {
 	}
 }
 
+func simulationMutation(reversibility MutationReversibility, verification string) *MutationPolicy {
+	return &MutationPolicy{
+		RiskLevel: MutationRiskSimulation, Reversibility: reversibility,
+		AuthorizationMode: MutationAuthorizationSimulation,
+		RequiresPreview:   true, Verification: verification,
+	}
+}
+
 // ProbeSpec declares the health probe for an operation: a raw HTTP request
 // (bypassing the typed client on purpose) plus the smallest schema invariant
 // that catches a contract change without false-positiving on unrelated fields.
@@ -190,12 +202,19 @@ type Operation struct {
 	Path    string   `json:"path"`
 	// Domain is the product area and stays independent of Backend, the access
 	// channel. For example, a Securities operation can use official or WTS.
-	Domain   string `json:"domain"`
-	Category string `json:"category"`
-	Summary  string `json:"summary"`
-	// Write marks state-changing operations. Current confirmation-gated writes require
-	// an explicit execute + confirm token; future mandate-driven operations must
-	// declare bounded_mandate instead of pretending confirmation was bypassed.
+	Domain string `json:"domain"`
+	// Environment distinguishes isolated simulation ledgers from the ordinary
+	// production account surface. It is explicit on paper operations.
+	Environment string `json:"environment,omitempty"`
+	// Experimental names the opt-in feature gate for a rolling operation. An
+	// empty value means the operation is part of the stable catalog.
+	Experimental string `json:"experimental,omitempty"`
+	Category     string `json:"category"`
+	Summary      string `json:"summary"`
+	// Write marks state-changing operations. Live and preference writes require
+	// execute plus a confirmation token; isolated simulation_execute writes require
+	// execute without conferring live authority. Future mandate-driven operations
+	// must declare bounded_mandate instead of pretending confirmation was bypassed.
 	Write bool `json:"write"`
 	// Mutation is present for every Write operation and absent for reads. It is
 	// deliberately explicit so agents do not infer safety from HTTP verbs.
@@ -224,28 +243,32 @@ type Operation struct {
 // adapters. Keeping the projection beside Operation prevents the two machine
 // surfaces from drifting when aliases or mutation policy fields evolve.
 type OperationListItem struct {
-	ID       string   `json:"id"`
-	Aliases  []string `json:"aliases,omitempty"`
-	Domain   string   `json:"domain"`
-	Category string   `json:"category"`
-	Summary  string   `json:"summary"`
-	Write    bool     `json:"write,omitempty"`
-	Backend  string   `json:"backend,omitempty"`
-	Required []string `json:"required,omitempty"`
+	ID           string   `json:"id"`
+	Aliases      []string `json:"aliases,omitempty"`
+	Domain       string   `json:"domain"`
+	Environment  string   `json:"environment,omitempty"`
+	Experimental string   `json:"experimental,omitempty"`
+	Category     string   `json:"category"`
+	Summary      string   `json:"summary"`
+	Write        bool     `json:"write,omitempty"`
+	Backend      string   `json:"backend,omitempty"`
+	Required     []string `json:"required,omitempty"`
 }
 
 // Catalog is the immutable registry of operations, indexed by ID.
 type Catalog struct {
-	ops  []Operation
-	byID map[string]Operation
+	ops                []Operation
+	byID               map[string]Operation
+	enabledExperiments map[string]bool
 }
 
 // NewCatalog builds the operation catalog (official reads, WTS reads, gated
 // order mutations, and gated non-trading settings mutations).
-func NewCatalog() *Catalog {
+func NewCatalog(enabledExperiments ...string) *Catalog {
 	ops := append(readOperations(), writeOperations()...)
 	ops = append(ops, wtsOperations()...)
 	ops = append(ops, settingsOperations()...)
+	ops = append(ops, paperOperations()...)
 	byID := make(map[string]Operation, len(ops))
 	for i := range ops {
 		if ops[i].Domain == "" {
@@ -257,7 +280,15 @@ func NewCatalog() *Catalog {
 			byID[alias] = o
 		}
 	}
-	return &Catalog{ops: ops, byID: byID}
+	enabled := make(map[string]bool, len(enabledExperiments))
+	for _, experiment := range enabledExperiments {
+		enabled[experiment] = true
+	}
+	return &Catalog{ops: ops, byID: byID, enabledExperiments: enabled}
+}
+
+func (c *Catalog) visible(o Operation) bool {
+	return o.Experimental == "" || c.enabledExperiments[o.Experimental]
 }
 
 // List returns operations whose searchable text contains query (case-insensitive).
@@ -270,8 +301,11 @@ func (c *Catalog) List(query string, limit int) []Operation {
 	q := strings.ToLower(strings.TrimSpace(query))
 	out := make([]Operation, 0, len(c.ops))
 	for _, o := range c.ops {
+		if !c.visible(o) {
+			continue
+		}
 		if q != "" {
-			hay := strings.ToLower(o.ID + " " + strings.Join(o.Aliases, " ") + " " + o.Path + " " + o.Domain + " " + o.Category + " " + o.Summary)
+			hay := strings.ToLower(o.ID + " " + strings.Join(o.Aliases, " ") + " " + o.Path + " " + o.Domain + " " + o.Environment + " " + o.Experimental + " " + o.Category + " " + o.Summary)
 			if !strings.Contains(hay, q) {
 				continue
 			}
@@ -291,7 +325,7 @@ func (c *Catalog) ListItems(query string, limit int) []OperationListItem {
 	for _, operation := range operations {
 		items = append(items, OperationListItem{
 			ID: operation.ID, Aliases: operation.Aliases,
-			Domain: operation.Domain, Category: operation.Category,
+			Domain: operation.Domain, Environment: operation.Environment, Experimental: operation.Experimental, Category: operation.Category,
 			Summary: operation.Summary, Write: operation.Write,
 			Backend: operation.Backend, Required: operation.RequiredNames(),
 		})
@@ -305,13 +339,19 @@ func (c *Catalog) Count() int {
 	if c == nil {
 		return 0
 	}
-	return len(c.ops)
+	count := 0
+	for _, operation := range c.ops {
+		if c.visible(operation) {
+			count++
+		}
+	}
+	return count
 }
 
 // Get returns the operation with the given ID.
 func (c *Catalog) Get(id string) (Operation, bool) {
 	o, ok := c.byID[id]
-	return o, ok
+	return o, ok && c.visible(o)
 }
 
 // Probes returns the probe specs declared by registry entries, in catalog order.
@@ -319,6 +359,9 @@ func (c *Catalog) Probes() []ProbeSpec {
 	var out []ProbeSpec
 	referenced := make(map[string]bool)
 	for _, o := range c.ops {
+		if !c.visible(o) {
+			continue
+		}
 		if o.Probe != nil {
 			out = append(out, *o.Probe)
 		}
@@ -342,6 +385,9 @@ func (c *Catalog) Call(ctx context.Context, deps *Deps, id string, args map[stri
 	op, ok := c.byID[id]
 	if !ok {
 		return nil, fmt.Errorf("unknown operation %q (use list_operations to discover valid ids)", id)
+	}
+	if !c.visible(op) {
+		return nil, fmt.Errorf("operation %q is experimental; opt in to %q before using it", id, op.Experimental)
 	}
 	validated, err := validateArguments(op, args)
 	if err != nil {

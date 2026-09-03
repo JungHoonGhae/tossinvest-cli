@@ -29,6 +29,31 @@ jq . /tmp/android_diff.json
 이 감시는 모바일 API를 호출하거나 사용자 토큰을 수집하지 않습니다. 앱 버전이 바뀌었다는
 사실만 다음 정적 감사의 트리거로 사용합니다.
 
+## 공식 API 변경의 Codex 정기 분석
+
+`Daily Monitor`는 GitHub-hosted runner에서 공식 REST/AsyncAPI 스펙을 결정적으로 수집하고
+변경분을 보호된 자동화 PR로 기록합니다. 의미 해석은 공개 저장소에 self-hosted runner를 연결하지 않고,
+소유자 Mac의 [`tools/codex_api_analysis.sh`](../tools/codex_api_analysis.sh)가 담당합니다.
+로컬의 ChatGPT 로그인(`codex login`)을 재사용하므로 별도 OpenAI API 키나 API 과금이 없고,
+GitHub에는 Codex OAuth 파일을 저장하지 않습니다.
+
+```bash
+tools/codex_api_analysis.sh --check  # 미분석 spec 변경 여부만 확인
+tools/codex_api_analysis.sh          # 필요할 때만 분석 파일과 PR 생성
+```
+
+Codex 데스크톱 앱을 계속 실행할 수 있으면 공식 **예약** 기능에서 이 작업을 격리 worktree로
+실행하는 구성이 우선입니다. Codex CLI 자체에는 예약 관리 명령이 없으므로 터미널만 사용하는
+환경에서는 macOS `launchd`가 `codex exec` 스크립트를 호출하는 방식이 공식 비대화형 실행 모델에
+맞는 대안입니다. 현재 운영 환경은 이 대안을 사용해 매일 07:20·19:20 KST에 실행합니다.
+GitHub 모니터의 07:00·19:00 KST 수집 뒤 20분 여유를 둔 값입니다. 두 스케줄러를 동시에 켜지
+않습니다. 스크립트는 임시 clone에서만 작업하며,
+가장 최근 스펙 변경이 이미 분석됐으면 아무 변경 없이 종료합니다. 한 날짜에 변경이 둘 이상이면
+두 번째부터 commit 축약값을 파일·브랜치에 붙여 누락을 방지합니다. 공개 PR의 코드를 개인 Mac에서
+실행하지 않는 것이 이 분리의 핵심입니다. GitHub-hosted Codex Action은 별도 OpenAI API 키와 API
+사용량이 필요하고, 개인 ChatGPT 인증 파일을 공개 OSS의 self-hosted runner에 복제하는 방식은
+사용하지 않습니다.
+
 ## API 회귀 감시 (`tossctl monitor api`)
 
 토스 웹 API는 예고 없이 변경됩니다. 과거 두 차례 user-facing 회귀가 있었습니다:
@@ -37,6 +62,10 @@ jq . /tmp/android_diff.json
 - [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) — `/sections/all` body 계약 변경 (v0.4.8 fix)
 
 `monitor api` 명령은 82개 read-only endpoint 를 schema-invariant probe 로 호출해 이런 변경을 사용자보다 먼저 감지합니다.
+
+`experimental.paper_trading=true`로 옵트인한 경우에는 모의 잔고·교육 요약·대기 주문·완료
+주문 4개를 추가해 총 86개를 검사합니다. 옵트인하지 않은 사용자의 일반 회귀 신호와 아직
+롤아웃 중인 기능의 신호가 섞이지 않도록 기본 목록에서는 제외합니다.
 
 ### 동작 흐름
 
@@ -65,6 +94,7 @@ jq . /tmp/android_diff.json
 | 시세·종목 | `quote-stock-infos`, `quote-trades`, `quote-orderbook`, `quote-price-limits`, `quote-charts`, `quote-reasons`, `quote-crypto`, `quote-stock-signals`, `stock-search`, `trading-flows`, `option-expiries` (11) |
 | 시장·리서치 | `market-index`, `index-prices`, `index-info`, `stock-ranking`, `investor-rankings`, `theme-rankings`, `sectors-tics`, `sector-detail-simple`, `sector-detail-overview`, `sector-detail-stocks`, `sector-detail-etfs`, `sector-detail-news`, `ai-signals`, `ai-signal-detail`, `screener-presets`, `screener-filter-range`, `earning-call`, `earning-call-home`, `earning-call-detail`, `news-briefing`, `market-news-briefing`, `market-issues`, `market-calendar`, `market-key-events`, `market-halt`, `market-trading-hours` (26) |
 | 개인화·계좌 부가기능 | `community-rankings`, `lending-expected`, `lending-top-revenue`, `accumulation-plans`, `profit-overview`, `ria-report`, `open-banking-status`, `open-banking-creatable`, `open-banking-registration`, `auto-trading-open-banking`, `notification-settings`, `notification-inbox-unread`, `notification-reasoning-agreement`, `notification-reasoning-news-count`, `price-alerts`, `watchlist`, `watchlist-groups`, `watchlist-group` (18) |
+| 모의투자(옵트인) | `paper-cash-balance`, `paper-education-summary`, `paper-pending-orders`, `paper-completed-orders` (4) |
 
 이름·method·endpoint 전체 매핑은 [`AGENTS.md`](../AGENTS.md) 의 “Probe 목록”에 있고,
 다음 명령으로 실제 런타임 구성을 검증할 수 있습니다.
@@ -73,6 +103,12 @@ jq . /tmp/android_diff.json
 go run ./tools/wtsinventory -mode probes -root "$(pwd)" | jq 'length'
 # 82
 ```
+
+위 inventory 명령은 사용자 설정과 무관한 안정 표면 82개를 출력합니다. 실제
+`tossctl monitor api`는 옵트인 설정을 읽어 paper probe 4개를 더 실행합니다. WTS 주간 정적 모니터는 별도로
+`rolling_features.paper-trading-us-options`의 UI flag·활성 build·critical endpoint와 stable
+승격 기준 변경을 감시합니다. 현재 `/paper/init`의 불투명한 500이 해결되지 않아 승격 심사는
+`blocked`입니다.
 
 각 probe 는 status 200 + 핵심 JSON 경로 존재 + 타입을 검사합니다. Toss 가 새 필드를 추가하는 변경은 통과시키고, 핵심 필드가 사라지거나 빈 응답을 받으면 실패합니다.
 

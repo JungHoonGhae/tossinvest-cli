@@ -138,9 +138,17 @@ func TestToolsListExposesThreeCatalogTools(t *testing.T) {
 	got := map[string]bool{}
 	for _, tl := range tools {
 		definition := tl.(map[string]any)
-		got[definition["name"].(string)] = true
-		if definition["name"] == "list_operations" && !strings.Contains(definition["description"].(string), "mutation policy") {
+		name := definition["name"].(string)
+		description := definition["description"].(string)
+		got[name] = true
+		if name == "list_operations" && !strings.Contains(description, "mutation policy") {
 			t.Error("list_operations description must tell agents where write authorization policy lives")
+		}
+		if name == "list_operations" && (!strings.Contains(description, "environment") || !strings.Contains(description, "experimental")) {
+			t.Error("list_operations description must explain paper-environment and experimental discovery fields")
+		}
+		if name == "call_operation" && (!strings.Contains(description, "simulation_execute") || !strings.Contains(description, "never authorizes a live order")) {
+			t.Error("call_operation description must distinguish simulation execution from live confirmation")
 		}
 	}
 	for _, want := range []string{"list_operations", "describe_operation", "call_operation"} {
@@ -350,6 +358,24 @@ func TestUnfilteredListOperationsFitsWithoutOmission(t *testing.T) {
 	}
 	if strings.Contains(text, omittedKey) || len(text) > maxResultBytes {
 		t.Fatalf("catalog should fit without omission: bytes=%d", len(text))
+	}
+}
+
+func TestPaperOperationsRequireMCPExperimentOptIn(t *testing.T) {
+	t.Parallel()
+	stable := NewServer(nil, nil, Services{}, "test", "0.0.0")
+	if _, ok := stable.catalog.Get("get_paper_trading_status"); ok {
+		t.Fatal("paper operation leaked into default MCP catalog")
+	}
+	enabled := NewServer(nil, nil, Services{Experiments: []string{"paper-trading"}}, "test", "0.0.0")
+	op, ok := enabled.catalog.Get("get_paper_trading_status")
+	if !ok || op.Experimental != "paper-trading" {
+		t.Fatalf("enabled MCP operation = %#v, found=%v", op, ok)
+	}
+	stableInstructions := strings.ToLower(stable.instructions)
+	enabledInstructions := strings.ToLower(enabled.instructions)
+	if strings.Contains(stableInstructions, "isolated paper") || !strings.Contains(enabledInstructions, "isolated paper") {
+		t.Fatalf("instructions did not follow experiment gate: stable=%q enabled=%q", stable.instructions, enabled.instructions)
 	}
 }
 
@@ -604,6 +630,18 @@ func TestToolResultPreservesLargeIntegerWhenTrimming(t *testing.T) {
 	}
 	if !strings.Contains(got, omittedKey) {
 		t.Fatalf("test payload did not exercise trimming: %s", got[:min(len(got), 300)])
+	}
+}
+
+func TestKeepableDoesNotTrustUpstreamOmissionLikeMap(t *testing.T) {
+	t.Parallel()
+	rows := []any{map[string]any{omittedKey: 999, "value": "upstream data"}}
+	if got := keepable(rows); got != 1 {
+		t.Fatalf("upstream map was mistaken for a private omission marker: got %d", got)
+	}
+	rows = append(rows, omittedItems{Count: 1, Note: "transport marker"})
+	if got := keepable(rows); got != 1 {
+		t.Fatalf("private omission marker was not recognized: got %d", got)
 	}
 }
 

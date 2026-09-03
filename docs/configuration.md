@@ -23,7 +23,7 @@ tossctl config init
 ```json
 {
   "$schema": "https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/schemas/config.schema.json",
-  "schema_version": 3,
+  "schema_version": 5,
   "trading": {
     "place": false,
     "sell": false,
@@ -35,6 +35,17 @@ tossctl config init
     "dangerous_automation": {
       "accept_fx_consent": false
     }
+  },
+  "update_check": {
+    "enabled": true
+  },
+  "openapi": {
+    "enabled": true,
+    "prefer": "auto",
+    "fallback": true
+  },
+  "experimental": {
+    "paper_trading": false
   }
 }
 ```
@@ -58,6 +69,22 @@ tossctl config init
 **마스터 / 자동화**
 - `trading.allow_live_order_actions` — 실계좌에 도달하는 일반·조건 주문 액션(`place`, `cancel`, `amend`, `conditional`) 자체를 허용. **마스터 킬스위치**로 위 경로 게이트가 켜져 있어도 이 값이 false면 broker에 닿지 않음
 - `trading.dangerous_automation.accept_fx_consent` — post-prepare FX confirmation branch를 자동 수락하고 같은 주문을 계속 진행하도록 허용. 현재는 `prepare` 성공 후 `needExchange > 0`인 미국주식 KRW 매수 경로에만 연결됨
+
+**실험 기능**
+
+- `experimental.paper_trading` — 롤아웃 중인 미국 옵션 모의투자 명령과 ops/MCP
+  오퍼레이션, 전용 회귀 probe를 노출합니다. 기본값은 `false`입니다. 다음 명령으로만
+  켜거나 끕니다.
+
+  ```bash
+  tossctl config experimental paper-trading --enable
+  tossctl config experimental paper-trading --disable
+  ```
+
+  모의 원장 쓰기는 실거래 config와 별개로 기본 preview 뒤 `--execute`를 요구합니다.
+  이 설정은 실계좌 주문 권한을 부여하지 않습니다. 상류 계약이 최소 3개 연속 build와
+  7일·7회 probe에서 안정되고 공식 UI 일반 공개·상태 일관성·미해결 5xx 없음까지 확인될
+  때만 stable로 승격합니다.
 
 즉, 각 액션은 config에서 먼저 열려 있어야 하고, 그 다음에도 런타임 게이트(`--execute` → `--confirm <token>`)를 통과해야 합니다.
 

@@ -212,33 +212,52 @@ class TestClassify(unittest.TestCase):
                 self.assertEqual(contract["priority"], "deferred")
                 self.assertEqual(contract["mutation"]["reversibility"], reversibility)
 
-    def test_paper_contracts_are_curated_without_claiming_launch_readiness(self):
-        expected = {
-            "/api/v1/paper/init": ("POST", True, "per-execution"),
-            "/api/v1/paper/cash-balance": ("GET", None, None),
-            "/api/v1/paper/deposit": ("POST", True, "per-execution"),
-            "/api/v1/paper/education/session/{action}": ("POST", True, "human-only"),
-            "/api/v2/paper/dashboard/asset/sections/all": ("POST", False, "none"),
-            "/api/v2/paper/trading/order/prepare": ("POST", False, "none"),
-            "/api/v2/paper/trading/order/create": ("POST", True, "per-execution"),
-            "/api/v2/paper/trading/order/cancel/prepare/{date}/{orderNo}": ("POST", False, "none"),
-            "/api/v3/paper/trading/order/cancel/{date}/{orderNo}": ("POST", True, "per-execution"),
-            "/api/v3/paper/trading/order/bulk-cancel": ("POST", True, "per-execution"),
-            "/api/v3/paper/trading/order/{orderNo}/available-actions": ("GET", None, None),
+    def test_paper_contracts_distinguish_verified_implementation_from_rollout_readiness(self):
+        verified = {
+            "/api/v1/paper/cash-balance",
+            "/api/v1/paper/deposit",
+            "/api/v1/paper/education/summary",
+            "/api/v1/paper/trading/orders/histories/all/pending",
+            "/api/v2/paper/trading/my-orders/markets/us-opt/by-date/completed",
+            "/api/v2/paper/trading/order/prepare",
+            "/api/v2/paper/trading/order/create",
+            "/api/v2/paper/trading/order/cancel/prepare/{date}/{orderNo}",
+            "/api/v3/paper/trading/order/cancel/{date}/{orderNo}",
+            "/api/v3/paper/trading/order/bulk-cancel/prepare",
+            "/api/v3/paper/trading/order/bulk-cancel",
         }
-        for path, (method, writes_state, approval) in expected.items():
+        for path in verified:
             with self.subTest(path=path):
                 contract = W.CURATED_CONTRACTS[path]
-                self.assertEqual(contract["method"], method)
                 self.assertEqual(contract["host"], "wts-cert-api")
-                self.assertEqual(contract["evidence"], "partial")
-                self.assertEqual(contract["priority"], "deferred")
-                if writes_state is None:
-                    self.assertNotIn("mutation", contract)
-                else:
-                    self.assertEqual(contract["mutation"]["writes_state"], writes_state)
-                    self.assertEqual(contract["mutation"]["approval"], approval)
-                self.assertNotIn("implemented", contract)
+                self.assertEqual(contract["evidence"], "verified")
+                self.assertNotIn("priority", contract)
+                self.assertEqual(W.classify(path, {})[0], "implemented")
+
+        for path in [
+            "/api/v1/paper/deposit",
+            "/api/v2/paper/trading/order/create",
+            "/api/v3/paper/trading/order/cancel/{date}/{orderNo}",
+            "/api/v3/paper/trading/order/bulk-cancel",
+        ]:
+            self.assertEqual(
+                W.CURATED_CONTRACTS[path]["mutation"]["approval"],
+                "simulation-execute",
+            )
+
+        init = W.CURATED_CONTRACTS["/api/v1/paper/init"]
+        self.assertEqual(init["evidence"], "partial")
+        self.assertEqual(init["priority"], "deferred")
+        self.assertIn("opaque 500", init["note"])
+        self.assertEqual(W.classify("/api/v1/paper/init", {})[0], "implemented")
+
+        education = W.CURATED_CONTRACTS["/api/v1/paper/education/session/{action}"]
+        self.assertEqual(education["priority"], "deferred")
+        self.assertEqual(education["mutation"]["approval"], "human-only")
+        self.assertNotEqual(
+            W.classify("/api/v1/paper/education/session/{action}", {})[0],
+            "implemented",
+        )
 
     def test_account_services_batch_endpoints_are_implemented(self):
         for path in [
@@ -418,6 +437,49 @@ class TestClassify(unittest.TestCase):
         self.assertEqual(diff["previous_build_ids"], ["old", "rolling"])
         self.assertEqual(diff["current_build_ids"], ["new", "rolling"])
         self.assertEqual(diff["new_candidates"], ["/api/v1/new"])
+
+    def test_rolling_feature_snapshot_tracks_flags_routes_and_preserves_live_evidence(self):
+        previous = {
+            "paper-trading-us-options": {
+                "live_observations": {"order_create": {"status": 200}},
+                "implementation": {"cli": True},
+                "promotion_review": {"status": "blocked", "blockers": ["init-500"]},
+            }
+        }
+        paper = W.ROLLING_FEATURES["paper-trading-us-options"]
+        paths = set(paper["critical_endpoints"][:-1])
+        snapshot = W.rolling_feature_snapshot(
+            paths,
+            {"option.paper.wts.open": True},
+            ["build-b", "build-a"],
+            previous,
+            "2026-09-03",
+        )["paper-trading-us-options"]
+
+        self.assertEqual(snapshot["lifecycle"], "rolling_out")
+        self.assertTrue(snapshot["bundle_markers"]["option.paper.wts.open"])
+        self.assertFalse(snapshot["critical_surface_complete"])
+        self.assertEqual(snapshot["active_build_ids"], ["build-a", "build-b"])
+        self.assertEqual(snapshot["live_observations"]["order_create"]["status"], 200)
+        self.assertTrue(snapshot["implementation"]["cli"])
+        self.assertEqual(snapshot["promotion_criteria"]["target"], "stable")
+        self.assertEqual(snapshot["promotion_criteria"]["minimum_consecutive_builds"], 3)
+        self.assertEqual(snapshot["promotion_review"]["status"], "blocked")
+
+    def test_diff_reports_rolling_feature_contract_change(self):
+        previous = {"rolling_features": {"paper": {
+            "bundle_markers": {"flag": False},
+            "endpoint_presence": {"/paper": False},
+        }}}
+        current = {"endpoints": {}, "rolling_features": {"paper": {
+            "bundle_markers": {"flag": True},
+            "endpoint_presence": {"/paper": True},
+        }}}
+
+        diff = W.build_diff(previous, current, [], [])
+
+        self.assertTrue(diff["rolling_features_changed"])
+        self.assertEqual(diff["rolling_feature_changes"], ["paper"])
 
     def test_root_build_rotation_does_not_change_same_active_build_set(self):
         previous = {"build_id": "build-a", "build_ids": ["build-a", "build-b"]}

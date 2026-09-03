@@ -8,11 +8,13 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/JungHoonGhae/tossinvest-cli/internal/featuregate"
 )
 
 // 레지스트리 불변식 — 오퍼레이션을 추가할 때 이 테스트 하나가 형식 실수를 잡는다.
 func TestRegistryInvariants(t *testing.T) {
-	c := NewCatalog()
+	c := NewCatalog(featuregate.PaperTrading)
 	all := c.List("", 0)
 	if len(all) == 0 {
 		t.Fatal("empty catalog")
@@ -84,6 +86,10 @@ func TestRegistryInvariants(t *testing.T) {
 				case MutationAuthorizationMandate:
 					if o.Mutation.RequiresFreshConfirmation || !o.Mutation.RequiresConfigOptIn {
 						t.Errorf("%s: bounded-mandate mutation must use config opt-in instead of fresh confirmation: %#v", o.ID, o.Mutation)
+					}
+				case MutationAuthorizationSimulation:
+					if !o.Mutation.RequiresPreview || o.Mutation.RequiresFreshConfirmation || o.Mutation.RequiresConfigOptIn {
+						t.Errorf("%s: simulation mutation must preview without live confirmation or config opt-in: %#v", o.ID, o.Mutation)
 					}
 				default:
 					t.Errorf("%s: unknown mutation authorization mode %q", o.ID, o.Mutation.AuthorizationMode)
@@ -187,6 +193,29 @@ func TestCatalogProbesIncludesOnlyReferencedSharedProbes(t *testing.T) {
 	probes := catalog.Probes()
 	if len(probes) != 1 || probes[0].Name != "local" {
 		t.Fatalf("unreferenced shared probes leaked into catalog: %#v", probes)
+	}
+}
+
+func TestExperimentalOperationsAreHiddenUntilOptedIn(t *testing.T) {
+	t.Parallel()
+	stable := NewCatalog()
+	if _, ok := stable.Get("get_paper_trading_status"); ok {
+		t.Fatal("paper operation leaked into the stable catalog")
+	}
+	if got := stable.List("paper", 0); len(got) != 0 {
+		t.Fatalf("paper operations leaked into stable discovery: %#v", got)
+	}
+	if _, err := stable.Call(context.Background(), nil, "get_paper_trading_status", nil); err == nil || !strings.Contains(err.Error(), "experimental") {
+		t.Fatalf("disabled experimental call error = %v", err)
+	}
+
+	enabled := NewCatalog(featuregate.PaperTrading)
+	op, ok := enabled.Get("get_paper_trading_status")
+	if !ok || op.Experimental != featuregate.PaperTrading {
+		t.Fatalf("enabled operation = %#v, found=%v", op, ok)
+	}
+	if enabled.Count() <= stable.Count() {
+		t.Fatalf("enabled count=%d stable count=%d", enabled.Count(), stable.Count())
 	}
 }
 

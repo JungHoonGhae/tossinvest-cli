@@ -33,7 +33,7 @@ func newMonitorCmd(opts *rootOptions) *cobra.Command {
 				return errors.New("no active session; run `tossctl auth login` first")
 			}
 
-			results := monitor.Run(cmd.Context(), app.session)
+			results := monitor.Run(cmd.Context(), app.session, enabledExperiments(app.config)...)
 			printResults(cmd.OutOrStdout(), cmd.OutOrStderr(), results, quiet)
 			for _, r := range results {
 				if !r.OK && !r.Skipped {

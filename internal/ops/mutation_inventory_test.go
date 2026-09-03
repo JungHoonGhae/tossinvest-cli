@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/JungHoonGhae/tossinvest-cli/internal/featuregate"
 )
 
 func TestMutationInventoryListsEveryCallableWrite(t *testing.T) {
@@ -20,7 +22,7 @@ func TestMutationInventoryListsEveryCallableWrite(t *testing.T) {
 		t.Fatal(err)
 	}
 	doc := string(data)
-	for _, operation := range NewCatalog().List("", 0) {
+	for _, operation := range NewCatalog(featuregate.PaperTrading).List("", 0) {
 		if operation.Write && !strings.Contains(doc, "`"+operation.ID+"`") {
 			t.Errorf("callable write %q is missing from mutation inventory", operation.ID)
 		}

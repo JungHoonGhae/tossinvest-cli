@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	SchemaVersion = 4
+	SchemaVersion = 5
 	// DefaultSchemaURL is derived from version.Repo (single source of truth).
 	DefaultSchemaURL = "https://raw.githubusercontent.com/" + version.Repo + "/main/schemas/config.schema.json"
 )
@@ -87,24 +87,30 @@ type OpenAPI struct {
 	Fallback bool               `json:"fallback"`
 }
 
+type Experimental struct {
+	PaperTrading bool `json:"paper_trading"`
+}
+
 type File struct {
-	Schema        string      `json:"$schema,omitempty"`
-	SchemaVersion int         `json:"schema_version"`
-	Trading       Trading     `json:"trading"`
-	UpdateCheck   UpdateCheck `json:"update_check"`
-	OpenAPI       OpenAPI     `json:"openapi"`
+	Schema        string       `json:"$schema,omitempty"`
+	SchemaVersion int          `json:"schema_version"`
+	Trading       Trading      `json:"trading"`
+	UpdateCheck   UpdateCheck  `json:"update_check"`
+	OpenAPI       OpenAPI      `json:"openapi"`
+	Experimental  Experimental `json:"experimental"`
 }
 
 type Status struct {
-	ConfigFile          string      `json:"config_file"`
-	Exists              bool        `json:"exists"`
-	Schema              string      `json:"$schema,omitempty"`
-	SchemaVersion       int         `json:"schema_version"`
-	SourceSchemaVersion int         `json:"source_schema_version,omitempty"`
-	LegacyFields        []string    `json:"legacy_fields,omitempty"`
-	Trading             Trading     `json:"trading"`
-	UpdateCheck         UpdateCheck `json:"update_check"`
-	OpenAPI             OpenAPI     `json:"openapi"`
+	ConfigFile          string       `json:"config_file"`
+	Exists              bool         `json:"exists"`
+	Schema              string       `json:"$schema,omitempty"`
+	SchemaVersion       int          `json:"schema_version"`
+	SourceSchemaVersion int          `json:"source_schema_version,omitempty"`
+	LegacyFields        []string     `json:"legacy_fields,omitempty"`
+	Trading             Trading      `json:"trading"`
+	UpdateCheck         UpdateCheck  `json:"update_check"`
+	OpenAPI             OpenAPI      `json:"openapi"`
+	Experimental        Experimental `json:"experimental"`
 }
 
 type InitResult struct {
@@ -157,6 +163,7 @@ type rawFile struct {
 	Trading       rawTrading     `json:"trading"`
 	UpdateCheck   rawUpdateCheck `json:"update_check"`
 	OpenAPI       *rawOpenAPI    `json:"openapi,omitempty"`
+	Experimental  Experimental   `json:"experimental"`
 }
 
 func NewService(path string) *Service {
@@ -170,6 +177,7 @@ func DefaultFile() File {
 		Trading:       Trading{},
 		UpdateCheck:   UpdateCheck{Enabled: true},
 		OpenAPI:       OpenAPI{Enabled: true, Prefer: routing.Auto, Fallback: true},
+		Experimental:  Experimental{},
 	}
 }
 
@@ -193,6 +201,7 @@ func (s *Service) Status(context.Context) (Status, error) {
 		Trading:             cfg.Trading,
 		UpdateCheck:         cfg.UpdateCheck,
 		OpenAPI:             cfg.OpenAPI,
+		Experimental:        cfg.Experimental,
 	}, nil
 }
 
@@ -319,8 +328,18 @@ func (s *Service) load() (File, bool, legacyMetadata, error) {
 			cfg.OpenAPI.Prefer = norm
 		}
 	}
+	cfg.Experimental = raw.Experimental
 
 	return cfg, true, meta, nil
+}
+
+func (s *Service) SetExperimentalPaperTrading(ctx context.Context, enabled bool) error {
+	cfg, _, _, err := s.load()
+	if err != nil {
+		return err
+	}
+	cfg.Experimental.PaperTrading = enabled
+	return s.save(cfg)
 }
 
 func (s *Service) save(cfg File) error {

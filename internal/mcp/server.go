@@ -14,6 +14,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/jsoninput"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/openapiip"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/papertrading"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/pricealert"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 	watchlistservice "github.com/JungHoonGhae/tossinvest-cli/internal/watchlist"
@@ -47,6 +48,8 @@ type Services struct {
 	PriceAlerts    *pricealert.Service
 	HiddenHoldings *hiddenholding.Service
 	Watchlists     *watchlistservice.Service
+	Paper          *papertrading.Service
+	Experiments    []string
 }
 
 // baseInstructions is returned in the initialize response so the host/model
@@ -56,7 +59,7 @@ const baseInstructions = "Toss Securities via a 3-tool catalog. Call list_operat
 	"schema, then call_operation to run it. Operations with backend \"wts\" need a Toss web session " +
 	"(`tossctl auth login`); those with backend \"auto\" work with either credential (official first, " +
 	"web-session fallback); the rest need official Open API credentials (`tossctl openapi login`). " +
-	"Every write returns a preview unless execute + confirm token are supplied. Inspect its mutation policy before execution: it declares risk, " +
+	"Every write returns a preview. Live and preference writes require execute + confirm token. Inspect mutation policy before execution: it declares risk, " +
 	"reversibility, opt-in, irreversible-acknowledgement, and verification requirements. Order writes additionally require trading config opt-in; " +
 	"non-trading settings writes use the same two-step confirmation boundary, and destructive writes may require acknowledge_irreversible=true. " +
 	"Operation domain describes the product area; backend describes the credential channel. A missing web UI does not make an API unavailable, " +
@@ -74,17 +77,22 @@ const baseInstructions = "Toss Securities via a 3-tool catalog. Call list_operat
 // backend is unavailable return a clear "run login" error. Services.Trading
 // must use an OfficialBroker so order writes never touch a WTS session.
 func NewServer(official *official.Client, routed *hybrid.Client, services Services, name, version string) *Server {
+	instructions := baseInstructions
+	if len(services.Experiments) > 0 {
+		instructions += " Enabled experimental operations are labeled experimental in discovery and may change without notice. Isolated paper writes declare simulation_execute and need execute=true without a live confirmation token."
+	}
 	return &Server{
-		catalog: NewCatalog(),
+		catalog: NewCatalog(services.Experiments...),
 		deps: &Deps{
 			Client: official, WTS: routed, Trading: services.Trading,
 			OpenAPIIP: services.OpenAPIIP, PriceAlerts: services.PriceAlerts,
 			HiddenHoldings: services.HiddenHoldings,
 			Watchlists:     services.Watchlists,
+			Paper:          services.Paper,
 		},
 		name:         name,
 		version:      version,
-		instructions: baseInstructions,
+		instructions: instructions,
 	}
 }
 
@@ -235,7 +243,7 @@ func (s *Server) handleToolsList() any {
 	tools := []toolDef{
 		{
 			Name:        "list_operations",
-			Description: "List available Toss operations — the official Open API plus WTS reads and safely gated writes. Each compact item shows id, product domain, category, summary, write flag, backend, and required parameter names. Method, path, full parameters, and mutation policy live in describe_operation; always describe a write before calling it. Optionally filter with a case-insensitive query. Call this first to discover operation ids.",
+			Description: "List available Toss operations — the official Open API plus WTS reads and safely gated writes. Each compact item shows id, product domain, execution environment, experimental gate, category, summary, write flag, backend, and required parameter names. Method, path, full parameters, and mutation policy live in describe_operation; always describe a write before calling it. Optionally filter with a case-insensitive query. Call this first to discover operation ids.",
 			InputSchema: obj(map[string]any{
 				"query": map[string]any{"type": "string", "description": "case-insensitive substring filter over canonical id/aliases/path/domain/category/summary"},
 				"limit": map[string]any{"type": "integer", "description": "max results (default 200)"},
@@ -250,7 +258,7 @@ func (s *Server) handleToolsList() any {
 		},
 		{
 			Name:        "call_operation",
-			Description: "Call a Toss Securities operation by id with its parameters. WTS operations (backend \"wts\") need a web session (`tossctl auth login`); official operations need official credentials (`tossctl openapi login`). Writes return a dry-run preview with a confirm_token unless execute=true plus confirm=<token> are supplied. Read the operation's mutation policy first: financial writes require config opt-in and irreversible writes may additionally require acknowledge_irreversible=true. Every write declares its verification or unknown-outcome policy: WTS preference writes re-read state, while official order transport errors require state inspection before retrying.",
+			Description: "Call a Toss Securities operation by id with its parameters. WTS operations (backend \"wts\") need a web session (`tossctl auth login`); official operations need official credentials (`tossctl openapi login`). Every write previews by default. Live-order and preference writes require execute=true plus confirm=<token>; isolated paper writes declare simulation_execute and require execute=true without a confirmation token. A paper execution never authorizes a live order. Read the operation's mutation policy first: financial writes require config opt-in and irreversible writes may additionally require acknowledge_irreversible=true. Every write declares its verification or unknown-outcome policy: WTS preference and supported paper writes re-read state, while official order transport errors require state inspection before retrying.",
 			InputSchema: obj(map[string]any{
 				"operation": map[string]any{"type": "string", "description": "operation id"},
 				"params":    map[string]any{"type": "object", "description": "operation parameters (see describe_operation)"},
@@ -302,6 +310,15 @@ const (
 	omittedResultKey = "_omitted_result"
 )
 
+// omittedItems is a private in-memory marker so an upstream response whose
+// last row happens to contain an `_omitted_items` field is never mistaken for
+// a marker created by this transport. It still marshals to the documented JSON
+// shape.
+type omittedItems struct {
+	Count int    `json:"_omitted_items"`
+	Note  string `json:"_note"`
+}
+
 // shrinkToCap repeatedly trims the largest array in a decoded JSON value until
 // the re-encoded value fits maxResultBytes, appending an explicit placeholder to
 // every array it trims. When no array can be reduced, it replaces the payload
@@ -345,10 +362,8 @@ func shrinkToCap(v any) any {
 // keepable reports how many real (non-placeholder) elements an array holds.
 func keepable(s []any) int {
 	if n := len(s); n > 0 {
-		if m, ok := s[n-1].(map[string]any); ok {
-			if _, ok := m[omittedKey]; ok {
-				return n - 1
-			}
+		if _, ok := s[n-1].(omittedItems); ok {
+			return n - 1
 		}
 	}
 	return len(s)
@@ -361,32 +376,36 @@ func keepable(s []any) int {
 func trim(s []any, size, excess int) []any {
 	n, dropped := keepable(s), 0
 	if n < len(s) {
-		switch count := s[len(s)-1].(map[string]any)[omittedKey].(type) {
-		case int:
-			dropped = count
-		case int64:
-			dropped = int(count)
-		case float64:
-			dropped = int(count)
-		case json.Number:
-			if parsed, err := jsoninput.Int(count, strconv.IntSize); err == nil {
-				dropped = int(parsed)
-			}
+		dropped = s[len(s)-1].(omittedItems).Count
+	}
+	// Estimate how many average-sized rows must be removed. This avoids the
+	// overflowing n*(size-excess) calculation flagged by CodeQL while remaining
+	// deliberately conservative; shrinkToCap simply takes another pass if the
+	// placeholder overhead leaves the result above the cap.
+	bytesPerItem := 1
+	if n > 0 && size > n {
+		bytesPerItem = size / n
+	}
+	drop := 1
+	if excess > 0 {
+		drop = excess / bytesPerItem
+		if excess%bytesPerItem != 0 {
+			drop++
+		}
+		if drop < 1 {
+			drop = 1
 		}
 	}
-	keep := n * (size - excess) / size
-	if keep >= n {
-		keep = n - 1
+	if drop > n {
+		drop = n
 	}
-	if keep < 0 {
-		keep = 0
-	}
-	dropped += n - keep
+	keep := n - drop
+	dropped += drop
 	out := make([]any, 0, keep+1)
 	out = append(out, s[:keep]...)
-	return append(out, map[string]any{
-		omittedKey: dropped,
-		"_note":    fmt.Sprintf("%d items omitted: result exceeded the %d-byte MCP limit. Narrow the request (see describe_operation params) or use the CLI for the full list.", dropped, maxResultBytes),
+	return append(out, omittedItems{
+		Count: dropped,
+		Note:  fmt.Sprintf("%d items omitted: result exceeded the %d-byte MCP limit. Narrow the request (see describe_operation params) or use the CLI for the full list.", dropped, maxResultBytes),
 	})
 }
 

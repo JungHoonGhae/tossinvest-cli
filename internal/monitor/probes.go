@@ -55,13 +55,13 @@ type Result struct {
 // Each probe's Check is a schema invariant — the smallest assertion that
 // catches a contract change like #29 without false-positiving on Toss
 // adding/removing unrelated fields.
-func Probes() []Probe {
+func Probes(enabledExperiments ...string) []Probe {
 	const (
 		api  = "https://wts-api.tossinvest.com"
 		info = "https://wts-info-api.tossinvest.com"
 	)
 	var out []Probe
-	for _, spec := range ops.NewCatalog().Probes() {
+	for _, spec := range ops.NewCatalog(enabledExperiments...).Probes() {
 		out = append(out, Probe{Name: spec.Name, Method: spec.Method, URL: spec.URL, Body: spec.Body, AccountScoped: spec.AccountScoped, WatchlistGroupScoped: spec.WatchlistGroupScoped, Check: spec.Check})
 	}
 	// CLI-surface probes without a registry operation (covered by cmd quote/market).
@@ -127,8 +127,8 @@ const maxConcurrentProbes = 8
 // Run executes all probes concurrently (bounded by maxConcurrentProbes) using
 // the session for auth. Results are returned in probe order regardless of
 // completion order, so output stays stable.
-func Run(ctx context.Context, sess *session.Session) []Result {
-	probes := Probes()
+func Run(ctx context.Context, sess *session.Session, enabledExperiments ...string) []Result {
+	probes := Probes(enabledExperiments...)
 	results := make([]Result, len(probes))
 	accountListIndex := -1
 	watchlistGroupsIndex := -1

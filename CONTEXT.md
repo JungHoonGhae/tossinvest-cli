@@ -89,6 +89,16 @@ catalog를 실행하는 `ops call`과 MCP 주문은 `backend=""`인 official-onl
 `domain=system`, `backend=wts`다. 향후 일반 은행 거래를 붙인다면
 `domain=banking`, `backend=mobile`이 되며 WTS로 표기하지 않는다.
 
+**environment (오퍼레이션 필드)** — 같은 제품 안에서 상태가 기록되는 원장. 기본값은
+실계좌인 `live`, 별도 가상 잔고·주문 원장은 `paper`다. `paper`는 backend 이름이 아니므로
+현재 모의투자는 `domain=securities`, `backend=wts`, `environment=paper`로 표기한다.
+
+**lifecycle / stability** — 상류 기능의 배포 성숙도와 tossctl의 노출 안정성. 모의투자는
+현재 `lifecycle=rolling_out`, `stability=experimental`이며 `experimental.paper_trading`에
+옵트인한 사용자에게만 보인다. endpoint 구현 완료와 stable 승격은 같은 뜻이 아니다. 최소 3개
+연속 활성 build, 7일·7회 연속 live probe, 공식 UI 일반 공개, init·교육·주문 상태 일관성,
+미해결 5xx 없음이 모두 확인되어야 stable로 격상한다.
+
 ## 종목 데이터 표면
 
 **quote vs metadata vs universe** — 셋은 서로 대체하지 않는다.
@@ -115,6 +125,9 @@ typed 명령의 `mutating: true` 에이전트 금지 표시는 실계좌 거래 
 비거래 변경은 `writes_state: true`로 구분한다. 관심종목 폴더·종목은 별도 서비스가
 세션 결합 5분 token, 불가역 삭제 추가 승인, 사후 재조회 검증을 맡는다. 여러 operation을 디스패치하는 `ops call`은
 둘 다 실행할 수 있으므로 `mutating: true`, `writes_state: possible`로 보수적으로 표시한다.
+모의 원장의 입금·주문·취소는 `writes_state: true`, `mutation_risk=simulation`이며
+`mutating: true` 실주문 분류에는 넣지 않는다. 기본 preview 뒤 `simulation_execute`로 실행하고,
+모의 승인은 실주문 권한이나 confirm token으로 전환되지 않는다.
 
 ## 변경 승인
 
@@ -143,6 +156,8 @@ _피할 말_: confirmation (상태/의도 확인과 구분되지 않음)
 
 **모의투자 (paper trading)** — 실계좌 원장과 분리된 것으로 검증된 가상 잔고·주문 영역.
 경로 이름에 `paper`가 있다는 사실만으로 분리가 증명되지는 않는다.
+같은 옵션 의도는 paper/live 사이에서 옮길 수 있지만, `paper order live-preview`는 일반
+`trading.Service`의 새 preview만 만들며 실주문을 제출하지 않는다.
 _피할 말_: test account (테스트용 실계좌와 혼동됨)
 
 ## 인증 상태

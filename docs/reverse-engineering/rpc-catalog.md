@@ -180,10 +180,12 @@ Captured via `/my-assets` navigation on 2026-04-19. Covers trades, cash flow, di
 | `auth` | `GET` | `wts-api.tossinvest.com` | `/api/v3/my-assets/transactions/markets/{market}` | paginated transaction ledger | `.result.body[]` with `type`, `transactionType.{code,displayName}`, `stockCode`, `stockName`, `quantity`, `amount`, `adjustedAmount`, `commissionAmount`, `totalTaxAmount`, `balanceAmount`, `date`, `dateTime`, `settlementDate`, `referenceType`, `referenceId`, `compositeKey` | `transactions list` | `market` = `kr` or `us`. Query params: `size`, `filters` (0=all, 1=trades, 2=cash/dividend, 3=stock in-out, 6=alt cash; 4/5/7 return 500), `range.from`, `range.to`. `size` is honored; `range.from` and `number` are silently ignored — Toss returns up to `size` entries within the tail of `range.to`. Items are grouped by `type` ASC (1 = trade records, 2 = cash-flow records), then DESC by `dateTime`/`date` inside each group. US `type=1` trades populate only `settlementDate` (T+2); client range-filter falls back to `compositeKey.orderDate` to match execution day. Client pages older data by re-issuing with `range.to` set to the earliest date seen, dedupes by SortKey (derived from `compositeKey`), and filters items to the caller's `[from, to]` window. Max range = 200 days (client-side guard). |
 | `auth` | `GET` | `wts-api.tossinvest.com` | `/api/v3/my-assets/transactions/markets/{market}/overview` | cash overview per market | `.result` with `orderableAmount`, `withdrawableAmount.amount0..3`, `depositAmount.amount0..3`, `estimateSettlementAmount.day1..2`, `withdrawableAmountBottomSheet` | `transactions overview` | `depositAmount` buckets represent upcoming settlement credits; `estimateSettlementAmount` shows buy/sell amounts clearing on each upcoming settlement date. |
 
-## Paper trading — statically discovered, not callable
+## Paper trading — experimental, callable after opt-in
 
-WTS build `Vn2JUgZup8HwoN8aQW3Nm` contains a US-options paper environment. Static analysis verified
-the following families without invoking any write:
+WTS builds contain a US-options paper environment. Static analysis first identified the route
+families below; on 2026-09-03 the dedicated paper balance, deposit, prepare/create, single-cancel,
+bulk-cancel, pending-order, and completed-order flows were also exercised against an ordinary
+brokerage session with no live options/derivatives account:
 
 - enrollment/initialization: `POST /api/v1/paper/init`; the call has no body and follows selection
   of an options account
@@ -195,13 +197,20 @@ the following families without invoking any write:
 - cancellation: prepare then execute for one order, plus bulk prepare/execute; exact bodies and
   `X-Order-Key` propagation are recorded in `wts-endpoints.json`
 
-This is **not a released CLI/MCP feature**. Static analysis now identifies
-`POST /api/v2/paper/trading/order/prepare` and `/create`, but the full payload, `orderKey`
-propagation, validation branches, and response receipt are not isolated. The generic
-`/api/v3/paper/trading/order` string is only a truncated shadow of dynamic available-action and
-cancel families. Paper enrollment and education eligibility remain server-side prerequisites; no
-bypass parameter was found. Implementation waits for the complete place contract, post-action
-receipts, and proof that account/session selection cannot reach the live ledger.
+The implementation is intentionally **experimental**, not part of default CLI/MCP discovery.
+Enabling `experimental.paper_trading` exposes typed CLI commands and eight ops/MCP operations.
+All mutations preview by default and require explicit `simulation_execute`; the client accepts only
+dedicated `/paper/` routes and never imports live trading config or a live confirmation token.
+Deposit and cancellation executions perform a paper-ledger post-read where the route supports an
+unambiguous check.
+
+The rollout is not stable yet. `/api/v1/paper/init` returns an unresolved 500, while deposit,
+prepare/create, single cancellation, and bulk cancellation succeed even when the education and
+overseas-derivative eligibility flags are false. This proves the current account can use those
+paper routes; it does not prove general availability or a permanent upstream contract. Current
+build presence, probe history, live observations, and promotion blockers are tracked under
+`rolling_features.paper-trading-us-options` in `wts-endpoints.json` and in
+[`ADR 0005`](../adr/0005-isolate-paper-execution-and-gate-rollout.md).
 
 ## Admission policy
 
@@ -218,7 +227,8 @@ Writes additionally require the inventory and guardrails in
 - WTS live-order placement, modification, or cancellation in ops/MCP. The human-oriented top-level
   `order place|cancel|amend` CLI retains its separately captured WTS path, but never retries a write
   across official and WTS backends.
-- paper writes until strict live-ledger isolation is proven
+- paper education-session completion and any paper route whose payload or ledger isolation is not
+  verified; the admitted experimental subset is restricted to dedicated `/paper/` routes
 - account administration, funds transfer, identity, password, legal terms, and regulated applications
 - telemetry endpoints
 - comment posting or social actions

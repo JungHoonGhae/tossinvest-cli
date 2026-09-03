@@ -52,6 +52,39 @@ DISCOVERY_MAX_REDIRECTS = 5
 DISCOVERY_MAX_RESPONSE_BYTES = 16 * 1024 * 1024
 DISCOVERY_MAX_TOTAL_BYTES = 256 * 1024 * 1024
 
+# Features in an upstream rollout need a second lifecycle axis beyond endpoint
+# classification. A route can be implemented by tossctl while the upstream UI
+# flag, call graph, or eligibility behavior is still changing between builds.
+ROLLING_FEATURES = {
+    "paper-trading-us-options": {
+        "lifecycle": "rolling_out",
+        "stability": "experimental",
+        "bundle_markers": ["option.paper.wts.open"],
+        "critical_endpoints": [
+            "/api/v1/paper/cash-balance",
+            "/api/v1/paper/education/summary",
+            "/api/v1/paper/trading/orders/histories/all/pending",
+            "/api/v2/paper/trading/my-orders/markets/us-opt/by-date/completed",
+            "/api/v2/paper/trading/order/prepare",
+            "/api/v2/paper/trading/order/create",
+            "/api/v2/paper/trading/order/cancel/prepare/{date}/{orderNo}",
+            "/api/v3/paper/trading/order/cancel/{date}/{orderNo}",
+            "/api/v3/paper/trading/order/bulk-cancel/prepare",
+            "/api/v3/paper/trading/order/bulk-cancel",
+        ],
+        "promotion_criteria": {
+            "target": "stable",
+            "minimum_consecutive_builds": 3,
+            "minimum_consecutive_live_probe_passes": 7,
+            "minimum_observation_days": 7,
+            "requires_official_ui_general_availability": True,
+            "requires_complete_critical_surface": True,
+            "requires_no_unresolved_5xx": True,
+            "requires_consistent_init_education_order_state": True,
+        },
+    },
+}
+
 
 class WTSFetchError(RuntimeError):
     def __init__(self, message, status=None):
@@ -227,6 +260,16 @@ IMPLEMENTED = [
     r"^/api/v1/trading/orders/calculate/[^/]+/(orderable-quantity|cost-basis-elements|average-price)",
     r"^/api/v2/trading/orders/calculate/[^/]+/cost-basis-elements",
     r"^/api/v1/trading/orders/histories/all/pending",
+    # Paper options use a physically separate ledger and dedicated routes. The
+    # feature remains lifecycle=rolling_out even though these concrete calls
+    # are implemented and live-verified; rollout stability is tracked below.
+    r"^/api/v1/paper/(?:init|cash-balance|deposit|education/summary)$",
+    r"^/api/v1/paper/trading/orders/histories/all/pending$",
+    r"^/api/v2/paper/trading/my-orders/markets/us-opt/by-date/completed$",
+    r"^/api/v2/paper/trading/order/(?:prepare|create)$",
+    r"^/api/v2/paper/trading/order/cancel/prepare/\{[^}]+\}/\{[^}]+\}$",
+    r"^/api/v3/paper/trading/order/cancel/\{[^}]+\}/\{[^}]+\}$",
+    r"^/api/v3/paper/trading/order/bulk-cancel(?:/prepare)?$",
     r"^/api/v2/wts/trading/order/(create|prepare|cancel|correct)",
     r"^/api/v3/wts/trading/order/cancel/[^/]+/[^/]+$",
     r"^/api/v3/trading/order/[^/]+/available-actions$",
@@ -591,32 +634,30 @@ CURATED_CONTRACTS = {
         "host": "wts-cert-api",
         "evidence": "partial",
         "priority": "deferred",
-        "note": "Static call contract has no request body. It initializes or applies for the paper-options environment after selecting an options account. Education/eligibility behavior and strict live-ledger isolation must be verified before implementation; no bypass parameter was found.",
+        "note": "The exact empty-body contract is implemented behind the paper-trading experiment. A controlled live call returned an opaque 500 on 2026-09-03, so enrollment remains rollout-blocked; no education bypass parameter was found.",
         "mutation": {
             "writes_state": True,
             "risk_level": "simulation-enrollment",
             "reversibility": "unknown",
-            "approval": "per-execution",
+            "approval": "simulation-execute",
         },
     },
     "/api/v1/paper/cash-balance": {
         "method": "GET",
         "host": "wts-cert-api",
-        "evidence": "partial",
-        "priority": "deferred",
-        "note": "Static read contract returns a simulated orderableAmount. Safe exposure still depends on proving the paper account/session cannot resolve to the live ledger.",
+        "evidence": "verified",
+        "note": "Live-verified on 2026-09-03: returns isolated simulated orderableAmount; paper order and cancellation changed only the paper ledger.",
     },
     "/api/v1/paper/deposit": {
         "method": "POST",
         "host": "wts-cert-api",
-        "evidence": "partial",
-        "priority": "deferred",
-        "note": "Static contract changes simulated cash; the observed UI submits an amount. Exact validation/receipt and paper-only isolation remain unverified.",
+        "evidence": "verified",
+        "note": "Live-verified on 2026-09-03 with a whole-number amount; the receipt and follow-up balance remained isolated to the paper ledger.",
         "mutation": {
             "writes_state": True,
             "risk_level": "simulation",
             "reversibility": "unknown",
-            "approval": "per-execution",
+            "approval": "simulation-execute",
         },
     },
     "/api/v1/paper/education/lecture-video": {
@@ -629,9 +670,8 @@ CURATED_CONTRACTS = {
     "/api/v1/paper/education/summary": {
         "method": "GET",
         "host": "wts-cert-api",
-        "evidence": "partial",
-        "priority": "deferred",
-        "note": "Static paper-education summary read. Response schema is not captured.",
+        "evidence": "verified",
+        "note": "Live-verified on 2026-09-03. Eligibility and allCompleted were false while paper prepare/create still succeeded, so these flags are reported but not treated as a client-side order prerequisite.",
     },
     "/api/v1/paper/education/session/{action}": {
         "method": "POST",
@@ -672,12 +712,23 @@ CURATED_CONTRACTS = {
             "approval": "none",
         },
     },
+    "/api/v1/paper/trading/orders/histories/all/pending": {
+        "method": "GET",
+        "host": "wts-cert-api",
+        "evidence": "verified",
+        "note": "Live-verified on 2026-09-03 before and after a simulated cancellation; the created order appeared only in this paper pending ledger and disappeared after cancel.",
+    },
+    "/api/v2/paper/trading/my-orders/markets/us-opt/by-date/completed": {
+        "method": "GET",
+        "host": "wts-cert-api",
+        "evidence": "verified",
+        "note": "Live-verified on 2026-09-03; the cancelled simulated option order appeared in the completed paper history.",
+    },
     "/api/v2/paper/trading/order/prepare": {
         "method": "POST",
         "host": "wts-cert-api",
-        "evidence": "partial",
-        "priority": "deferred",
-        "note": "Exact paper-order prepare route is present in the static bundle. The complete request schema, validation branches, and receipt/orderKey contract are not yet isolated.",
+        "evidence": "verified",
+        "note": "Live-verified on 2026-09-03 with the implemented normalized option intent. authRequired:null and an absent orderKey are valid paper responses and do not authorize any live order.",
         "mutation": {
             "writes_state": False,
             "risk_level": "simulation",
@@ -688,22 +739,20 @@ CURATED_CONTRACTS = {
     "/api/v2/paper/trading/order/create": {
         "method": "POST",
         "host": "wts-cert-api",
-        "evidence": "partial",
-        "priority": "deferred",
-        "note": "Exact paper-order create route is present in the static bundle. The full payload, orderKey propagation, response receipt, and strict live-ledger isolation remain unverified.",
+        "evidence": "verified",
+        "note": "Live-verified on 2026-09-03. The client propagates X-Order-Key only when prepare supplies one; an observed no-key response created an order exclusively in the paper pending ledger.",
         "mutation": {
             "writes_state": True,
             "risk_level": "simulation",
             "reversibility": "irreversible",
-            "approval": "per-execution",
+            "approval": "simulation-execute",
         },
     },
     "/api/v2/paper/trading/order/cancel/prepare/{date}/{orderNo}": {
         "method": "POST",
         "host": "wts-cert-api",
-        "evidence": "partial",
-        "priority": "deferred",
-        "note": "Static prepare body includes after-market/reservation flags, quantity, stockCode, tradeType, orderId, and withOrderKey. No state change is expected, but the receipt is unverified.",
+        "evidence": "verified",
+        "note": "Live-verified on 2026-09-03 against an isolated pending order. The response may omit orderKey; the execute request must omit X-Order-Key in that case.",
         "mutation": {
             "writes_state": False,
             "risk_level": "simulation",
@@ -714,22 +763,20 @@ CURATED_CONTRACTS = {
     "/api/v3/paper/trading/order/cancel/{date}/{orderNo}": {
         "method": "POST",
         "host": "wts-cert-api",
-        "evidence": "partial",
-        "priority": "deferred",
-        "note": "Static simulated-cancel contract uses the prepare orderKey in X-Order-Key and repeats the order identity/body. Post-cancel verification is not captured.",
+        "evidence": "verified",
+        "note": "Live-verified on 2026-09-03. Cancellation cleared the paper pending ledger and the order appeared as cancelled in paper completed history; no live account state was touched.",
         "mutation": {
             "writes_state": True,
             "risk_level": "simulation",
             "reversibility": "irreversible",
-            "approval": "per-execution",
+            "approval": "simulation-execute",
         },
     },
     "/api/v3/paper/trading/order/bulk-cancel/prepare": {
         "method": "POST",
         "host": "wts-cert-api",
-        "evidence": "partial",
-        "priority": "deferred",
-        "note": "Static prepare body is {orderCancels:[{orderDate,orderNo,tradeType,isAfterMarketOrder,stockCode,isReservationOrder}]}.",
+        "evidence": "verified",
+        "note": "Live-verified on 2026-09-03 with two pending simulated orders. The exact orderCancels array preserves after-market and reservation flags independently.",
         "mutation": {
             "writes_state": False,
             "risk_level": "simulation",
@@ -740,14 +787,13 @@ CURATED_CONTRACTS = {
     "/api/v3/paper/trading/order/bulk-cancel": {
         "method": "POST",
         "host": "wts-cert-api",
-        "evidence": "partial",
-        "priority": "deferred",
-        "note": "Static simulated bulk-cancel contract repeats the prepared orderCancels array. Result exposes failedCancelCount; exact per-order receipts are not captured.",
+        "evidence": "verified",
+        "note": "Live-verified on 2026-09-03: two simulated orders were cancelled with failedCancelCount=0 and the follow-up pending list was empty.",
         "mutation": {
             "writes_state": True,
             "risk_level": "simulation",
             "reversibility": "irreversible",
-            "approval": "per-execution",
+            "approval": "simulation-execute",
         },
     },
     "/api/v3/paper/trading/order/{orderNo}/available-actions": {
@@ -898,8 +944,51 @@ def collect_paths():
     # 먼저 읽힌 쪽이 이겼다). CI 가 매 실행 diff 를 만들어낸다.
     blob = "\n".join(chunk_bodies[path] for path in sorted(chunk_bodies))
     globals()["_ROUTE_COUNT"] = len(routes)
+    globals()["_ROLLING_MARKER_PRESENCE"] = {
+        marker: marker in blob
+        for feature in ROLLING_FEATURES.values()
+        for marker in feature["bundle_markers"]
+    }
     norm, meta = derive_paths(blob)
     return root_build_id, sorted(build_ids), len(chunks), norm, meta
+
+
+def rolling_feature_snapshot(bundle_paths, marker_presence, build_ids, previous, checked_at):
+    """Build the generated portion of rollout state while retaining live facts.
+
+    bundle_paths must be captured before curated contracts and runtime probes are
+    merged; otherwise a historical override would make a removed route look
+    present in the current UI build.
+    """
+    previous = previous if isinstance(previous, dict) else {}
+    out = {}
+    for feature_id, spec in sorted(ROLLING_FEATURES.items()):
+        prior = previous.get(feature_id, {})
+        endpoints = {
+            path: path in bundle_paths
+            for path in spec["critical_endpoints"]
+        }
+        markers = {
+            marker: bool(marker_presence.get(marker, False))
+            for marker in spec["bundle_markers"]
+        }
+        state = {
+            "lifecycle": spec["lifecycle"],
+            "stability": spec["stability"],
+            "checked_at": checked_at,
+            "active_build_ids": sorted(set(build_ids)),
+            "bundle_markers": markers,
+            "endpoint_presence": endpoints,
+            "critical_surface_complete": all(endpoints.values()),
+            "promotion_criteria": spec["promotion_criteria"],
+        }
+        # These are reviewed, privacy-safe facts from controlled live checks or
+        # our implementation. The bundle scanner cannot regenerate them.
+        for retained in ("live_observations", "implementation", "promotion_review", "notes"):
+            if retained in prior:
+                state[retained] = prior[retained]
+        out[feature_id] = state
+    return out
 
 
 
@@ -1157,6 +1246,11 @@ def main():
         )
         return 1
 
+    # Capture the raw bundle surface before curated/historical contracts and
+    # runtime probes are merged. Rollout tracking must not mistake preserved
+    # knowledge for presence in the current deployed UI.
+    bundle_paths = set(paths)
+
     # The web bundle sometimes omits a reusable dynamic template even though
     # monitor.Probes executes a concrete representative URL. Merge those
     # runtime contracts into the generated inventory so host/method checks do
@@ -1248,6 +1342,13 @@ def main():
         "counts": counts,
         "overrides": overrides,
         "endpoints": endpoints,
+        "rolling_features": rolling_feature_snapshot(
+            bundle_paths,
+            globals().get("_ROLLING_MARKER_PRESENCE", {}),
+            build_ids,
+            prev.get("rolling_features", {}),
+            today,
+        ),
     }
     # updated_at stamped by caller (CI) to keep runs deterministic; default today
     out["updated_at"] = os.environ.get("WTS_DATE") or datetime.date.today().isoformat()
@@ -1284,6 +1385,29 @@ def build_diff(previous, current, added, removed):
     current_builds = catalog_build_ids(current)
     previous_chunks = previous.get("chunk_count")
     current_chunks = current.get("chunk_count")
+    previous_rollouts = previous.get("rolling_features", {})
+    current_rollouts = current.get("rolling_features", {})
+    rollout_ids = sorted(set(previous_rollouts) | set(current_rollouts))
+    rollout_changes = []
+    for feature_id in rollout_ids:
+        before = previous_rollouts.get(feature_id, {})
+        after = current_rollouts.get(feature_id, {})
+        comparable_before = {
+            "lifecycle": before.get("lifecycle"),
+            "stability": before.get("stability"),
+            "bundle_markers": before.get("bundle_markers", {}),
+            "endpoint_presence": before.get("endpoint_presence", {}),
+            "promotion_criteria": before.get("promotion_criteria", {}),
+        }
+        comparable_after = {
+            "lifecycle": after.get("lifecycle"),
+            "stability": after.get("stability"),
+            "bundle_markers": after.get("bundle_markers", {}),
+            "endpoint_presence": after.get("endpoint_presence", {}),
+            "promotion_criteria": after.get("promotion_criteria", {}),
+        }
+        if comparable_before != comparable_after:
+            rollout_changes.append(feature_id)
     return {
         "added": added,
         "removed": removed,
@@ -1299,7 +1423,9 @@ def build_diff(previous, current, added, removed):
         "chunk_count_changed": previous_chunks is not None and previous_chunks != current_chunks,
         "previous_chunk_count": previous_chunks,
         "current_chunk_count": current_chunks,
-}
+        "rolling_features_changed": bool(rollout_changes),
+        "rolling_feature_changes": rollout_changes,
+    }
 
 
 def catalog_build_ids(catalog):

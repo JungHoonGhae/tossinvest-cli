@@ -11,13 +11,17 @@ tossctl ops list
 tossctl ops describe <operation>
 ```
 
+The paper rows below are opt-in operations. Enable them with
+`tossctl config experimental paper-trading --enable`; they remain absent from
+default ops/MCP discovery while the upstream feature is rolling out.
+
 `ops list` marks callable writes; `ops describe` exposes each write's `mutation` policy containing its risk,
 reversibility, authorization mode, preview and confirmation requirements,
 opt-in requirements, and verification or unknown-outcome rule. An omitted `execute`
-always produces a preview. All currently callable writes use
-`authorization_mode: state_confirmation`. Order tokens bind only the exact
-intent and therefore declare `intent_confirmation`; they are not fresh-state,
-expiring, or single-use credentials.
+always produces a preview. Preference writes use `state_confirmation`, live
+orders use `intent_confirmation`, and isolated paper writes use
+`simulation_execute`. Live order tokens bind only the exact intent; they are
+not fresh-state, expiring, or single-use credentials.
 
 `requires_fresh_confirmation` means the token binds the currently affected
 server state and exact intent, not that every token has a wall-clock expiry or
@@ -50,6 +54,11 @@ write contract, so callers must not execute the same preview concurrently.
 | `watchlist_group_delete` | Securities | destructive / irreversible | preview binds folder membership + session-bound 5-minute confirmation + explicit irreversible acknowledgement + absence post-read |
 | `watchlist_item_add` | Securities | preference / reversible | preview binds exact membership + session-bound 5-minute confirmation + membership post-read |
 | `watchlist_item_remove` | Securities | preference / reversible | preview binds exact membership + session-bound 5-minute confirmation + membership post-read |
+| `initialize_paper_trading` | Securities (paper) | simulation / unknown | preview + explicit `execute=true`; server initialization can still refuse independently |
+| `deposit_paper_cash` | Securities (paper) | simulation / unknown | preview + explicit `execute=true` + paper-balance post-read; no matching withdrawal route is known |
+| `place_paper_order` | Securities (paper) | simulation / irreversible-in-simulation | server prepare preview + explicit `execute=true`; dedicated `/paper/` create route only |
+| `cancel_paper_order` | Securities (paper) | simulation / irreversible-in-simulation | pending-order preview + explicit `execute=true` + automatic pending-state absence check |
+| `cancel_all_paper_orders` | Securities (paper) | simulation / irreversible-in-simulation | target-count preview + explicit `execute=true` + automatic `failed_count`/remaining-state comparison |
 
 Financial writes are never safe to invoke automatically. A human must approve
 every live order. Deleting a watchlist folder also requires
@@ -67,7 +76,7 @@ response, and live isolation contracts are verified.
 | Holdings ordering | update flat holdings sort order | Route is present; key semantics and post-write representation still need verification. |
 | Notification / AI agreement | update notification preferences and analysis agreement | Read state is implemented. The write routes need exact per-setting payload and post-read mapping before exposure. |
 | Trading settings | simple-trade toggle, KRX/NXT venue choice, ATS notification | Read state is implemented. Prepare/signature steps and account scope differ by setting and are not yet fully verified. These can affect order behavior. |
-| Paper trading | initialize/apply, simulated deposit, place/cancel/bulk-cancel simulated US-options orders | Static WTS contracts confirm `/api/v1/paper/init`, balance/deposit/history routes, `POST /api/v2/paper/trading/order/prepare` and `/create`, and cancel routes. The complete place payload/receipt, application/education prerequisites, and strict isolation from live trading have not been verified. Therefore paper trading is **not yet available in CLI/MCP**. |
+| Paper education session | open, heartbeat, close, complete | The normal session protocol is statically recovered, but `/paper/init` currently returns an opaque 500 and `session/open` explicitly refuses uninitialized progress. No education-completion bypass is exposed. |
 
 ## High-impact actions intentionally withheld
 
@@ -94,18 +103,20 @@ authorization mode. A mandate must bind allowed markets/products/sides, per
 order and daily limits, an expiry, strategy identity, idempotency, audit
 receipts, and a kill switch. It may explicitly pre-authorize named server
 consents such as FX confirmation. It cannot bypass server-side eligibility,
-identity verification, education, or terms acceptance. Ad-hoc order operations
-remain manual confirmation operations; paper operations may use a paper-only mandate only
-after strict separation from the live ledger is verified.
+identity verification, education, or terms acceptance. Ad-hoc live order
+operations remain manual confirmation operations. Verified paper operations
+use `simulation_execute`: preview by default and explicit `execute=true`, with
+no live confirmation token or live-order config opt-in. Their client accepts
+only dedicated `/paper/` routes and results carry `environment: paper`.
 
 ## Guardrail rules for future writes
 
 1. Verify the exact method, host, path, headers, body, response, and account
    scope before adding a callable operation.
 2. Read the affected state first and bind it into a short confirmation token.
-3. Default to preview. Execution requires `execute=true` and the token from a
-   preview of the current affected state and exact intent. Document any
-   additional session binding or wall-clock expiry per operation.
+3. Default to preview. Live and preference execution requires `execute=true`
+   plus the token from a preview of the exact intent/state. Isolated simulation
+   execution uses explicit `execute=true` without reusing live authorization.
 4. Add config opt-in for financial or broadly consequential actions.
 5. Require a separate irreversible acknowledgement when exact restoration is
    impossible.
