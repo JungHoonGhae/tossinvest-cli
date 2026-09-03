@@ -108,8 +108,15 @@ title_prefix=""
 if grep -qiE '^> *breaking-risk *$' "$checkout/$analysis_file"; then
   title_prefix="[breaking-risk] "
 fi
-git -C "$checkout" config user.name "JungHoonGhae"
-git -C "$checkout" config user.email "236698722+JungHoonGhae@users.noreply.github.com"
+git_author_name="${TOSSCTL_AUTOMATION_GIT_NAME:-$(git config user.name 2>/dev/null || true)}"
+git_author_email="${TOSSCTL_AUTOMATION_GIT_EMAIL:-$(git config user.email 2>/dev/null || true)}"
+if [ -z "$git_author_name" ] || [ -z "$git_author_email" ]; then
+  echo "Git author identity is unavailable." >&2
+  echo "Configure git user.name/user.email or set TOSSCTL_AUTOMATION_GIT_NAME and TOSSCTL_AUTOMATION_GIT_EMAIL." >&2
+  exit 1
+fi
+git -C "$checkout" config user.name "$git_author_name"
+git -C "$checkout" config user.email "$git_author_email"
 git -C "$checkout" add "$analysis_file"
 git -C "$checkout" commit -m "docs(analysis): API 변경 분석 ${analysis_date}"
 git -C "$checkout" push --set-upstream origin "$branch"
