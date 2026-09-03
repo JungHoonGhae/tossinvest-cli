@@ -9,6 +9,12 @@ Version history below (source: the Korean-language [CHANGELOG.md](https://github
 
 ## [Unreleased]
 
+## [0.50.1] - 2026-09-03
+
+### 버그 수정
+- MCP 대형 결과를 줄이는 배열 할당에서 입력 길이에 산술을 적용하지 않도록 바꿔 정수 overflow 가능성을 제거했습니다.
+- 문서 개발 도구의 취약한 transitive 의존성을 안전한 패치 버전으로 고정하고, CI 의존성 감사를 개발 의존성까지 확대했습니다.
+
 ## [0.50.0] - 2026-09-03
 
 ### 새 기능

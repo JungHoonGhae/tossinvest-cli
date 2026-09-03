@@ -34,5 +34,11 @@
     "tailwindcss": "^4.2.1",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "brace-expansion@1": "1.1.18",
+      "fast-uri@3": "3.1.7"
+    }
   }
 }
