@@ -102,7 +102,8 @@ description: tossctl 전체 명령
 | `tossctl account overview [--full]` | 전체·미성년 계좌 자산(계좌번호 기본 마스킹) |
 | `tossctl account trading-settings [--account <key>]` | 증권 계좌별 간편주문과 사용자 공통 KRX/NXT·ATS 알림·옵션 실시간 시세 설정 조회(읽기 전용) |
 | `tossctl account transfer-accounts [--account <key>] [--full]` | 증권 주식이체용 내·최근 계좌 조회(번호 기본 마스킹, 이체 실행 없음) |
-| `tossctl banking status [--full]` | 증권 주식모으기 자금연결·등록 상태(일반 Banking 아님, 예금주·계좌번호 기본 마스킹, 내부 ID 항상 미출력) |
+| `tossctl account access-status [--account <key>]` | 최근 증권 접속 환경과 계좌별 신용거래 동결·사고계좌 상태(읽기 전용, 원래 계좌 키 미출력) |
+| `tossctl banking status [--full]` | 증권 주식모으기 자금연결·자동주문 등록·거래목적 확인용 MyData 상태(일반 Banking/MyData 아님, 예금주·계좌번호 기본 마스킹, 내부 ID 항상 미출력) |
 | `tossctl notifications list` | WTS 알림 설정 조회(읽기 전용, 내부 사용자 ID 제외) |
 
 ## 관심종목 (watchlist)

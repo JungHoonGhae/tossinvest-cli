@@ -25,8 +25,8 @@ func WriteOpenBankingStatus(w io.Writer, format Format, status domain.OpenBankin
 		return writeJSON(w, view)
 	case FormatCSV:
 		return writeCSV(w,
-			[]string{"holder_name", "connected_account_no", "bank_code", "linked_account_count", "registrable_account_count", "saving_count", "connection_creatable", "registration_required"},
-			[][]string{{view.HolderName, accountNo, bankCode, strconv.Itoa(view.LinkedAccountCount), strconv.Itoa(view.RegistrableAccountCount), strconv.Itoa(view.SavingCount), strconv.FormatBool(view.ConnectionCreatable), strconv.FormatBool(view.RegistrationRequired)}},
+			[]string{"holder_name", "connected_account_no", "bank_code", "linked_account_count", "registrable_account_count", "saving_count", "connection_creatable", "registration_required", "auto_trading_registered", "auto_trading_bank_code", "trade_purpose_mydata_account_exists"},
+			[][]string{{view.HolderName, accountNo, bankCode, strconv.Itoa(view.LinkedAccountCount), strconv.Itoa(view.RegistrableAccountCount), strconv.Itoa(view.SavingCount), strconv.FormatBool(view.ConnectionCreatable), strconv.FormatBool(view.RegistrationRequired), strconv.FormatBool(view.AutoTradingRegistered), view.AutoTradingBankCode, strconv.FormatBool(view.TradePurposeMyDataAccountExists)}},
 		)
 	case FormatTable:
 		state := "not connected"
@@ -50,6 +50,17 @@ func WriteOpenBankingStatus(w io.Writer, format Format, status domain.OpenBankin
 			return err
 		}
 		if _, err := fmt.Fprintf(w, "Connection creatable:  %t\nRegistration required: %t\n", view.ConnectionCreatable, view.RegistrationRequired); err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(w, "Auto-trading funding registered: %t", view.AutoTradingRegistered); err != nil {
+			return err
+		}
+		if view.AutoTradingBankCode != "" {
+			if _, err := fmt.Fprintf(w, "  (bank %s)", view.AutoTradingBankCode); err != nil {
+				return err
+			}
+		}
+		if _, err := fmt.Fprintf(w, "\nTrade-purpose MyData account: %t\n", view.TradePurposeMyDataAccountExists); err != nil {
 			return err
 		}
 		if !full && view.ConnectedAccount != nil {

@@ -313,6 +313,10 @@ func TestBankingStatusOperationMasksIdentityUnlessFull(t *testing.T) {
 			_, _ = w.Write([]byte(`{"result":true}`))
 		case "/api/v1/autotrade/open-banking/need-registration":
 			_, _ = w.Write([]byte(`{"result":false}`))
+		case "/api/v1/trading/open-banking/auto-trading":
+			_, _ = w.Write([]byte(`{"result":{"connectedAccountBankCode":"039","isRegistered":true}}`))
+		case "/api/v1/trade-purpose-verification/my-data/account/exists":
+			_, _ = w.Write([]byte(`{"result":true}`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -358,13 +362,17 @@ func TestBankingStatusOperationOwnsEveryHTTPDependencyProbe(t *testing.T) {
 	for _, probe := range op.ExtraProbes {
 		probes[probe.Name] = probe
 	}
-	for _, name := range []string{"open-banking-status", "open-banking-creatable", "open-banking-registration"} {
+	for _, name := range []string{"open-banking-status", "open-banking-creatable", "open-banking-registration", "auto-trading-open-banking", "trade-purpose-mydata-account"} {
 		probe, found := probes[name]
 		if !found {
 			t.Errorf("dependency probe %q missing", name)
 			continue
 		}
-		if err := probe.Check(http.StatusOK, []byte(`{"result":true}`)); err != nil && name != "open-banking-status" {
+		body := []byte(`{"result":true}`)
+		if name == "auto-trading-open-banking" {
+			body = []byte(`{"result":{"connectedAccountBankCode":"039","isRegistered":true}}`)
+		}
+		if err := probe.Check(http.StatusOK, body); err != nil && name != "open-banking-status" {
 			t.Errorf("%s rejected boolean contract: %v", name, err)
 		}
 	}

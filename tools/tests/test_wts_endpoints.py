@@ -185,6 +185,18 @@ class TestClassify(unittest.TestCase):
                 status, _ = W.classify(path, {})
                 self.assertEqual(status, "implemented")
 
+    def test_account_access_and_banking_link_endpoints_are_implemented(self):
+        for path in [
+            "/api/v1/user/last-login-info",
+            "/api/v1/margin/cert/frozen-account",
+            "/api/v2/account/unlock/accident-account/count",
+            "/api/v1/trading/open-banking/auto-trading",
+            "/api/v1/trade-purpose-verification/my-data/account/exists",
+        ]:
+            with self.subTest(path=path):
+                status, _ = W.classify(path, {})
+                self.assertEqual(status, "implemented")
+
     def test_asset_snapshot_contracts_are_implemented_without_claiming_truncated_paths(self):
         for path in [
             "/api/v1/asset-snapshot/all-accounts/chart/{range}/{stepUnit}",

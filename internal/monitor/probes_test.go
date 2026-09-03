@@ -17,6 +17,9 @@ import (
 
 func TestProbesRegistryStableNames(t *testing.T) {
 	want := map[string]bool{
+		"account-last-login":                  true,
+		"account-margin-frozen":               true,
+		"account-accident-count":              true,
 		"account-commission-info":             true,
 		"account-interest-years":              true,
 		"ria-report":                          true,
@@ -79,6 +82,8 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"open-banking-status":                 true,
 		"open-banking-creatable":              true,
 		"open-banking-registration":           true,
+		"auto-trading-open-banking":           true,
+		"trade-purpose-mydata-account":        true,
 		"notification-settings":               true,
 		"price-alerts":                        true,
 		"hidden-holdings":                     true,

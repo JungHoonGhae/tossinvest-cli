@@ -104,6 +104,26 @@ func TestWriteOpenBankingStatusShowsConnectionCapabilitiesInEveryFormat(t *testi
 	}
 }
 
+func TestWriteOpenBankingStatusShowsNarrowSecuritiesLinkStates(t *testing.T) {
+	t.Parallel()
+	status := domain.OpenBankingStatus{
+		AutoTradingRegistered:           true,
+		AutoTradingBankCode:             "039",
+		TradePurposeMyDataAccountExists: true,
+	}
+	for _, format := range []Format{FormatTable, FormatJSON, FormatCSV} {
+		var out bytes.Buffer
+		if err := WriteOpenBankingStatus(&out, format, status, false); err != nil {
+			t.Fatalf("%s: %v", format, err)
+		}
+		for _, want := range []string{"auto", "039", "mydata", "true"} {
+			if !strings.Contains(strings.ToLower(out.String()), want) {
+				t.Fatalf("%s missing %q: %s", format, want, out.String())
+			}
+		}
+	}
+}
+
 func TestWriteMarketKeyEventsRendersBothSections(t *testing.T) {
 	t.Parallel()
 	eps := 1.2

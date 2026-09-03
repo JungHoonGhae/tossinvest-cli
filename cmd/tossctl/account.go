@@ -19,6 +19,7 @@ func newAccountCmd(opts *rootOptions) *cobra.Command {
 		newAccountOverviewCmd(opts),
 		newAccountTradingSettingsCmd(opts),
 		newAccountTransferAccountsCmd(opts),
+		newAccountAccessStatusCmd(opts),
 		&cobra.Command{
 			Use:         "list",
 			Short:       i18n.T("account.list.short"),
@@ -96,6 +97,30 @@ func newAccountCmd(opts *rootOptions) *cobra.Command {
 		newAccountReceivableCmd(opts),
 	)
 
+	return cmd
+}
+
+func newAccountAccessStatusCmd(opts *rootOptions) *cobra.Command {
+	var account string
+	cmd := &cobra.Command{
+		Use:         "access-status",
+		Short:       i18n.T("account.accessStatus.short"),
+		Long:        i18n.T("account.accessStatus.long"),
+		Args:        cobra.NoArgs,
+		Annotations: map[string]string{"source": "wts", "domain": "securities"},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			status, err := app.client.GetAccountAccessStatus(cmd.Context(), account)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteAccountAccessStatus(cmd.OutOrStdout(), app.format, status)
+		},
+	}
+	cmd.Flags().StringVar(&account, "account", "", "Securities account key (default: primary account)")
 	return cmd
 }
 

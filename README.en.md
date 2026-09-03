@@ -195,7 +195,9 @@ WTS, and mobile are **access channels**. There is no separate “platform” dom
 | System | Login, Open API IP allowlist, API/app change monitoring | implemented |
 
 Accordingly, `banking status` is not a general Banking query. It is the **funding
-connection for Toss Securities stock accumulation (`securities + wts`)**. Card
+connection for Toss Securities stock accumulation (`securities + wts`)**. Its
+automated-order funding registration and trade-purpose MyData-account flag are
+also narrow Securities signals, not general Banking/MyData reads. Card
 purchases, monthly spending, and bank transactions are not guessed through a WTS
 cookie merely because they appear in the same Toss app; they need their own mobile
 token and consent boundary to be verified first.
@@ -257,6 +259,7 @@ token and consent boundary to be verified first.
 | **🆕 All-account assets** | `account overview [--full]` (regular and minor accounts · pending-order counts — account numbers masked by default) | ❌ | ✅ |
 | **🆕 Securities trading settings** | `account trading-settings [--account <key>]` (account-specific simple trade + user-wide KRX/NXT venue, ATS notifications, and option tick status; read-only) | ❌ | ✅ |
 | **🆕 Securities transfer accounts** | `account transfer-accounts [--account <key>] [--full]` (own and recent destination accounts, masked by default; never initiates a transfer) | ❌ | ✅ |
+| **🆕 Account access & restriction status** | `account access-status [--account <key>]` (last login context, margin-freeze state/dates, accident-account count; read-only) | ❌ | ✅ |
 | **Automated trading** | `order autotrade` (stop-loss / target-profit / OCO / OTO rules with trigger and order prices — read-only) | ❌ | ✅ |
 | **Market news** | `market news [--type all\|watchlist\|holdings\|soaring\|latest\|recommended] [--limit N] [--full]` (each article's **related stocks and their moves** — what a headline list lacks) | ❌ | ✅ |
 | **Market issue board** | `market issues [--full]` (topics ranked by attention, with rank movement ▲▼ and backing articles) | ❌ | ✅ |
@@ -277,7 +280,7 @@ token and consent boundary to be verified first.
 | **Theme fluctuation ranking** | `market themes` (today's top-moving themes, rising-stock counts) | ❌ | ✅ |
 | **AI news briefing** | `market briefing [--scope personalized\|kr\|us]` (personalized or latest KR/US briefing) | ❌ | ✅ |
 | **🆕 Key earnings & economic releases** | `market key-events` (estimates · actuals · surprises · previous values) | ❌ | ✅ |
-| **🆕 Securities stock-accumulation funding status** | `banking status [--full]` (not general Banking; includes connection/registration flags, holder/account masked by default, internal ID never emitted) | ❌ | ✅ |
+| **🆕 Securities stock-accumulation funding status** | `banking status [--full]` (not general Banking; connection and automated-order registration plus trade-purpose MyData-account state; identity masked) | ❌ | ✅ |
 | **🆕 Notification preferences** | `notifications list` (read-only; internal user ID omitted) | ❌ | ✅ |
 | **🆕 Target-price alert reads & writes** | `quote alert list\|add\|remove <symbol>` (writes use preview + `--execute --confirm`) | ❌ | ✅ |
 | **🆕 Hidden-holding reads & writes** | `portfolio hidden list\|hide\|show` (account key omitted; post-write verification) | ❌ | ✅ |
@@ -449,19 +452,19 @@ session) for the full feature set — see [Quick Start](#quick-start). Both path
 
 MCP's inherent cost is that **tool schemas stay resident in the model's context**. Register one
 tool per API and every tool's name, description, and parameter schema occupies context for the
-whole conversation. tossctl's surface is **103 operations** across official and WTS reads,
-regular and conditional orders, and system operations — exposing them individually would keep **103 schemas always loaded**,
+whole conversation. tossctl's surface is **104 operations** across official and WTS reads,
+regular and conditional orders, and system operations — exposing them individually would keep **104 schemas always loaded**,
 burning tokens and adding tool-choice noise (mis-picks between similar tools).
 
 Following KIS_MCP_Server's catalog mode, tossctl fronts everything with **just three fixed
-tools** and keeps the 103 operations behind an **on-demand schema fetch**:
+tools** and keeps the 104 operations behind an **on-demand schema fetch**:
 
 - `list_operations` — list available operations (id, summary, write flag), filter with `query`
 - `describe_operation` — fetch one operation's parameter schema **only at that moment**
 - `call_operation` — call by id with parameters
 
 Result: the always-on context is **exactly three tool schemas**. Whether there are 20 operations
-or 103, the resident cost stays at three. The agent finds an operation via `list_operations` →
+or 104, the resident cost stays at three. The agent finds an operation via `list_operations` →
 reads its schema via `describe_operation` → calls it via `call_operation`, so unused operations
 never sit in context. (The very Claude Code session reading this README sees `tossctl` as just
 those three tools.)
@@ -691,7 +694,8 @@ tossctl account summary
 tossctl account overview [--full]               # regular + minor accounts; numbers masked by default
 tossctl account trading-settings [--account KEY] # simple trade, KRX/NXT, ATS, option tick settings
 tossctl account transfer-accounts [--account KEY] [--full] # transfer destinations; masked by default
-tossctl banking status [--full]                  # Securities accumulation funding/registration status
+tossctl account access-status [--account KEY]    # last login, margin freeze, accident-account state
+tossctl banking status [--full]                  # Securities funding, auto-order, trade-purpose MyData state
 tossctl notifications list                       # read-only notification preferences
 tossctl portfolio positions
 tossctl portfolio allocation
@@ -797,11 +801,11 @@ tossctl auth extend --if-expiring 48h   # extend only when close to expiry (cron
 ### API regression watch
 
 ```bash
-tossctl monitor api           # schema-probe 71 endpoints (parallel); exit 0 pass, 1 fail
+tossctl monitor api           # schema-probe 76 endpoints (parallel); exit 0 pass, 1 fail
 tossctl monitor api --quiet   # for cron
 ```
 
-Checks the response schema of 71 read-only endpoints in parallel, using your own session on your own machine — to catch Toss server-side body-contract changes (like [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29)) early. It only returns an exit code, so you compose alert channels (Discord / Slack / ntfy / macOS / email) on the right side of `|| <command>` in your cron line. Recipes: [`AGENTS.md`](AGENTS.md), setup guide: [`docs/operations.md`](docs/operations.md).
+Checks the response schema of 76 read-only endpoints in parallel, using your own session on your own machine — to catch Toss server-side body-contract changes (like [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29)) early. It only returns an exit code, so you compose alert channels (Discord / Slack / ntfy / macOS / email) on the right side of `|| <command>` in your cron line. Recipes: [`AGENTS.md`](AGENTS.md), setup guide: [`docs/operations.md`](docs/operations.md).
 
 ## Development
 

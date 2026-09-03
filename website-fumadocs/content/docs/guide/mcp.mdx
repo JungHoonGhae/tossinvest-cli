@@ -33,7 +33,7 @@ Claude Desktop·Codex 등 **JSON 설정 방식** 호스트는 아래 [JSON 설�
 
 MCP 의 고질적 비용은 **툴 스키마가 모델 컨텍스트에 상시 상주**한다는 점입니다. API 하나당 툴 하나로
 등록하면 그 툴의 이름·설명·파라미터 스키마 전부가 대화 내내 컨텍스트를 차지합니다. tossctl 의 API
-표면은 **103개 오퍼레이션**(계속 증가) — 개별 툴로 노출하면 그만큼의 스키마가 항상 떠 있어 토큰을
+표면은 **104개 오퍼레이션**(계속 증가) — 개별 툴로 노출하면 그만큼의 스키마가 항상 떠 있어 토큰을
 먹고, 비슷한 툴 사이 오판(툴 선택 노이즈)도 커집니다.
 
 tossctl 은 [KIS_MCP_Server](https://github.com/pineconedata/kis-mcp-server) 의 catalog 모드를
@@ -46,7 +46,7 @@ tossctl 은 [KIS_MCP_Server](https://github.com/pineconedata/kis-mcp-server) 의
 | `describe_operation` | 특정 오퍼레이션의 파라미터 스키마를 **그 순간에만** 조회 |
 | `call_operation` | id + 파라미터로 실제 호출 |
 
-결과: 상시 컨텍스트 = **딱 3개 툴 스키마**. 오퍼레이션이 40개든 103개든 상주 비용은 3으로
+결과: 상시 컨텍스트 = **딱 3개 툴 스키마**. 오퍼레이션이 40개든 104개든 상주 비용은 3으로
 고정됩니다. 에이전트는 `list_operations` 로 찾고 → `describe_operation` 으로 그때 스키마를 읽고 →
 `call_operation` 으로 호출하므로, 안 쓰는 오퍼레이션의 스키마가 컨텍스트를 차지하지 않습니다.
 

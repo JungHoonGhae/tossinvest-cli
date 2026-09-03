@@ -1021,7 +1021,12 @@ type OpenBankingStatus struct {
 	SavingCount             int                 `json:"saving_count"`
 	ConnectionCreatable     bool                `json:"connection_creatable"`
 	RegistrationRequired    bool                `json:"registration_required"`
-	FetchedAt               time.Time           `json:"fetched_at"`
+	AutoTradingRegistered   bool                `json:"auto_trading_registered"`
+	AutoTradingBankCode     string              `json:"auto_trading_bank_code,omitempty"`
+	// TradePurposeMyDataAccountExists is narrowly scoped to the Securities
+	// trade-purpose verification flow. It is not a general Toss Banking link.
+	TradePurposeMyDataAccountExists bool      `json:"trade_purpose_mydata_account_exists"`
+	FetchedAt                       time.Time `json:"fetched_at"`
 }
 
 // NotificationSetting is one WTS notification preference. The internal user

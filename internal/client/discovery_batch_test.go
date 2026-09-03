@@ -136,6 +136,10 @@ func TestGetOpenBankingStatusMapsOnlyStableObservedFields(t *testing.T) {
 			_, _ = w.Write([]byte(`{"result":true}`))
 		case "/api/v1/autotrade/open-banking/need-registration":
 			_, _ = w.Write([]byte(`{"result":false}`))
+		case "/api/v1/trading/open-banking/auto-trading":
+			_, _ = w.Write([]byte(`{"result":{"connectedAccountBankCode":"039","isRegistered":true}}`))
+		case "/api/v1/trade-purpose-verification/my-data/account/exists":
+			_, _ = w.Write([]byte(`{"result":true}`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -155,6 +159,9 @@ func TestGetOpenBankingStatusMapsOnlyStableObservedFields(t *testing.T) {
 	if !got.ConnectionCreatable || got.RegistrationRequired {
 		t.Fatalf("capabilities = %#v", got)
 	}
+	if !got.AutoTradingRegistered || got.AutoTradingBankCode != "039" || !got.TradePurposeMyDataAccountExists {
+		t.Fatalf("securities-linked banking states = %#v", got)
+	}
 }
 
 func TestGetOpenBankingStatusAllowsDisconnectedAccount(t *testing.T) {
@@ -167,6 +174,10 @@ func TestGetOpenBankingStatusAllowsDisconnectedAccount(t *testing.T) {
 			_, _ = w.Write([]byte(`{"result":false}`))
 		case "/api/v1/autotrade/open-banking/need-registration":
 			_, _ = w.Write([]byte(`{"result":true}`))
+		case "/api/v1/trading/open-banking/auto-trading":
+			_, _ = w.Write([]byte(`{"result":{"connectedAccountBankCode":"","isRegistered":false}}`))
+		case "/api/v1/trade-purpose-verification/my-data/account/exists":
+			_, _ = w.Write([]byte(`{"result":false}`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -182,6 +193,9 @@ func TestGetOpenBankingStatusAllowsDisconnectedAccount(t *testing.T) {
 	}
 	if got.ConnectionCreatable || !got.RegistrationRequired {
 		t.Fatalf("disconnected capabilities = %#v", got)
+	}
+	if got.AutoTradingRegistered || got.AutoTradingBankCode != "" || got.TradePurposeMyDataAccountExists {
+		t.Fatalf("disconnected linked states = %#v", got)
 	}
 }
 
