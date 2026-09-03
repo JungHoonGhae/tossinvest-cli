@@ -701,7 +701,7 @@ tossctl config show
 | `allow_live_order_actions` | 마스터 킬스위치 — 위 `place/cancel/amend/conditional` 중 하나라도 실제 broker에 도달하려면 이 값도 `true`여야 함 |
 | `accept_fx_consent` | post-prepare FX confirmation 자동 진행 |
 | `update_check.enabled` | 새 버전 알림 (24h 캐시, GitHub Releases API, 실패 시 silent). 기본 `true`. JSON/CSV 출력·non-tty·dev 빌드에서는 자동 skip |
-| `experimental.paper_trading` | 미국 옵션 모의투자 미리보기(Preview) CLI·ops·MCP·전용 probe 노출. 기본 `false` |
+| `experimental.paper_trading` | 미국 옵션 모의투자 CLI·ops·MCP·전용 probe 노출. 기본 `false` |
 
 > **두 가지 유형의 토글:**
 > - **경로 게이트** (`place`, `cancel`, `amend`, `conditional`) — broker API 분기가 다른 일반·조건주문 동작을 각각 독립적으로 켬/끔
@@ -709,7 +709,7 @@ tossctl config show
 >
 > `v0.4.3`에서 `trading.grant`, `dangerous_automation.complete_trade_auth`, `dangerous_automation.accept_product_ack`가, `v0.5.2`에서 `trading.kr`(비대칭 시장 게이트 — KR 주문은 US 보다 위험하지 않아 제거, 시장 대칭 취급)이 제거되었습니다. 남아있는 구 설정은 자동 무시되며, 일반 명령 실행 시 stderr 경고 1줄(24h backoff)로 안내되고 `config status`/`doctor`에서도 표시됩니다.
 
-### 미국 옵션 모의투자 미리보기 (Preview · experimental)
+### 미국 옵션 모의투자 (experimental)
 
 모의투자는 아직 WTS에서 롤아웃 중이므로 기본 도움말·ops·MCP에 나타나지 않습니다. 원하는
 사용자만 명시적으로 켭니다.
@@ -717,10 +717,15 @@ tossctl config show
 ```bash
 tossctl config experimental paper-trading --enable
 tossctl paper status
+tossctl paper init                                      # 초기화/apply preview (현재 일부 계정에서 500)
+tossctl paper deposit 1000000                           # 가상 입금 preview; 실행은 --execute
 tossctl quote options SPY                         # option-code 찾기
 tossctl paper order place <option-code> --side buy --type limit --price 0.01 --quantity 1
 tossctl paper order place <option-code> --side buy --type limit --price 0.01 --quantity 1 --execute
+tossctl paper order live-preview <option-code> --side buy --type limit --price 0.01 --quantity 1
 tossctl paper orders pending
+tossctl paper orders completed
+tossctl paper order cancel <order-id>                   # preview; 실행은 --execute
 tossctl paper orders cancel-all                   # preview
 tossctl paper orders cancel-all --execute
 ```
@@ -735,6 +740,9 @@ tossctl paper orders cancel-all --execute
 일치하지 않아 `rolling_out / experimental`을 유지합니다. 최소 3개 연속 WTS build, 7일·7회
 연속 probe, 공식 UI 일반 공개, 상태 일관성, 미해결 5xx 없음이 모두 충족된 뒤에만 stable로
 격상합니다. 교육 완료를 우회하거나 가장하는 기능은 제공하지 않습니다.
+
+paper 상태·주문 목록·모의 쓰기 결과는 JSON으로 출력하며 `--output csv`는 지원하지 않습니다.
+`paper order live-preview`만 일반 실주문 preview 출력 형식을 사용합니다.
 
 ## 주문 예시
 

@@ -600,7 +600,7 @@ tossctl config show
 | `allow_live_order_actions` | Master kill-switch — for any of `place/cancel/amend/conditional` to reach the real broker, this must also be `true` |
 | `accept_fx_consent` | Auto-proceed through post-prepare FX confirmation |
 | `update_check.enabled` | New-version notice (24h cache, GitHub Releases API, silent on failure). Default `true`. Auto-skipped for JSON/CSV output, non-tty, and dev builds |
-| `experimental.paper_trading` | Expose the US-options paper-trading preview CLI, ops/MCP operations, and dedicated probes. Default `false` |
+| `experimental.paper_trading` | Expose the US-options paper-trading CLI, ops/MCP operations, and dedicated probes. Default `false` |
 
 > **Two kinds of toggles:**
 > - **Path gates** (`place`, `cancel`, `amend`, `conditional`) — independently switch the regular and conditional actions whose broker API branches differ.
@@ -608,7 +608,7 @@ tossctl config show
 >
 > `trading.grant`, `dangerous_automation.complete_trade_auth`, `dangerous_automation.accept_product_ack` were removed in v0.4.3, and `trading.kr` (an asymmetric market gate — a KR order is no riskier than a US one, so markets are now symmetric) in v0.5.2. Leftover keys are ignored, surfaced as a one-line stderr warning (24h backoff), and flagged by `config status`/`doctor`.
 
-### US-options paper-trading preview (experimental)
+### US-options paper trading (experimental)
 
 Paper trading is still rolling out upstream, so it is hidden from default help, ops discovery, and
 MCP. Users who want it must opt in explicitly:
@@ -616,10 +616,15 @@ MCP. Users who want it must opt in explicitly:
 ```bash
 tossctl config experimental paper-trading --enable
 tossctl paper status
+tossctl paper init                                      # initialization/application preview; currently 500 for some accounts
+tossctl paper deposit 1000000                           # simulated-deposit preview; add --execute to apply
 tossctl quote options SPY
 tossctl paper order place <option-code> --side buy --type limit --price 0.01 --quantity 1
 tossctl paper order place <option-code> --side buy --type limit --price 0.01 --quantity 1 --execute
+tossctl paper order live-preview <option-code> --side buy --type limit --price 0.01 --quantity 1
 tossctl paper orders pending
+tossctl paper orders completed
+tossctl paper order cancel <order-id>                   # preview; add --execute to apply
 tossctl paper orders cancel-all
 tossctl paper orders cancel-all --execute
 ```
@@ -635,6 +640,9 @@ flags do not consistently describe server order permission, so the surface remai
 `rolling_out / experimental`. Promotion to stable requires three consecutive WTS builds, seven
 successful probes across at least seven days, general UI availability, consistent state, and no
 unresolved 5xx. tossctl does not bypass or fake education completion.
+
+Paper status, order lists, and simulated-write results are JSON; `--output csv` is unsupported.
+Only `paper order live-preview` uses the ordinary live-preview output formats.
 
 ## Order Examples
 

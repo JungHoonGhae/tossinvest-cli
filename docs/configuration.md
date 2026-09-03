@@ -86,7 +86,7 @@ tossctl config init
   7일·7회 probe에서 안정되고 공식 UI 일반 공개·상태 일관성·미해결 5xx 없음까지 확인될
   때만 stable로 승격합니다.
 
-즉, 각 액션은 config에서 먼저 열려 있어야 하고, 그 다음에도 런타임 게이트(`--execute` → `--confirm <token>`)를 통과해야 합니다.
+즉, live 주문 액션은 config에서 먼저 열려 있어야 하고, 그 다음에도 런타임 게이트(`--execute` → `--confirm <token>`)를 통과해야 합니다. 모의 원장 쓰기는 위의 별도 `simulation_execute` 경계를 따릅니다.
 
 ## 실행 순서
 
