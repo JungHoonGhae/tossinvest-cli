@@ -43,13 +43,32 @@ exposes **just 3 fixed tools** up front and keeps every operation behind them, f
 
 | Tool | Role |
 |---|---|
-| `list_operations` | Fetch a compact discovery index (id, domain, summary, `backend`, write flag, required parameter names); filter with `query` |
+| `list_operations` | Fetch a compact discovery index (id, domain, environment, experimental gate, summary, `backend`, write flag, required parameter names); filter with `query` |
 | `describe_operation` | Fetch one operation's method/path, full parameters, and mutation risk/approval/recovery policy **on demand** |
 | `call_operation` | Invoke by id + params |
 
 Result: always-on context = **exactly 3 tool schemas**. Whether there are 40 operations or 111, the
 resident cost stays 3. The agent finds an operation via `list_operations` → reads its schema via
 `describe_operation` → calls it via `call_operation`, so unused operations never occupy context.
+
+```mermaid
+sequenceDiagram
+    actor Agent
+    participant Catalog as list_operations
+    participant Schema as describe_operation
+    participant Call as call_operation
+    participant Registry as tossctl operation registry
+
+    Agent->>Catalog: Search for a capability
+    Catalog->>Registry: Read compact index
+    Registry-->>Agent: Candidate operation ids
+    Agent->>Schema: Describe the selected id
+    Schema->>Registry: Read params and mutation policy
+    Registry-->>Agent: Execution contract
+    Agent->>Call: Id + validated params
+    Call->>Registry: Execute typed operation
+    Registry-->>Agent: Result or safety-gate error
+```
 
 <Callout type="info" title="Updates are automatic">
 The host stores the **command** `tossctl mcp` and re-runs it each session, so upgrading just the
@@ -58,10 +77,10 @@ re-registering** on the next session/host restart (the catalog is built from the
 start). `list_operations` is always the source of truth for what's currently exposed.
 </Callout>
 
-## Scope — reads/settings from official + WTS, orders official-only
+## Scope — reads/settings from official + WTS, live orders official-only
 
 MCP exposes **reads and verified settings changes across the official Open API and WTS**, and routes
-**orders through the official API path only**. `list_operations` tags each operation with `backend`
+**live orders through the official API path only**. `list_operations` tags each operation with `backend`
 and a write flag; inspect every write's full `mutation` policy through `describe_operation`.
 
 - **Reads** — the official API (accounts, quotes, order book, trades, candles, …) plus **WTS-only**
@@ -72,13 +91,18 @@ and a write flag; inspect every write's full `mutation` policy through `describe
   Securities trading settings, transfer accounts, and accumulation funding status are
   `trading_settings`, `securities_transfer_accounts`, and `accumulation_funding_status` respectively. The last operation also accepts the legacy `banking_status` alias. The
   first two accept an optional `account` key for non-primary Securities accounts.
-- **Writes** — create/cancel/amend always use the **official API path only** (never WTS). If you let
+- **Live writes** — create/cancel/amend always use the **official API path only** (never WTS). If you let
   an agent place orders, the submission path should be the API Toss officially sanctions.
 - **WTS settings writes** — Open API allowed IPs, target-price alerts, hidden holdings, and watchlist
   folders/items are changeable. Each previews by default, requires `execute:true` plus a valid
   `confirm` token, and re-reads server state. Watchlist tokens are bound to the current WTS session
   and expire after five minutes. Irreversible folder deletion also requires
   `acknowledge_irreversible:true`.
+- **Experimental paper orders** — eight operations join discovery only when
+  `experimental.paper_trading=true`. They declare `environment=paper` and
+  `experimental=paper-trading`, use only WTS's isolated simulation ledger, and require
+  `simulation_execute` (`execute:true`, no live confirmation). `/paper/init` still returns an
+  opaque 500, so the surface is not stable.
 - **Separate auth** — official reads/orders use the official key (`openapi login`), WTS reads use the
   web session (`auth login`). The server starts with **either one**, and each operation checks the
   auth it needs. Use the `auth_status` operation to see which backends are connected and when they

@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
 
@@ -17,7 +18,7 @@ jobs:
   monitor:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
 
       - name: PR list (24h)
         id: pr
@@ -242,7 +243,6 @@ jobs:
           git add docs/migration/.openapi-snapshot.json docs/migration/openapi.latest.json docs/migration/asyncapi.latest.json
           git diff --cached --quiet && { echo "이미 최신"; exit 0; }
           git commit -m "docs(migration): openapi-snapshot 자동 갱신"
-          git push origin HEAD:main
 
       - name: README 🆕 마커 자동 갱신 (롤링 30일 윈도우)
         run: |
@@ -252,72 +252,15 @@ jobs:
           git add README.md README.en.md
           git diff --cached --quiet && { echo "🆕 마커 최신"; exit 0; }
           git commit -m "docs(readme): 🆕 마커 자동 갱신 (최근 한 달 윈도우) [skip ci]"
-          git pull --rebase origin main || true
-          git push origin HEAD:main
 
-      # spec 변경이 감지되면(같은 실행 안에서) 구독 토큰으로 Claude 를 돌려 변경을 분석한다.
-      # Claude 는 분석 파일 1개만 작성하고, PR 생성은 다음 스텝(결정적 bash)이 한다 —
-      # 액션의 자체 브랜치 관리와 충돌하지 않게 역할을 분리.
-      - name: 공식 spec 변경 분석 (Claude, 구독 토큰)
-        if: steps.toss.outputs.changed == 'true'
-        uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          claude_args: '--allowedTools "Read,Grep,Glob,Write,Bash(git log:*),Bash(git show:*),Bash(git diff:*),Bash(grep:*),Bash(python3 tools/openapi_diff.py:*)"'
-          prompt: |
-            방금 이 실행에서 공식 Toss Open API spec(`docs/migration/openapi.latest.json`) 변경이 커밋되었다.
-            이 변경을 분석해 **마크다운 파일 하나만 Write 로 작성**하라.
-            (git commit/push/checkout/branch, gh, PR 생성은 절대 하지 마라 — 그건 다음 스텝이 자동으로 한다.
-            너는 오직 분석 + 파일 작성만.)
-
-            절차:
-            1. 차분은 **`python3 tools/openapi_diff.py --rev <최신 spec 커밋>`** 으로 낸다
-               (`git log -1 --format=%H -- docs/migration/openapi.latest.json`). 텍스트 diff 는
-               스키마 알파벳 재배치 때문에 못 쓴다. 이 도구는 신규·삭제 경로/스키마, 필드 의미 변경,
-               오퍼레이션 설명 변경, 스펙 메타(info·externalDocs·tags) 를 각각 절로 내고,
-               마지막 `[미분류 변경]` 절에 **어느 절도 안 덮은 자리**를 남긴다 — 그 절이 비어야
-               한 바퀴 다 본 것이다. 비어 있지 않으면 그 경로들을 직접 읽어라.
-               실시간 웹소켓 스펙(`docs/migration/asyncapi.latest.json`, REST 와 version 독립)이
-               바뀐 주기면 `git show <sha> -- docs/migration/asyncapi.latest.json` 도 함께 본다.
-            2. tossctl 커버리지 대조: 신규 엔드포인트면 `internal/official/`·`internal/mcp/operations.go` grep.
-               삭제·변경이면 우리 구현이 영향받는지 확인.
-            3. 분류: (a) no-op / (b) 신규 기능 후보 / (c) breaking 위험.
-            4. `docs/reverse-engineering/change-analysis/<오늘 UTC 날짜 YYYY-MM-DD>.md` 를 Write 로 작성.
-               첫 줄은 `# API 변경 분석 — <YYYY-MM-DD>`. 내용(한국어): 변경 요약, 커버리지 대조, 분류, 권장 후속 조치.
-               breaking 위험(c)이면 문서 최상단에 `> breaking-risk` 한 줄을 넣는다.
-            실계좌 데이터 금지. 라이브 API 호출 금지(레포 내 파일 분석만).
-            이 스텝은 실제 spec 내용 변경이 감지됐을 때만 실행되므로, no-op 이어도 **반드시 파일을 작성**한다
-            (사람이 검토할 기록). 분류에 (a) no-op / (b) 신규 후보 / (c) breaking 을 명시하면 된다.
-
-      # 결정적 PR 생성: Claude 가 남긴 분석 파일이 있으면 github-actions 봇으로 커밋하고
-      # (Claude 가 분석했으므로 Co-Authored-By: Claude), gh 로 PR 을 연다.
-      - name: 분석 결과 PR 생성
-        if: steps.toss.outputs.changed == 'true'
+      - name: Open protected automation PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          DATE=$(date -u +%Y-%m-%d)
-          FILE="docs/reverse-engineering/change-analysis/${DATE}.md"
-          if [ ! -f "$FILE" ]; then
-            echo "분석 파일 없음 — Claude 가 no-op 판단, PR 생략"; exit 0
-          fi
-          BR="analysis/api-change-$(date -u +%Y%m%d)"
-          if gh pr list --state open --head "$BR" --json number -q '.[].number' | grep -q .; then
-            echo "이미 오늘자 PR 존재 — 생략"; exit 0
-          fi
-          TITLE_PREFIX=""
-          # 마커는 위 프롬프트가 지정한 `> breaking-risk` **한 줄** 이다. 파일 전체를
-          # substring 으로 훑으면 "breaking-risk 로 표시하지는 않되" 같은 부정문에도
-          # 걸려 제목이 거짓 경보가 된다 (2026-07-27 분석에서 실제로 발생). 줄 전체를
-          # 앵커링해 산문 언급과 마커를 구분한다.
-          grep -qiE '^> *breaking-risk *$' "$FILE" && TITLE_PREFIX="[breaking-risk] "
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout -b "$BR"
-          git add "$FILE"
-          git commit -m "$(printf 'docs(analysis): API 변경 분석 %s\n\nCo-Authored-By: Claude <noreply@anthropic.com>' "$DATE")"
-          git push -u origin "$BR"
-          gh pr create --base main --head "$BR" \
-            --title "${TITLE_PREFIX}docs(analysis): API 변경 분석 ${DATE}" \
-            --body "$(printf '%s\n\n---\nClaude 자동 분석 (daily-monitor). 검토 후 머지 또는 닫기 하세요.' "$(cat "$FILE")")"
+          bash tools/open_automation_pr.sh \
+            automation/daily-monitor \
+            "chore(monitor): 공식 API 스냅샷·README 자동 갱신"
+
+      # API 변경의 AI 해석은 공개 저장소에 self-hosted runner를 연결하지 않기 위해
+      # 소유자 Mac의 Codex 예약 작업 또는 launchd + ChatGPT 로그인된 Codex CLI가 수행한다.
+      # 두 스케줄러를 동시에 켜지 않는다. 도구와 설치 절차: docs/operations.md.

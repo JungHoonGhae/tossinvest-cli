@@ -104,6 +104,22 @@ preview한 뒤 `--execute --confirm <token>`을 붙여 교체할 수 있습니�
 
 요청마다 "공식이 지원하는가 → 키가 있는가 → 설정(prefer)" 순으로 경로를 고릅니다.
 
+```mermaid
+flowchart TD
+    request["조회 또는 주문 요청"] --> supported{"공식 API 지원?"}
+    supported -- "아니요" --> wts["WTS 웹 세션"]
+    supported -- "예" --> key{"공식 키 사용 가능?"}
+    key -- "아니요" --> wts
+    key -- "예" --> official["공식 Open API"]
+    official --> success{"호출 성공?"}
+    success -- "예" --> result["결과 반환"]
+    success -- "아니요 · 조회" --> fallback{"WTS 폴백 허용?"}
+    fallback -- "예" --> wts
+    fallback -- "아니요" --> error["오류 반환"]
+    success -- "아니요 · 주문" --> error
+    wts --> result
+```
+
 | 요청 조건 | 선택 경로 |
 |---|---|
 | 공식 API 미지원 기능 | → **WTS 웹 세션** |
