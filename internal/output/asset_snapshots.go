@@ -144,7 +144,7 @@ func WriteAssetSnapshot(w io.Writer, format Format, detail domain.AssetSnapshotD
 		return writeJSON(w, detail)
 	case FormatCSV:
 		rows := make([][]string, 0, 1+len(detail.Markets))
-		appendSummary := func(market string, principal, evaluated, profitLoss, rate domain.AssetAmount) {
+		appendSummary := func(market string, principal, evaluated, profitLoss domain.AssetAmount, rate domain.AssetRate) {
 			rows = append(rows, []string{
 				"summary", market, "", "", "", "", "", "", "", "", "",
 				formatFloat(principal.KRW), formatFloat(principal.USD),

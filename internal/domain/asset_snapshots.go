@@ -8,6 +8,21 @@ type AssetAmount struct {
 	USD float64 `json:"usd"`
 }
 
+// AssetRate is one portfolio return rate expressed on the KRW and USD bases.
+type AssetRate struct {
+	KRW float64 `json:"krw"`
+	USD float64 `json:"usd"`
+}
+
+// AssetSnapshotScope identifies whether a valuation covers all accounts or
+// one session-bound account.
+type AssetSnapshotScope string
+
+const (
+	AssetSnapshotScopeAllAccounts AssetSnapshotScope = "all_accounts"
+	AssetSnapshotScopeAccount     AssetSnapshotScope = "account"
+)
+
 // AssetSnapshotExtreme identifies the highest or lowest evaluated amount in a
 // performance range.
 type AssetSnapshotExtreme struct {
@@ -21,15 +36,16 @@ type AssetSnapshotPoint struct {
 	PrincipalAmount    AssetAmount `json:"principal_amount"`
 	EvaluatedAmount    AssetAmount `json:"evaluated_amount"`
 	ProfitLossAmount   AssetAmount `json:"profit_loss_amount"`
-	ProfitLossRate     AssetAmount `json:"profit_loss_rate"`
+	ProfitLossRate     AssetRate   `json:"profit_loss_rate"`
 	Realtime           bool        `json:"realtime"`
 	EvaluationComplete bool        `json:"evaluation_complete"`
 }
 
-// AssetPerformance is the mobile-style historical portfolio chart. Scope is
-// all_accounts unless AccountScope identifies one session-bound account.
+// AssetPerformance is the verified one-month daily historical portfolio
+// valuation. Scope is all_accounts unless AccountScope identifies one
+// session-bound account.
 type AssetPerformance struct {
-	Scope               string               `json:"scope"`
+	Scope               AssetSnapshotScope   `json:"scope"`
 	AccountScope        string               `json:"account_scope,omitempty"`
 	Range               string               `json:"range"`
 	StepUnit            string               `json:"step_unit"`
@@ -48,7 +64,7 @@ type AssetPerformance struct {
 // can include the current realtime point in addition to the requested history
 // page size, so Snapshots is not truncated locally.
 type AssetSnapshotPage struct {
-	Scope        string               `json:"scope"`
+	Scope        AssetSnapshotScope   `json:"scope"`
 	AccountScope string               `json:"account_scope,omitempty"`
 	PageSize     int                  `json:"page_size"`
 	Snapshots    []AssetSnapshotPoint `json:"snapshots"`
@@ -68,7 +84,7 @@ type AssetSnapshotHolding struct {
 	PurchaseAmount   AssetAmount `json:"purchase_amount"`
 	EvaluatedAmount  AssetAmount `json:"evaluated_amount"`
 	ProfitLossAmount AssetAmount `json:"profit_loss_amount"`
-	ProfitLossRate   AssetAmount `json:"profit_loss_rate"`
+	ProfitLossRate   AssetRate   `json:"profit_loss_rate"`
 	MarketDivision   string      `json:"market_division,omitempty"`
 	LogoImageURL     string      `json:"logo_image_url,omitempty"`
 	Type             string      `json:"type,omitempty"`
@@ -81,20 +97,20 @@ type AssetSnapshotMarket struct {
 	PrincipalAmount  AssetAmount            `json:"principal_amount"`
 	EvaluatedAmount  AssetAmount            `json:"evaluated_amount"`
 	ProfitLossAmount AssetAmount            `json:"profit_loss_amount"`
-	ProfitLossRate   AssetAmount            `json:"profit_loss_rate"`
+	ProfitLossRate   AssetRate              `json:"profit_loss_rate"`
 	Holdings         []AssetSnapshotHolding `json:"holdings"`
 }
 
 // AssetSnapshotDetail is the complete portfolio valuation for one base date.
 type AssetSnapshotDetail struct {
-	Scope              string                `json:"scope"`
+	Scope              AssetSnapshotScope    `json:"scope"`
 	AccountScope       string                `json:"account_scope,omitempty"`
 	BaseDate           string                `json:"base_date"`
 	EvaluationComplete bool                  `json:"evaluation_complete"`
 	PrincipalAmount    AssetAmount           `json:"principal_amount"`
 	EvaluatedAmount    AssetAmount           `json:"evaluated_amount"`
 	ProfitLossAmount   AssetAmount           `json:"profit_loss_amount"`
-	ProfitLossRate     AssetAmount           `json:"profit_loss_rate"`
+	ProfitLossRate     AssetRate             `json:"profit_loss_rate"`
 	Markets            []AssetSnapshotMarket `json:"markets"`
 	FetchedAt          time.Time             `json:"fetched_at"`
 }

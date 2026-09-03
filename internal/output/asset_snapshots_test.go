@@ -21,7 +21,7 @@ func performanceFixture() domain.AssetPerformance {
 			BaseDate:        "2026-09-03",
 			PrincipalAmount: domain.AssetAmount{KRW: 8000, USD: 8},
 			EvaluatedAmount: domain.AssetAmount{KRW: 11000, USD: 11},
-			ProfitLossRate:  domain.AssetAmount{KRW: 0.375, USD: 0.375},
+			ProfitLossRate:  domain.AssetRate{KRW: 0.375, USD: 0.375},
 			Realtime:        true,
 		}},
 	}
@@ -86,7 +86,7 @@ func snapshotPageFixture() domain.AssetSnapshotPage {
 			PrincipalAmount:    domain.AssetAmount{KRW: 8000, USD: 8},
 			EvaluatedAmount:    domain.AssetAmount{KRW: 10000, USD: 10},
 			ProfitLossAmount:   domain.AssetAmount{KRW: 2000, USD: 2},
-			ProfitLossRate:     domain.AssetAmount{KRW: 0.25, USD: 0.25},
+			ProfitLossRate:     domain.AssetRate{KRW: 0.25, USD: 0.25},
 			EvaluationComplete: true,
 		}},
 	}
@@ -141,7 +141,7 @@ func snapshotDetailFixture() domain.AssetSnapshotDetail {
 		PrincipalAmount:    domain.AssetAmount{KRW: 8000, USD: 8},
 		EvaluatedAmount:    domain.AssetAmount{KRW: 11000, USD: 11},
 		ProfitLossAmount:   domain.AssetAmount{KRW: 3000, USD: 3},
-		ProfitLossRate:     domain.AssetAmount{KRW: 0.375, USD: 0.375},
+		ProfitLossRate:     domain.AssetRate{KRW: 0.375, USD: 0.375},
 		Markets: []domain.AssetSnapshotMarket{
 			{Market: "kr", Holdings: []domain.AssetSnapshotHolding{}},
 			{Market: "option", Holdings: []domain.AssetSnapshotHolding{}},
@@ -150,7 +150,7 @@ func snapshotDetailFixture() domain.AssetSnapshotDetail {
 				PrincipalAmount:  domain.AssetAmount{KRW: 8000, USD: 8},
 				EvaluatedAmount:  domain.AssetAmount{KRW: 11000, USD: 11},
 				ProfitLossAmount: domain.AssetAmount{KRW: 3000, USD: 3},
-				ProfitLossRate:   domain.AssetAmount{KRW: 0.375, USD: 0.375},
+				ProfitLossRate:   domain.AssetRate{KRW: 0.375, USD: 0.375},
 				Holdings: []domain.AssetSnapshotHolding{{
 					ProductCode:      "US.AAPL",
 					ISIN:             "US0378331005",
@@ -161,7 +161,7 @@ func snapshotDetailFixture() domain.AssetSnapshotDetail {
 					PurchaseAmount:   domain.AssetAmount{KRW: 8000, USD: 8},
 					EvaluatedAmount:  domain.AssetAmount{KRW: 11000, USD: 11},
 					ProfitLossAmount: domain.AssetAmount{KRW: 3000, USD: 3},
-					ProfitLossRate:   domain.AssetAmount{KRW: 0.375, USD: 0.375},
+					ProfitLossRate:   domain.AssetRate{KRW: 0.375, USD: 0.375},
 					MarketDivision:   "NASDAQ",
 					Type:             "STOCK",
 				}},

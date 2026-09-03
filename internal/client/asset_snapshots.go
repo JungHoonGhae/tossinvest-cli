@@ -22,8 +22,6 @@ func (c *Client) GetAssetPerformance(ctx context.Context, accountKey string) (do
 	if err := c.requireSession(); err != nil {
 		return domain.AssetPerformance{}, err
 	}
-	accountKey = strings.TrimSpace(accountKey)
-
 	var envelope quoteEnvelope[struct {
 		HasKRStock          bool                         `json:"hasKrStock"`
 		HasKRStockInRange   bool                         `json:"hasKrStockInRange"`
@@ -34,16 +32,9 @@ func (c *Client) GetAssetPerformance(ctx context.Context, accountKey string) (do
 		MinEvaluated        assetSnapshotExtremeResponse `json:"minEvaluated"`
 		Points              []assetSnapshotPointResponse `json:"points"`
 	}]
-	path := "/api/v1/asset-snapshot/all-accounts/chart/" + assetSnapshotRange + "/" + assetSnapshotStepUnit
-	scope := "all_accounts"
-	var err error
-	if accountKey == "" {
-		err = c.getJSON(ctx, c.certBaseURL+path, &envelope)
-	} else {
-		path = "/api/v1/asset-snapshot/chart/" + assetSnapshotRange + "/" + assetSnapshotStepUnit
-		err = c.getJSONWithAccountKey(ctx, c.certBaseURL+path, accountKey, &envelope)
-		scope = "account"
-	}
+	allAccountsPath := "/api/v1/asset-snapshot/all-accounts/chart/" + assetSnapshotRange + "/" + assetSnapshotStepUnit
+	accountPath := "/api/v1/asset-snapshot/chart/" + assetSnapshotRange + "/" + assetSnapshotStepUnit
+	scope, accountScope, err := c.getAssetSnapshotJSON(ctx, accountKey, allAccountsPath, accountPath, &envelope)
 	if err != nil {
 		return domain.AssetPerformance{}, err
 	}
@@ -61,9 +52,7 @@ func (c *Client) GetAssetPerformance(ctx context.Context, accountKey string) (do
 		Points:              make([]domain.AssetSnapshotPoint, 0, len(envelope.Result.Points)),
 		FetchedAt:           time.Now().UTC(),
 	}
-	if accountKey != "" {
-		result.AccountScope = c.accountScope(accountKey)
-	}
+	result.AccountScope = accountScope
 	for _, point := range envelope.Result.Points {
 		result.Points = append(result.Points, point.domainValue())
 	}
@@ -82,25 +71,17 @@ func (c *Client) ListAssetSnapshots(ctx context.Context, accountKey, cursor stri
 	if pageSize < 0 {
 		return domain.AssetSnapshotPage{}, fmt.Errorf("page size must be positive")
 	}
-	accountKey = strings.TrimSpace(accountKey)
 	query := url.Values{"pageSize": {strconv.Itoa(pageSize)}}
 	if cursor = strings.TrimSpace(cursor); cursor != "" {
 		query.Set("cursorKey", cursor)
 	}
-	path := "/api/v1/asset-snapshot/all-accounts/page?" + query.Encode()
-	scope := "all_accounts"
 	var envelope quoteEnvelope[struct {
 		Body          []assetSnapshotPointResponse `json:"body"`
 		NextCursorKey string                       `json:"nextCursorKey"`
 	}]
-	var err error
-	if accountKey == "" {
-		err = c.getJSON(ctx, c.certBaseURL+path, &envelope)
-	} else {
-		path = "/api/v1/asset-snapshot/page?" + query.Encode()
-		err = c.getJSONWithAccountKey(ctx, c.certBaseURL+path, accountKey, &envelope)
-		scope = "account"
-	}
+	allAccountsPath := "/api/v1/asset-snapshot/all-accounts/page?" + query.Encode()
+	accountPath := "/api/v1/asset-snapshot/page?" + query.Encode()
+	scope, accountScope, err := c.getAssetSnapshotJSON(ctx, accountKey, allAccountsPath, accountPath, &envelope)
 	if err != nil {
 		return domain.AssetSnapshotPage{}, err
 	}
@@ -112,9 +93,7 @@ func (c *Client) ListAssetSnapshots(ctx context.Context, accountKey, cursor stri
 		HasNext:    strings.TrimSpace(envelope.Result.NextCursorKey) != "",
 		FetchedAt:  time.Now().UTC(),
 	}
-	if accountKey != "" {
-		result.AccountScope = c.accountScope(accountKey)
-	}
+	result.AccountScope = accountScope
 	for _, point := range envelope.Result.Body {
 		result.Snapshots = append(result.Snapshots, point.domainValue())
 	}
@@ -127,29 +106,37 @@ func (c *Client) GetAssetSnapshot(ctx context.Context, accountKey, baseDate stri
 	if err := c.requireSession(); err != nil {
 		return domain.AssetSnapshotDetail{}, err
 	}
-	accountKey = strings.TrimSpace(accountKey)
 	baseDate = strings.TrimSpace(baseDate)
 	if _, err := time.Parse("2006-01-02", baseDate); err != nil {
 		return domain.AssetSnapshotDetail{}, fmt.Errorf("base date must be YYYY-MM-DD: %w", err)
 	}
 	query := url.Values{"baseDate": {baseDate}}
 	var envelope quoteEnvelope[assetSnapshotDetailResponse]
-	path := "/api/v1/asset-snapshot/all-accounts/detail-by-date?" + query.Encode()
-	scope := "all_accounts"
-	accountScope := ""
-	var err error
-	if accountKey == "" {
-		err = c.getJSON(ctx, c.certBaseURL+path, &envelope)
-	} else {
-		path = "/api/v1/asset-snapshot/detail-by-date?" + query.Encode()
-		err = c.getJSONWithAccountKey(ctx, c.certBaseURL+path, accountKey, &envelope)
-		scope = "account"
-		accountScope = c.accountScope(accountKey)
-	}
+	allAccountsPath := "/api/v1/asset-snapshot/all-accounts/detail-by-date?" + query.Encode()
+	accountPath := "/api/v1/asset-snapshot/detail-by-date?" + query.Encode()
+	scope, accountScope, err := c.getAssetSnapshotJSON(ctx, accountKey, allAccountsPath, accountPath, &envelope)
 	if err != nil {
 		return domain.AssetSnapshotDetail{}, err
 	}
 	return envelope.Result.domainValue(scope, accountScope, time.Now().UTC()), nil
+}
+
+func (c *Client) getAssetSnapshotJSON(
+	ctx context.Context,
+	accountKey, allAccountsPath, accountPath string,
+	target any,
+) (domain.AssetSnapshotScope, string, error) {
+	accountKey = strings.TrimSpace(accountKey)
+	if accountKey == "" {
+		if err := c.getJSON(ctx, c.certBaseURL+allAccountsPath, target); err != nil {
+			return "", "", err
+		}
+		return domain.AssetSnapshotScopeAllAccounts, "", nil
+	}
+	if err := c.getJSONWithAccountKey(ctx, c.certBaseURL+accountPath, accountKey, target); err != nil {
+		return "", "", err
+	}
+	return domain.AssetSnapshotScopeAccount, c.accountScope(accountKey), nil
 }
 
 type assetSnapshotExtremeResponse struct {
@@ -166,7 +153,7 @@ type assetSnapshotPointResponse struct {
 	PrincipalAmount    domain.AssetAmount `json:"principalAmount"`
 	EvaluatedAmount    domain.AssetAmount `json:"evaluatedAmount"`
 	ProfitLossAmount   domain.AssetAmount `json:"profitLossAmount"`
-	ProfitLossRate     domain.AssetAmount `json:"profitLossRate"`
+	ProfitLossRate     domain.AssetRate   `json:"profitLossRate"`
 	Realtime           bool               `json:"realtime"`
 	EvaluationComplete bool               `json:"evaluationComplete"`
 }
@@ -193,7 +180,7 @@ type assetSnapshotHoldingResponse struct {
 	PurchaseAmount   domain.AssetAmount `json:"purchaseAmount"`
 	EvaluatedAmount  domain.AssetAmount `json:"evaluatedAmount"`
 	ProfitLossAmount domain.AssetAmount `json:"profitLossAmount"`
-	ProfitLossRate   domain.AssetAmount `json:"profitLossRate"`
+	ProfitLossRate   domain.AssetRate   `json:"profitLossRate"`
 	MarketDivision   string             `json:"marketDivision"`
 	LogoImageURL     string             `json:"logoImageUrl"`
 	Type             string             `json:"type"`
@@ -221,7 +208,7 @@ type assetSnapshotMarketResponse struct {
 	PrincipalAmount  domain.AssetAmount             `json:"principalAmount"`
 	EvaluatedAmount  domain.AssetAmount             `json:"evaluatedAmount"`
 	ProfitLossAmount domain.AssetAmount             `json:"profitLossAmount"`
-	ProfitLossRate   domain.AssetAmount             `json:"profitLossRate"`
+	ProfitLossRate   domain.AssetRate               `json:"profitLossRate"`
 	Items            []assetSnapshotHoldingResponse `json:"items"`
 }
 
@@ -246,14 +233,14 @@ type assetSnapshotDetailResponse struct {
 	PrincipalAmount    domain.AssetAmount          `json:"principalAmount"`
 	EvaluatedAmount    domain.AssetAmount          `json:"evaluatedAmount"`
 	ProfitLossAmount   domain.AssetAmount          `json:"profitLossAmount"`
-	ProfitLossRate     domain.AssetAmount          `json:"profitLossRate"`
+	ProfitLossRate     domain.AssetRate            `json:"profitLossRate"`
 	KR                 assetSnapshotMarketResponse `json:"kr"`
 	Option             assetSnapshotMarketResponse `json:"option"`
 	US                 assetSnapshotMarketResponse `json:"us"`
 	Bond               assetSnapshotMarketResponse `json:"bond"`
 }
 
-func (v assetSnapshotDetailResponse) domainValue(scope, accountScope string, fetchedAt time.Time) domain.AssetSnapshotDetail {
+func (v assetSnapshotDetailResponse) domainValue(scope domain.AssetSnapshotScope, accountScope string, fetchedAt time.Time) domain.AssetSnapshotDetail {
 	return domain.AssetSnapshotDetail{
 		Scope:              scope,
 		AccountScope:       accountScope,

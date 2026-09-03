@@ -444,7 +444,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "portfolio_performance", Method: "GET", Path: "wts:portfolio/performance", Backend: "wts", Domain: "securities",
-			Category: "portfolio", Summary: "Mobile-style one-month daily portfolio valuation trend: principal, evaluated amount, return, range high/low, and realtime point. Omit account for the all-account aggregate. WTS-only; no web UI.",
+			Category: "portfolio", Summary: "One-month daily portfolio valuation trend: principal, evaluated amount, return, range high/low, and realtime point. Omit account for the all-account aggregate. WTS-only; no web UI.",
 			Params: []Param{{Name: "account", Type: "string", Desc: "specific Securities account key; omit for all accounts"}},
 			Probe: &ProbeSpec{Name: "asset-performance-all", Method: "GET",
 				URL: probeCert + "/api/v1/asset-snapshot/all-accounts/chart/ONE_MONTH/DAY",
