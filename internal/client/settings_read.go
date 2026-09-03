@@ -27,6 +27,11 @@ func (c *Client) GetOpenBankingStatus(ctx context.Context) (domain.OpenBankingSt
 	}]
 	var creatable quoteEnvelope[bool]
 	var registration quoteEnvelope[bool]
+	var autoTrading quoteEnvelope[struct {
+		ConnectedAccountBankCode string `json:"connectedAccountBankCode"`
+		Registered               bool   `json:"isRegistered"`
+	}]
+	var tradePurposeMyData quoteEnvelope[bool]
 	if err := runReadBatch(
 		readTask{label: "open banking connection info", run: func() error {
 			return c.getJSON(ctx, c.apiBaseURL+"/api/v1/autotrade/open-banking/info/find", &env)
@@ -37,18 +42,27 @@ func (c *Client) GetOpenBankingStatus(ctx context.Context) (domain.OpenBankingSt
 		readTask{label: "open banking registration requirement", run: func() error {
 			return c.getJSON(ctx, c.apiBaseURL+"/api/v1/autotrade/open-banking/need-registration", &registration)
 		}},
+		readTask{label: "auto-trading open banking registration", run: func() error {
+			return c.getJSON(ctx, c.certBaseURL+"/api/v1/trading/open-banking/auto-trading", &autoTrading)
+		}},
+		readTask{label: "trade-purpose MyData account state", run: func() error {
+			return c.getJSON(ctx, c.apiBaseURL+"/api/v1/trade-purpose-verification/my-data/account/exists", &tradePurposeMyData)
+		}},
 	); err != nil {
 		return domain.OpenBankingStatus{}, err
 	}
 
 	out := domain.OpenBankingStatus{
-		HolderName:              env.Result.Name,
-		LinkedAccountCount:      len(env.Result.OpenBankingAccounts),
-		RegistrableAccountCount: len(env.Result.RegistrableAccounts),
-		SavingCount:             env.Result.SavingCount,
-		ConnectionCreatable:     creatable.Result,
-		RegistrationRequired:    registration.Result,
-		FetchedAt:               time.Now().UTC(),
+		HolderName:                      env.Result.Name,
+		LinkedAccountCount:              len(env.Result.OpenBankingAccounts),
+		RegistrableAccountCount:         len(env.Result.RegistrableAccounts),
+		SavingCount:                     env.Result.SavingCount,
+		ConnectionCreatable:             creatable.Result,
+		RegistrationRequired:            registration.Result,
+		AutoTradingRegistered:           autoTrading.Result.Registered,
+		AutoTradingBankCode:             autoTrading.Result.ConnectedAccountBankCode,
+		TradePurposeMyDataAccountExists: tradePurposeMyData.Result,
+		FetchedAt:                       time.Now().UTC(),
 	}
 	if item := env.Result.ConnectedAccount; item != nil {
 		out.ConnectedAccount = &domain.OpenBankingAccount{

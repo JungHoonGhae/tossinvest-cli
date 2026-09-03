@@ -4,8 +4,8 @@
   "chunk_count": 77,
   "total": 1113,
   "counts": {
-    "implemented": 161,
-    "candidate": 296,
+    "implemented": 166,
+    "candidate": 291,
     "excluded": 656,
     "candidate_next": 0,
     "meaningful": 457
@@ -3674,14 +3674,10 @@
       }
     },
     "/api/v1/margin/cert/frozen-account": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 200,
-        "verdict": "thin"
-      }
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-06-19"
     },
     "/api/v1/margin/cert/liquidation-product-priorities": {
       "status": "candidate",
@@ -6998,7 +6994,7 @@
       }
     },
     "/api/v1/trade-purpose-verification/my-data/account/exists": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-api",
       "first_seen": "2026-06-19",
@@ -7136,14 +7132,10 @@
       "first_seen": "2026-06-19"
     },
     "/api/v1/trading/open-banking/auto-trading": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-info-api",
-        "status": 200,
-        "verdict": "thin"
-      }
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-06-19"
     },
     "/api/v1/trading/order/{stockCode}/prerequisite": {
       "status": "candidate",
@@ -7773,7 +7765,9 @@
       }
     },
     "/api/v1/user/last-login-info": {
-      "status": "candidate",
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-api",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -7948,7 +7942,9 @@
       }
     },
     "/api/v2/account/unlock/accident-account/count": {
-      "status": "candidate",
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-api",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",

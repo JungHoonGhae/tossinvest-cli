@@ -61,6 +61,11 @@ IMPLEMENTED = [
     r"^/api/v1/openapi/client$",                                  # openapi status / doctor
     r"^/api/v1/openapi/client/allowed-ips(?:/[^/]+)?$",            # openapi IP allowlist
     r"^/api/v1/autotrade/open-banking/(info/find|creatable|need-registration)$", # accumulation funding status
+    r"^/api/v1/trading/open-banking/auto-trading$",              # automated-order funding registration
+    r"^/api/v1/trade-purpose-verification/my-data/account/exists$", # narrow Securities verification link
+    r"^/api/v1/user/last-login-info$",                            # account access status
+    r"^/api/v1/margin/cert/frozen-account$",                      # account-specific margin freeze
+    r"^/api/v2/account/unlock/accident-account/count$",            # account-specific incident count
     r"^/api/v1/trading/settings/simple-trade$",                    # trading settings (read-only)
     r"^/api/v2/trading/settings/investor-exchange-choice-type$",   # KRX/NXT routing preference
     r"^/api/v1/users/settings/me/ats-notification$",               # ATS notification preference

@@ -25,7 +25,9 @@ not a web app for general Toss Banking.
 | System | login, Open API IP, change monitoring | supported |
 
 Despite its legacy name, `banking status` is the funding connection for
-Securities stock accumulation, so it is `securities + wts`, not general Banking.
+Securities stock accumulation, so it is `securities + wts`, not general Banking. Its automated-order
+funding and trade-purpose MyData-account flags are also narrow Securities workflow states, not access
+to general Banking or MyData records.
 
 The absence of a web UI is not itself a reason an API is unsupported. A WTS contract can be
 called without a UI once its current web-session contract is verified. General Banking/MyData
@@ -54,6 +56,7 @@ Use the global `--backend auto|wts|openapi` flag to override routing per request
 | All-account overview | `account overview [--full]` | ❌ | ✅ |
 | Securities trading settings | `account trading-settings [--account <key>]` (only simple trade is account-specific) | ❌ | ✅ |
 | Securities transfer accounts | `account transfer-accounts [--account <key>] [--full]` (masked by default; never initiates a transfer) | ❌ | ✅ |
+| Securities access and account restrictions | `account access-status [--account <key>]` (last login, margin freeze, accident-account count; no mutation) | ❌ | ✅ |
 | Portfolio | `portfolio positions`, `portfolio allocation` | ✅ | ✅ |
 | Portfolio valuation history | `portfolio performance`, `portfolio snapshots`, `portfolio snapshot <date>` (Securities WTS read with no current web UI; all accounts by default) | ❌ | ✅ |
 | Trade ticks / orderbook | `quote trades`, `quote orderbook` | ✅ | ✅ |
@@ -69,7 +72,7 @@ Use the global `--backend auto|wts|openapi` flag to override routing per request
 | Earnings calendar & detail | `market earnings [event-id]` (`--major`: major companies) | ❌ | ✅ |
 | Personalized news briefing | `market briefing` (asset, return, reasoning, news) | ❌ | ✅ |
 | Key earnings & economic releases | `market key-events` | ❌ | ✅ |
-| Securities stock-accumulation funding status | `banking status [--full]` (not general Banking; includes connection/registration flags; internal ID omitted) | ❌ | ✅ |
+| Securities stock-accumulation funding status | `banking status [--full]` (includes automated-order registration and a trade-purpose MyData flag; not general Banking/MyData; internal ID omitted) | ❌ | ✅ |
 | Notification preferences | `notifications list` | ❌ | ✅ |
 | Target-price alert read & management | `quote alert list/add/remove` | ❌ | ✅ |
 | Hidden-holding read & management | `portfolio hidden list/hide/show` | ❌ | ✅ |

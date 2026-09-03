@@ -159,6 +159,12 @@ func TestJSONOutputLanguageInvariant(t *testing.T) {
 				return WriteAssetSnapshot(w, FormatJSON, snapshotDetailFixture())
 			},
 		},
+		{
+			name: "accountAccessStatus",
+			render: func(w *bytes.Buffer) error {
+				return WriteAccountAccessStatus(w, FormatJSON, domain.AccountAccessStatus{})
+			},
+		},
 	}
 
 	for _, r := range renderers {
@@ -311,6 +317,12 @@ func TestCSVOutputLanguageInvariant(t *testing.T) {
 			name: "assetSnapshot",
 			render: func(w *bytes.Buffer) error {
 				return WriteAssetSnapshot(w, FormatCSV, snapshotDetailFixture())
+			},
+		},
+		{
+			name: "accountAccessStatus",
+			render: func(w *bytes.Buffer) error {
+				return WriteAccountAccessStatus(w, FormatCSV, domain.AccountAccessStatus{})
 			},
 		},
 	}

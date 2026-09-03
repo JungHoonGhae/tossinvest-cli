@@ -1022,6 +1022,39 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "account_access_status", Method: "GET", Path: "wts:account/access-status", Backend: "wts", Domain: "securities",
+			Category: "account",
+			Summary:  "User-global last Toss Securities login context plus account-specific margin-freeze and accident-account signals. Read-only; does not unlock or modify the account. WTS-only.",
+			Params:   []Param{{Name: "account", Type: "string", Desc: "Securities account key; omit for the primary account"}},
+			Probe: &ProbeSpec{Name: "account-last-login", Method: "GET",
+				URL: probeAPI + "/api/v1/user/last-login-info",
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					for _, item := range [][2]string{{"channel", "string"}, {"osName", "string"}, {"agentName", "string"}, {"timestamp", "string"}} {
+						if err := ExpectPath(body, "result."+item[0], item[1]); err != nil {
+							return err
+						}
+					}
+					return nil
+				}},
+			ExtraProbes: []ProbeSpec{
+				{Name: "account-margin-frozen", Method: "GET", URL: probeCert + "/api/v1/margin/cert/frozen-account", AccountScoped: true,
+					Check: statusAndPath("result.isFrozen", "bool")},
+				{Name: "account-accident-count", Method: "GET", URL: probeAPI + "/api/v2/account/unlock/accident-account/count", AccountScoped: true,
+					Check: statusAndPath("result", "number")},
+			},
+			ProbeRefs: []string{"account-list"},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				account, err := argString(args, "account")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetAccountAccessStatus(ctx, account)
+			},
+		},
+		{
 			ID: "account_commission", Method: "GET", Path: "wts:account/commission", Backend: "wts",
 			Category: "account", Summary: "Commission schedule this account is charged, per market (KR equities, US equities, US options). Distinct from quote_commission, which is per-symbol. WTS-only.",
 			Probe: &ProbeSpec{Name: "account-commission-info", Method: "GET",
@@ -1172,7 +1205,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "banking_status", Method: "GET", Path: "wts:autotrade/open-banking/info/find", Backend: "wts", Domain: "securities",
 			Category: "accumulate",
-			Summary:  "Funding account used by Securities stock accumulation (not general Toss Banking), linked/registrable counts, connection eligibility, and registration-required state. Holder and account are masked unless full=true; internal connection IDs are never emitted. WTS-only.",
+			Summary:  "Funding account used by Securities stock accumulation, automated-order funding registration, and the narrowly scoped trade-purpose MyData-account flag. Not general Toss Banking/MyData. Holder and account are masked unless full=true; internal connection IDs are never emitted. WTS-only.",
 			Params:   []Param{{Name: "full", Type: "boolean", Desc: "reveal the account holder and complete account number; false/omitted masks them"}},
 			Probe: &ProbeSpec{Name: "open-banking-status", Method: "GET",
 				URL: probeAPI + "/api/v1/autotrade/open-banking/info/find",
@@ -1188,6 +1221,20 @@ func wtsOperations() []Operation {
 					Check: statusAndPath("result", "bool")},
 				{Name: "open-banking-registration", Method: "GET",
 					URL:   probeAPI + "/api/v1/autotrade/open-banking/need-registration",
+					Check: statusAndPath("result", "bool")},
+				{Name: "auto-trading-open-banking", Method: "GET",
+					URL: probeCert + "/api/v1/trading/open-banking/auto-trading",
+					Check: func(status int, body []byte) error {
+						if err := ExpectStatus(status, 200); err != nil {
+							return err
+						}
+						if err := ExpectPath(body, "result.connectedAccountBankCode", "string"); err != nil {
+							return err
+						}
+						return ExpectPath(body, "result.isRegistered", "bool")
+					}},
+				{Name: "trade-purpose-mydata-account", Method: "GET",
+					URL:   probeAPI + "/api/v1/trade-purpose-verification/my-data/account/exists",
 					Check: statusAndPath("result", "bool")},
 			},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
