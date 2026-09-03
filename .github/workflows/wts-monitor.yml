@@ -27,7 +27,8 @@ jobs:
       - name: Extract + classify WTS endpoints
         id: scan
         run: |
-          export WTS_DATE="$(date -u +%F)"
+          WTS_DATE="$(date -u +%F)"
+          export WTS_DATE
           export WTS_DIFF_OUT=/tmp/wts_diff.json
           python3 tools/wts_endpoints.py | tee /tmp/wts_summary.txt
           {
@@ -48,7 +49,8 @@ jobs:
         env:
           ANDROID_DIFF_OUT: /tmp/android_diff.json
         run: |
-          export ANDROID_DATE="$(date -u +%F)"
+          ANDROID_DATE="$(date -u +%F)"
+          export ANDROID_DATE
           python3 tools/android_app_monitor.py
           {
             echo "candidate_changed=$(jq -r '.candidate_changed' /tmp/android_diff.json)"

@@ -170,11 +170,13 @@ jobs:
           X86_SHA=$(awk '{print $1}' dist/tossctl-darwin-amd64.tar.gz.sha256)
           LINUX_ARM_SHA=$(awk '{print $1}' dist/tossctl-linux-arm64.tar.gz.sha256)
           LINUX_X86_SHA=$(awk '{print $1}' dist/tossctl-linux-amd64.tar.gz.sha256)
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "arm_sha=$ARM_SHA" >> "$GITHUB_OUTPUT"
-          echo "x86_sha=$X86_SHA" >> "$GITHUB_OUTPUT"
-          echo "linux_arm_sha=$LINUX_ARM_SHA" >> "$GITHUB_OUTPUT"
-          echo "linux_x86_sha=$LINUX_X86_SHA" >> "$GITHUB_OUTPUT"
+          {
+            echo "version=$VERSION"
+            echo "arm_sha=$ARM_SHA"
+            echo "x86_sha=$X86_SHA"
+            echo "linux_arm_sha=$LINUX_ARM_SHA"
+            echo "linux_x86_sha=$LINUX_X86_SHA"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Checkout Homebrew tap
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
