@@ -67,7 +67,7 @@ and a write flag; inspect every write's full `mutation` policy through `describe
 - **Reads** — the official API (accounts, quotes, order book, trades, candles, …) plus **WTS-only**
   (rankings, flows, AI signals, screeners, sectors, earnings, briefings, dividends, realized P&L,
   transactions, watchlist, … — see
-  [what the official API can't, tossctl can](/docs/guide/hybrid-openapi)).
+  [what the official API can't, tossctl can](/en/docs/guide/hybrid-openapi)).
   WTS reads need a web session; without one, that operation returns a `tossctl auth login` hint.
   Securities trading settings, transfer accounts, and accumulation funding status are
   `trading_settings`, `securities_transfer_accounts`, and `accumulation_funding_status` respectively. The last operation also accepts the legacy `banking_status` alias. The
@@ -86,7 +86,7 @@ and a write flag; inspect every write's full `mutation` policy through `describe
 
 ## Order safety gate
 
-Order execution is **gated exactly like the CLI** (`tossctl order`). See [Safety](/docs/guide/safety).
+Order execution is **gated exactly like the CLI** (`tossctl order`). See [Safety](/en/docs/guide/safety).
 
 - Enabled by `trading.*` + `allow_live_order_actions` toggles in config (all off by default)
 - A plain call returns a **dry-run preview** (`confirm_token` + warnings)
@@ -133,5 +133,5 @@ just different ways to connect.
 
 ---
 
-For the full command/operation list see the [Command reference](/docs/reference/commands); for
-official vs WTS routing see the [Auto-routing guide](/docs/guide/hybrid-openapi).
+For the full command/operation list see the [Command reference](/en/docs/reference/commands); for
+official vs WTS routing see the [Auto-routing guide](/en/docs/guide/hybrid-openapi).

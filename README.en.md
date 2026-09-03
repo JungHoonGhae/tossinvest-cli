@@ -8,7 +8,7 @@
   <h1>tossinvest-cli</h1>
   <p><strong>The most flexible way to connect Toss Securities. Via CLI, via MCP server, from any AI agent — 100% of the official API, plus the features only the web app had.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — any AI agent drives Toss Securities accounts, quotes, and trades through one <code>tossctl</code>. <strong>Attach it as an MCP server (<code>tossctl mcp</code>) or run it by hand</strong>, <strong>with no key at all — or auto-routed through the official path when you connect one.</strong></p>
-  <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — 55 tossctl-only capabilities beyond the official Open API, with <strong>100% of the official Open API's coverage included too.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
+  <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — 58 tossctl-only capabilities beyond the official Open API, with <strong>100% of the official Open API's coverage included too.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
   <p><sub><em>An unofficial Toss Securities CLI for AI agents. Auto-routes through the official OAuth path when you connect an official key.</em></sub></p>
 </div>
 
@@ -343,7 +343,7 @@ US limit prices choose interpretation via `--currency-mode`: `KRW` (default, con
 ### Why tossctl — the official API is a fraction of Toss
 
 The official Open API offers only **basic REST read/order** (~20 endpoints). Toss's
-own web app (WTS) actually uses **~440 meaningful read/trade endpoints** — that's
+own web app (WTS) currently uses **487 meaningful read/trade endpoints** — that's
 after excluding noise like onboarding, KYC, terms, promotions, and telemetry.
 
 > **The official Open API covers only ~4% of that.** tossctl works across the

@@ -76,7 +76,7 @@ agents should use `--output json`.
 
 ## Orders & Trading
 
-Trading is disabled by default. See the [Safety Model](safety.en.md).
+Trading is disabled by default. See the [Safety Model](/en/docs/guide/safety).
 
 | Command | Description |
 |------|------|
@@ -104,7 +104,7 @@ Fractional (amount-based) order: `order place --fractional --amount <krw> --qty 
 | `tossctl account trading-settings [--account <key>]` | Read-only account-specific simple trade plus user-wide KRX/NXT, ATS notification, and option tick settings |
 | `tossctl account transfer-accounts [--account <key>] [--full]` | Securities own/recent transfer accounts (masked by default; never initiates a transfer) |
 | `tossctl account access-status [--account <key>]` | Last Securities login context and account-specific margin-freeze/accident-account status (read-only; raw account key omitted) |
-| `tossctl accumulate funding-status [--full]` | Securities accumulation funding, automated-order registration, and trade-purpose MyData state (`banking status` is a deprecated alias; not general Banking/MyData; holder/account masked, internal ID never emitted) |
+| `tossctl accumulate funding-status [--full]` | Securities accumulation funding and automated-order registration (`banking status` is a deprecated alias; not general Banking/MyData; holder/account masked, internal ID never emitted) |
 | `tossctl notifications list` | Read-only WTS notification preferences (internal user ID omitted) |
 | `tossctl notifications status` | Read-only canonical preferences, inbox unread state, and AI-analysis agreement |
 
@@ -118,7 +118,7 @@ Fractional (amount-based) order: `order place --fractional --amount <krw> --qty 
 
 ## Official Open API · Auto-routing
 
-Connect an official key and supported reads/trades route through OAuth (tokens auto-refresh); other features use WTS. WTS features work with only a web session, while `account buying-power`, `market business-days|stocks`, `quote metadata`, conditional orders, and `stream` require the official key. See the [auto-routing guide](/docs/guide/hybrid-openapi).
+Connect an official key and supported reads/trades route through OAuth (tokens auto-refresh); other features use WTS. WTS features work with only a web session, while `account buying-power`, `market business-days|stocks`, `quote metadata`, conditional orders, and `stream` require the official key. See the [auto-routing guide](/en/docs/guide/hybrid-openapi).
 
 | Command | Description |
 |------|------|

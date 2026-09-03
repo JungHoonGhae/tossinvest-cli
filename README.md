@@ -8,8 +8,8 @@
   <h1>tossinvest-cli</h1>
   <p><strong>토스증권에 연결하는 가장 유연한 방법. CLI 로, MCP 서버로, 어떤 AI 에이전트로든 — 공식 API는 물론 웹앱에만 있던 기능까지 하나로.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — 어떤 AI 에이전트로든 <code>tossctl</code> 하나로 토스증권 계좌·시세·거래를 다룹니다. <strong>MCP 서버(<code>tossctl mcp</code>)로 붙이거나 터미널에서 직접</strong>, <strong>공식 키 없이 바로 또는 연결 시 자동 라우팅.</strong></p>
-  <p><sub>수급 · 시장지수 · AI 시그널 · 조건검색 · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview 등 공식 Open API에 없는 tossctl 고유 기능 55가지 — <strong>공식 Open API 지원 범위도 물론 100% 포함합니다.</strong> <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
-  <p><sub><em>The most flexible way to connect Toss Securities — via CLI, via MCP, from any AI agent. 100% of the official Open API, plus 55 tossctl-only capabilities.</em></sub></p>
+  <p><sub>수급 · 시장지수 · AI 시그널 · 조건검색 · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview 등 공식 Open API에 없는 tossctl 고유 기능 58가지 — <strong>공식 Open API 지원 범위도 물론 100% 포함합니다.</strong> <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
+  <p><sub><em>The most flexible way to connect Toss Securities — via CLI, via MCP, from any AI agent. 100% of the official Open API, plus 58 tossctl-only capabilities.</em></sub></p>
 </div>
 
 <p align="center">
@@ -383,7 +383,7 @@ US 지정가는 `--currency-mode`로 가격 해석을 선택합니다: `KRW` (�
 ### 왜 tossctl 인가 — 공식 API 는 토스 기능의 일부일 뿐
 
 공식 Open API 는 **REST 조회·주문의 기본만** 제공합니다 (약 20개 엔드포인트). 반면
-토스 웹앱(WTS)이 실제로 쓰는 **의미있는 조회·거래 기능은 ~440개** — 온보딩·KYC·약관·
+토스 웹앱(WTS)이 실제로 쓰는 **의미있는 조회·거래 endpoint는 현재 487개** — 온보딩·KYC·약관·
 프로모션·텔레메트리 같은 무의미한 엔드포인트는 뺀 숫자입니다.
 
 > **공식 Open API 는 그중 약 4%만 커버합니다.** tossctl 은 나머지 범위 위에서 동작하며,

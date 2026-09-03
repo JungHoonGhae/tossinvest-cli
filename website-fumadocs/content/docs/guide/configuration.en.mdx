@@ -14,8 +14,18 @@ tossctl config status
 
 ```json
 {
+  "schema_version": 3,
   "trading": {
-    "grant": ["place", "sell"]
+    "place": false,
+    "sell": false,
+    "fractional": false,
+    "cancel": false,
+    "amend": false,
+    "conditional": false,
+    "allow_live_order_actions": false,
+    "dangerous_automation": {
+      "accept_fx_consent": false
+    }
   },
   "update_check": {
     "enabled": true
@@ -25,11 +35,16 @@ tossctl config status
 
 | Key | Description |
 |----|------|
-| `trading.grant` | Allowed trade actions (`place`, `sell`). Empty = no trading |
+| `trading.place`·`cancel`·`amend`·`conditional` | Enable each order path |
+| `trading.sell` | Allow sells when `place` is also enabled |
+| `trading.fractional` | Allow US fractional orders when `place` is also enabled |
+| `trading.allow_live_order_actions` | Master kill switch for every live-account order |
+| `trading.dangerous_automation.accept_fx_consent` | Automatically accept the server consent for supported orders that require FX |
 | `update_check.enabled` | New-version notice on/off (never pollutes automation output) |
 
 - The schema version is managed automatically; outdated/unused keys trigger a one-line
   notice at runtime and show up in `config status` / `doctor`.
+- `trading.grant` is a removed legacy key and is ignored if it remains in an old file.
 - The config JSON Schema lives at
   [`schemas/config.schema.json`](https://github.com/JungHoonGhae/tossinvest-cli/blob/main/schemas/config.schema.json).
 
@@ -40,4 +55,4 @@ tossctl doctor            # human check
 tossctl doctor --report   # JSON diagnostic (home paths masked, for issues)
 ```
 
-Trade guardrails are detailed in the [Safety Model](safety.en.md).
+Trade guardrails are detailed in the [Safety Model](/en/docs/guide/safety).

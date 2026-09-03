@@ -1,6 +1,6 @@
-# OpenKakao Docs
+# tossinvest-cli Docs
 
-Fumadocs-based documentation site for OpenKakao.
+Fumadocs-based documentation site for `tossinvest-cli`.
 
 ## Commands
 
@@ -13,6 +13,6 @@ pnpm build
 
 ## Notes
 
-- This site is configured for GitHub Pages via static export.
+- The site is deployed on Vercel as a Next.js application.
 - Public documentation content lives in `content/docs`.
-- The production artifact is generated in `out/`.
+- `pnpm build` synchronizes the root changelog before running the production build.

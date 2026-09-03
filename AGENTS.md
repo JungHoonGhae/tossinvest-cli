@@ -16,8 +16,8 @@ tossctl auth status      # Session: active / Live Check: valid 여야 함
 Every leaf command carries machine-readable annotations:
 
 - `source`: `official` (official Open API only), `wts` (WTS internal endpoint only),
-  or `both` (official preferred, WTS fallback). `wts` endpoints are unofficial and
-  may change without notice.
+  `both` (official preferred, WTS fallback), or `local` (no remote API call). `wts`
+  endpoints are unofficial and may change without notice.
 - `mutating: true`: the command can change account state (live trading). It is
   attached to `order place`, `order cancel`, `order amend`, `order conditional
   place|cancel|modify`, and `ops call` (because that generic dispatcher can
@@ -37,7 +37,7 @@ Rules for agents:
   acknowledgement까지 확인합니다. Open API IP 교체·목표가 알림·숨김 종목·관심종목
   폴더/종목 관리가 이 범주입니다.
 - Open API IP 교체는 새 IP 추가와 검증을 먼저 하고, 실패하면 기존 목록을 복구합니다.
-- Prefer `--json` for machine-readable output.
+- Prefer `--output json` for machine-readable output.
 - Treat `source: wts` results as best-effort; add a `monitor api` probe when you
   build automation on top of them.
 - **Don't auto-run `tossctl update`.** It changes the tossctl binary itself
