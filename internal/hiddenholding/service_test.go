@@ -6,11 +6,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/confirmation"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 )
 
 type fakeClient struct {
 	holdings         []domain.HiddenHolding
+	scopePrefix      string
 	hideCalls        int
 	showCalls        int
 	hideAppliedError error
@@ -28,7 +30,12 @@ func (f *fakeClient) ListHiddenHoldings(_ context.Context, accountKey string) (d
 	if accountKey == "" {
 		accountKey = "primary-test"
 	}
-	return domain.HiddenHoldings{AccountKey: accountKey, AccountScope: "scope-test", Holdings: append([]domain.HiddenHolding(nil), f.holdings...)}, nil
+	scopePrefix := f.scopePrefix
+	if scopePrefix == "" {
+		scopePrefix = "session-test"
+	}
+	accountScope := confirmation.Token(scopePrefix + "\x00" + accountKey)
+	return domain.HiddenHoldings{AccountKey: accountKey, AccountScope: accountScope, Holdings: append([]domain.HiddenHolding(nil), f.holdings...)}, nil
 }
 
 func (f *fakeClient) HideHolding(_ context.Context, _ string, productCode string) error {
@@ -68,6 +75,35 @@ func TestChangePreviewConfirmationAndAccountScope(t *testing.T) {
 	}
 	if !result.Applied || result.Reconciled || f.hideCalls != 1 || len(f.holdings) != 1 {
 		t.Fatalf("result=%#v fake=%#v", result, f)
+	}
+}
+
+func TestChangeConfirmationIsBoundToAccountAndSessionScope(t *testing.T) {
+	t.Parallel()
+	f := &fakeClient{scopePrefix: "session-a"}
+	s := NewService(f)
+
+	accountPreview, err := s.Change(context.Background(), ActionHide, "A005930", "account-a", ExecuteOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Change(context.Background(), ActionHide, "A005930", "account-b", ExecuteOptions{Execute: true, Confirm: accountPreview.ConfirmToken}); err == nil {
+		t.Fatal("account-a confirmation was accepted for account-b")
+	}
+	if f.hideCalls != 0 {
+		t.Fatalf("cross-account confirmation mutated holdings: calls=%d", f.hideCalls)
+	}
+
+	sessionPreview, err := s.Change(context.Background(), ActionHide, "A005930", "account-a", ExecuteOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.scopePrefix = "session-b"
+	if _, err := s.Change(context.Background(), ActionHide, "A005930", "account-a", ExecuteOptions{Execute: true, Confirm: sessionPreview.ConfirmToken}); err == nil {
+		t.Fatal("pre-rotation confirmation was accepted after session scope changed")
+	}
+	if f.hideCalls != 0 {
+		t.Fatalf("stale-session confirmation mutated holdings: calls=%d", f.hideCalls)
 	}
 }
 

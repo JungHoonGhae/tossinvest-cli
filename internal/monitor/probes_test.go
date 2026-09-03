@@ -104,7 +104,7 @@ func TestDocumentedSurfaceCountsMatchRuntime(t *testing.T) {
 		t.Fatal("resolve test file path")
 	}
 	repo := filepath.Clean(filepath.Join(filepath.Dir(filename), "..", ".."))
-	operationCount := len(ops.NewCatalog().List("", 0))
+	operationCount := ops.NewCatalog().Count()
 	registryProbeCount := len(ops.NewCatalog().Probes())
 	probeCount := len(Probes())
 	directProbeCount := probeCount - registryProbeCount

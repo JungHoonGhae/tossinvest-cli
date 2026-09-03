@@ -51,4 +51,7 @@ jobs:
           PYTHONHASHSEED=1 python3 -m unittest discover -s tools/tests
 
       - name: 카탈로그 스윕 병합 테스트
-        run: node --test tools/tests/*.test.mjs
+        run: |
+          node --check tools/capture_post_bodies.mjs
+          node --check tools/catalog_observed.mjs
+          node --test tools/tests/*.test.mjs

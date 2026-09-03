@@ -17,6 +17,9 @@ func TestRegistryInvariants(t *testing.T) {
 	if len(all) == 0 {
 		t.Fatal("empty catalog")
 	}
+	if got, want := c.Count(), len(c.ops); got != want {
+		t.Fatalf("Count() = %d, want complete registry size %d", got, want)
+	}
 
 	seenID := map[string]bool{}
 	seenProbe := map[string]bool{}

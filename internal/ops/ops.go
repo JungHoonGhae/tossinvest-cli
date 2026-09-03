@@ -179,6 +179,15 @@ func (c *Catalog) List(query string, limit int) []Operation {
 	return out
 }
 
+// Count returns the complete registry size without applying List's public
+// response cap. Use it for runtime-derived documentation and health checks.
+func (c *Catalog) Count() int {
+	if c == nil {
+		return 0
+	}
+	return len(c.ops)
+}
+
 // Get returns the operation with the given ID.
 func (c *Catalog) Get(id string) (Operation, bool) {
 	o, ok := c.byID[id]

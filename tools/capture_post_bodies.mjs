@@ -41,7 +41,7 @@ import { mkdtempSync, rmSync, readFileSync, writeFileSync, existsSync, readdirSy
 import { tmpdir, homedir } from "node:os";
 import { join } from "node:path";
 
-import { mergeObservedMetadata } from "./catalog_observed.mjs";
+import { mergeCatalogObservation } from "./catalog_observed.mjs";
 
 const args = process.argv.slice(2);
 const target = args.find((a) => !a.startsWith("--")) ?? "/";
@@ -281,44 +281,10 @@ if (sweep) {
   const CATALOG = "docs/reverse-engineering/wts-endpoints.json";
   const cat = JSON.parse(readFileSync(CATALOG, "utf8"));
   const today = new Date().toISOString().slice(0, 10);
-  const bodyKeys = (raw) => {
-    if (!raw) return [];
-    try {
-      const v = JSON.parse(raw);
-      return v && typeof v === "object" && !Array.isArray(v) ? Object.keys(v) : [];
-    } catch {
-      return [...new URLSearchParams(raw).keys()];
-    }
-  };
-  // 카탈로그 키는 숫자 id 가 {id} 로 정규화돼 있다. 같은 규칙을 적용해 맞춘다.
-  const norm = (p) => p.replace(/\/[0-9]{3,}(?=\/|$)/g, "/{id}").replace(/[/.]+$/, "");
-  // 번들은 경로를 조립해 쓰는 경우가 많아(`base + "/" + code`) 카탈로그 키가
-  // **접두사**로 남는다: 키는 `/api/v2/stock-infos` 인데 라이브는
-  // `/api/v2/stock-infos/A005930` 이다. 정확 매칭만 하면 이런 요청이 전부 버려진다
-  // (첫 스윕에서 924건 중 237건). 뒤 세그먼트를 하나씩 떼며 가장 긴 일치를 찾는다.
-  const lookup = (pathname) => {
-    let key = norm(pathname);
-    while (key.includes("/")) {
-      if (cat.endpoints[key]) return key;
-      key = key.slice(0, key.lastIndexOf("/"));
-      if (key.split("/").length <= 3) break;   // /api/vN 아래로는 내려가지 않는다
-    }
-    return null;
-  };
   let hit = 0, miss = 0;
   for (const r of seen) {
-    const u = new URL(r.url);
-    const key = lookup(u.pathname);
-    const entry = key ? cat.endpoints[key] : null;
-    if (!entry) { miss++; continue; }
-    const prev = entry.observed ?? {};
-    entry.observed = mergeObservedMetadata(prev, {
-      method: r.method,
-      host: u.hostname.split(".")[0],
-      query: [...u.searchParams.keys()],
-      body: bodyKeys(r.postData),
-    }, today);
-    hit++;
+    if (mergeCatalogObservation(cat, r, today)) hit++;
+    else miss++;
   }
   writeFileSync(CATALOG, JSON.stringify(cat, null, 2) + "\n");
   console.log(`\n스윕: 라우트 ${routes.length}개, 요청 ${seen.length}건 → 카탈로그 반영 ${hit}건 (카탈로그에 없는 경로 ${miss}건)`);
