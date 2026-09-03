@@ -1749,6 +1749,12 @@ type RelatedStock struct {
 	Market              string `json:"market,omitempty"`
 	InvestmentType      string `json:"investment_type,omitempty"`
 	InvestmentTypeValue string `json:"investment_type_value,omitempty"`
+	CompanyCode         string `json:"company_code,omitempty"`
+	CompanyName         string `json:"company_name,omitempty"`
+	LogoImageURL        string `json:"logo_image_url,omitempty"`
+	Status              string `json:"status,omitempty"`
+	CommonShare         string `json:"common_share,omitempty"`
+	Display             string `json:"display,omitempty"`
 }
 
 // StockSignals are the per-stock signal cards Toss shows on a stock page —

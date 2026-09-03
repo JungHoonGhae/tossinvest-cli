@@ -98,7 +98,9 @@ CLI·ops/MCP는 예금주명과 계좌번호를 기본 마스킹한다.
 | `GET /api/v1/calendar/ai-summary/key-events` | `market key-events` | 실적 예상·발표·서프라이즈, 경제지표 실제·예상·직전값 |
 | `GET /api/v1/user-alimies` | `notifications list` | 알림 타입·활성화·갱신시각; 내부 `userId`는 폐기 |
 | `GET /api/v1/dashboard/wts/overview/ai-signals/latest?nationCode=KOR\|USA` | `market briefing --scope kr\|us` | 개인화 브리핑과 같은 시그널·AI 사유·뉴스·관련 종목 구조 |
-| `GET /api/v2/dashboard/wts/overview/tics/{id}/overview` | `market sector <id>` | 업종명·요약·설명·깊이·종목/ETF 수 |
+| `GET /api/v1/dashboard/wts/overview/ai-signals/detail?productCode=&productType=` | `market signal <symbol> [--type]` | 전체 AI 근거·이슈·키워드·출처 뉴스·연관 종목 흐름; `result:null`은 정상 빈 상태 |
+| `GET /api/v2/dashboard/wts/overview/tics/{id}/simple` | `market sector <id>` | 업종명·현재 등락률·기간·이미지 |
+| `GET /api/v2/dashboard/wts/overview/tics/{id}/overview` | `market sector <id>` | 업종명·요약·설명·깊이·종목/ETF 수·재귀 연관 업종 트리 |
 | `POST /api/v2/dashboard/wts/overview/tics/{id}/stocks` body `{}` | `market sector <id>` | 구성 종목의 가격·등락·시총·거래대금·거래량·투자의견 |
 | `POST /api/v2/dashboard/wts/overview/tics/{id}/etfs` body `{}` | `market sector <id>` | ETF 가격·보수·레버리지·최대 편입종목·거래대금 |
 | `GET /api/v2/dashboard/wts/overview/tics/{id}/news` | `market sector <id>` | 뉴스 제목·요약·출처·시각·이미지 |

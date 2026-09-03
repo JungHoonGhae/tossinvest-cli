@@ -15,13 +15,20 @@ func TestGetSectorDetailCombinesOverviewStocksETFsAndNews(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests.Add(1)
 		switch r.URL.Path {
+		case "/api/v2/dashboard/wts/overview/tics/7/simple":
+			if r.Method != http.MethodGet {
+				t.Errorf("simple method = %s", r.Method)
+				http.Error(w, "bad method", http.StatusMethodNotAllowed)
+				return
+			}
+			_, _ = w.Write([]byte(`{"result":{"ticsId":7,"name":"반도체","summary":"산업군 요약","imageUrl":"https://example.test/sector.png","changeRate":2.75,"duration":"ONE_DAY"}}`))
 		case "/api/v2/dashboard/wts/overview/tics/7/overview":
 			if r.Method != http.MethodGet {
 				t.Errorf("overview method = %s", r.Method)
 				http.Error(w, "bad method", http.StatusMethodNotAllowed)
 				return
 			}
-			_, _ = w.Write([]byte(`{"result":{"ticsId":7,"name":"반도체","summary":"산업군 요약","description":"산업군 설명","depth":1,"companyCount":12,"etfCount":3}}`))
+			_, _ = w.Write([]byte(`{"result":{"ticsId":7,"name":"반도체","summary":"산업군 요약","description":"산업군 설명","depth":1,"companyCount":12,"etfCount":3,"relatedTics":[{"ticsId":70,"name":"상위 산업","depth":1,"imageUrl":"https://example.test/parent.png","subItems":[{"ticsId":71,"name":"하위 산업","depth":2,"imageUrl":"https://example.test/child.png","subItems":[]}]}]}}`))
 		case "/api/v2/dashboard/wts/overview/tics/7/stocks":
 			if r.Method != http.MethodPost {
 				t.Errorf("stocks method = %s", r.Method)
@@ -59,11 +66,14 @@ func TestGetSectorDetailCombinesOverviewStocksETFsAndNews(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetSectorDetail: %v", err)
 	}
-	if requests.Load() != 4 {
-		t.Fatalf("requests = %d, want 4", requests.Load())
+	if requests.Load() != 5 {
+		t.Fatalf("requests = %d, want 5", requests.Load())
 	}
-	if got.ID != 7 || got.Name != "반도체" || got.CompanyCount != 12 || got.ETFCount != 3 {
+	if got.ID != 7 || got.Name != "반도체" || got.CompanyCount != 12 || got.ETFCount != 3 || got.ChangeRate != 2.75 || got.Duration != "ONE_DAY" || got.ImageURL == "" {
 		t.Fatalf("overview = %#v", got)
+	}
+	if len(got.RelatedSectors) != 1 || got.RelatedSectors[0].ID != 70 || len(got.RelatedSectors[0].SubSectors) != 1 || got.RelatedSectors[0].SubSectors[0].ID != 71 {
+		t.Fatalf("related sectors = %#v", got.RelatedSectors)
 	}
 	if got.StockTotalCount != 1 || got.ETFTotalCount != 1 || got.NewsTotalCount != 1 {
 		t.Fatalf("total counts = stocks:%d etfs:%d news:%d", got.StockTotalCount, got.ETFTotalCount, got.NewsTotalCount)

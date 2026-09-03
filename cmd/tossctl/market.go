@@ -185,6 +185,31 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
+	var signalType string
+	signalCmd := &cobra.Command{
+		Use:         "signal <symbol>",
+		Short:       i18n.T("market.signal.short"),
+		Long:        i18n.T("market.signal.long"),
+		Args:        cobra.ExactArgs(1),
+		Annotations: map[string]string{"source": "wts", "domain": "securities"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			productType, err := tossclient.AISignalProductType(signalType)
+			if err != nil {
+				return err
+			}
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			detail, err := app.client.GetAISignalDetail(cmd.Context(), args[0], productType)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteAISignalDetail(cmd.OutOrStdout(), app.format, detail)
+		},
+	}
+	signalCmd.Flags().StringVar(&signalType, "type", "stocks", "product type: stocks or equity_etf")
+
 	var investorsSize int
 	investorsCmd := &cobra.Command{
 		Use:         "investors",
@@ -617,6 +642,6 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(hoursCmd, haltCmd, businessDaysCmd, anomaliesCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, sectorCmd, themesCmd, screenerCmd, filtersCmd, stocksCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, newMarketKeyEventsCmd(opts), issuesCmd, optionHoursCmd)
+	cmd.AddCommand(hoursCmd, haltCmd, businessDaysCmd, anomaliesCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, signalCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, sectorCmd, themesCmd, screenerCmd, filtersCmd, stocksCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, newMarketKeyEventsCmd(opts), issuesCmd, optionHoursCmd)
 	return cmd
 }

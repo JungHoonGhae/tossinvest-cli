@@ -313,7 +313,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **🆕 계좌 수수료 체계** | `account commission` (국내주식·미국주식 수수료율, 미국옵션 계약당 수수료, 우대 적용 여부) | ❌ | ✅ |
 | **Prime 구독 상태·혜택** | `account prime` (수수료·이자 3단 비교: 일반/Prime/내 적용) | ❌ | ✅ |
 | **커뮤니티 랭킹** | `community rankings --type influencer\|profit\|followers` | ❌ | ✅ |
-| **업종별 등락·상세** | `market sectors [id]` (업종 트리·등락), `market sector <id>` (개요 + 종목·ETF·뉴스 첫 페이지와 전체 건수) | ❌ | ✅ |
+| **업종별 등락·상세** | `market sectors [id]` (업종 트리·등락), `market sector <id>` (현재 등락·연관 업종 + 종목·ETF·뉴스 첫 페이지와 전체 건수) | ❌ | ✅ |
 | **테마 등락 랭킹** | `market themes` (오늘 가장 많이 오른 테마, 상승종목 수) | ❌ | ✅ |
 | **AI 뉴스 브리핑** | `market briefing [--scope personalized\|kr\|us]` (개인화 또는 한국·미국 최신 브리핑) | ❌ | ✅ |
 | **🆕 핵심 실적·경제지표** | `market key-events` (실적 예상·발표·서프라이즈, 경제지표 실제·예상·직전값) | ❌ | ✅ |
@@ -321,7 +321,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **🆕 알림 설정 조회** | `notifications list` (읽기 전용, 내부 사용자 ID 제외) | ❌ | ✅ |
 | **🆕 목표가 알림 조회·관리** | `quote alert list\|add\|remove <symbol>` (변경은 preview + `--execute --confirm`) | ❌ | ✅ |
 | **🆕 숨긴 보유종목 조회·관리** | `portfolio hidden list\|hide\|show` (계좌 키 비노출, 변경 후 재검증) | ❌ | ✅ |
-| **토스 AI 시그널** | `market signals` (종목별 AI 시그널·키워드·등락) | ❌ | ✅ |
+| **토스 AI 시그널** | `market signals` (목록), `market signal <symbol>` (전체 근거·뉴스·연관 종목) | ❌ | ✅ |
 | **조건 검색 (스크리너)** | `market screener [id]` (프리셋) · `--filter '<json>'` (커스텀 조건) `--nation kr\|us` | ❌ | ✅ |
 | **관심 종목 조회·관리** | `watchlist list [<group-id>] [--all]`·`groups`, `watchlist group create\|rename\|delete`, `watchlist add\|remove --group <id>` (폴더별 조회 + CRUD + 종목 추가/제거) | ❌ | ✅ |
 | **거래내역 ledger** | `transactions list --market us\|kr` (매매·입출금·배당·입출고) | ❌ | ✅ |
@@ -820,7 +820,9 @@ tossctl accumulate list|status <symbol>          # 증권 모바일 화면에서
 tossctl lending expected|top                     # 예상 대여수익·익명 수익 랭킹
 tossctl market briefing --scope personalized|kr|us
 tossctl market sectors                           # 업종 id·등락 목록
-tossctl market sector <id>                       # 업종 개요·종목·ETF·뉴스 집계
+tossctl market sector <id>                       # 업종 등락·연관 업종·종목·ETF·뉴스 집계
+tossctl market signal 005930                     # 종목 AI 시그널의 전체 근거
+tossctl market signal SPY --type equity_etf      # 주식형 ETF AI 시그널 상세
 tossctl market investors|earnings|themes|index|ranking|signals
 tossctl market key-events                        # 현재 핵심 실적·경제지표
 tossctl community rankings --type influencer|profit|followers
@@ -918,11 +920,11 @@ tossctl openapi logout      # 자격증명 파일 삭제
 ### API 회귀 감시
 
 ```bash
-tossctl monitor api           # 54개 endpoint schema probe (병렬); exit 0 통과, 1 실패
+tossctl monitor api           # 56개 endpoint schema probe (병렬); exit 0 통과, 1 실패
 tossctl monitor api --quiet   # cron 용
 ```
 
-본인 머신에서 본인 세션으로 54개 read-only endpoint 응답 schema 를 병렬 점검합니다. [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) 같은 토스 서버측 body 계약 변경을 조기 감지할 목적. exit code 만 반환하므로 알림 채널 (Discord / Slack / ntfy / macOS / 이메일) 은 cron 라인의 `|| <command>` 우항에서 사용자가 합성합니다. 합성 recipe: [`AGENTS.md`](AGENTS.md). 설정 가이드: [`docs/operations.md`](docs/operations.md).
+본인 머신에서 본인 세션으로 56개 read-only endpoint 응답 schema 를 병렬 점검합니다. [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) 같은 토스 서버측 body 계약 변경을 조기 감지할 목적. exit code 만 반환하므로 알림 채널 (Discord / Slack / ntfy / macOS / 이메일) 은 cron 라인의 `|| <command>` 우항에서 사용자가 합성합니다. 합성 recipe: [`AGENTS.md`](AGENTS.md). 설정 가이드: [`docs/operations.md`](docs/operations.md).
 
 ## 주문 ref rollover
 

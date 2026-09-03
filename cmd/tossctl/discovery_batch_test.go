@@ -66,3 +66,26 @@ func TestMarketSectorDetailCommandContract(t *testing.T) {
 		t.Fatalf("annotations = %#v", cmd.Annotations)
 	}
 }
+
+func TestMarketAISignalDetailCommandContract(t *testing.T) {
+	t.Parallel()
+	cmd, _, err := newRootCmd().Find([]string{"market", "signal"})
+	if err != nil || cmd.Name() != "signal" {
+		t.Fatalf("market signal command missing: cmd=%q err=%v", cmd.Name(), err)
+	}
+	if cmd.Flags().Lookup("type") == nil {
+		t.Fatal("market signal --type missing")
+	}
+	if cmd.Annotations["source"] != "wts" || cmd.Annotations["domain"] != "securities" || cmd.Annotations["mutating"] != "" {
+		t.Fatalf("annotations = %#v", cmd.Annotations)
+	}
+}
+
+func TestMarketAISignalDetailRejectsUnobservedTypeBeforeAuthentication(t *testing.T) {
+	cmd := newMarketCmd(&rootOptions{})
+	cmd.SetArgs([]string{"signal", "A005930", "--type", "bond"})
+	err := cmd.Execute()
+	if err == nil || !strings.Contains(err.Error(), "stocks or equity_etf") {
+		t.Fatalf("error = %v", err)
+	}
+}

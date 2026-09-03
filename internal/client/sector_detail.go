@@ -62,11 +62,30 @@ type sectorNewsRaw struct {
 	ImageURLs []string `json:"imageUrls"`
 }
 
+type relatedSectorRaw struct {
+	TicsID   int                `json:"ticsId"`
+	Name     string             `json:"name"`
+	Depth    int                `json:"depth"`
+	ImageURL string             `json:"imageUrl"`
+	SubItems []relatedSectorRaw `json:"subItems"`
+}
+
+func mapRelatedSector(raw relatedSectorRaw) domain.RelatedSector {
+	out := domain.RelatedSector{
+		ID: raw.TicsID, Name: raw.Name, Depth: raw.Depth, ImageURL: raw.ImageURL,
+		SubSectors: make([]domain.RelatedSector, 0, len(raw.SubItems)),
+	}
+	for _, child := range raw.SubItems {
+		out.SubSectors = append(out.SubSectors, mapRelatedSector(child))
+	}
+	return out
+}
+
 func mapSectorPrice(raw sectorPriceRaw) domain.SectorPrice {
 	return domain.SectorPrice{Base: raw.Base, BaseKRW: raw.BaseKRW, Close: raw.Close, CloseKRW: raw.CloseKRW, PriceType: raw.PriceType}
 }
 
-// GetSectorDetail combines the four WTS TICS detail resources. The aggregate
+// GetSectorDetail combines the five WTS TICS detail resources. The aggregate
 // keeps callers independent of the dashboard's multiple-request UI layout.
 func (c *Client) GetSectorDetail(ctx context.Context, id int) (domain.SectorDetail, error) {
 	if id <= 0 {
@@ -75,14 +94,23 @@ func (c *Client) GetSectorDetail(ctx context.Context, id int) (domain.SectorDeta
 	if err := c.requireSession(); err != nil {
 		return domain.SectorDetail{}, err
 	}
+	var simple quoteEnvelope[struct {
+		TicsID     int     `json:"ticsId"`
+		Name       string  `json:"name"`
+		Summary    string  `json:"summary"`
+		ImageURL   string  `json:"imageUrl"`
+		ChangeRate float64 `json:"changeRate"`
+		Duration   string  `json:"duration"`
+	}]
 	var overview quoteEnvelope[struct {
-		TicsID       int    `json:"ticsId"`
-		Name         string `json:"name"`
-		Summary      string `json:"summary"`
-		Description  string `json:"description"`
-		Depth        int    `json:"depth"`
-		CompanyCount int    `json:"companyCount"`
-		ETFCount     int    `json:"etfCount"`
+		TicsID       int                `json:"ticsId"`
+		Name         string             `json:"name"`
+		Summary      string             `json:"summary"`
+		Description  string             `json:"description"`
+		Depth        int                `json:"depth"`
+		CompanyCount int                `json:"companyCount"`
+		ETFCount     int                `json:"etfCount"`
+		RelatedTics  []relatedSectorRaw `json:"relatedTics"`
 	}]
 	var stocks quoteEnvelope[struct {
 		Stocks     []sectorStockRaw `json:"stocks"`
@@ -97,19 +125,21 @@ func (c *Client) GetSectorDetail(ctx context.Context, id int) (domain.SectorDeta
 		TotalCount int             `json:"totalCount"`
 	}]
 	endpoints := []string{
+		fmt.Sprintf("%s/api/v2/dashboard/wts/overview/tics/%d/simple", c.infoBaseURL, id),
 		fmt.Sprintf("%s/api/v2/dashboard/wts/overview/tics/%d/overview", c.infoBaseURL, id),
 		fmt.Sprintf("%s/api/v2/dashboard/wts/overview/tics/%d/stocks", c.infoBaseURL, id),
 		fmt.Sprintf("%s/api/v2/dashboard/wts/overview/tics/%d/etfs", c.infoBaseURL, id),
 		fmt.Sprintf("%s/api/v2/dashboard/wts/overview/tics/%d/news", c.infoBaseURL, id),
 	}
-	labels := []string{"overview", "stocks", "ETFs", "news"}
+	labels := []string{"simple metadata", "overview", "stocks", "ETFs", "news"}
 	errs := make([]error, len(endpoints))
 	var wg sync.WaitGroup
 	wg.Add(len(endpoints))
-	go func() { defer wg.Done(); errs[0] = c.getJSON(ctx, endpoints[0], &overview) }()
-	go func() { defer wg.Done(); errs[1] = c.postJSON(ctx, endpoints[1], json.RawMessage(`{}`), &stocks) }()
-	go func() { defer wg.Done(); errs[2] = c.postJSON(ctx, endpoints[2], json.RawMessage(`{}`), &etfs) }()
-	go func() { defer wg.Done(); errs[3] = c.getJSON(ctx, endpoints[3], &news) }()
+	go func() { defer wg.Done(); errs[0] = c.getJSON(ctx, endpoints[0], &simple) }()
+	go func() { defer wg.Done(); errs[1] = c.getJSON(ctx, endpoints[1], &overview) }()
+	go func() { defer wg.Done(); errs[2] = c.postJSON(ctx, endpoints[2], json.RawMessage(`{}`), &stocks) }()
+	go func() { defer wg.Done(); errs[3] = c.postJSON(ctx, endpoints[3], json.RawMessage(`{}`), &etfs) }()
+	go func() { defer wg.Done(); errs[4] = c.getJSON(ctx, endpoints[4], &news) }()
 	wg.Wait()
 	for i, err := range errs {
 		if err != nil {
@@ -120,11 +150,26 @@ func (c *Client) GetSectorDetail(ctx context.Context, id int) (domain.SectorDeta
 	out := domain.SectorDetail{
 		ID: overview.Result.TicsID, Name: overview.Result.Name,
 		Summary: overview.Result.Summary, Description: overview.Result.Description,
+		ImageURL: simple.Result.ImageURL, ChangeRate: simple.Result.ChangeRate, Duration: simple.Result.Duration,
 		Depth: overview.Result.Depth, CompanyCount: overview.Result.CompanyCount, ETFCount: overview.Result.ETFCount,
 		StockTotalCount: stocks.Result.TotalCount, ETFTotalCount: etfs.Result.TotalCount, NewsTotalCount: news.Result.TotalCount,
-		Stocks: make([]domain.SectorStock, 0, len(stocks.Result.Stocks)),
-		ETFs:   make([]domain.SectorETF, 0, len(etfs.Result.ETFs)),
-		News:   make([]domain.SectorNews, 0, len(news.Result.Body)), FetchedAt: time.Now().UTC(),
+		Stocks:         make([]domain.SectorStock, 0, len(stocks.Result.Stocks)),
+		ETFs:           make([]domain.SectorETF, 0, len(etfs.Result.ETFs)),
+		News:           make([]domain.SectorNews, 0, len(news.Result.Body)),
+		RelatedSectors: make([]domain.RelatedSector, 0, len(overview.Result.RelatedTics)),
+		FetchedAt:      time.Now().UTC(),
+	}
+	if out.ID == 0 {
+		out.ID = simple.Result.TicsID
+	}
+	if out.Name == "" {
+		out.Name = simple.Result.Name
+	}
+	if out.Summary == "" {
+		out.Summary = simple.Result.Summary
+	}
+	for _, item := range overview.Result.RelatedTics {
+		out.RelatedSectors = append(out.RelatedSectors, mapRelatedSector(item))
 	}
 	for _, item := range stocks.Result.Stocks {
 		out.Stocks = append(out.Stocks, domain.SectorStock{

@@ -35,17 +35,52 @@ func TestWriteSectorDetailCSVUsesOneStableSchema(t *testing.T) {
 func TestWriteSectorDetailTableShowsReturnedAndTotalCounts(t *testing.T) {
 	t.Parallel()
 	detail := domain.SectorDetail{
-		Name: "예시 업종", Summary: "요약", CompanyCount: 20, ETFCount: 12,
+		Name: "예시 업종", Summary: "요약", ChangeRate: 3.25, Duration: "1d", CompanyCount: 20, ETFCount: 12,
 		StockTotalCount: 20, ETFTotalCount: 12, NewsTotalCount: 8,
 		Stocks: []domain.SectorStock{{Name: "한 종목"}},
 		ETFs:   []domain.SectorETF{{Name: "한 ETF"}},
 		News:   []domain.SectorNews{{Title: "한 뉴스"}},
+		RelatedSectors: []domain.RelatedSector{{
+			ID: 7, Name: "연관 업종", Depth: 2,
+			SubSectors: []domain.RelatedSector{{ID: 8, Name: "연관 하위 업종", Depth: 3}},
+		}},
 	}
 	var out bytes.Buffer
 	if err := WriteSectorDetail(&out, FormatTable, detail); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"예시 업종", "1/20", "1/12", "1/8", "요약"} {
+	for _, want := range []string{"예시 업종", "1/20", "1/12", "1/8", "요약", "3.25", "1d", "연관 업종", "연관 하위 업종"} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatalf("table missing %q:\n%s", want, out.String())
+		}
+	}
+}
+
+func TestWriteSectorDetailCSVIncludesRelatedSectorRows(t *testing.T) {
+	t.Parallel()
+	detail := domain.SectorDetail{RelatedSectors: []domain.RelatedSector{{
+		ID: 7, Name: "연관 업종", Depth: 2,
+		SubSectors: []domain.RelatedSector{{ID: 8, Name: "연관 하위 업종", Depth: 3}},
+	}}}
+	var out bytes.Buffer
+	if err := WriteSectorDetail(&out, FormatCSV, detail); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"related_sector,2,7,연관 업종", "related_sector,3,8,연관 하위 업종"} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatalf("CSV missing %q:\n%s", want, out.String())
+		}
+	}
+}
+
+func TestWriteSectorDetailTablePreservesMetadataWhenPagedListsAreEmpty(t *testing.T) {
+	t.Parallel()
+	detail := domain.SectorDetail{ID: 1, Name: "비어 있는 업종", Summary: "업종 요약", ChangeRate: -1.2, Duration: "1d"}
+	var out bytes.Buffer
+	if err := WriteSectorDetail(&out, FormatTable, detail); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"비어 있는 업종", "업종 요약", "-1.2", "1d"} {
 		if !strings.Contains(out.String(), want) {
 			t.Fatalf("table missing %q:\n%s", want, out.String())
 		}

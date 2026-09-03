@@ -39,6 +39,33 @@ func statusAndPaths(expected ...[2]string) func(int, []byte) error {
 	}
 }
 
+func statusAndNullableResultPaths(expected ...[2]string) func(int, []byte) error {
+	return func(status int, body []byte) error {
+		if err := ExpectStatus(status, 200); err != nil {
+			return err
+		}
+		var envelope struct {
+			Result json.RawMessage `json:"result"`
+		}
+		if err := json.Unmarshal(body, &envelope); err != nil {
+			return fmt.Errorf("decode body: %v", err)
+		}
+		result := bytes.TrimSpace(envelope.Result)
+		if len(result) == 0 {
+			return fmt.Errorf("missing result")
+		}
+		if bytes.Equal(result, []byte("null")) {
+			return nil
+		}
+		for _, item := range expected {
+			if err := ExpectPath(body, item[0], item[1]); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
 // wtsOperations returns the catalog of WTS-only read operations — features the
 // official Open API does not expose (rankings, flows, indices, AI signals,
 // screener, sectors, earnings, briefing, community, dividends, Prime,
@@ -137,6 +164,7 @@ func wtsOperations() []Operation {
 				URL:   probeInfo + "/api/v2/dashboard/wts/overview/tics/1/overview",
 				Check: statusAndPath("result.ticsId", "number")},
 			ExtraProbes: []ProbeSpec{
+				{Name: "sector-detail-simple", Method: "GET", URL: probeInfo + "/api/v2/dashboard/wts/overview/tics/1/simple", Check: statusAndPaths([2]string{"result.ticsId", "number"}, [2]string{"result.changeRate", "number"})},
 				{Name: "sector-detail-stocks", Method: "POST", URL: probeInfo + "/api/v2/dashboard/wts/overview/tics/1/stocks", Body: `{}`, Check: statusAndPaths([2]string{"result.stocks", "array"}, [2]string{"result.totalCount", "number"})},
 				{Name: "sector-detail-etfs", Method: "POST", URL: probeInfo + "/api/v2/dashboard/wts/overview/tics/1/etfs", Body: `{}`, Check: statusAndPaths([2]string{"result.etfs", "array"}, [2]string{"result.totalCount", "number"})},
 				{Name: "sector-detail-news", Method: "GET", URL: probeInfo + "/api/v2/dashboard/wts/overview/tics/1/news", Check: statusAndPaths([2]string{"result.body", "array"}, [2]string{"result.totalCount", "number"})},
@@ -160,6 +188,39 @@ func wtsOperations() []Operation {
 				Check: statusAndPath("result.data", "array")},
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.GetAISignals(ctx)
+			},
+		},
+		{
+			ID: "ai_signal_detail", Method: "GET", Path: "wts:market/signal", Backend: "wts", Domain: "securities",
+			Category: "market", Summary: "Full current AI reasoning for one stock or equity ETF, including evidence, news, and related-company flows. WTS-only.",
+			Params: []Param{
+				{Name: "symbol", Type: "string", Required: true, Desc: "ticker or Toss product code"},
+				{Name: "product_type", Type: "string", Desc: `"stocks" (default) or "equity_etf"; the asset_type returned by a briefing can also be used`},
+			},
+			// A product can legitimately have no current signal. The probe accepts
+			// result:null, but validates the detail schema whenever a signal is active.
+			// Runtime calls preserve the null case as Found=false.
+			Probe: &ProbeSpec{Name: "ai-signal-detail", Method: "GET",
+				URL: probeInfo + "/api/v1/dashboard/wts/overview/ai-signals/detail?productCode=A005930&productType=STOCKS",
+				Check: statusAndNullableResultPaths(
+					[2]string{"result.signalId", "string"},
+					[2]string{"result.reasoning.issue.assetCode", "string"},
+					[2]string{"result.reasoning.news.data", "array"},
+					[2]string{"result.relatedReasoning.details", "array"},
+				)},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				symbol, err := argString(args, "symbol")
+				if err != nil {
+					return nil, err
+				}
+				productType, err := argString(args, "product_type")
+				if err != nil {
+					return nil, err
+				}
+				if productType == "" {
+					productType = "stocks"
+				}
+				return d.WTS.GetAISignalDetail(ctx, symbol, productType)
 			},
 		},
 		{

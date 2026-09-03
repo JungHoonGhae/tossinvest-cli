@@ -67,6 +67,7 @@ func TestHiddenReadBatchOperationsAreCataloguedAndMonitored(t *testing.T) {
 		}
 	}
 	wantSectorProbes := map[string]bool{
+		"sector-detail-simple":   false,
 		"sector-detail-overview": false,
 		"sector-detail-stocks":   false,
 		"sector-detail-etfs":     false,
@@ -81,6 +82,56 @@ func TestHiddenReadBatchOperationsAreCataloguedAndMonitored(t *testing.T) {
 		if !found {
 			t.Errorf("sector detail dependency probe %q missing", name)
 		}
+	}
+}
+
+func TestAISignalDetailOperationIsCallableAndMonitored(t *testing.T) {
+	t.Parallel()
+	deps := discoveryWTSDeps(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/dashboard/wts/overview/ai-signals/detail" ||
+			r.URL.Query().Get("productCode") != "A005930" ||
+			r.URL.Query().Get("productType") != "STOCKS" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"result":{"signalId":"signal-1","reasoning":{"issue":{"assetCode":"A005930","assetName":"예시 종목","assetType":"STOCKS","description":{"data":[]},"originCodes":[]},"keywords":[],"news":{"data":[]}},"relatedReasoning":{"details":[]},"terms":{}}}`))
+	}))
+	catalog := NewCatalog()
+
+	op, ok := catalog.Get("ai_signal_detail")
+	if !ok {
+		t.Fatal("ai_signal_detail operation missing")
+	}
+	if op.Backend != "wts" || op.Domain != "securities" || op.Write || op.Probe == nil {
+		t.Fatalf("operation metadata = %#v", op)
+	}
+	if len(op.Params) != 2 || op.Params[1].Required {
+		t.Fatalf("product_type should be optional with the stock default: %#v", op.Params)
+	}
+	result, err := catalog.Call(context.Background(), deps, "ai_signal_detail", map[string]any{
+		"symbol": "005930",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := result.(domain.AISignalDetail); !got.Found || got.SignalID != "signal-1" {
+		t.Fatalf("result = %#v", got)
+	}
+	for _, tc := range []struct {
+		name    string
+		body    string
+		wantErr bool
+	}{
+		{name: "no current signal", body: `{"result":null}`},
+		{name: "active signal", body: `{"result":{"signalId":"s1","reasoning":{"issue":{"assetCode":"A005930"},"news":{"data":[]}},"relatedReasoning":{"details":[]}}}`},
+		{name: "contract drift", body: `{"result":{"signalId":"s1"}}`, wantErr: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := op.Probe.Check(http.StatusOK, []byte(tc.body))
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("probe error = %v, wantErr=%v", err, tc.wantErr)
+			}
+		})
 	}
 }
 

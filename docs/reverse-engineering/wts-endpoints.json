@@ -4,10 +4,10 @@
   "chunk_count": 77,
   "total": 1113,
   "counts": {
-    "implemented": 144,
-    "candidate": 313,
+    "implemented": 146,
+    "candidate": 311,
     "excluded": 656,
-    "candidate_next": 19,
+    "candidate_next": 17,
     "meaningful": 457
   },
   "overrides": {
@@ -2592,9 +2592,7 @@
       }
     },
     "/api/v1/dashboard/wts/overview/ai-signals/detail": {
-      "status": "candidate",
-      "priority": "next",
-      "note": "AI 시그널 확장",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-info-api",
       "first_seen": "2026-06-19",
@@ -8202,9 +8200,7 @@
       }
     },
     "/api/v2/dashboard/wts/overview/tics/{id}/simple": {
-      "status": "candidate",
-      "priority": "next",
-      "note": "업종(TICS) 개요·랭킹",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-info-api",
       "first_seen": "2026-06-29",

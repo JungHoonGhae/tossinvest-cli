@@ -14,11 +14,18 @@ import (
 type relatedStockRaw struct {
 	Code                string `json:"code"`
 	StockCode           string `json:"stockCode"`
+	Name                string `json:"name"`
 	StockName           string `json:"stockName"`
 	Symbol              string `json:"symbol"`
 	Market              string `json:"market"`
 	InvestmentType      string `json:"investmentType"`
 	InvestmentTypeValue string `json:"investmentTypeValue"`
+	CompanyCode         string `json:"companyCode"`
+	CompanyName         string `json:"companyName"`
+	LogoImageURL        string `json:"logoImageUrl"`
+	Status              string `json:"status"`
+	CommonShare         string `json:"commonShareYn"`
+	Display             string `json:"displayYn"`
 }
 
 func mapRelatedStocks(values []relatedStockRaw) []domain.RelatedStock {
@@ -28,13 +35,23 @@ func mapRelatedStocks(values []relatedStockRaw) []domain.RelatedStock {
 		if productCode == "" {
 			productCode = value.Code
 		}
+		name := value.StockName
+		if name == "" {
+			name = value.Name
+		}
 		result = append(result, domain.RelatedStock{
 			ProductCode:         productCode,
-			Name:                value.StockName,
+			Name:                name,
 			Symbol:              value.Symbol,
 			Market:              value.Market,
 			InvestmentType:      value.InvestmentType,
 			InvestmentTypeValue: value.InvestmentTypeValue,
+			CompanyCode:         value.CompanyCode,
+			CompanyName:         value.CompanyName,
+			LogoImageURL:        value.LogoImageURL,
+			Status:              value.Status,
+			CommonShare:         value.CommonShare,
+			Display:             value.Display,
 		})
 	}
 	return result

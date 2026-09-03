@@ -157,6 +157,15 @@ class TestClassify(unittest.TestCase):
                 status, _ = W.classify(path, {})
                 self.assertEqual(status, "implemented")
 
+    def test_ai_signal_detail_and_sector_simple_are_implemented(self):
+        for path in [
+            "/api/v1/dashboard/wts/overview/ai-signals/detail",
+            "/api/v2/dashboard/wts/overview/tics/{id}/simple",
+        ]:
+            with self.subTest(path=path):
+                status, _ = W.classify(path, {})
+                self.assertEqual(status, "implemented")
+
     def test_dynamic_price_alert_delete_contract_is_curated(self):
         path = "/api/v1/user-price-alimy/{stockCode}/{currency}/{targetPrice}"
         self.assertEqual(W.CURATED_CONTRACTS[path]["method"], "DELETE")
