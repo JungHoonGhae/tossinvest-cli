@@ -34,6 +34,9 @@ python3 tools/sanitize_har.py <input.har> <output.har>
 python3 tools/fetch_public_fixtures.py fixtures/responses/public
 ```
 
+Android 결과와 diff의 `metadata_source`는 네트워크 후보 조회를 `live`,
+`--metadata-file`을 쓴 fixture 재현을 `offline`으로 구분합니다.
+
 **번들 파싱과 라이브 캡처는 상호보완이다.** `wts_endpoints.py` 는 번들에서 경로를
 전수로 뽑지만 호출 형태(바디)는 모르고, 번들에 안 실린 엔드포인트는 못 본다 —
 실제로 `profit/readable-tab`, `dashboard/wts/news`, `stock-infos/{code}/red-flags`

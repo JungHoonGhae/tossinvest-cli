@@ -166,6 +166,26 @@ class TestClassify(unittest.TestCase):
                 status, _ = W.classify(path, {})
                 self.assertEqual(status, "implemented")
 
+    def test_recommendation_preserves_verified_note(self):
+        priority, note = W.recommendation(
+            "/api/v1/earning-call/user-based",
+            "candidate",
+            "verified blocker",
+            {},
+        )
+        self.assertEqual(priority, "next")
+        self.assertEqual(note, "verified blocker")
+
+    def test_recommendation_can_be_explicitly_deferred(self):
+        priority, note = W.recommendation(
+            "/api/v1/r-chart",
+            "candidate",
+            "no current consumer",
+            {"priority": "deferred"},
+        )
+        self.assertEqual(priority, "deferred")
+        self.assertEqual(note, "no current consumer")
+
     def test_dynamic_price_alert_delete_contract_is_curated(self):
         path = "/api/v1/user-price-alimy/{stockCode}/{currency}/{targetPrice}"
         self.assertEqual(W.CURATED_CONTRACTS[path]["method"], "DELETE")
@@ -183,6 +203,14 @@ class TestClassify(unittest.TestCase):
                 "/api/v2/dashboard/wts/overview/tics/1/stocks"
             ),
             "/api/v2/dashboard/wts/overview/tics/{id}/stocks",
+        )
+
+    def test_earning_detail_probe_normalizes_to_bundle_template(self):
+        self.assertEqual(
+            W._probe_inventory_path(
+                "/api/v1/earning-call/events/228692/info"
+            ),
+            "/api/v1/earning-call/events/{eventId}/info",
         )
 
     def test_diff_reports_build_and_chunk_changes(self):

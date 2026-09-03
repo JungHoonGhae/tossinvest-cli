@@ -33,6 +33,7 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"index-prices":             true,
 		"earning-call":             true,
 		"earning-call-home":        true,
+		"earning-call-detail":      true,
 		"community-rankings":       true,
 		"lending-expected":         true,
 		"lending-top-revenue":      true,

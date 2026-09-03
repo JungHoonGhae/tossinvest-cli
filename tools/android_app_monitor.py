@@ -102,9 +102,11 @@ def main(argv=None):
         return 1
 
     if args.metadata_file:
+        metadata_source = "offline"
         with open(args.metadata_file, "rb") as source:
             payload = source.read()
     else:
+        metadata_source = "live"
         payload = fetch_metadata()
     versions = extract_versions(payload)
     if not versions:
@@ -113,6 +115,7 @@ def main(argv=None):
 
     today = os.environ.get("ANDROID_DATE") or datetime.date.today().isoformat()
     diff = update_state(state, versions[-1], today)
+    diff["metadata_source"] = metadata_source
     if diff["state_changed"]:
         with open(args.state, "w", encoding="utf-8") as target:
             json.dump(state, target, ensure_ascii=False, indent=2)
@@ -125,6 +128,7 @@ def main(argv=None):
         "Android candidate: " + diff["current_candidate"]
         + " · audited " + diff["audited_version"]
         + " · audit " + diff["audit_status"]
+        + " · source " + diff["metadata_source"]
     )
     return 0
 

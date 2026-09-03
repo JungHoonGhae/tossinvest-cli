@@ -105,12 +105,18 @@ CLI·ops/MCP는 예금주명과 계좌번호를 기본 마스킹한다.
 | `POST /api/v2/dashboard/wts/overview/tics/{id}/etfs` body `{}` | `market sector <id>` | ETF 가격·보수·레버리지·최대 편입종목·거래대금 |
 | `GET /api/v2/dashboard/wts/overview/tics/{id}/news` | `market sector <id>` | 뉴스 제목·요약·출처·시각·이미지 |
 | `GET /api/v1/lending/revenue/account/top-revenue` | `lending top` | 익명 사용자명·누적 수익·KRW 환산 수익 |
+| `GET /api/v1/earning-call/events/{eventId}/info` | `market earnings <event-id>` | 기업·대표종목·보고서 메타데이터, 공개 시점 이후 오디오·대본·발표자료 링크, 컨센서스 괴리·주가 변동 |
 
 2026-09-03 추가 계약도 WTS 정적 호출부와 읽기 전용 라이브 schema를 함께 확인했다.
 화면이 있는지 여부는 접근 가능성의 조건으로 쓰지 않았고, 현재 `.tossinvest.com` 세션으로
 실제 호출이 확인된 계약만 `source=wts`로 구현했다. TICS 종목·ETF·뉴스는 `{}` 요청에서
 서버 기본 첫 페이지를 반환하며 응답의 `totalCount`를 보존한다. 확인되지 않은 페이지 요청
 필드를 추측해 전체 목록인 것처럼 표시하지 않는다.
+
+같은 감사에서 `r-chart` 함수 정의와 정확한 URL 조립식도 찾았지만 현재 77개 chunk에는
+그 export를 소비하는 호출부가 없고, 실제 종목 화면의 일별 차트는 기존 `c-chart`, 실시간
+체결은 `stock-prices/.../ticks`를 사용한다. 따라서 range/step enum을 추측해 중복 기능을
+만들지 않고 미사용 계약으로 보류했다.
 
 ## 쓰기 기능 감사
 

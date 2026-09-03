@@ -5,6 +5,8 @@ import os
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -59,14 +61,18 @@ class TestAndroidAppMonitor(unittest.TestCase):
                 }, target)
             with open(metadata_path, "wb") as target:
                 target.write(b"release=5.276.0")
-            self.assertEqual(A.main([
-                "--state", state_path,
-                "--metadata-file", metadata_path,
-                "--diff-out", diff_path,
-            ]), 0)
+            stdout = StringIO()
+            with redirect_stdout(stdout):
+                self.assertEqual(A.main([
+                    "--state", state_path,
+                    "--metadata-file", metadata_path,
+                    "--diff-out", diff_path,
+                ]), 0)
             with open(diff_path, encoding="utf-8") as source:
                 diff = json.load(source)
             self.assertTrue(diff["audit_stale"])
+            self.assertEqual(diff["metadata_source"], "offline")
+            self.assertIn("source offline", stdout.getvalue())
 
 
 if __name__ == "__main__":

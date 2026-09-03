@@ -746,6 +746,36 @@ type EarningCalls struct {
 	FetchedAt time.Time     `json:"fetched_at"`
 }
 
+// EarningCallDetail is the full event payload behind an earnings-call
+// calendar row. Media URLs are nil until Toss publishes the corresponding
+// recording, transcript, or slide deck.
+type EarningCallDetail struct {
+	EventID                      int64     `json:"event_id"`
+	MarketCountry                string    `json:"market_country"`
+	Category                     string    `json:"category"`
+	DefaultSummarizationCategory string    `json:"default_summarization_category"`
+	Status                       string    `json:"status"`
+	Title                        string    `json:"title"`
+	LiveAt                       string    `json:"live_at"`
+	WentLiveAt                   *string   `json:"went_live_at"`
+	AudioURL                     *string   `json:"audio_url"`
+	TranscriptURL                *string   `json:"transcript_url"`
+	SlideFileURL                 *string   `json:"slide_file_url"`
+	CompanyCode                  string    `json:"company_code"`
+	CompanyName                  string    `json:"company_name"`
+	CompanyLogoImageURL          string    `json:"company_logo_image_url,omitempty"`
+	RepresentativeStockSymbol    string    `json:"representative_stock_symbol,omitempty"`
+	RepresentativeStockGUID      string    `json:"representative_stock_guid,omitempty"`
+	RepresentativeStockCode      string    `json:"representative_stock_code,omitempty"`
+	ReportID                     string    `json:"report_id,omitempty"`
+	ReportItem                   string    `json:"report_item,omitempty"`
+	MTSLandingPath               string    `json:"mts_landing_path,omitempty"`
+	ConsensusGapRate             *float64  `json:"consensus_gap_rate"`
+	IsGapRateVisible             bool      `json:"is_gap_rate_visible"`
+	StockChangeRate              *float64  `json:"stock_change_rate"`
+	FetchedAt                    time.Time `json:"fetched_at"`
+}
+
 // DividendAmount is a dividend value in both KRW and USD.
 type DividendAmount struct {
 	KRW float64 `json:"krw"`

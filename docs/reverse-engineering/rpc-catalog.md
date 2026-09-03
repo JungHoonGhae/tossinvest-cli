@@ -69,6 +69,7 @@ This file is the source of truth for endpoint discovery. It should grow before t
 | `auth` | `POST` | `wts-info-api.tossinvest.com` | `/api/v2/dashboard/wts/overview/tics/{id}/etfs` | related sector ETFs | body `{}` → `.result.etfs[]` with price, expense ratio, leverage and top holding | `market sector <id>` | read-only live schema verified 2026-09-03 |
 | `auth` | `GET` | `wts-info-api.tossinvest.com` | `/api/v2/dashboard/wts/overview/tics/{id}/news` | sector news | `.result.body[]` with headline, summary, source, timestamps and images | `market sector <id>` | read-only live schema verified 2026-09-03 |
 | `auth` | `GET` | `wts-cert-api.tossinvest.com` | `/api/v1/calendar/ai-summary/key-events` | curated key earnings and economic releases | `.result.earnings[]`, `.result.eci.indicators[]` with estimates, actuals, surprise, and previous values | `market key-events` | current WTS bundle + read-only live schema verified 2026-09-02 |
+| `auth` | `GET` | `wts-cert-api.tossinvest.com` | `/api/v1/earning-call/events/{eventId}/info` | one earnings-call report and published media | `.result` with company/stock/report metadata plus nullable audio, transcript, slides and surprise fields | `market earnings <event-id>` | exact path-only callsite + read-only live schema verified 2026-09-03; event IDs come from `market earnings` |
 
 ## Quote and Symbol Detail
 
