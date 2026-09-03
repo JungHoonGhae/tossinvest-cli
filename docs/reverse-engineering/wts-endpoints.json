@@ -4,8 +4,8 @@
   "chunk_count": 77,
   "total": 1113,
   "counts": {
-    "implemented": 166,
-    "candidate": 291,
+    "implemented": 172,
+    "candidate": 285,
     "excluded": 656,
     "candidate_next": 0,
     "meaningful": 457
@@ -38,6 +38,19 @@
       "host": "wts-api",
       "evidence": "verified",
       "note": "Generated WTS request registry + read-only live boolean schema verified 2026-09-03. Exposed as registration_required in banking status; this is Securities accumulation funding, not general Banking."
+    },
+    "/api/v1/reasoning/agreement": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "implemented_methods": [
+        "GET"
+      ],
+      "deferred_methods": [
+        "POST"
+      ],
+      "note": "Only the GET state read is implemented by notifications status. The separately declared POST mutation remains deferred until its request semantics and confirmation boundary are verified."
     },
     "/api/v1/trading/settings/simple-trade": {
       "status": "implemented",
@@ -1362,7 +1375,7 @@
       }
     },
     "/api/v1/ai-issue/sns-release/alimy": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -3176,7 +3189,7 @@
       "first_seen": "2026-08-03"
     },
     "/api/v1/fomc-live/alimy": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -3228,7 +3241,7 @@
       }
     },
     "/api/v1/inbox-alimies/has-unread": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -5807,7 +5820,7 @@
       }
     },
     "/api/v1/reasoning-contents/alimy/subscription": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -5820,7 +5833,7 @@
       }
     },
     "/api/v1/reasoning-news/count": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -5833,9 +5846,17 @@
       }
     },
     "/api/v1/reasoning/agreement": {
-      "status": "candidate",
+      "status": "implemented",
+      "note": "Only the GET state read is implemented by notifications status. The separately declared POST mutation remains deferred until its request semantics and confirmation boundary are verified.",
       "method": "GET,POST",
       "host": "wts-cert-api",
+      "evidence": "verified",
+      "implemented_methods": [
+        "GET"
+      ],
+      "deferred_methods": [
+        "POST"
+      ],
       "first_seen": "2026-06-19",
       "probe": {
         "verdict": "thin",

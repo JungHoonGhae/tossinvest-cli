@@ -139,6 +139,8 @@
   "notifications.short": "Notification settings",
   "notifications.list.short": "List WTS notification preferences",
   "notifications.list.long": "List every notification preference and whether it is enabled. This command is read-only; changing preferences remains in the Toss app until the write contract is fully verified. WTS-only.",
+  "notifications.status.long": "Show specialized read-only WTS signals for inbox unread state, AI issue and FOMC alerts, reasoning-content alerts, reasoning agreement, and reasoning-news count. This does not change subscriptions or agreements.",
+  "notifications.status.short": "Show notification and AI content status",
   "market.investorTrading.short": "Market investor trading (KOSPI/KOSDAQ, official API key required)",
   "market.investors.short": "Net-buy ranking by investor type (foreign, institutional, retail)",
   "market.issues.long": "Show the topics the market is talking about most, ranked, with each topic's rank movement (▲▼) and article count.\n\nA different axis from `market news` (flat headlines) and `market briefing` (AI category grouping): here the ranking of topics is the payload.\n\nUse `--full` to print the articles behind each topic. WTS-only.",

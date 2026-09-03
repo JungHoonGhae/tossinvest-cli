@@ -165,6 +165,12 @@ func TestJSONOutputLanguageInvariant(t *testing.T) {
 				return WriteAccountAccessStatus(w, FormatJSON, domain.AccountAccessStatus{})
 			},
 		},
+		{
+			name: "notificationStatus",
+			render: func(w *bytes.Buffer) error {
+				return WriteNotificationStatus(w, FormatJSON, domain.NotificationStatus{})
+			},
+		},
 	}
 
 	for _, r := range renderers {
@@ -323,6 +329,12 @@ func TestCSVOutputLanguageInvariant(t *testing.T) {
 			name: "accountAccessStatus",
 			render: func(w *bytes.Buffer) error {
 				return WriteAccountAccessStatus(w, FormatCSV, domain.AccountAccessStatus{})
+			},
+		},
+		{
+			name: "notificationStatus",
+			render: func(w *bytes.Buffer) error {
+				return WriteNotificationStatus(w, FormatCSV, domain.NotificationStatus{})
 			},
 		},
 	}

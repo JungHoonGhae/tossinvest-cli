@@ -81,7 +81,7 @@ Rules for agents:
 
 ## Probe 목록
 
-현재 `monitor api` 는 76개 read-only endpoint 를 감시합니다. 단일 진실 소스는
+현재 `monitor api` 는 82개 read-only endpoint 를 감시합니다. 단일 진실 소스는
 `internal/monitor.Probes()` 런타임 결과입니다. 대부분은 `internal/ops`
 레지스트리의 오퍼레이션 옆 `ProbeSpec`과 공용 `ProbeRefs`에서 파생되고, 카탈로그
 오퍼레이션이 없는 CLI 전용 5개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
@@ -149,6 +149,12 @@ Rules for agents:
 - `securities-transfer-my-accounts` — `GET /api/v1/securities-transfer/my-accounts`
 - `securities-transfer-recent-accounts` — `GET /api/v1/securities-transfer/recent-accounts`
 - `notification-settings` — `GET /api/v1/user-alimies`
+- `notification-inbox-unread` — `GET /api/v1/inbox-alimies/has-unread`
+- `notification-ai-issue-release` — `GET /api/v1/ai-issue/sns-release/alimy`
+- `notification-fomc-live` — `GET /api/v1/fomc-live/alimy`
+- `notification-reasoning-contents` — `GET /api/v1/reasoning-contents/alimy/subscription`
+- `notification-reasoning-agreement` — `GET /api/v1/reasoning/agreement`
+- `notification-reasoning-news-count` — `GET /api/v1/reasoning-news/count`
 - `price-alerts` — `GET /api/v1/user-price-alimy/A005930`
 - `hidden-holdings` — `GET /api/v2/hidden-stocks`
 - `portfolio-positions` — `POST /api/v2/dashboard/asset/sections/all`

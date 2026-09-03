@@ -281,7 +281,7 @@ token and consent boundary to be verified first.
 | **AI news briefing** | `market briefing [--scope personalized\|kr\|us]` (personalized or latest KR/US briefing) | ❌ | ✅ |
 | **🆕 Key earnings & economic releases** | `market key-events` (estimates · actuals · surprises · previous values) | ❌ | ✅ |
 | **🆕 Securities stock-accumulation funding status** | `banking status [--full]` (not general Banking; connection and automated-order registration plus trade-purpose MyData-account state; identity masked) | ❌ | ✅ |
-| **🆕 Notification preferences** | `notifications list` (read-only; internal user ID omitted) | ❌ | ✅ |
+| **🆕 Notification preferences and status** | `notifications list`, `notifications status` (generic settings plus inbox, AI issue, FOMC, and reasoning-content state; read-only; internal user ID omitted) | ❌ | ✅ |
 | **🆕 Target-price alert reads & writes** | `quote alert list\|add\|remove <symbol>` (writes use preview + `--execute --confirm`) | ❌ | ✅ |
 | **🆕 Hidden-holding reads & writes** | `portfolio hidden list\|hide\|show` (account key omitted; post-write verification) | ❌ | ✅ |
 | **Toss AI signals** | `market signals` (per-symbol AI signal · keywords · move) | ❌ | ✅ |
@@ -452,19 +452,19 @@ session) for the full feature set — see [Quick Start](#quick-start). Both path
 
 MCP's inherent cost is that **tool schemas stay resident in the model's context**. Register one
 tool per API and every tool's name, description, and parameter schema occupies context for the
-whole conversation. tossctl's surface is **104 operations** across official and WTS reads,
-regular and conditional orders, and system operations — exposing them individually would keep **104 schemas always loaded**,
+whole conversation. tossctl's surface is **105 operations** across official and WTS reads,
+regular and conditional orders, and system operations — exposing them individually would keep **105 schemas always loaded**,
 burning tokens and adding tool-choice noise (mis-picks between similar tools).
 
 Following KIS_MCP_Server's catalog mode, tossctl fronts everything with **just three fixed
-tools** and keeps the 104 operations behind an **on-demand schema fetch**:
+tools** and keeps the 105 operations behind an **on-demand schema fetch**:
 
 - `list_operations` — list available operations (id, summary, write flag), filter with `query`
 - `describe_operation` — fetch one operation's parameter schema **only at that moment**
 - `call_operation` — call by id with parameters
 
 Result: the always-on context is **exactly three tool schemas**. Whether there are 20 operations
-or 104, the resident cost stays at three. The agent finds an operation via `list_operations` →
+or 105, the resident cost stays at three. The agent finds an operation via `list_operations` →
 reads its schema via `describe_operation` → calls it via `call_operation`, so unused operations
 never sit in context. (The very Claude Code session reading this README sees `tossctl` as just
 those three tools.)
@@ -697,6 +697,7 @@ tossctl account transfer-accounts [--account KEY] [--full] # transfer destinatio
 tossctl account access-status [--account KEY]    # last login, margin freeze, accident-account state
 tossctl banking status [--full]                  # Securities funding, auto-order, trade-purpose MyData state
 tossctl notifications list                       # read-only notification preferences
+tossctl notifications status                     # inbox, AI issue, FOMC, reasoning-content state
 tossctl portfolio positions
 tossctl portfolio allocation
 tossctl portfolio performance [--account KEY]   # one-month daily principal, value, and return
@@ -801,11 +802,11 @@ tossctl auth extend --if-expiring 48h   # extend only when close to expiry (cron
 ### API regression watch
 
 ```bash
-tossctl monitor api           # schema-probe 76 endpoints (parallel); exit 0 pass, 1 fail
+tossctl monitor api           # schema-probe 82 endpoints (parallel); exit 0 pass, 1 fail
 tossctl monitor api --quiet   # for cron
 ```
 
-Checks the response schema of 76 read-only endpoints in parallel, using your own session on your own machine — to catch Toss server-side body-contract changes (like [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29)) early. It only returns an exit code, so you compose alert channels (Discord / Slack / ntfy / macOS / email) on the right side of `|| <command>` in your cron line. Recipes: [`AGENTS.md`](AGENTS.md), setup guide: [`docs/operations.md`](docs/operations.md).
+Checks the response schema of 82 read-only endpoints in parallel, using your own session on your own machine — to catch Toss server-side body-contract changes (like [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29)) early. It only returns an exit code, so you compose alert channels (Discord / Slack / ntfy / macOS / email) on the right side of `|| <command>` in your cron line. Recipes: [`AGENTS.md`](AGENTS.md), setup guide: [`docs/operations.md`](docs/operations.md).
 
 ## Development
 

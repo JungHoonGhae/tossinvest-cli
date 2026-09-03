@@ -197,6 +197,33 @@ class TestClassify(unittest.TestCase):
                 status, _ = W.classify(path, {})
                 self.assertEqual(status, "implemented")
 
+    def test_notification_status_endpoints_are_implemented(self):
+        for path in [
+            "/api/v1/inbox-alimies/has-unread",
+            "/api/v1/ai-issue/sns-release/alimy",
+            "/api/v1/fomc-live/alimy",
+            "/api/v1/reasoning-contents/alimy/subscription",
+            "/api/v1/reasoning/agreement",
+            "/api/v1/reasoning-news/count",
+        ]:
+            with self.subTest(path=path):
+                status, _ = W.classify(path, {})
+                self.assertEqual(status, "implemented")
+
+        repo = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        with open(
+            os.path.join(repo, "docs", "reverse-engineering", "wts-endpoints.json"),
+            encoding="utf-8",
+        ) as source:
+            catalog = json.load(source)
+        agreement = catalog["overrides"]["/api/v1/reasoning/agreement"]
+        self.assertEqual(agreement["method"], "GET")
+        self.assertIn("POST mutation remains deferred", agreement["note"])
+        endpoint = catalog["endpoints"]["/api/v1/reasoning/agreement"]
+        self.assertEqual(endpoint["method"], "GET,POST")
+        self.assertEqual(endpoint["implemented_methods"], ["GET"])
+        self.assertEqual(endpoint["deferred_methods"], ["POST"])
+
     def test_asset_snapshot_contracts_are_implemented_without_claiming_truncated_paths(self):
         for path in [
             "/api/v1/asset-snapshot/all-accounts/chart/{range}/{stepUnit}",

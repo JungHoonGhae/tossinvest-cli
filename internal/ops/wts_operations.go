@@ -1250,7 +1250,7 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
-			ID: "notification_settings", Method: "GET", Path: "wts:user-alimies", Backend: "wts",
+			ID: "notification_settings", Method: "GET", Path: "wts:user-alimies", Backend: "wts", Domain: "securities",
 			Category: "settings",
 			Summary:  "Every WTS notification preference and its enabled state. Read-only; internal user ids are omitted. WTS-only.",
 			Probe: &ProbeSpec{Name: "notification-settings", Method: "GET",
@@ -1258,6 +1258,34 @@ func wtsOperations() []Operation {
 				Check: statusAndPath("result", "array")},
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.GetNotificationSettings(ctx)
+			},
+		},
+		{
+			ID: "notification_status", Method: "GET", Path: "wts:notifications/status", Backend: "wts", Domain: "securities",
+			Category: "settings",
+			Summary:  "Specialized inbox, AI issue, FOMC, and reasoning-content notification states. Read-only; does not change subscriptions or agreements. WTS-only.",
+			Probe: &ProbeSpec{Name: "notification-inbox-unread", Method: "GET",
+				URL:   probeCert + "/api/v1/inbox-alimies/has-unread",
+				Check: statusAndPath("result.unread", "bool")},
+			ExtraProbes: []ProbeSpec{
+				{Name: "notification-ai-issue-release", Method: "GET",
+					URL:   probeCert + "/api/v1/ai-issue/sns-release/alimy",
+					Check: statusAndPath("result.enabled", "bool")},
+				{Name: "notification-fomc-live", Method: "GET",
+					URL:   probeCert + "/api/v1/fomc-live/alimy",
+					Check: statusAndPath("result.enabled", "bool")},
+				{Name: "notification-reasoning-contents", Method: "GET",
+					URL:   probeCert + "/api/v1/reasoning-contents/alimy/subscription",
+					Check: statusAndPath("result.enabled", "bool")},
+				{Name: "notification-reasoning-agreement", Method: "GET",
+					URL:   probeCert + "/api/v1/reasoning/agreement",
+					Check: statusAndPath("result", "bool")},
+				{Name: "notification-reasoning-news-count", Method: "GET",
+					URL:   probeCert + "/api/v1/reasoning-news/count",
+					Check: statusAndPath("result", "number")},
+			},
+			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
+				return d.WTS.GetNotificationStatus(ctx)
 			},
 		},
 		{

@@ -100,6 +100,7 @@ FEATURE_DATES = {
 # FEATURE_DATES with the actual changelog release date when it ships.
 UNRELEASED_FEATURES = {
     "account access-status",
+    "notifications status",
     "account trading-settings",
     "account transfer-accounts",
     "portfolio performance",
