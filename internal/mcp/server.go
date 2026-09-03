@@ -9,10 +9,12 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/hiddenholding"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/jsoninput"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/openapiip"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/pricealert"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
 
@@ -39,8 +41,10 @@ type Server struct {
 // Keeping construction outside the transport makes network policy and test
 // doubles explicit instead of hiding them in NewServer.
 type Services struct {
-	Trading   *trading.Service
-	OpenAPIIP *openapiip.Service
+	Trading        *trading.Service
+	OpenAPIIP      *openapiip.Service
+	PriceAlerts    *pricealert.Service
+	HiddenHoldings *hiddenholding.Service
 }
 
 // baseInstructions is returned in the initialize response so the host/model
@@ -51,7 +55,9 @@ const baseInstructions = "Toss Securities via a 3-tool catalog. Call list_operat
 	"(`tossctl auth login`); those with backend \"auto\" work with either credential (official first, " +
 	"web-session fallback); the rest need official Open API credentials (`tossctl openapi login`). " +
 	"Every write returns a preview unless execute + confirm token are supplied. Order writes additionally require trading config opt-in; " +
-	"non-trading settings writes such as Open API IP replacement do not place trades but use the same two-step confirmation boundary."
+	"non-trading settings writes such as Open API IP replacement do not place trades but use the same two-step confirmation boundary. " +
+	"Operation domain describes the product area; backend describes the credential channel. A missing web UI does not make an API unavailable, " +
+	"but general Banking/MyData mobile APIs are not callable through the current WTS connector because their app session and cipher envelope are not implemented."
 
 // NewServer constructs a Server over the given backends. official serves the
 // official-only Open API operations (and, via tradingSvc, gated order
@@ -66,8 +72,12 @@ const baseInstructions = "Toss Securities via a 3-tool catalog. Call list_operat
 // must use an OfficialBroker so order writes never touch a WTS session.
 func NewServer(official *official.Client, routed *hybrid.Client, services Services, name, version string) *Server {
 	return &Server{
-		catalog:      NewCatalog(),
-		deps:         &Deps{Client: official, WTS: routed, Trading: services.Trading, OpenAPIIP: services.OpenAPIIP},
+		catalog: NewCatalog(),
+		deps: &Deps{
+			Client: official, WTS: routed, Trading: services.Trading,
+			OpenAPIIP: services.OpenAPIIP, PriceAlerts: services.PriceAlerts,
+			HiddenHoldings: services.HiddenHoldings,
+		},
 		name:         name,
 		version:      version,
 		instructions: baseInstructions,
@@ -488,6 +498,7 @@ type listItem struct {
 	ID       string   `json:"id"`
 	Method   string   `json:"method"`
 	Path     string   `json:"path"`
+	Domain   string   `json:"domain"`
 	Category string   `json:"category"`
 	Summary  string   `json:"summary"`
 	Write    bool     `json:"write,omitempty"`
@@ -501,7 +512,7 @@ func (s *Server) listOperationsPayload(query string, limit int) any {
 	for _, o := range ops {
 		items = append(items, listItem{
 			ID: o.ID, Method: o.Method, Path: o.Path,
-			Category: o.Category, Summary: o.Summary, Write: o.Write, Backend: o.Backend, Required: o.RequiredNames(),
+			Domain: o.Domain, Category: o.Category, Summary: o.Summary, Write: o.Write, Backend: o.Backend, Required: o.RequiredNames(),
 		})
 	}
 	return map[string]any{"count": len(items), "operations": items}

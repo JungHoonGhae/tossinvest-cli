@@ -145,6 +145,48 @@ class TestClassify(unittest.TestCase):
         status, _ = W.classify("/api/v1/account/list", {})
         self.assertEqual(status, "implemented")
 
+    def test_preference_endpoints_are_implemented(self):
+        for path in [
+            "/api/v1/user-price-alimy/{stockCode}",
+            "/api/v1/user-price-alimy/{stockCode}/{currency}/{targetPrice}",
+            "/api/v1/my-assets/hidden-stocks/hide",
+            "/api/v1/my-assets/hidden-stocks/show",
+            "/api/v2/hidden-stocks",
+        ]:
+            with self.subTest(path=path):
+                status, _ = W.classify(path, {})
+                self.assertEqual(status, "implemented")
+
+    def test_dynamic_price_alert_delete_contract_is_curated(self):
+        path = "/api/v1/user-price-alimy/{stockCode}/{currency}/{targetPrice}"
+        self.assertEqual(W.CURATED_CONTRACTS[path]["method"], "DELETE")
+        self.assertEqual(W.CURATED_CONTRACTS[path]["host"], "wts-api")
+
+    def test_price_alert_probe_normalizes_to_catalog_template(self):
+        self.assertEqual(
+            W._probe_inventory_path("/api/v1/user-price-alimy/A005930"),
+            "/api/v1/user-price-alimy/{stockCode}",
+        )
+
+    def test_diff_reports_build_and_chunk_changes(self):
+        previous = {"build_id": "old", "chunk_count": 10}
+        current = {
+            "build_id": "new",
+            "chunk_count": 11,
+            "endpoints": {"/api/v1/new": {"status": "candidate"}},
+        }
+        diff = W.build_diff(previous, current, ["/api/v1/new"], [])
+        self.assertTrue(diff["build_changed"])
+        self.assertTrue(diff["chunk_count_changed"])
+        self.assertEqual(diff["previous_build_id"], "old")
+        self.assertEqual(diff["current_build_id"], "new")
+        self.assertEqual(diff["new_candidates"], ["/api/v1/new"])
+
+    def test_mass_inventory_shrink_is_rejected(self):
+        self.assertTrue(W.suspicious_inventory_shrink(1112, 326))
+        self.assertFalse(W.suspicious_inventory_shrink(1112, 1000))
+        self.assertFalse(W.suspicious_inventory_shrink(0, 0))
+
     def test_kyc_is_excluded(self):
         status, reason = W.classify("/api/v1/kyc/status", {})
         self.assertEqual(status, "excluded")

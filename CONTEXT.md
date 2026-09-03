@@ -3,7 +3,28 @@
 이 프로젝트에서 말이 갈리기 쉬운 용어를 한 곳에 모은다. 코드·PR·이슈에서 아래 낱말은
 여기 정의된 뜻으로만 쓴다. 되돌리기 어려운 결정은 `docs/adr/` 에 기록한다.
 
-## 백엔드
+## 기능 영역과 접근 경로
+
+`증권`과 `WTS`를 같은 축에서 나누지 않는다. 전자는 **무슨 기능인가**이고, 후자는
+**어떤 통로로 호출하는가**다. `플랫폼`은 두 뜻을 섞어 버리므로 제품 도메인 이름으로
+사용하지 않는다. 결정 배경은
+[ADR 0003](docs/adr/0003-separate-product-domain-from-access-channel.md)에 기록한다.
+
+### 기능 영역 (`Operation.Domain`)
+
+| 값 | 뜻 | 현재 상태 |
+|---|---|---|
+| `securities` | 토스증권 계좌·시세·주문·주식모으기 | 구현됨 |
+| `banking` | 일반 토스뱅크/은행 계좌·잔액·거래 | 모바일 계약만 부분 확인, connector 없음 |
+| `mydata` | 카드 결제·월간 소비·외부 금융자산 | 모바일 계약만 부분 확인, connector 없음 |
+| `system` | 인증·Open API IP·변경 감시 | 구현됨 |
+
+일반 토스 앱 안에는 증권 모바일 화면(MTS 성격)과 Banking/MyData 화면이 함께 있지만,
+같은 앱에 있다는 사실이 같은 API·토큰·동의를 뜻하지 않는다. 특히 일반 Banking/MyData에는
+대응하는 WTS 웹앱이 없다. 현재 `banking status`는 이름과 달리 `banking` 도메인이 아니라
+**토스증권 주식모으기 자금연결 상태**이므로 `securities + wts`다.
+
+### 접근 경로 (`Operation.Backend` / CLI `source`)
 
 **공식 Open API (official)** — 토스증권이 공개한 정식 API. `internal/official`.
 `tossctl openapi login` 으로 발급한 자격증명이 필요하다. 계약이 안정적이고 주문
@@ -13,6 +34,12 @@
 `tossctl auth login` 으로 얻은 웹 세션 쿠키를 재사용한다. 공식 API 에 없는 조회(인기
 순위·수급·AI 시그널·스크리너·업종·어닝·브리핑·배당 등)를 제공하지만 **비공식이라 예고
 없이 바뀔 수 있다**.
+
+**mobile** — 일반 Toss Android/iOS 앱의 내부 API 경로. 증권 모바일 화면과
+Banking/MyData 화면을 포함할 수 있지만 각각의 client·interceptor·동의 범위가 다르다.
+현재는 정적 감사 대상일 뿐, 인증 connector가 없으므로 operation backend로 노출하지 않는다.
+웹 UI가 없다는 사실만으로 `mobile`이라 판정하지 않는다. APK의 base host·client binding·
+인증 및 cipher interceptor 소유권으로 접근 경로를 판정한다.
 
 **hybrid routing** — 하나의 조회를 두 백엔드 중 어디로 보낼지 런타임에 정하는 것.
 정책은 **backend preference**와 fallback 허용 여부로 구성된다:
@@ -34,7 +61,7 @@ CLI 와 MCP 는 **같은 라우터를 공유한다** — 사람이 부르든 에
 ## 오퍼레이션
 
 **operation** — 카탈로그에 등록된 하나의 API 동작. `internal/ops` 가 단일 레지스트리이며
-`ID`, `Params`, `Backend`, 그리고 typed client 를 호출하는 `handler` 로 이루어진다.
+`ID`, `Domain`, `Params`, `Backend`, 그리고 typed client 를 호출하는 `handler` 로 이루어진다.
 `internal/mcp`(에이전트용 3-tool 카탈로그)와 `internal/monitor`(헬스 probe)가 여기서
 파생된다.
 
@@ -52,6 +79,11 @@ CLI 와 MCP 는 **같은 라우터를 공유한다** — 사람이 부르든 에
 
 `"auto"` 는 official 과 WTS 양쪽에 **시그니처가 동일한** 대응 메서드가 있어 적응 코드
 없이 라우터에 얹을 수 있는 오퍼레이션에만 붙인다.
+
+**domain (오퍼레이션 필드)** — 기능의 제품 소유권. `backend`와 독립이다. 예를 들어
+`price_alert_add`는 `domain=securities`, `backend=wts`이고 Open API IP 교체는
+`domain=system`, `backend=wts`다. 향후 일반 은행 거래를 붙인다면
+`domain=banking`, `backend=mobile`이 되며 WTS로 표기하지 않는다.
 
 ## 종목 데이터 표면
 
@@ -71,9 +103,11 @@ CLI 와 MCP 는 **같은 라우터를 공유한다** — 사람이 부르든 에
 우회**해서 raw method/URL/body 로 찌른다. 클라이언트 코드가 서버 변경과 함께 움직여도
 계약 변화를 잡아내기 위함이다. 선별적으로만 단다(CLI 표면당 대표 엔드포인트 하나).
 
-**write operation** — 일반·조건주문의 생성·취소·정정. CLI와 ops/MCP 모두 공용
-`trading.Service`에서 config 옵트인 + execute·confirm 토큰으로 이중 게이팅되며,
-official 전용 브로커로만 라우팅된다.
+**write operation** — 상태를 바꾸는 동작. 일반·조건주문의 생성·취소·정정은 공용
+`trading.Service`에서 config 옵트인 + execute·confirm 토큰으로 이중 게이팅되며 official
+전용 브로커로만 라우팅된다. 되돌릴 수 있는 증권 설정(목표가 알림, 보유종목 숨김)은 별도
+도메인 서비스가 preview + 현재 상태에 결합된 confirm 토큰 + 실행 후 재조회 검증을 맡는다.
+`mutating: true` 에이전트 금지 표시는 실계좌 거래 주문에만 유지한다.
 
 ## 인증 상태
 

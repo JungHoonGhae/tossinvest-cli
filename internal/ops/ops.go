@@ -29,10 +29,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/hiddenholding"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/jsoninput"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/openapiip"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/pricealert"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
 
@@ -52,11 +54,13 @@ import (
 // internal/hybrid). With no official credentials the router degrades to a pure
 // WTS passthrough, which is exactly the pre-hybrid behaviour.
 type Deps struct {
-	Client    *official.Client
-	WTS       *hybrid.Client
-	Trading   *trading.Service
-	OpenAPIIP *openapiip.Service
-	Auth      AuthStatus
+	Client         *official.Client
+	WTS            *hybrid.Client
+	Trading        *trading.Service
+	OpenAPIIP      *openapiip.Service
+	PriceAlerts    *pricealert.Service
+	HiddenHoldings *hiddenholding.Service
+	Auth           AuthStatus
 }
 
 // BackendStatus reports whether a backend is connected and, if known, when its
@@ -96,9 +100,12 @@ type ProbeSpec struct {
 
 // Operation is one callable API operation in the registry.
 type Operation struct {
-	ID       string `json:"id"`
-	Method   string `json:"method"`
-	Path     string `json:"path"`
+	ID     string `json:"id"`
+	Method string `json:"method"`
+	Path   string `json:"path"`
+	// Domain is the product area and stays independent of Backend, the access
+	// channel. For example, a Securities operation can use official or WTS.
+	Domain   string `json:"domain"`
 	Category string `json:"category"`
 	Summary  string `json:"summary"`
 	// Write marks state-changing operations. Every write requires an explicit
@@ -131,7 +138,11 @@ func NewCatalog() *Catalog {
 	ops = append(ops, wtsOperations()...)
 	ops = append(ops, settingsOperations()...)
 	byID := make(map[string]Operation, len(ops))
-	for _, o := range ops {
+	for i := range ops {
+		if ops[i].Domain == "" {
+			ops[i].Domain = "securities"
+		}
+		o := ops[i]
 		byID[o.ID] = o
 	}
 	return &Catalog{ops: ops, byID: byID}
@@ -148,7 +159,7 @@ func (c *Catalog) List(query string, limit int) []Operation {
 	out := make([]Operation, 0, len(c.ops))
 	for _, o := range c.ops {
 		if q != "" {
-			hay := strings.ToLower(o.ID + " " + o.Path + " " + o.Category + " " + o.Summary)
+			hay := strings.ToLower(o.ID + " " + o.Path + " " + o.Domain + " " + o.Category + " " + o.Summary)
 			if !strings.Contains(hay, q) {
 				continue
 			}

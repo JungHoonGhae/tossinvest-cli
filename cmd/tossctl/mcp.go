@@ -9,11 +9,13 @@ import (
 
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/hiddenholding"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/mcp"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/openapiip"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderlineage"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/pricealert"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
@@ -117,8 +119,10 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 				ipManager = openapiip.NewService(routed, openapiip.NewHTTPResolver(nil, ""))
 			}
 			server := mcp.NewServer(officialClient, routed, mcp.Services{
-				Trading:   tradingSvc,
-				OpenAPIIP: ipManager,
+				Trading:        tradingSvc,
+				OpenAPIIP:      ipManager,
+				PriceAlerts:    pricealert.NewService(routed),
+				HiddenHoldings: hiddenholding.NewService(routed),
 			}, "tossinvest-cli", version.Current().Version)
 
 			// Read-only auth snapshot for the auth_status operation (no secrets —

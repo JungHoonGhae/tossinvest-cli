@@ -11,6 +11,27 @@ the rest go through WTS. See the [Hybrid guide](/docs/guide/hybrid-openapi) for 
 - `Official API` column = coverage per public docs; with an official key, ✅ rows are routed via OAuth
 - Rows where official is ❌ = tossctl-only (always via WTS)
 
+## Product domain ≠ access channel
+
+Securities, Banking, and MyData are product domains. Official Open API, WTS,
+and mobile are access channels. WTS is the **Toss Securities Web Trading System**,
+not a web app for general Toss Banking.
+
+| Product domain | Access channel | Current support |
+|---|---|---|
+| Toss Securities | official, WTS, Securities mobile surface inside Toss | official + WTS |
+| General Banking | general Toss mobile API (no corresponding WTS) | unsupported — separate mobile auth required |
+| MyData cards/spending | general Toss mobile API | partially confirmed statically; unsupported |
+| System | login, Open API IP, change monitoring | supported |
+
+Despite its legacy name, `banking status` is the funding connection for
+Securities stock accumulation, so it is `securities + wts`, not general Banking.
+
+The absence of a web UI is not itself a reason an API is unsupported. A WTS contract can be
+called without a UI once its current web-session contract is verified. General Banking/MyData
+is unsupported because the main-app session, app/device headers, and request/response cipher
+connector are not implemented—not because those APIs do not exist.
+
 ## `openapi` commands
 
 | Command | Description |
@@ -45,14 +66,16 @@ Use the global `--backend auto|wts|openapi` flag to override routing per request
 | Earnings calendar | `market earnings [--major]` | ❌ | ✅ |
 | Personalized news briefing | `market briefing` (asset, return, reasoning, news) | ❌ | ✅ |
 | Key earnings & economic releases | `market key-events` | ❌ | ✅ |
-| Stock-accumulation open-banking status | `banking status [--full]` | ❌ | ✅ |
+| Securities stock-accumulation funding status | `banking status [--full]` (not general Banking) | ❌ | ✅ |
 | Notification preferences | `notifications list` | ❌ | ✅ |
+| Target-price alert read & management | `quote alert list/add/remove` | ❌ | ✅ |
+| Hidden-holding read & management | `portfolio hidden list/hide/show` | ❌ | ✅ |
 | Toss AI signals | `market signals` | ❌ | ✅ |
 | Screener | `market screener` | ❌ | ✅ |
 | Dividend report | `portfolio dividends` | ❌ | ✅ |
 | Cumulative realized profit | `profit` | ❌ | ✅ |
 | Overseas transfer income (tax) | `tax overseas --year N` | ❌ | ✅ |
-| Stock accumulation 📱 | `accumulate list/status` | ❌ *(no web UI, mobile-app-only)* | ✅ |
+| Stock accumulation 📱 | `accumulate list/status` | ❌ *(no web UI; found in Securities mobile UI, then WTS-verified)* | ✅ |
 | Community rankings | `community rankings` | ❌ | ✅ |
 | Watchlist read & management | `watchlist ...` | ❌ | ✅ |
 | Transaction ledger / cash overview | `transactions list/overview` | ❌ | ✅ |

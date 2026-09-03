@@ -32,10 +32,28 @@ jobs:
             echo "added=$(jq '.added | length' /tmp/wts_diff.json)"
             echo "removed=$(jq '.removed | length' /tmp/wts_diff.json)"
             echo "new_candidates=$(jq '.new_candidates | length' /tmp/wts_diff.json)"
+            echo "build_changed=$(jq -r '.build_changed' /tmp/wts_diff.json)"
+            echo "previous_build=$(jq -r '.previous_build_id' /tmp/wts_diff.json)"
+            echo "current_build=$(jq -r '.current_build_id' /tmp/wts_diff.json)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check general Toss Android app version
+        id: android
+        env:
+          ANDROID_DATE: ${{ github.run_started_at }}
+          ANDROID_DIFF_OUT: /tmp/android_diff.json
+        run: |
+          export ANDROID_DATE="${ANDROID_DATE%%T*}"
+          python3 tools/android_app_monitor.py
+          {
+            echo "candidate_changed=$(jq -r '.candidate_changed' /tmp/android_diff.json)"
+            echo "audit_stale=$(jq -r '.audit_stale' /tmp/android_diff.json)"
+            echo "candidate=$(jq -r '.current_candidate' /tmp/android_diff.json)"
+            echo "audited=$(jq -r '.audited_version' /tmp/android_diff.json)"
           } >> "$GITHUB_OUTPUT"
 
       - name: Compose embed
-        if: steps.scan.outputs.added != '0' || steps.scan.outputs.removed != '0'
+        if: steps.scan.outputs.added != '0' || steps.scan.outputs.removed != '0' || steps.scan.outputs.build_changed == 'true' || steps.android.outputs.candidate_changed == 'true'
         run: |
           SUMMARY=$(head -1 /tmp/wts_summary.txt)
           ADDED=$(jq -r '.added[]? | "• `\(.)`"' /tmp/wts_diff.json | head -20)
@@ -44,19 +62,24 @@ jobs:
           [ -n "$REMOVED" ] || REMOVED="—"
           trunc() { head -c 1400; }
           CATALOG_URL="https://github.com/${GITHUB_REPOSITORY}/blob/main/docs/reverse-engineering/wts-endpoints.json"
+          WTS_BUILD="**WTS build**"$'\n'"${{ steps.scan.outputs.previous_build }} → ${{ steps.scan.outputs.current_build }}"
+          ANDROID="**일반 토스 Android 앱**"$'\n'"candidate ${{ steps.android.outputs.candidate }} · audited ${{ steps.android.outputs.audited }} · stale=${{ steps.android.outputs.audit_stale }}"
 
-          # Components V2 (flags 32768): 표면 변동 주황 Container. daily-monitor 와 같은 톤.
+          # Components V2 (flags 32768): 웹/API 또는 앱 감사 변동 주황 Container.
           jq -n \
-            --arg title "## WTS API 표면 변동 감지" \
+            --arg title "## Toss 클라이언트/API 변동 감지" \
             --arg desc  "$SUMMARY" \
+            --arg builds "$WTS_BUILD"$'\n\n'"$ANDROID" \
             --arg added   "**신규**"$'\n'"$(printf '%s' "$ADDED"   | trunc)" \
             --arg removed "**삭제/변경**"$'\n'"$(printf '%s' "$REMOVED" | trunc)" \
-            --arg foot  "-# 신규 candidate = 개발 후보 · docs/reverse-engineering/wts-endpoints.json" \
+            --arg foot  "-# Android candidate는 제3자 메타데이터 신호이며 APK 서명·정적 분석 전까지 미감사 상태" \
             --arg catalog "$CATALOG_URL" \
             '{flags:32768, components:[{
               type:17, accent_color:15105570, components:[
                 {type:10, content:$title},
                 {type:10, content:$desc},
+                {type:14},
+                {type:10, content:$builds},
                 {type:14},
                 {type:10, content:$added},
                 {type:10, content:$removed},
@@ -70,7 +93,7 @@ jobs:
           cat /tmp/wts_payload.json
 
       - name: Send Discord
-        if: steps.scan.outputs.added != '0' || steps.scan.outputs.removed != '0'
+        if: steps.scan.outputs.added != '0' || steps.scan.outputs.removed != '0' || steps.scan.outputs.build_changed == 'true' || steps.android.outputs.candidate_changed == 'true'
         env:
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
@@ -83,7 +106,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-          git add docs/reverse-engineering/wts-endpoints.json
+          git add docs/reverse-engineering/wts-endpoints.json docs/reverse-engineering/android-app.json
           git diff --cached --quiet && { echo "변동 없음 — commit skip"; exit 0; }
           git commit -m "chore(wts-monitor): WTS API 카탈로그 갱신 [skip ci]"
           git push origin HEAD:main

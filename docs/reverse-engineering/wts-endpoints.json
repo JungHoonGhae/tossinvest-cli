@@ -2,13 +2,13 @@
   "source": "tossinvest.com web bundles",
   "build_id": "Vn2JUgZup8HwoN8aQW3Nm",
   "chunk_count": 77,
-  "total": 1112,
+  "total": 1113,
   "counts": {
-    "implemented": 133,
-    "candidate": 323,
+    "implemented": 138,
+    "candidate": 319,
     "excluded": 656,
     "candidate_next": 25,
-    "meaningful": 456
+    "meaningful": 457
   },
   "overrides": {
     "/api/v1/openapi/client/allowed-ips": {
@@ -24,6 +24,41 @@
       "host": "wts-api",
       "evidence": "verified",
       "note": "WTS bundle contract + read-only live schema verified 2026-09-02. Only stock-accumulation funding connection state is exposed; identity is masked by default."
+    },
+    "/api/v1/user-price-alimy/{stockCode}": {
+      "status": "implemented",
+      "method": "GET,POST",
+      "host": "wts-api",
+      "evidence": "verified",
+      "note": "GET list and POST {targetPrice,currency} contract verified by WTS static analysis and read-only live schema on 2026-09-03. Writes use preview/confirm/post-read verification."
+    },
+    "/api/v1/user-price-alimy/{stockCode}/{currency}/{targetPrice}": {
+      "status": "implemented",
+      "method": "DELETE",
+      "host": "wts-api",
+      "evidence": "verified",
+      "note": "Exact DELETE contract verified by WTS static analysis on 2026-09-03. Exposed through preview/confirm/post-read verification."
+    },
+    "/api/v1/my-assets/hidden-stocks/hide": {
+      "status": "implemented",
+      "method": "POST",
+      "host": "wts-api",
+      "evidence": "verified",
+      "note": "POST {stockCode} with accountKey contract verified by WTS static analysis on 2026-09-03. Exposed through preview/confirm/post-read verification."
+    },
+    "/api/v1/my-assets/hidden-stocks/show": {
+      "status": "implemented",
+      "method": "POST",
+      "host": "wts-api",
+      "evidence": "verified",
+      "note": "POST {stockCode} with accountKey contract verified by WTS static analysis on 2026-09-03. Exposed through preview/confirm/post-read verification."
+    },
+    "/api/v2/hidden-stocks": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "Read-only live schema and WTS static contract verified on 2026-09-03."
     },
     "/api/v1/calendar/ai-summary/key-events": {
       "status": "implemented",
@@ -4119,9 +4154,11 @@
       }
     },
     "/api/v1/my-assets/hidden-stocks/hide": {
-      "status": "candidate",
+      "status": "implemented",
+      "note": "POST {stockCode} with accountKey contract verified by WTS static analysis on 2026-09-03. Exposed through preview/confirm/post-read verification.",
       "method": "POST",
       "host": "wts-api",
+      "evidence": "verified",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -4131,9 +4168,11 @@
       }
     },
     "/api/v1/my-assets/hidden-stocks/show": {
-      "status": "candidate",
+      "status": "implemented",
+      "note": "POST {stockCode} with accountKey contract verified by WTS static analysis on 2026-09-03. Exposed through preview/confirm/post-read verification.",
       "method": "POST",
       "host": "wts-api",
+      "evidence": "verified",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -7340,9 +7379,11 @@
       "first_seen": "2026-08-24"
     },
     "/api/v1/user-price-alimy/{stockCode}": {
-      "status": "candidate",
+      "status": "implemented",
+      "note": "GET list and POST {targetPrice,currency} contract verified by WTS static analysis and read-only live schema on 2026-09-03. Writes use preview/confirm/post-read verification.",
       "method": "GET,POST",
       "host": "wts-api",
+      "evidence": "verified",
       "first_seen": "2026-06-19",
       "probe": {
         "at": "2026-08-03",
@@ -7357,6 +7398,14 @@
         "body": [],
         "at": "2026-08-03"
       }
+    },
+    "/api/v1/user-price-alimy/{stockCode}/{currency}/{targetPrice}": {
+      "status": "implemented",
+      "note": "Exact DELETE contract verified by WTS static analysis on 2026-09-03. Exposed through preview/confirm/post-read verification.",
+      "method": "DELETE",
+      "host": "wts-api",
+      "evidence": "verified",
+      "first_seen": "2026-09-03"
     },
     "/api/v1/user-profiles": {
       "status": "excluded",
@@ -8203,9 +8252,11 @@
       "first_seen": "2026-06-19"
     },
     "/api/v2/hidden-stocks": {
-      "status": "candidate",
+      "status": "implemented",
+      "note": "Read-only live schema and WTS static contract verified on 2026-09-03.",
       "method": "GET",
       "host": "wts-cert-api",
+      "evidence": "verified",
       "first_seen": "2026-06-19",
       "probe": {
         "verdict": "thin",

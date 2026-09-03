@@ -809,9 +809,9 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
-			ID: "banking_status", Method: "GET", Path: "wts:autotrade/open-banking/info/find", Backend: "wts",
-			Category: "account",
-			Summary:  "Open-banking account connected to stock-accumulation funding plus linked/registrable counts. Holder and account are masked unless full=true. WTS-only.",
+			ID: "banking_status", Method: "GET", Path: "wts:autotrade/open-banking/info/find", Backend: "wts", Domain: "securities",
+			Category: "accumulate",
+			Summary:  "Funding account used by Securities stock accumulation (not general Toss Banking), plus linked/registrable counts. Holder and account are masked unless full=true. WTS-only.",
 			Params:   []Param{{Name: "full", Type: "boolean", Desc: "reveal the account holder and complete account number; false/omitted masks them"}},
 			Probe: &ProbeSpec{Name: "open-banking-status", Method: "GET",
 				URL: probeAPI + "/api/v1/autotrade/open-banking/info/find",

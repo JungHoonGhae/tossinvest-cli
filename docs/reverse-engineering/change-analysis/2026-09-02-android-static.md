@@ -5,10 +5,14 @@
 - APK 문자열만 보고 만들어진 기능은 없다. 이번에 구현한 것은 Android 인터페이스와
   serializer, repository 호출부, 현재 WTS 세션의 마스킹된 라이브 schema까지 모두 맞은
   `account overview` 하나다.
-- 카드 결제 내역·이번 달 소비·은행 계좌 조회 계약은 앱에 존재하지만 Toss Home/MyData
-  client 소속이다. `.tossinvest.com` WTS 세션으로 호출할 근거가 없으므로 구현하지 않았다.
-- 쓰기 endpoint도 확인했지만, 새로 구현할 만큼 인증·동의·복구·승인 계약이 완성된 후보는
-  없었다. 실제 mutation 호출은 한 건도 하지 않았다.
+- 카드 결제 내역·이번 달 소비·은행 계좌 조회 계약은 앱에 존재하고, 웹 UI 유무와 무관하게
+  API 자체는 호출 가능한 구조다. 다만 Toss Home/MyData client 소속이며 현재
+  `.tossinvest.com` WTS 세션만으로 인증할 수 있다는 근거가 없으므로 구현하지 않았다.
+- 일반 Toss Banking/MyData 쓰기 endpoint도 확인했지만, 구현할 만큼 모바일 인증·동의·복구
+  계약이 완성된 후보는 없었다. 실제 모바일 mutation 호출은 한 건도 하지 않았다.
+- 후속 WTS 감사(2026-09-03)에서 **증권 목표가 알림**과 **증권 포트폴리오 보유종목 숨김**은
+  WTS 호출부·요청 serializer·읽기 상태 계약이 모두 확인되어 안전한 preview/confirm 쓰기로
+  구현했다. 이는 일반 Banking/MyData 모바일 쓰기가 아니다.
 
 ## 분석본 신뢰성
 
@@ -17,6 +21,7 @@
 | Package | `viva.republica.toss` |
 | Version | `5.275.0` (`50527500`) |
 | XAPK SHA-256 | `aead5b60995d3f7e16e4790d330d24ab32e28165393e3fae415431b4295d8d85` |
+| Base APK SHA-256 | `06715f2d15dd530cb426474e87a4b39aaaf91d1013ef8db171f882d2bf29e2ca` |
 | APK signature | v2 verified, v3 verified |
 | Certificate subject | `L=Seoul, O=Viva Republica, OU=Developing unit, CN=Seung Gun Lee` |
 | Certificate SHA-256 | `45:DB:EC:B9:90:A1:37:45:58:D8:0A:6C:65:A9:DE:46:5F:96:0F:09:7D:F9:D1:2E:F9:13:38:2C:EC:BD:E0:5C` |
@@ -51,17 +56,27 @@ table/JSON/CSV 모두 기본 마스킹한다. `monitor api`는 같은 본문과 
 
 | Area | Contract examples | Level | Reason not implemented |
 | --- | --- | --- | --- |
-| 월간 소비 | `POST v3/home/mydata-home/consumption/overview/legacy-with-dst?yearMonth=...` | `partial` | Toss Home client, WTS auth/host 아님 |
-| 소비 정보 | `GET /api/v3/home/consumption/info` | `partial` | mobile auth와 MyData 동의 필요 |
+| 월간 소비 | `POST v3/home/mydata-home/consumption/overview/legacy-with-dst?yearMonth=...` | `partial` | Toss Home client; 현재 WTS auth와 호환 미확인 |
+| 소비 정보 | `GET /api/v3/home/consumption/info` | `partial` | 같은 main API client; mobile session과 MyData 동의 필요 |
 | 카드 거래 | `POST v3/home/consumption/card-code/{cardCode}/transactions?yearMonth=...` | `partial` | 카드 식별자·body·동의 수명 검증 필요 |
 | 전체 계좌 | `POST v3/home/accounts` | `partial` | 증권 WTS의 all-accounts와 다른 금융자산 영역 |
-| 잔액 | `POST v3/home/mydata-home/mydata-account/balances` | `partial` | 별도 Home/MyData interceptor 사용 |
+| 잔액 | `POST v3/home/mydata-home/mydata-account/balances` | `partial` | main API request cipher·session header 계약 필요 |
 | 계좌 거래 | `POST v3/home/s/accounts/{referenceId}/transactions?...` | `partial` | 모바일 reference/auth lifecycle 미확인 |
 
-현재 `tossctl auth login`은 Toss Securities web state를 가져와 `.tossinvest.com`의 WTS API
-세 호스트에 적용한다. 이를 일반 Toss Home/MyData host에 재사용하는 것은 인증 범위와
-개인정보 경계를 추측하는 일이므로 하지 않는다. 은행 기능을 추가하려면 독립 connector,
-명시적 MyData 동의, 별도 secret storage, 기본 개인정보 마스킹부터 설계해야 한다.
+이 API들은 `TossApiServiceModule`이 만드는 main API Retrofit client에 묶여 있고, base host는
+`StatusManager`의 fallback에서도 `api-gateway.toss.im`으로 확인된다. 해당 client는 공통
+app/device header, pay-session에서 공급되는 조건부 header, `ApiCipherRequestInterceptor`와
+`ApiCipherInterceptor`를 함께 사용한다. 반면 `tossctl auth login`은 Toss Securities web
+state를 가져와 `.tossinvest.com`의 WTS API 세 호스트에 적용한다.
+
+즉 API가 없어서가 아니라, 현재 보유한 자격증명과 request envelope의 호환성이 아직
+증명되지 않은 것이다. 웹 UI는 endpoint를 발견하는 힌트일 뿐 호출 가능 여부의 기준이 아니다.
+은행 기능을 추가하려면 독립 connector, 명시적 MyData 동의, 별도 secret storage, 기본
+개인정보 마스킹부터 설계해야 한다.
+
+정리하면 기능 영역과 접근 경로는 별개다. 이 문서의 Banking/MyData는
+`domain=banking|mydata, source=mobile`이고, 증권 모바일 화면에서 발견한 뒤 WTS로도 검증한
+계약은 `domain=securities, source=wts`다. `platform`이라는 중간 도메인은 사용하지 않는다.
 
 ### 증권 주식모으기용 오픈뱅킹 상태는 별도 `verified`
 
@@ -89,6 +104,8 @@ CLI·ops/MCP는 예금주명과 계좌번호를 기본 마스킹한다.
 | --- | --- | --- |
 | 주문 place/cancel/amend | 기존 안전 게이트 유지 | preview, config opt-in, execute, confirm token, 사람의 매회 승인 |
 | 관심종목 add/remove/group | 기존 구현 유지 | 웹 캡처로 method/body/XSRF 확인됨; 비금융·복구 가능 |
+| 목표가 알림 add/remove | 구현 (`quote alert`) | WTS call-site/serializer + list schema; preview/confirm/post-read verification |
+| 보유종목 hide/show | 구현 (`portfolio hidden`) | WTS call-site/serializer + account-scoped list schema; 계좌 키 비노출 |
 | 소비 숨김 저장 | 구현 안 함 | mobile auth, 사용자 의도, undo/복구 UX |
 | 오픈뱅킹 활성화 | 구현 안 함 | consent flow이며 단순 API write가 아님 |
 | Home/MyData 계좌 save/update/delete | 구현 안 함 | 별도 인증·동의·영향 범위와 복구 계약 |
@@ -96,6 +113,13 @@ CLI·ops/MCP는 예금주명과 계좌번호를 기본 마스킹한다.
 
 새 쓰기 기능은 “endpoint가 존재한다”가 아니라 **정확한 계약 + 인증 소유권 + 사용자에게
 보이는 결과 + 실패/복구 + 명시적 승인**이 모두 확인될 때만 후보가 된다.
+
+## 앱 감사 freshness 감시
+
+`docs/reverse-engineering/android-app.json`은 마지막 감사 artifact와 공개 배포 후보를 분리한다.
+주간 workflow가 APKPure metadata에서 더 높은 version을 발견하면 `audit_status=stale`로
+알리지만, 제3자 metadata를 곧바로 신뢰하거나 artifact를 자동 실행하지 않는다. 새 XAPK/APK는
+package id와 위 certificate SHA-256의 연속성을 검증한 뒤에만 이 문서의 감사 버전을 올린다.
 
 ### WTS Open API 허용 IP — `verified`, 구현
 
@@ -115,5 +139,5 @@ CLI·ops/MCP는 예금주명과 계좌번호를 기본 마스킹한다.
 1. 구현된 WTS endpoint를 카탈로그의 `observed`와 대조한다.
 2. host/method/body/response 중 하나라도 근거가 없으면 `partial`로 내린다.
 3. monitor probe가 없는 인증 endpoint부터 schema invariant를 추가한다.
-4. 문서의 “모바일 전용”은 웹 UI 부재만이 아니라 APK module 소유권도 함께 표기한다.
+4. 모바일 경로는 웹 UI 부재로 추론하지 않고 APK module·host·인증 소유권으로 판정한다.
 5. 실제 값·계좌번호·토큰은 감사 산출물에 남기지 않는다.

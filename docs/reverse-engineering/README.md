@@ -9,6 +9,7 @@
 |---|---|
 | **[capture-workflow.md](capture-workflow.md)** | **신규 기능 발굴 실전 플레이북** — 세션 주입 → 번들에서 경로 추출 → 라이브 프로브 → POST 바디 캡처 → 웹UI 유무 판정 → 구현. 새 기능을 붙인다면 여기서 시작한다. "막힌 방법" 절도 함께 읽을 것 |
 | [wts-endpoints.json](wts-endpoints.json) | WTS API 전체 카탈로그(구현/후보/의도적 제외). `tools/wts_endpoints.py` 로 갱신, 주간 `wts-monitor.yml` 이 변화를 추적 |
+| [android-app.json](android-app.json) | 일반 Toss Android 앱의 마지막 정적 감사 artifact와 최신 공개 후보. 후보가 새로우면 감사 stale로 표시하되 자동 신뢰하지 않음 |
 | [rpc-catalog.md](rpc-catalog.md) | 엔드포인트별 요청/응답 형태 메모 |
 | [auth-notes.md](auth-notes.md) | 세션·쿠키·인증 헤더 |
 | [push-events.md](push-events.md) | 실시간 push 이벤트 |
@@ -24,6 +25,9 @@ node tools/capture_post_bodies.mjs /feed/news --get
 
 # 엔드포인트 카탈로그 갱신 (JS 번들 전수 파싱, stdlib only)
 python3 tools/wts_endpoints.py
+
+# 일반 Toss Android 공개 후보와 마지막 감사 버전 비교
+ANDROID_DIFF_OUT=/tmp/android_diff.json python3 tools/android_app_monitor.py
 
 # HAR 새니타이즈 · 공개 픽스처 갱신
 python3 tools/sanitize_har.py <input.har> <output.har>

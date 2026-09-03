@@ -470,7 +470,7 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 	supplyCmd.Flags().IntVar(&supplyCount, "count", 0, "rows per page (server default 10)")
 	supplyCmd.Flags().StringVar(&supplyUntil, "until", "", "cursor from a previous page's next_until")
 
-	cmd.AddCommand(getCmd, batchCmd, metadataCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd, cryptoCmd, reasoningCmd, reasonsCmd, chartsCmd, signalsCmd, optionsCmd, supplyCmd)
+	cmd.AddCommand(getCmd, batchCmd, metadataCmd, chartCmd, tradesCmd, limitsCmd, warningsCmd, flowsCmd, orderbookCmd, sellableCmd, commissionCmd, cryptoCmd, reasoningCmd, reasonsCmd, chartsCmd, signalsCmd, optionsCmd, supplyCmd, newPriceAlertCmd(opts))
 
 	return cmd
 }
