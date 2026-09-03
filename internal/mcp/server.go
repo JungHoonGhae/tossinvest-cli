@@ -401,7 +401,10 @@ func trim(s []any, size, excess int) []any {
 	}
 	keep := n - drop
 	dropped += drop
-	out := make([]any, 0, keep+1)
+	// drop is always at least one, so len(s) has room for the kept rows plus
+	// the omission marker. Using the existing length as capacity avoids an
+	// attacker-controlled addition in the allocation-size expression.
+	out := make([]any, 0, len(s))
 	out = append(out, s[:keep]...)
 	return append(out, omittedItems{
 		Count: dropped,
