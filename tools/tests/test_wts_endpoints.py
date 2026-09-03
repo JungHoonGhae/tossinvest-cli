@@ -185,6 +185,40 @@ class TestClassify(unittest.TestCase):
                 status, _ = W.classify(path, {})
                 self.assertEqual(status, "implemented")
 
+    def test_asset_snapshot_contracts_are_implemented_without_claiming_truncated_paths(self):
+        for path in [
+            "/api/v1/asset-snapshot/all-accounts/chart/{range}/{stepUnit}",
+            "/api/v1/asset-snapshot/all-accounts/chart/ONE_MONTH/DAY",
+            "/api/v1/asset-snapshot/all-accounts/detail-by-date",
+            "/api/v1/asset-snapshot/all-accounts/page",
+            "/api/v1/asset-snapshot/chart/{range}/{stepUnit}",
+            "/api/v1/asset-snapshot/chart/ONE_MONTH/DAY",
+            "/api/v1/asset-snapshot/detail-by-date",
+            "/api/v1/asset-snapshot/page",
+        ]:
+            with self.subTest(path=path):
+                status, _ = W.classify(path, {})
+                self.assertEqual(status, "implemented")
+
+        for truncated in [
+            "/api/v1/asset-snapshot/all-accounts/chart",
+            "/api/v1/asset-snapshot/chart",
+        ]:
+            with self.subTest(path=truncated):
+                status, _ = W.classify(truncated, {})
+                self.assertNotEqual(status, "implemented")
+
+    def test_asset_snapshot_probe_normalizes_to_bundle_template(self):
+        for path in [
+            "/api/v1/asset-snapshot/all-accounts/chart/ONE_MONTH/DAY",
+            "/api/v1/asset-snapshot/chart/ONE_MONTH/DAY",
+        ]:
+            with self.subTest(path=path):
+                self.assertEqual(
+                    W._probe_inventory_path(path),
+                    path.removesuffix("/ONE_MONTH/DAY") + "/{range}/{stepUnit}",
+                )
+
     def test_ai_signal_detail_and_sector_simple_are_implemented(self):
         for path in [
             "/api/v1/dashboard/wts/overview/ai-signals/detail",

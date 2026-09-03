@@ -51,6 +51,21 @@ func statusAndPaths(expected ...[2]string) func(int, []byte) error {
 	}
 }
 
+func statusAndCursorPage() func(int, []byte) error {
+	return func(status int, body []byte) error {
+		if err := ExpectStatus(status, 200); err != nil {
+			return err
+		}
+		if err := ExpectPath(body, "result.body", "array"); err != nil {
+			return err
+		}
+		if err := ExpectPath(body, "result.nextCursorKey", "string"); err == nil {
+			return nil
+		}
+		return ExpectPath(body, "result.nextCursorKey", "null")
+	}
+}
+
 func statusAndOptionalArrayItemPaths(expected ...[2]string) func(int, []byte) error {
 	return func(status int, body []byte) error {
 		if err := ExpectStatus(status, 200); err != nil {
@@ -113,6 +128,7 @@ func statusAndNullableResultPaths(expected ...[2]string) func(int, []byte) error
 //
 // These are read-only. Order execution stays on the official path (writes.go).
 func wtsOperations() []Operation {
+	todayKST := time.Now().In(time.FixedZone("KST", 9*60*60)).Format("2006-01-02")
 	return []Operation{
 		{
 			ID: "market_indices", Method: "GET", Path: "wts:market/indices", Backend: "wts",
@@ -424,6 +440,100 @@ func wtsOperations() []Operation {
 				}},
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.GetProfitOverview(ctx)
+			},
+		},
+		{
+			ID: "portfolio_performance", Method: "GET", Path: "wts:portfolio/performance", Backend: "wts", Domain: "securities",
+			Category: "portfolio", Summary: "One-month daily portfolio valuation trend: principal, evaluated amount, return, range high/low, and realtime point. Omit account for the all-account aggregate. WTS-only; no web UI.",
+			Params: []Param{{Name: "account", Type: "string", Desc: "specific Securities account key; omit for all accounts"}},
+			Probe: &ProbeSpec{Name: "asset-performance-all", Method: "GET",
+				URL: probeCert + "/api/v1/asset-snapshot/all-accounts/chart/ONE_MONTH/DAY",
+				Check: statusAndPaths(
+					[2]string{"result.points", "array"},
+					[2]string{"result.evaluatedAmountDiff", "object"},
+					[2]string{"result.maxEvaluated", "object"},
+					[2]string{"result.minEvaluated", "object"},
+				)},
+			ExtraProbes: []ProbeSpec{{Name: "asset-performance-account", Method: "GET", AccountScoped: true,
+				URL: probeCert + "/api/v1/asset-snapshot/chart/ONE_MONTH/DAY",
+				Check: statusAndPaths(
+					[2]string{"result.points", "array"},
+					[2]string{"result.evaluatedAmountDiff", "object"},
+				)}},
+			ProbeRefs: []string{"account-list"},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				account, err := argString(args, "account")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetAssetPerformance(ctx, account)
+			},
+		},
+		{
+			ID: "portfolio_snapshots", Method: "GET", Path: "wts:portfolio/snapshots", Backend: "wts", Domain: "securities",
+			Category: "portfolio", Summary: "Cursor page of dated portfolio valuations with principal, evaluated amount, profit/loss, return, and completeness. Omit account for all accounts. WTS-only; no web UI.",
+			Params: []Param{
+				{Name: "account", Type: "string", Desc: "specific Securities account key; omit for all accounts"},
+				{Name: "cursor", Type: "string", Desc: "cursor from the previous next_cursor"},
+				{Name: "limit", Type: "integer", Desc: "history rows per page; 0 = 20 (the current realtime point can be additional)"},
+			},
+			Probe: &ProbeSpec{Name: "asset-snapshots-all", Method: "GET",
+				URL:   probeCert + "/api/v1/asset-snapshot/all-accounts/page?pageSize=1",
+				Check: statusAndCursorPage()},
+			ExtraProbes: []ProbeSpec{{Name: "asset-snapshots-account", Method: "GET", AccountScoped: true,
+				URL:   probeCert + "/api/v1/asset-snapshot/page?pageSize=1",
+				Check: statusAndCursorPage()}},
+			ProbeRefs: []string{"account-list"},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				account, err := argString(args, "account")
+				if err != nil {
+					return nil, err
+				}
+				cursor, err := argString(args, "cursor")
+				if err != nil {
+					return nil, err
+				}
+				limit, err := argInt(args, "limit")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.ListAssetSnapshots(ctx, account, cursor, limit)
+			},
+		},
+		{
+			ID: "portfolio_snapshot", Method: "GET", Path: "wts:portfolio/snapshot/{date}", Backend: "wts", Domain: "securities",
+			Category: "portfolio", Summary: "Complete dated valuation by market (KR stocks, US stocks, US options, bonds) and holding. Omit account for all accounts. WTS-only; no web UI.",
+			Params: []Param{
+				{Name: "date", Type: "string", Required: true, Desc: "base date in YYYY-MM-DD"},
+				{Name: "account", Type: "string", Desc: "specific Securities account key; omit for all accounts"},
+			},
+			Probe: &ProbeSpec{Name: "asset-snapshot-detail-all", Method: "GET",
+				URL: probeCert + "/api/v1/asset-snapshot/all-accounts/detail-by-date?baseDate=" + todayKST,
+				Check: statusAndPaths(
+					[2]string{"result.baseDate", "string"},
+					[2]string{"result.kr.items", "array"},
+					[2]string{"result.option.items", "array"},
+					[2]string{"result.us.items", "array"},
+					[2]string{"result.bond.items", "array"},
+				)},
+			ExtraProbes: []ProbeSpec{{Name: "asset-snapshot-detail-account", Method: "GET", AccountScoped: true,
+				URL: probeCert + "/api/v1/asset-snapshot/detail-by-date?baseDate=" + todayKST,
+				Check: statusAndPaths(
+					[2]string{"result.baseDate", "string"},
+					[2]string{"result.kr.items", "array"},
+					[2]string{"result.us.items", "array"},
+				)}},
+			ProbeRefs: []string{"account-list"},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				date, err := argString(args, "date")
+				if err != nil {
+					return nil, err
+				}
+				account, err := argString(args, "account")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetAssetSnapshot(ctx, account, date)
 			},
 		},
 		{

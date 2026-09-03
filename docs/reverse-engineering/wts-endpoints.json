@@ -4,8 +4,8 @@
   "chunk_count": 77,
   "total": 1113,
   "counts": {
-    "implemented": 155,
-    "candidate": 302,
+    "implemented": 161,
+    "candidate": 296,
     "excluded": 656,
     "candidate_next": 0,
     "meaningful": 457
@@ -148,25 +148,51 @@
       "status": "candidate",
       "note": "번들 정의: GET wts-cert-api /api/v1/asset-snapshot/all-accounts/chart/{range}/{stepUnit}. 전 계좌 합산 버전 (2026-08-24 신규). 웹 UI 없음 확정 (2026-08-24 라이브): /account/asset·/account·/investment-portfolio 첫 로드 + '자산' 클릭까지 캡처해도 미호출. 기간 선택 UI('1개월/3개월/1년/전체') 자체가 웹에 없다. 모바일 전용."
     },
+    "/api/v1/asset-snapshot/all-accounts/chart/{range}/{stepUnit}": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "정확한 번들 호출부와 ONE_MONTH/DAY 읽기 전용 라이브 응답 계약을 2026-09-03 검증. 전 계좌 합산 원금·평가액·수익률·기간 고저·실시간 지점을 portfolio performance로 노출하며, 서버가 임의 enum도 200으로 받으므로 검증된 기간 조합만 사용. 증권 도메인 + WTS 백엔드이며 웹 UI는 없음."
+    },
     "/api/v1/asset-snapshot/all-accounts/detail-by-date": {
-      "status": "candidate",
-      "note": "번들 정의: GET wts-cert-api /api/v1/asset-snapshot/all-accounts/detail-by-date. 전 계좌 합산 버전 (2026-08-24 신규). 웹 UI 없음 확정 (2026-08-24 라이브): /account/asset·/account·/investment-portfolio 첫 로드 + '자산' 클릭까지 캡처해도 미호출. 기간 선택 UI('1개월/3개월/1년/전체') 자체가 웹에 없다. 모바일 전용."
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "GET baseDate=YYYY-MM-DD 계약과 전 계좌 합산·시장별(국내주식/미국옵션/미국주식/채권)·종목별 읽기 전용 라이브 스키마를 2026-09-03 검증. portfolio snapshot으로 노출. 증권 도메인 + WTS 백엔드이며 웹 UI는 없음."
     },
     "/api/v1/asset-snapshot/all-accounts/page": {
-      "status": "candidate",
-      "note": "번들 정의: GET wts-cert-api /api/v1/asset-snapshot/all-accounts/page. 전 계좌 합산 버전 (2026-08-24 신규). 웹 UI 없음 확정 (2026-08-24 라이브): /account/asset·/account·/investment-portfolio 첫 로드 + '자산' 클릭까지 캡처해도 미호출. 기간 선택 UI('1개월/3개월/1년/전체') 자체가 웹에 없다. 모바일 전용."
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "GET pageSize(필수 양수)+cursorKey(선택) 계약과 전 계좌 합산 읽기 전용 라이브 페이지 스키마를 2026-09-03 검증. 마지막 페이지 nextCursorKey는 null이며 실시간 지점이 pageSize 외 한 건 추가될 수 있음. portfolio snapshots로 노출. 증권 도메인 + WTS 백엔드이며 웹 UI는 없음."
     },
     "/api/v1/asset-snapshot/chart": {
       "status": "candidate",
       "note": "번들 정의: GET wts-cert-api /api/v1/asset-snapshot/chart/{range}/{stepUnit}. 웹 UI 없음 확정 (2026-08-24 라이브): /account/asset·/account·/investment-portfolio 첫 로드 + '자산' 클릭까지 캡처해도 미호출. 기간 선택 UI('1개월/3개월/1년/전체') 자체가 웹에 없다. 모바일 전용."
     },
+    "/api/v1/asset-snapshot/chart/{range}/{stepUnit}": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "정확한 accountKey 헤더·번들 호출부와 ONE_MONTH/DAY 읽기 전용 라이브 응답 계약을 2026-09-03 검증. 단일 증권 계좌 원금·평가액·수익률·기간 고저·실시간 지점을 portfolio performance --account로 노출하고 원래 계좌 키는 출력하지 않음. 증권 도메인 + WTS 백엔드이며 웹 UI는 없음."
+    },
     "/api/v1/asset-snapshot/detail-by-date": {
-      "status": "candidate",
-      "note": "번들 정의: GET wts-cert-api /api/v1/asset-snapshot/detail-by-date. 웹 UI 없음 확정 (2026-08-24 라이브): /account/asset·/account·/investment-portfolio 첫 로드 + '자산' 클릭까지 캡처해도 미호출. 기간 선택 UI('1개월/3개월/1년/전체') 자체가 웹에 없다. 모바일 전용."
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "GET baseDate=YYYY-MM-DD+accountKey 계약과 시장별·종목별 읽기 전용 라이브 스키마를 2026-09-03 검증. portfolio snapshot --account로 노출하고 원래 계좌 키는 출력하지 않음. 증권 도메인 + WTS 백엔드이며 웹 UI는 없음."
     },
     "/api/v1/asset-snapshot/page": {
-      "status": "candidate",
-      "note": "번들 정의: GET wts-cert-api /api/v1/asset-snapshot/page. 웹 UI 없음 확정 (2026-08-24 라이브): /account/asset·/account·/investment-portfolio 첫 로드 + '자산' 클릭까지 캡처해도 미호출. 기간 선택 UI('1개월/3개월/1년/전체') 자체가 웹에 없다. 모바일 전용."
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "verified",
+      "note": "GET pageSize(필수 양수)+cursorKey(선택)+accountKey 계약과 읽기 전용 라이브 페이지 스키마를 2026-09-03 검증. 마지막 페이지 nextCursorKey는 null이며 실시간 지점이 pageSize 외 한 건 추가될 수 있음. portfolio snapshots --account로 노출하고 원래 계좌 키는 출력하지 않음. 증권 도메인 + WTS 백엔드이며 웹 UI는 없음."
     },
     "/api/v1/bond-infos": {
       "status": "candidate",
@@ -1349,17 +1375,19 @@
       }
     },
     "/api/v1/asset-snapshot/all-accounts/chart/{range}/{stepUnit}": {
-      "status": "candidate",
-      "note": "번들 정의: GET wts-cert-api /api/v1/asset-snapshot/all-accounts/chart/{range}/{stepUnit}. 전 계좌 합산 버전 (2026-08-24 신규). 웹 UI 없음 확정 (2026-08-24 라이브): /account/asset·/account·/investment-portfolio 첫 로드 + '자산' 클릭까지 캡처해도 미호출. 기간 선택 UI('1개월/3개월/1년/전체') 자체가 웹에 없다. 모바일 전용.",
+      "status": "implemented",
+      "note": "정확한 번들 호출부와 ONE_MONTH/DAY 읽기 전용 라이브 응답 계약을 2026-09-03 검증. 전 계좌 합산 원금·평가액·수익률·기간 고저·실시간 지점을 portfolio performance로 노출하며, 서버가 임의 enum도 200으로 받으므로 검증된 기간 조합만 사용. 증권 도메인 + WTS 백엔드이며 웹 UI는 없음.",
       "method": "GET",
       "host": "wts-cert-api",
+      "evidence": "verified",
       "first_seen": "2026-08-24"
     },
     "/api/v1/asset-snapshot/all-accounts/detail-by-date": {
-      "status": "candidate",
-      "note": "번들 정의: GET wts-cert-api /api/v1/asset-snapshot/all-accounts/detail-by-date. 전 계좌 합산 버전 (2026-08-24 신규). 웹 UI 없음 확정 (2026-08-24 라이브): /account/asset·/account·/investment-portfolio 첫 로드 + '자산' 클릭까지 캡처해도 미호출. 기간 선택 UI('1개월/3개월/1년/전체') 자체가 웹에 없다. 모바일 전용.",
+      "status": "implemented",
+      "note": "GET baseDate=YYYY-MM-DD 계약과 전 계좌 합산·시장별(국내주식/미국옵션/미국주식/채권)·종목별 읽기 전용 라이브 스키마를 2026-09-03 검증. portfolio snapshot으로 노출. 증권 도메인 + WTS 백엔드이며 웹 UI는 없음.",
       "method": "GET",
       "host": "wts-cert-api",
+      "evidence": "verified",
       "first_seen": "2026-08-24",
       "probe": {
         "verdict": "needs-params",
@@ -1370,10 +1398,11 @@
       }
     },
     "/api/v1/asset-snapshot/all-accounts/page": {
-      "status": "candidate",
-      "note": "번들 정의: GET wts-cert-api /api/v1/asset-snapshot/all-accounts/page. 전 계좌 합산 버전 (2026-08-24 신규). 웹 UI 없음 확정 (2026-08-24 라이브): /account/asset·/account·/investment-portfolio 첫 로드 + '자산' 클릭까지 캡처해도 미호출. 기간 선택 UI('1개월/3개월/1년/전체') 자체가 웹에 없다. 모바일 전용.",
+      "status": "implemented",
+      "note": "GET pageSize(필수 양수)+cursorKey(선택) 계약과 전 계좌 합산 읽기 전용 라이브 페이지 스키마를 2026-09-03 검증. 마지막 페이지 nextCursorKey는 null이며 실시간 지점이 pageSize 외 한 건 추가될 수 있음. portfolio snapshots로 노출. 증권 도메인 + WTS 백엔드이며 웹 UI는 없음.",
       "method": "GET",
       "host": "wts-cert-api",
+      "evidence": "verified",
       "first_seen": "2026-08-24",
       "probe": {
         "verdict": "needs-params",
@@ -1384,17 +1413,19 @@
       }
     },
     "/api/v1/asset-snapshot/chart/{range}/{stepUnit}": {
-      "status": "candidate",
-      "note": "번들 정의: GET wts-cert-api /api/v1/asset-snapshot/chart/{range}/{stepUnit}. 웹 UI 없음 확정 (2026-08-24 라이브): /account/asset·/account·/investment-portfolio 첫 로드 + '자산' 클릭까지 캡처해도 미호출. 기간 선택 UI('1개월/3개월/1년/전체') 자체가 웹에 없다. 모바일 전용.",
+      "status": "implemented",
+      "note": "정확한 accountKey 헤더·번들 호출부와 ONE_MONTH/DAY 읽기 전용 라이브 응답 계약을 2026-09-03 검증. 단일 증권 계좌 원금·평가액·수익률·기간 고저·실시간 지점을 portfolio performance --account로 노출하고 원래 계좌 키는 출력하지 않음. 증권 도메인 + WTS 백엔드이며 웹 UI는 없음.",
       "method": "GET",
       "host": "wts-cert-api",
+      "evidence": "verified",
       "first_seen": "2026-07-13"
     },
     "/api/v1/asset-snapshot/detail-by-date": {
-      "status": "candidate",
-      "note": "번들 정의: GET wts-cert-api /api/v1/asset-snapshot/detail-by-date. 웹 UI 없음 확정 (2026-08-24 라이브): /account/asset·/account·/investment-portfolio 첫 로드 + '자산' 클릭까지 캡처해도 미호출. 기간 선택 UI('1개월/3개월/1년/전체') 자체가 웹에 없다. 모바일 전용.",
+      "status": "implemented",
+      "note": "GET baseDate=YYYY-MM-DD+accountKey 계약과 시장별·종목별 읽기 전용 라이브 스키마를 2026-09-03 검증. portfolio snapshot --account로 노출하고 원래 계좌 키는 출력하지 않음. 증권 도메인 + WTS 백엔드이며 웹 UI는 없음.",
       "method": "GET",
       "host": "wts-cert-api",
+      "evidence": "verified",
       "first_seen": "2026-07-13",
       "probe": {
         "verdict": "needs-params",
@@ -1405,10 +1436,11 @@
       }
     },
     "/api/v1/asset-snapshot/page": {
-      "status": "candidate",
-      "note": "번들 정의: GET wts-cert-api /api/v1/asset-snapshot/page. 웹 UI 없음 확정 (2026-08-24 라이브): /account/asset·/account·/investment-portfolio 첫 로드 + '자산' 클릭까지 캡처해도 미호출. 기간 선택 UI('1개월/3개월/1년/전체') 자체가 웹에 없다. 모바일 전용.",
+      "status": "implemented",
+      "note": "GET pageSize(필수 양수)+cursorKey(선택)+accountKey 계약과 읽기 전용 라이브 페이지 스키마를 2026-09-03 검증. 마지막 페이지 nextCursorKey는 null이며 실시간 지점이 pageSize 외 한 건 추가될 수 있음. portfolio snapshots --account로 노출하고 원래 계좌 키는 출력하지 않음. 증권 도메인 + WTS 백엔드이며 웹 UI는 없음.",
       "method": "GET",
       "host": "wts-cert-api",
+      "evidence": "verified",
       "first_seen": "2026-07-13",
       "probe": {
         "verdict": "needs-params",

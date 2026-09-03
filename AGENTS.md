@@ -81,7 +81,7 @@ Rules for agents:
 
 ## Probe 목록
 
-현재 `monitor api` 는 65개 read-only endpoint 를 감시합니다. 단일 진실 소스는
+현재 `monitor api` 는 71개 read-only endpoint 를 감시합니다. 단일 진실 소스는
 `internal/monitor.Probes()` 런타임 결과입니다. 대부분은 `internal/ops`
 레지스트리의 오퍼레이션 옆 `ProbeSpec`과 공용 `ProbeRefs`에서 파생되고, 카탈로그
 오퍼레이션이 없는 CLI 전용 5개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
@@ -128,6 +128,12 @@ Rules for agents:
 - `account-commission-info` — `GET /api/v2/trading/commission-info`
 - `account-summary-overview` — `GET /api/v3/my-assets/summaries/markets/all/overview`
 - `account-all-overview` — `POST /api/v1/dashboard/all-accounts`
+- `asset-performance-all` — `GET /api/v1/asset-snapshot/all-accounts/chart/ONE_MONTH/DAY`
+- `asset-performance-account` — `GET /api/v1/asset-snapshot/chart/ONE_MONTH/DAY` (`accountKey`)
+- `asset-snapshots-all` — `GET /api/v1/asset-snapshot/all-accounts/page?pageSize=1`
+- `asset-snapshots-account` — `GET /api/v1/asset-snapshot/page?pageSize=1` (`accountKey`)
+- `asset-snapshot-detail-all` — `GET /api/v1/asset-snapshot/all-accounts/detail-by-date?baseDate=<today>`
+- `asset-snapshot-detail-account` — `GET /api/v1/asset-snapshot/detail-by-date?baseDate=<today>` (`accountKey`)
 - `open-banking-status` — `GET /api/v1/autotrade/open-banking/info/find`
 - `open-banking-creatable` — `GET /api/v1/autotrade/open-banking/creatable`
 - `open-banking-registration` — `GET /api/v1/autotrade/open-banking/need-registration`
