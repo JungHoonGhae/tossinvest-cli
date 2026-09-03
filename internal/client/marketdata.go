@@ -874,51 +874,44 @@ func (c *Client) GetEarningCallHome(ctx context.Context) (domain.EarningCalls, e
 	return out, nil
 }
 
-// GetNewsBriefing returns the personalized AI news briefing grouped by theme
-// and enriched with the holding/watchlist context behind each signal. v2 adds
-// asset, return, direction, and reasoning title while preserving the v1 news
-// fields consumed by existing callers. 공식 API 에 없는 web 전용 기능.
-func (c *Client) GetNewsBriefing(ctx context.Context) (domain.NewsBriefing, error) {
-	var envelope quoteEnvelope[struct {
+type newsBriefingRaw struct {
+	CreatedAt string `json:"createdAt"`
+	Items     []struct {
+		Section   string `json:"section"`
+		SignalID  string `json:"signalId"`
+		TraceID   string `json:"traceId"`
 		CreatedAt string `json:"createdAt"`
-		Items     []struct {
-			Section   string `json:"section"`
-			SignalID  string `json:"signalId"`
-			TraceID   string `json:"traceId"`
-			CreatedAt string `json:"createdAt"`
-			Category  struct {
-				Keywords []string `json:"keywords"`
-				Type     string   `json:"type"`
-			} `json:"category"`
-			ReasoningSummary struct {
-				AssetInfo struct {
-					Code         string `json:"code"`
-					Name         string `json:"name"`
-					LogoImageURL string `json:"logoImageUrl"`
-				} `json:"assetInfo"`
-				AssetType       string  `json:"assetType"`
-				InvestmentType  string  `json:"investmentType"`
-				ProfitLossRate  float64 `json:"profitLossRate"`
-				ReasoningTitle  string  `json:"reasoningTitle"`
-				SignalDirection int     `json:"signalDirection"`
-			} `json:"reasoningSummary"`
-			News []struct {
-				ID         string `json:"id"`
-				Title      string `json:"title"`
-				AgencyName string `json:"agencyName"`
-				Source     string `json:"source"`
-				FaviconURL string `json:"faviconUrl"`
-				CreatedAt  string `json:"createdAt"`
-			} `json:"news"`
-			RelatedStocks []relatedStockRaw `json:"relatedStocks"`
-		} `json:"items"`
-	}]
-	endpoint := c.certBaseURL + "/api/v2/reasoning/personalized"
-	if err := c.getJSON(ctx, endpoint, &envelope); err != nil {
-		return domain.NewsBriefing{}, err
-	}
-	out := domain.NewsBriefing{CreatedAt: envelope.Result.CreatedAt, FetchedAt: time.Now().UTC()}
-	for _, it := range envelope.Result.Items {
+		Category  struct {
+			Keywords []string `json:"keywords"`
+			Type     string   `json:"type"`
+		} `json:"category"`
+		ReasoningSummary struct {
+			AssetInfo struct {
+				Code         string `json:"code"`
+				Name         string `json:"name"`
+				LogoImageURL string `json:"logoImageUrl"`
+			} `json:"assetInfo"`
+			AssetType       string  `json:"assetType"`
+			InvestmentType  string  `json:"investmentType"`
+			ProfitLossRate  float64 `json:"profitLossRate"`
+			ReasoningTitle  string  `json:"reasoningTitle"`
+			SignalDirection int     `json:"signalDirection"`
+		} `json:"reasoningSummary"`
+		News []struct {
+			ID         string `json:"id"`
+			Title      string `json:"title"`
+			AgencyName string `json:"agencyName"`
+			Source     string `json:"source"`
+			FaviconURL string `json:"faviconUrl"`
+			CreatedAt  string `json:"createdAt"`
+		} `json:"news"`
+		RelatedStocks []relatedStockRaw `json:"relatedStocks"`
+	} `json:"items"`
+}
+
+func mapNewsBriefing(raw newsBriefingRaw, scope string) domain.NewsBriefing {
+	out := domain.NewsBriefing{CreatedAt: raw.CreatedAt, Scope: scope, Items: make([]domain.BriefingItem, 0, len(raw.Items)), FetchedAt: time.Now().UTC()}
+	for _, it := range raw.Items {
 		bi := domain.BriefingItem{
 			CategoryType:      it.Category.Type,
 			Keywords:          it.Category.Keywords,
@@ -948,7 +941,39 @@ func (c *Client) GetNewsBriefing(ctx context.Context) (domain.NewsBriefing, erro
 		}
 		out.Items = append(out.Items, bi)
 	}
-	return out, nil
+	return out
+}
+
+// GetNewsBriefing returns the personalized AI news briefing grouped by theme
+// and enriched with the holding/watchlist context behind each signal. v2 adds
+// asset, return, direction, and reasoning title while preserving the v1 news
+// fields consumed by existing callers. 공식 API 에 없는 web 전용 기능.
+func (c *Client) GetNewsBriefing(ctx context.Context) (domain.NewsBriefing, error) {
+	var envelope quoteEnvelope[newsBriefingRaw]
+	if err := c.getJSON(ctx, c.certBaseURL+"/api/v2/reasoning/personalized", &envelope); err != nil {
+		return domain.NewsBriefing{}, err
+	}
+	return mapNewsBriefing(envelope.Result, "personalized"), nil
+}
+
+// GetMarketNewsBriefing returns the latest AI briefing for the Korean or US
+// market. It is not personalized and is available through the WTS session even
+// though the command-line surface does not otherwise expose the dashboard UI.
+func (c *Client) GetMarketNewsBriefing(ctx context.Context, market string) (domain.NewsBriefing, error) {
+	scope := strings.ToLower(strings.TrimSpace(market))
+	nationCode := map[string]string{"kr": "KOR", "us": "USA"}[scope]
+	if nationCode == "" {
+		return domain.NewsBriefing{}, fmt.Errorf("unsupported briefing market %q: use kr or us", market)
+	}
+	if err := c.requireSession(); err != nil {
+		return domain.NewsBriefing{}, err
+	}
+	endpoint := c.certBaseURL + "/api/v1/dashboard/wts/overview/ai-signals/latest?nationCode=" + url.QueryEscape(nationCode)
+	var envelope quoteEnvelope[newsBriefingRaw]
+	if err := c.getJSON(ctx, endpoint, &envelope); err != nil {
+		return domain.NewsBriefing{}, err
+	}
+	return mapNewsBriefing(envelope.Result, scope), nil
 }
 
 // GetEarningCalls returns the upcoming earnings-call (어닝콜) calendar.

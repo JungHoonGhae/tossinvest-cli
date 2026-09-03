@@ -168,6 +168,14 @@ class TestClassify(unittest.TestCase):
             "/api/v1/user-price-alimy/{stockCode}",
         )
 
+    def test_sector_probe_normalizes_small_numeric_id_to_catalog_template(self):
+        self.assertEqual(
+            W._probe_inventory_path(
+                "/api/v2/dashboard/wts/overview/tics/1/stocks"
+            ),
+            "/api/v2/dashboard/wts/overview/tics/{id}/stocks",
+        )
+
     def test_diff_reports_build_and_chunk_changes(self):
         previous = {"build_id": "old", "chunk_count": 10}
         current = {

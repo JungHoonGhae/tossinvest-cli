@@ -53,6 +53,37 @@ func TestDiscoveryBatchOperationsAreCataloguedAndReadOnly(t *testing.T) {
 	}
 }
 
+func TestHiddenReadBatchOperationsAreCataloguedAndMonitored(t *testing.T) {
+	t.Parallel()
+	catalog := NewCatalog()
+	for _, id := range []string{"market_news_briefing", "sector_detail", "lending_top_revenue"} {
+		op, ok := catalog.Get(id)
+		if !ok {
+			t.Errorf("operation %q missing", id)
+			continue
+		}
+		if op.Backend != "wts" || op.Domain != "securities" || op.Write || op.Probe == nil {
+			t.Errorf("operation %q metadata = %#v", id, op)
+		}
+	}
+	wantSectorProbes := map[string]bool{
+		"sector-detail-overview": false,
+		"sector-detail-stocks":   false,
+		"sector-detail-etfs":     false,
+		"sector-detail-news":     false,
+	}
+	for _, probe := range catalog.Probes() {
+		if _, ok := wantSectorProbes[probe.Name]; ok {
+			wantSectorProbes[probe.Name] = true
+		}
+	}
+	for name, found := range wantSectorProbes {
+		if !found {
+			t.Errorf("sector detail dependency probe %q missing", name)
+		}
+	}
+}
+
 func TestBankingStatusOperationMasksIdentityUnlessFull(t *testing.T) {
 	t.Parallel()
 	deps := discoveryWTSDeps(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

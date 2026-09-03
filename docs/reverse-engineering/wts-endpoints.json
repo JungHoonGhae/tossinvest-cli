@@ -4,10 +4,10 @@
   "chunk_count": 77,
   "total": 1113,
   "counts": {
-    "implemented": 138,
-    "candidate": 319,
+    "implemented": 144,
+    "candidate": 313,
     "excluded": 656,
-    "candidate_next": 25,
+    "candidate_next": 19,
     "meaningful": 457
   },
   "overrides": {
@@ -2616,9 +2616,7 @@
       }
     },
     "/api/v1/dashboard/wts/overview/ai-signals/latest": {
-      "status": "candidate",
-      "priority": "next",
-      "note": "AI 시그널 확장",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -3340,9 +3338,7 @@
       "first_seen": "2026-08-24"
     },
     "/api/v1/lending/revenue/account/top-revenue": {
-      "status": "candidate",
-      "priority": "next",
-      "note": "대주(주식대여) 수익",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19",
@@ -8170,9 +8166,7 @@
       }
     },
     "/api/v2/dashboard/wts/overview/tics/{id}/etfs": {
-      "status": "candidate",
-      "priority": "next",
-      "note": "업종(TICS) 개요·랭킹",
+      "status": "implemented",
       "method": "POST",
       "host": "wts-info-api",
       "first_seen": "2026-06-29",
@@ -8184,9 +8178,7 @@
       }
     },
     "/api/v2/dashboard/wts/overview/tics/{id}/news": {
-      "status": "candidate",
-      "priority": "next",
-      "note": "업종(TICS) 개요·랭킹",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-info-api",
       "first_seen": "2026-06-29",
@@ -8198,9 +8190,7 @@
       }
     },
     "/api/v2/dashboard/wts/overview/tics/{id}/overview": {
-      "status": "candidate",
-      "priority": "next",
-      "note": "업종(TICS) 개요·랭킹",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-info-api",
       "first_seen": "2026-06-29",
@@ -8226,9 +8216,7 @@
       }
     },
     "/api/v2/dashboard/wts/overview/tics/{id}/stocks": {
-      "status": "candidate",
-      "priority": "next",
-      "note": "업종(TICS) 개요·랭킹",
+      "status": "implemented",
       "method": "POST",
       "host": "wts-info-api",
       "first_seen": "2026-06-29",

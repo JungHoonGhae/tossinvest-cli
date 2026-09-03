@@ -843,6 +843,21 @@ type LendingExpected struct {
 	FetchedAt   time.Time              `json:"fetched_at"`
 }
 
+// LendingRevenueRank is one anonymized account in Toss Securities' current
+// share-lending revenue ranking. Revenue preserves the upstream base amount;
+// RevenueKRW is the explicit won conversion returned beside it.
+type LendingRevenueRank struct {
+	Rank       int     `json:"rank"`
+	UserName   string  `json:"user_name"`
+	Revenue    float64 `json:"revenue"`
+	RevenueKRW float64 `json:"revenue_krw"`
+}
+
+type LendingRevenueRanking struct {
+	Items     []LendingRevenueRank `json:"items"`
+	FetchedAt time.Time            `json:"fetched_at"`
+}
+
 // CommunityUser is one ranked community profile. Fields vary by ranking type:
 // Description for influencers, Profit* for return rankings, Following* for
 // fastest-growing rankings.
@@ -897,6 +912,7 @@ type BriefingItem struct {
 // NewsBriefing is the personalized AI news briefing grouped by theme.
 type NewsBriefing struct {
 	CreatedAt string         `json:"created_at"`
+	Scope     string         `json:"scope,omitempty"`
 	Items     []BriefingItem `json:"items"`
 	FetchedAt time.Time      `json:"fetched_at"`
 }

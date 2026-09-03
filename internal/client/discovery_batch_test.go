@@ -37,6 +37,47 @@ func TestGetNewsBriefingUsesRicherPersonalizedV2Contract(t *testing.T) {
 	}
 }
 
+func TestGetMarketNewsBriefingUsesNationalLatestContract(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/dashboard/wts/overview/ai-signals/latest" || r.URL.Query().Get("nationCode") != "KOR" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"result":{"createdAt":"2026-09-03T00:00:00Z","items":[{"signalId":"sig-kr","traceId":"trace-kr","createdAt":"2026-09-03T01:00:00Z","category":{"type":"시장","keywords":["반도체"]},"reasoningSummary":{"assetInfo":{"code":"A000001","name":"예시 종목","logoImageUrl":"https://example.test/logo.png"},"assetType":"STOCKS","investmentType":"MARKET","profitLossRate":3.5,"reasoningTitle":"시장 브리핑","signalDirection":1},"news":[{"id":"news-kr","title":"국내 시장 뉴스","agencyName":"예시 통신사","source":"src","createdAt":"2026-09-03T00:30:00Z"}],"relatedStocks":[{"code":"A000002"}]}]}}`))
+	}))
+	t.Cleanup(server.Close)
+
+	got, err := testClientFor(server).GetMarketNewsBriefing(context.Background(), "kr")
+	if err != nil {
+		t.Fatalf("GetMarketNewsBriefing: %v", err)
+	}
+	if got.Scope != "kr" || len(got.Items) != 1 {
+		t.Fatalf("briefing = %#v", got)
+	}
+	item := got.Items[0]
+	if item.SignalID != "sig-kr" || item.AssetCode != "A000001" || item.ReasoningTitle != "시장 브리핑" || len(item.News) != 1 || item.News[0].ID != "news-kr" {
+		t.Fatalf("item = %#v", item)
+	}
+}
+
+func TestGetMarketNewsBriefingRejectsUnknownMarketBeforeRequest(t *testing.T) {
+	t.Parallel()
+	requested := false
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		requested = true
+	}))
+	t.Cleanup(server.Close)
+
+	_, err := testClientFor(server).GetMarketNewsBriefing(context.Background(), "jp")
+	if err == nil {
+		t.Fatal("expected unsupported market error")
+	}
+	if requested {
+		t.Fatal("invalid market must be rejected before making a request")
+	}
+}
+
 func TestGetMarketKeyEventsMapsEarningsAndEconomicIndicators(t *testing.T) {
 	t.Parallel()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

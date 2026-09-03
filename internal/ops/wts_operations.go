@@ -22,11 +22,20 @@ const (
 )
 
 func statusAndPath(path, typ string) func(int, []byte) error {
+	return statusAndPaths([2]string{path, typ})
+}
+
+func statusAndPaths(expected ...[2]string) func(int, []byte) error {
 	return func(status int, body []byte) error {
 		if err := ExpectStatus(status, 200); err != nil {
 			return err
 		}
-		return ExpectPath(body, path, typ)
+		for _, item := range expected {
+			if err := ExpectPath(body, item[0], item[1]); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 }
 
@@ -121,6 +130,29 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "sector_detail", Method: "GET", Path: "wts:market/sector", Backend: "wts", Domain: "securities",
+			Category: "market", Summary: "One TICS sector's overview plus the server-default first page of constituent stocks, related ETFs, and news, with total counts. WTS-only.",
+			Params: []Param{{Name: "id", Type: "integer", Required: true, Desc: "sector id from sectors"}},
+			Probe: &ProbeSpec{Name: "sector-detail-overview", Method: "GET",
+				URL:   probeInfo + "/api/v2/dashboard/wts/overview/tics/1/overview",
+				Check: statusAndPath("result.ticsId", "number")},
+			ExtraProbes: []ProbeSpec{
+				{Name: "sector-detail-stocks", Method: "POST", URL: probeInfo + "/api/v2/dashboard/wts/overview/tics/1/stocks", Body: `{}`, Check: statusAndPaths([2]string{"result.stocks", "array"}, [2]string{"result.totalCount", "number"})},
+				{Name: "sector-detail-etfs", Method: "POST", URL: probeInfo + "/api/v2/dashboard/wts/overview/tics/1/etfs", Body: `{}`, Check: statusAndPaths([2]string{"result.etfs", "array"}, [2]string{"result.totalCount", "number"})},
+				{Name: "sector-detail-news", Method: "GET", URL: probeInfo + "/api/v2/dashboard/wts/overview/tics/1/news", Check: statusAndPaths([2]string{"result.body", "array"}, [2]string{"result.totalCount", "number"})},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				id, err := argInt(args, "id")
+				if err != nil {
+					return nil, err
+				}
+				if id <= 0 {
+					return nil, fmt.Errorf("parameter %q must be greater than zero", "id")
+				}
+				return d.WTS.GetSectorDetail(ctx, id)
+			},
+		},
+		{
 			ID: "ai_signals", Method: "GET", Path: "wts:market/signals", Backend: "wts",
 			Category: "market", Summary: "Toss AI trading signals. WTS-only.",
 			Probe: &ProbeSpec{Name: "ai-signals", Method: "GET",
@@ -183,6 +215,21 @@ func wtsOperations() []Operation {
 			},
 		},
 		{
+			ID: "market_news_briefing", Method: "GET", Path: "wts:market/briefing/latest", Backend: "wts", Domain: "securities",
+			Category: "market", Summary: "Latest non-personalized AI briefing for the Korean or US market. WTS-only.",
+			Params: []Param{{Name: "market", Type: "string", Required: true, Desc: `"kr" or "us"`}},
+			Probe: &ProbeSpec{Name: "market-news-briefing", Method: "GET",
+				URL:   probeCert + "/api/v1/dashboard/wts/overview/ai-signals/latest?nationCode=KOR",
+				Check: statusAndPath("result.items", "array")},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				market, err := argString(args, "market")
+				if err != nil {
+					return nil, err
+				}
+				return d.WTS.GetMarketNewsBriefing(ctx, market)
+			},
+		},
+		{
 			ID: "community_rankings", Method: "GET", Path: "wts:community/rankings", Backend: "wts",
 			Category: "market", Summary: "Toss community rankings (influencer / profit / followers). WTS-only.",
 			Params: []Param{{Name: "type", Type: "string", Required: true, Desc: `"influencer", "profit", or "followers"`}},
@@ -207,6 +254,24 @@ func wtsOperations() []Operation {
 				}},
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.GetLendingExpected(ctx)
+			},
+		},
+		{
+			ID: "lending_top_revenue", Method: "GET", Path: "wts:lending/revenue/top", Backend: "wts", Domain: "securities",
+			Category: "account", Summary: "Anonymized share-lending revenue ranking in server order. WTS-only.",
+			Params: []Param{{Name: "size", Type: "integer", Desc: "number of rows (0 = all returned by server)"}},
+			Probe: &ProbeSpec{Name: "lending-top-revenue", Method: "GET",
+				URL:   probeCert + "/api/v1/lending/revenue/account/top-revenue",
+				Check: statusAndPath("result.items", "array")},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				size, err := argInt(args, "size")
+				if err != nil {
+					return nil, err
+				}
+				if size < 0 {
+					return nil, fmt.Errorf("parameter %q must be zero or greater", "size")
+				}
+				return d.WTS.GetTopLendingRevenue(ctx, size)
 			},
 		},
 		{

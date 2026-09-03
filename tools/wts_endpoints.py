@@ -108,6 +108,7 @@ IMPLEMENTED = [
     r"^/api/v1/dashboard/wts/overview/(exchange-rates|indicator/index)",
     r"^/api/v1/dashboard/common/cached-orderable-amount",
     r"^/api/v1/lending/revenue/account/expected$",
+    r"^/api/v1/lending/revenue/account/top-revenue$",
     r"^/api/v2/dashboard/asset/sections",
     # 정확히 부르는 것만 건다. 접두사로 두면 부르지도 않는 형제 경로까지
     # implemented 가 된다 — `/usd/base-exchange-rate/{date}`(응답 스키마가 다른
@@ -131,9 +132,11 @@ IMPLEMENTED = [
     r"^/api/v1/earning-call/home$",                              # market earnings --major
     r"^/api/v1/community/top-rankings(?:/[^/]+)?$",              # community rankings
     r"^/api/v1/dashboard/wts/overview/ai-signals/personalized$", # market briefing
+    r"^/api/v1/dashboard/wts/overview/ai-signals/latest$",       # market briefing --scope kr|us
     r"^/api/v1/dividends/accounts/annual/history",               # portfolio dividends
     r"^/api/v1/prime/users/(info|benefits)$",                    # account prime
     r"^/api/v1/tics/all$",                                        # market sectors
+    r"^/api/v2/dashboard/wts/overview/tics/[^/]+/(overview|stocks|etfs|news)$", # market sector
     r"^/api/v1/tics/rankings$",                                   # market themes
     r"^/api/v1/index-prices(?:/[^/]+)?$",                          # market index <code> (지수 상세)
     r"^/api/v2/autotrade/plan/find$",                             # accumulate list
@@ -484,6 +487,12 @@ def discover_go_probes(repo_root):
 
 def _probe_inventory_path(path):
     """Turn fixed probe symbols into the reusable endpoint template they verify."""
+    path = re.sub(
+        r"(^/api/v2/dashboard/wts/overview/tics/)[0-9]+(?=/)",
+        r"\1{id}",
+        path,
+        count=1,
+    )
     for prefix in ("stock-infos", "stock-prices", "index-prices"):
         path = re.sub(
             rf"(^/api/v[0-9]+/{prefix}/)[A-Z][A-Z0-9]{{5,}}",
