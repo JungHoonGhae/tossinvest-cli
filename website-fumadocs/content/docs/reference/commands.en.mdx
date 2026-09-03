@@ -23,9 +23,11 @@ agents should use `--output json`.
 | `tossctl portfolio positions` | Holdings (USD shown for US) |
 | `tossctl portfolio allocation` | Allocation |
 | `tossctl portfolio dividends [--year N] [--by-payment-date]` | Annual dividends (total, region, monthly, tax) |
+| `tossctl portfolio hidden list [--account <key>]` | Holdings hidden from the Securities portfolio (account key omitted) |
+| `tossctl portfolio hidden hide\|show <symbol> [--execute --confirm <token>]` | Preview/confirm hiding or restoring a holding |
 | `tossctl profit` | Cumulative realized profit (trading, dividends, lending, maturity, interest — KRW/USD) |
 | `tossctl tax overseas [--year N]` | Overseas transfer income (rate, deduction, per-stock P/L — for tax filing) |
-| `tossctl accumulate list` | Stock accumulation (recurring auto-buy) plans — 📱 mobile-app-only feature |
+| `tossctl accumulate list` | Stock accumulation plans — 📱 found in the Securities mobile UI, then WTS-call verified |
 | `tossctl accumulate status <symbol>` | Accumulation plan for one stock (Active/Paused) |
 
 ## Quotes
@@ -41,6 +43,8 @@ agents should use `--output json`.
 | `tossctl quote warnings <symbol>` | Buy cautions |
 | `tossctl quote sellable <symbol>` | Sellable quantity |
 | `tossctl quote commission <symbol>` | Commission & tax rate |
+| `tossctl quote alert list <symbol>` | Securities target-price alerts |
+| `tossctl quote alert add\|remove <symbol> --price N --currency KRW\|USD [--execute --confirm <token>]` | Preview/confirm target-price alert changes |
 
 ## Market
 
@@ -91,7 +95,7 @@ Fractional (amount-based) order: `order place --fractional --amount <krw> --qty 
 | Command | Description |
 |------|------|
 | `tossctl account overview [--full]` | All-account and minor-account assets (account numbers masked by default) |
-| `tossctl banking status [--full]` | Open-banking status for stock accumulation (holder/account masked by default) |
+| `tossctl banking status [--full]` | Securities accumulation funding status (not general Banking; holder/account masked) |
 | `tossctl notifications list` | Read-only WTS notification preferences (internal user ID omitted) |
 
 ## Watchlist

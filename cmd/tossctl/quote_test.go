@@ -26,6 +26,19 @@ func TestQuoteMetadataCommandContract(t *testing.T) {
 	}
 }
 
+func TestQuoteAlertCommandContract(t *testing.T) {
+	quote := newQuoteCmd(&rootOptions{})
+	for _, path := range [][]string{{"alert", "list"}, {"alert", "add"}, {"alert", "remove"}} {
+		cmd, _, err := quote.Find(path)
+		if err != nil || cmd == quote || cmd.Name() != path[len(path)-1] {
+			t.Fatalf("%v command not registered: cmd=%q err=%v", path, cmd.Name(), err)
+		}
+		if cmd.Annotations["source"] != "wts" || cmd.Annotations["domain"] != "securities" {
+			t.Fatalf("%v annotations = %#v", path, cmd.Annotations)
+		}
+	}
+}
+
 func TestParseBatchSymbols(t *testing.T) {
 	cases := []struct {
 		name string

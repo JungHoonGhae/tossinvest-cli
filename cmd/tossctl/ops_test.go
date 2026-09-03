@@ -32,6 +32,7 @@ type opsListPayload struct {
 		ID       string   `json:"id"`
 		Method   string   `json:"method"`
 		Path     string   `json:"path"`
+		Domain   string   `json:"domain"`
 		Category string   `json:"category"`
 		Summary  string   `json:"summary"`
 		Backend  string   `json:"backend"`
@@ -57,6 +58,9 @@ func TestOpsListEmitsJSONCatalogWithoutAuth(t *testing.T) {
 	// 로그인하면 뭘 쓸 수 있는지 알 방법이 없다.
 	var sawWTS bool
 	for _, o := range got.Operations {
+		if o.Domain == "" {
+			t.Fatalf("operation %s has no product domain", o.ID)
+		}
 		if o.Backend == "wts" {
 			sawWTS = true
 			break

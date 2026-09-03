@@ -8,8 +8,8 @@
   <h1>tossinvest-cli</h1>
   <p><strong>토스증권에 연결하는 가장 유연한 방법. CLI 로, MCP 서버로, 어떤 AI 에이전트로든 — 공식 API는 물론 웹앱에만 있던 기능까지 하나로.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — 어떤 AI 에이전트로든 <code>tossctl</code> 하나로 토스증권 계좌·시세·거래를 다룹니다. <strong>MCP 서버(<code>tossctl mcp</code>)로 붙이거나 터미널에서 직접</strong>, <strong>공식 키 없이 바로 또는 연결 시 자동 라우팅.</strong></p>
-  <p><sub>수급 · 시장지수 · AI 시그널 · 조건검색 · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview 등 공식 Open API에 없는 tossctl 고유 기능 51가지 — <strong>공식 Open API 지원 범위도 물론 100% 포함합니다.</strong> <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
-  <p><sub><em>The most flexible way to connect Toss Securities — via CLI, via MCP, from any AI agent. 100% of the official Open API, plus 51 tossctl-only capabilities.</em></sub></p>
+  <p><sub>수급 · 시장지수 · AI 시그널 · 조건검색 · 관심종목 관리 · 거래내역 ledger · 실시간 푸시 · 원화 소수점 주문 · dry-run preview 등 공식 Open API에 없는 tossctl 고유 기능 53가지 — <strong>공식 Open API 지원 범위도 물론 100% 포함합니다.</strong> <a href="#지원-범위">전체 비교표 ↓</a></sub></p>
+  <p><sub><em>The most flexible way to connect Toss Securities — via CLI, via MCP, from any AI agent. 100% of the official Open API, plus 53 tossctl-only capabilities.</em></sub></p>
 </div>
 
 <p align="center">
@@ -216,7 +216,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 ## 지원 범위
 
 > **tossctl 은 토스 공식 Open API 의 조회·거래 범위를 100% 커버하고, 그 너머까지 다룹니다.**
-> 공식 [Open API 문서](https://developers.tossinvest.com/docs)의 모든 엔드포인트(계좌·잔고·시세·호가·체결·캔들·상하한가·매도가능수량·수수료·주문 등)에 대응하며, 추가로 수급·시장지수·AI 시그널·조건검색·관심종목 관리·거래내역 ledger·실시간 푸시·원화 소수점 주문·dry-run preview 등 **51개가 공식 Open API에 없는 tossctl 고유 범위**입니다.
+> 공식 [Open API 문서](https://developers.tossinvest.com/docs)의 모든 엔드포인트(계좌·잔고·시세·호가·체결·캔들·상하한가·매도가능수량·수수료·주문 등)에 대응하며, 추가로 수급·시장지수·AI 시그널·조건검색·관심종목 관리·거래내역 ledger·실시간 푸시·원화 소수점 주문·dry-run preview 등 **53개가 공식 Open API에 없는 tossctl 고유 범위**입니다.
 
 <p align="center">
   <img src="docs/assets/api-comparison.svg" alt="tossctl vs 공식 Open API(예정) 커버리지 비교 — tossctl 이 상위집합" width="840" />
@@ -226,6 +226,22 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 좁은 범위입니다 (공식 문서: <https://developers.tossinvest.com/docs>). 아래 표의
 `공식 API (예정)` 칼럼은 그 문서 기준 공식이 커버하는 범위이고, `tossctl` 칼럼은 우리가
 제공하는 범위입니다. **공식 Open API의 ✅ 행은 tossctl 도 전부 ✅ — 즉 공식 Open API 범위를 100% 커버합니다.**
+
+### 기능 영역과 접근 경로는 다릅니다
+
+`증권`·`뱅킹`·`MyData`는 **기능 영역**이고, `공식 Open API`·`WTS`·`mobile`은
+**접근 경로**입니다. `플랫폼`이라는 별도 기능 영역은 두지 않습니다.
+
+| 기능 영역 | 실제 화면/API | tossctl 상태 |
+|---|---|---|
+| 토스증권 | 공식 Open API, 웹 트레이딩 시스템(WTS), 일반 Toss 앱 안의 증권 모바일 화면(MTS 성격) | 공식 + WTS 구현 |
+| 일반 Banking | 일반 Toss 앱의 은행 화면/모바일 API. 대응하는 WTS 웹앱 없음 | 모바일 인증 connector가 없어 미구현 |
+| MyData | 일반 Toss 앱의 카드·소비·외부 금융자산 모바일 API | 계약 일부 정적 확인, 미구현 |
+| 시스템 | 로그인, Open API 허용 IP, API·앱 변경 감시 | 구현 |
+
+따라서 `banking status`는 일반 Banking 조회가 아니라 **토스증권 주식모으기 자금연결
+상태(`securities + wts`)**입니다. 카드 결제 내역·이번 달 소비·은행 거래는 같은 Toss 앱에
+보이더라도 별도 모바일 토큰·동의 범위를 확인하기 전에는 WTS 쿠키로 추측 호출하지 않습니다.
 
 - ✅ 지원 · ❌ 미지원 · 🔸 부분 지원 · 🆕 최근 한 달 내 새로 추가된 기능
 - **`공식 API (예정)` 칼럼 = 공개 문서 기준 예상 커버리지** (사전 신청자 단계적 롤아웃 — 변동 가능).
@@ -300,8 +316,10 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **테마 등락 랭킹** | `market themes` (오늘 가장 많이 오른 테마, 상승종목 수) | ❌ | ✅ |
 | **개인화 뉴스 브리핑** | `market briefing` (보유·관심 종목, 수익률, AI 사유, 원문 뉴스·관련 종목) | ❌ | ✅ |
 | **🆕 핵심 실적·경제지표** | `market key-events` (실적 예상·발표·서프라이즈, 경제지표 실제·예상·직전값) | ❌ | ✅ |
-| **🆕 주식모으기 오픈뱅킹 상태** | `banking status [--full]` (예금주·계좌번호 기본 마스킹) | ❌ | ✅ |
+| **🆕 증권 주식모으기 자금연결 상태** | `banking status [--full]` (일반 Banking 아님; 예금주·계좌번호 기본 마스킹) | ❌ | ✅ |
 | **🆕 알림 설정 조회** | `notifications list` (읽기 전용, 내부 사용자 ID 제외) | ❌ | ✅ |
+| **🆕 목표가 알림 조회·관리** | `quote alert list\|add\|remove <symbol>` (변경은 preview + `--execute --confirm`) | ❌ | ✅ |
+| **🆕 숨긴 보유종목 조회·관리** | `portfolio hidden list\|hide\|show` (계좌 키 비노출, 변경 후 재검증) | ❌ | ✅ |
 | **토스 AI 시그널** | `market signals` (종목별 AI 시그널·키워드·등락) | ❌ | ✅ |
 | **조건 검색 (스크리너)** | `market screener [id]` (프리셋) · `--filter '<json>'` (커스텀 조건) `--nation kr\|us` | ❌ | ✅ |
 | **관심 종목 조회·관리** | `watchlist list [<group-id>] [--all]`·`groups`, `watchlist group create\|rename\|delete`, `watchlist add\|remove --group <id>` (폴더별 조회 + CRUD + 종목 추가/제거) | ❌ | ✅ |
@@ -316,11 +334,11 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 채운 빈 행으로 기록합니다. 정상 응답에 캔들이 0개인 종목도 빈 시계열 행으로 남습니다. 따라서
 자동화는 응답 행 수가 요청 수와 같다고 가정하지 말고 `missing` 또는 빈 CSV 열을 확인해야 합니다.
 
-#### 📱 모바일 앱 전용 기능 (웹에도 UI 없음)
+#### 📱 증권 모바일 화면에서 발견한 WTS 호출 가능 기능 (웹 UI 없음)
 
-위 표의 대부분은 **토스 웹(WTS)에 화면이 있는** 기능입니다. 아래는 한 걸음 더 나아가,
-**토스 모바일 앱에만 화면이 있고 웹에는 UI 자체가 없는** 기능입니다 — tossctl 은 웹 세션으로
-호출 가능한 백엔드 API 를 통해 이것까지 조회할 수 있게 엽니다.
+위 표의 대부분은 **토스증권 웹(WTS)에 화면이 있는** 기능입니다. 아래 기능은 일반 Toss 앱의
+증권 모바일 화면에서 발견했지만, 호출 계약은 현재 **증권 WTS 세션으로 별도 검증된 것**입니다.
+일반 Banking/MyData 모바일 API를 WTS로 호출한다는 뜻이 아닙니다.
 
 | 기능 | 커맨드 | 모바일 앱 | 웹(WTS) | tossctl |
 |------|--------|:--:|:--:|:--:|
@@ -328,8 +346,8 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **주식모으기 조회** | `accumulate list`, `accumulate status <symbol>` (정기 자동매수: Active/Paused·금액·주기·완료 회차) | ✅ (설정 화면) | ❌ (UI 없음) | ✅ (조회) |
 | **미국 배당 수령 방식** | `account detail` 의 «미국 배당» 항목 (`CASH` 현금 수령 / `STOCK` 주식 재투자 + 변경일) | ✅ (설정 화면) | ❌ (UI 없음) | ✅ (조회) |
 
-> 이 목록은 토스가 웹에 UI 를 추가하면 위 일반 조회표로 옮겨집니다.
-> (판정 기준: 웹 라우트에 실제 화면이 뜨는지 — 주간 모니터가 추적)
+> 웹 UI 유무는 발견·분류 정보일 뿐 API 호출 가능 여부의 기준이 아닙니다. 이 항목들은
+> WTS 호출 계약을 별도로 검증했으므로 웹 UI가 없어도 `source=wts`로 유지됩니다.
 
 ### 거래
 
@@ -393,7 +411,7 @@ US 지정가는 `--currency-mode`로 가격 해석을 선택합니다: `KRW` (�
 
 - **유연성 — 토스증권에 연결하는 방법이 가장 열려 있습니다.** 터미널 CLI 로, [MCP 서버](#mcp-서버-tossctl-mcp)로 어떤 AI 에이전트(Claude Code·Codex·Gemini·Cursor·Copilot)에든, 스크립트로 — 전부 **하나의 `tossctl`** 이 처리합니다. **공식 키 없이 바로 시작**하고, 연결하면 공식 경로로 **자동 라우팅**. 특정 앱·SDK·언어·에이전트에 묶이지 않습니다.
 - **범위** — 공식 Open API는 좁은 영역을 단계적으로 천천히 엽니다. tossctl 은 웹 전체(아래 카탈로그)를 추적해 골라 구현하므로 항상 더 넓습니다.
-- **속도** — 새 기능은 어느 플랫폼이든 자사 앱에서 가장 빠르게 통합되므로 늘 웹앱(WTS)에 먼저 실리고, 외부 공개용 API 는 안정적인 범위만 뒤따라 엽니다(누구의 잘못이 아니라 구조적으로 자연스러운 일). tossctl 은 주간 모니터로 신규 엔드포인트를 잡아 **공식 Open API 출시를 기다리지 않고 먼저 구현**합니다. [왜 공식 API가 늦는지 ↗](https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi)
+- **속도** — 증권 기능은 WTS와 모바일 증권 화면에 먼저 통합되고 공개 API에는 안정적인 일부만 뒤따를 수 있습니다. 일반 Banking/MyData는 WTS가 아니라 별도 모바일 경로입니다. tossctl 은 WTS build·endpoint와 일반 Toss Android 버전을 함께 감시해 **접근 경로를 섞지 않고** 검증된 계약만 구현합니다. [왜 공식 API가 늦는지 ↗](https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi)
 - **상위호환** — 공식 Open API가 커버하는 범위는 [이미 100% 지원](#지원-범위)합니다 (공식 Open API가 따라와도 우리가 앞섭니다).
 - **안정성(복원력)** — 공식 Open API 는 엔드포인트 그룹별 초당 1~10회로 제한됩니다(계좌 조회가 **초당 1회**로 가장 빡빡). 빠르게 반복하면 10번 중 8번이 막혀요(실측 3개 시점). tossctl 은 막히면 **곧바로 웹 세션으로 우회**해 데이터를 가져오므로 사용자는 막힌 줄도 모르고 항상 성공합니다 — 자동매매·대시보드처럼 계속 불러야 할 때 차이가 큽니다. (한도 숫자는 토스 정책에 따라 바뀔 수 있어도 '막히면 우회'하는 구조는 그대로.) [공식 한도 표 + 실측 ↗](docs/migration/open-api.md#rate-limit-실측)
 
@@ -781,22 +799,23 @@ python3 -m pip install -e .
 tossctl account list
 tossctl account summary
 tossctl account overview [--full]               # 전체·미성년 계좌 합산, 번호 기본 마스킹
-tossctl banking status [--full]                  # 주식모으기 오픈뱅킹 연결 상태
+tossctl banking status [--full]                  # 증권 주식모으기 자금연결 상태(일반 Banking 아님)
 tossctl notifications list                       # 알림 설정 조회(읽기 전용)
 tossctl portfolio positions
 tossctl portfolio allocation
 tossctl portfolio dividends [--year YYYY] [--by-payment-date]
+tossctl portfolio hidden list [--account <key>]  # 증권 포트폴리오에서 숨긴 보유종목
 tossctl profit                                   # 누적 실현손익 (카테고리별)
 tossctl profit summary --type sales --from 2026-01-01 --to 2026-07-25   # 기간별
 tossctl profit daily --from 2026-01-01 --to 2026-07-25 --output csv      # 종목별 (세금용)
 tossctl tax overseas [--year YYYY]               # 해외주식 양도소득 (세금)
-tossctl tax ria                                  # RIA 절세 리포트 (모바일 앱 전용)
+tossctl tax ria                                  # 증권 모바일 화면에서 발견, WTS 호출 검증
 tossctl account interest [--year YYYY]           # 예탁금 이용료 (지급 건별)
 tossctl account commission                       # 계좌 수수료 체계
 tossctl order funding                            # 매수 가능 여부·필요 입금/환전액
 tossctl market option-hours                      # 미국 옵션 영업일·거래시간
 tossctl community boards                         # 인기 라운지 (팔로워 순)
-tossctl accumulate list|status <symbol>          # 주식모으기 (모바일 앱 전용)
+tossctl accumulate list|status <symbol>          # 증권 모바일 화면에서 발견, WTS 호출 검증
 tossctl market investors|earnings|briefing|sectors|themes|index|ranking|signals
 tossctl market key-events                        # 현재 핵심 실적·경제지표
 tossctl community rankings --type influencer|profit|followers
@@ -808,6 +827,7 @@ tossctl quote batch <symbol> [symbol...]
 tossctl quote orderbook|sellable|commission <symbol>
 tossctl quote crypto BTC,ETH,SOL,XRP
 tossctl quote reasoning|signals <symbol>
+tossctl quote alert list <symbol>                 # 증권 목표가 알림
 tossctl quote options AAPL [--expiry 2026-08-05]
 tossctl market filters PER PBR --nation kr
 tossctl quote supply 005930 --type short --count 20
@@ -818,6 +838,18 @@ tossctl watchlist list [<group-id>] [--all]
 tossctl watchlist groups
 tossctl export positions --market us|kr|all
 tossctl export orders --market us|kr|all
+```
+
+### 비거래 설정 변경
+
+기본 호출은 미리보기입니다. 출력된 토큰을 같은 명령에 다시 전달해야 실제로 적용되고,
+적용 뒤 서버 상태를 재조회합니다. 실주문은 아니므로 거래 config 게이트와는 독립입니다.
+
+```bash
+tossctl quote alert add <symbol> --price <value> --currency KRW|USD
+tossctl quote alert add <symbol> --price <value> --currency KRW|USD --execute --confirm <token>
+tossctl quote alert remove <symbol> --price <value> --currency KRW|USD [--execute --confirm <token>]
+tossctl portfolio hidden hide|show <symbol> [--account <key>] [--execute --confirm <token>]
 ```
 
 ### 거래
@@ -881,11 +913,11 @@ tossctl openapi logout      # 자격증명 파일 삭제
 ### API 회귀 감시
 
 ```bash
-tossctl monitor api           # 46개 endpoint schema probe (병렬); exit 0 통과, 1 실패
+tossctl monitor api           # 48개 endpoint schema probe (병렬); exit 0 통과, 1 실패
 tossctl monitor api --quiet   # cron 용
 ```
 
-본인 머신에서 본인 세션으로 46개 read-only endpoint 응답 schema 를 병렬 점검합니다. [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) 같은 토스 서버측 body 계약 변경을 조기 감지할 목적. exit code 만 반환하므로 알림 채널 (Discord / Slack / ntfy / macOS / 이메일) 은 cron 라인의 `|| <command>` 우항에서 사용자가 합성합니다. 합성 recipe: [`AGENTS.md`](AGENTS.md). 설정 가이드: [`docs/operations.md`](docs/operations.md).
+본인 머신에서 본인 세션으로 48개 read-only endpoint 응답 schema 를 병렬 점검합니다. [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) 같은 토스 서버측 body 계약 변경을 조기 감지할 목적. exit code 만 반환하므로 알림 채널 (Discord / Slack / ntfy / macOS / 이메일) 은 cron 라인의 `|| <command>` 우항에서 사용자가 합성합니다. 합성 recipe: [`AGENTS.md`](AGENTS.md). 설정 가이드: [`docs/operations.md`](docs/operations.md).
 
 ## 주문 ref rollover
 

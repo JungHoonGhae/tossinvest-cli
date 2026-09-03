@@ -23,9 +23,11 @@ description: tossctl 전체 명령
 | `tossctl portfolio positions` | 보유 종목 (미국은 USD 병기) |
 | `tossctl portfolio allocation` | 자산 배분 |
 | `tossctl portfolio dividends [--year N] [--by-payment-date]` | 연간 배당 내역(총액·지역·월별·세금) |
+| `tossctl portfolio hidden list [--account <key>]` | 증권 포트폴리오에서 숨긴 보유종목 조회(계좌 키 비노출) |
+| `tossctl portfolio hidden hide\|show <symbol> [--execute --confirm <token>]` | 보유종목 숨김·복원 preview/confirm |
 | `tossctl profit` | 누적 실현손익 (매매손익·배당·대여·만기·예탁금이자, KRW/USD) |
 | `tossctl tax overseas [--year N]` | 해외주식 양도소득 (세율·공제·종목별 손익 — 세금 신고용) |
-| `tossctl accumulate list` | 주식모으기(정기 자동매수) 전체 설정 — 📱 모바일 앱 전용 기능 |
+| `tossctl accumulate list` | 주식모으기 전체 설정 — 📱 증권 모바일 화면에서 발견 후 WTS 호출 검증 |
 | `tossctl accumulate status <symbol>` | 특정 종목의 주식모으기 설정 (Active/Paused) |
 
 ## 시세 (quote)
@@ -41,6 +43,8 @@ description: tossctl 전체 명령
 | `tossctl quote warnings <symbol>` | 매수 유의사항 |
 | `tossctl quote sellable <symbol>` | 매도가능수량 |
 | `tossctl quote commission <symbol>` | 수수료율·거래세율 |
+| `tossctl quote alert list <symbol>` | 증권 목표가 알림 조회 |
+| `tossctl quote alert add\|remove <symbol> --price N --currency KRW\|USD [--execute --confirm <token>]` | 목표가 알림 변경 preview/confirm |
 
 ## 시장 (market)
 
@@ -91,7 +95,7 @@ description: tossctl 전체 명령
 | 명령 | 설명 |
 |------|------|
 | `tossctl account overview [--full]` | 전체·미성년 계좌 자산(계좌번호 기본 마스킹) |
-| `tossctl banking status [--full]` | 주식모으기 오픈뱅킹 연결 상태(예금주·계좌번호 기본 마스킹) |
+| `tossctl banking status [--full]` | 증권 주식모으기 자금연결 상태(일반 Banking 아님, 예금주·계좌번호 기본 마스킹) |
 | `tossctl notifications list` | WTS 알림 설정 조회(읽기 전용, 내부 사용자 ID 제외) |
 
 ## 관심종목 (watchlist)

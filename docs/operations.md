@@ -2,6 +2,28 @@
 
 운영 측면의 가이드 — API 회귀 감시 cron 설정, 알림 채널 등.
 
+## WTS build + 일반 Toss Android 버전 감시
+
+저장소의 주간 `WTS API Monitor` workflow는 서로 다른 두 접근 경로를 함께 보되 섞지 않습니다.
+
+- **증권 WTS**: build ID, chunk 수, endpoint 추가·삭제를
+  `docs/reverse-engineering/wts-endpoints.json`과 비교합니다. build만 바뀌어도 Discord 알림에
+  이전/현재 ID를 표시합니다. 수집 결과가 기존 endpoint의 75% 아래로 급감하면 부분 fetch로
+  판정해 카탈로그를 덮어쓰지 않습니다.
+- **일반 Toss Android 앱**: `viva.republica.toss`의 공개 배포 후보 버전을
+  `docs/reverse-engineering/android-app.json`의 마지막 정적 감사본과 비교합니다. Google Play가
+  안정적인 기계용 version 필드를 제공하지 않아 APKPure 메타데이터를 **비신뢰 후보 신호**로만
+  사용합니다. 후보가 감사본보다 새로우면 `audit_status=stale`로 알리지만, 다운로드·package 및
+  서명 연속성 검증·정적 분석 전에는 감사 완료 버전으로 승격하지 않습니다.
+
+```bash
+ANDROID_DIFF_OUT=/tmp/android_diff.json python3 tools/android_app_monitor.py
+jq . /tmp/android_diff.json
+```
+
+이 감시는 모바일 API를 호출하거나 사용자 토큰을 수집하지 않습니다. 앱 버전이 바뀌었다는
+사실만 다음 정적 감사의 트리거로 사용합니다.
+
 ## API 회귀 감시 (`tossctl monitor api`)
 
 토스 웹 API는 예고 없이 변경됩니다. 과거 두 차례 user-facing 회귀가 있었습니다:
@@ -9,7 +31,7 @@
 - [#15 / #17](https://github.com/JungHoonGhae/tossinvest-cli/issues/15) — User-Agent 핑거프린팅 차단 (v0.3.6 fix)
 - [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) — `/sections/all` body 계약 변경 (v0.4.8 fix)
 
-`monitor api` 명령은 46개 read-only endpoint 를 schema-invariant probe 로 호출해 이런 변경을 사용자보다 먼저 감지합니다.
+`monitor api` 명령은 48개 read-only endpoint 를 schema-invariant probe 로 호출해 이런 변경을 사용자보다 먼저 감지합니다.
 
 ### 동작 흐름
 
@@ -27,24 +49,24 @@
 
 ### Probe 목록
 
-런타임 목록인 `internal/monitor.Probes()` 가 단일 진실 소스입니다. 40개는
+런타임 목록인 `internal/monitor.Probes()` 가 단일 진실 소스입니다. 42개는
 `internal/ops` 레지스트리의 오퍼레이션 옆 `ProbeSpec` 에서 파생되고, 카탈로그
 오퍼레이션이 없는 CLI 전용 6개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
 
 | 보호 영역 | Probe (개수) |
 | --- | --- |
-| 계좌·포트폴리오 | `account-list`, `account-summary-overview`, `account-all-overview`, `account-receivable`, `account-interest-years`, `account-commission-info`, `portfolio-positions` (7) |
+| 계좌·포트폴리오 | `account-list`, `account-summary-overview`, `account-all-overview`, `account-receivable`, `account-interest-years`, `account-commission-info`, `portfolio-positions`, `hidden-holdings` (8) |
 | 주문·자금 | `pending-orders`, `order-funding`, `auto-trades` (3) |
 | 시세·종목 | `quote-stock-infos`, `quote-trades`, `quote-orderbook`, `quote-price-limits`, `quote-charts`, `quote-reasons`, `quote-crypto`, `quote-stock-signals`, `trading-flows`, `option-expiries` (10) |
 | 시장·리서치 | `market-index`, `index-prices`, `stock-ranking`, `investor-rankings`, `theme-rankings`, `sectors-tics`, `ai-signals`, `screener-presets`, `screener-filter-range`, `earning-call`, `earning-call-home`, `news-briefing`, `market-issues`, `market-calendar`, `market-key-events`, `market-halt`, `market-trading-hours` (17) |
-| 개인화·계좌 부가기능 | `community-rankings`, `lending-expected`, `accumulation-plans`, `profit-overview`, `ria-report`, `open-banking-status`, `notification-settings`, `watchlist`, `watchlist-groups` (9) |
+| 개인화·계좌 부가기능 | `community-rankings`, `lending-expected`, `accumulation-plans`, `profit-overview`, `ria-report`, `open-banking-status`, `notification-settings`, `price-alerts`, `watchlist`, `watchlist-groups` (10) |
 
 이름·method·endpoint 전체 매핑은 [`AGENTS.md`](../AGENTS.md) 의 “Probe 목록”에 있고,
 다음 명령으로 실제 런타임 구성을 검증할 수 있습니다.
 
 ```bash
 go run ./tools/wtsinventory -mode probes -root "$(pwd)" | jq 'length'
-# 46
+# 48
 ```
 
 각 probe 는 status 200 + 핵심 JSON 경로 존재 + 타입을 검사합니다. Toss 가 새 필드를 추가하는 변경은 통과시키고, 핵심 필드가 사라지거나 빈 응답을 받으면 실패합니다.
@@ -72,23 +94,23 @@ Discord 외 Slack · ntfy · macOS notification · 이메일 등 다른 채널 �
   ✓ index-prices — status=200 (53ms)
   … 43 more probes …
 
-46 passed, 0 failed
+48 passed, 0 failed
 ```
 
 실패 (예: #29 같은 body-contract 회귀):
 
 ```
   ✗ portfolio-positions — status=200: result.sections is empty — likely body-contract regression (#29-class)
-… 45 passing probes omitted …
+… 47 passing probes omitted …
 
-45 passed, 1 failed
+47 passed, 1 failed
 ```
 
 webhook 페이로드:
 
 ```
 🚨 tossctl API regression detected (0.4.9)
-2026-05-13 10:00 UTC — 1/46 probes failed
+2026-05-13 10:00 UTC — 1/48 probes failed
 
 ❌ portfolio-positions — POST wts-cert-api.tossinvest.com/api/v2/dashboard/asset/sections/all
     status=200, result.sections is empty — likely body-contract regression (#29-class)

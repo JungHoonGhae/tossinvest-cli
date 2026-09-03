@@ -8,7 +8,7 @@
   <h1>tossinvest-cli</h1>
   <p><strong>The most flexible way to connect Toss Securities. Via CLI, via MCP server, from any AI agent — 100% of the official API, plus the features only the web app had.</strong></p>
   <p>Claude Code · Codex · Gemini · Cursor · GitHub Copilot — any AI agent drives Toss Securities accounts, quotes, and trades through one <code>tossctl</code>. <strong>Attach it as an MCP server (<code>tossctl mcp</code>) or run it by hand</strong>, <strong>with no key at all — or auto-routed through the official path when you connect one.</strong></p>
-  <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — 51 tossctl-only capabilities beyond the official Open API, with <strong>100% of the official Open API's coverage included too.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
+  <p><sub>Investor flows · market indices · AI signals · screener · watchlist management · transaction ledger · real-time push · fractional orders · dry-run preview — 53 tossctl-only capabilities beyond the official Open API, with <strong>100% of the official Open API's coverage included too.</strong> <a href="#support-scope">Full comparison ↓</a></sub></p>
   <p><sub><em>An unofficial Toss Securities CLI for AI agents. Auto-routes through the official OAuth path when you connect an official key.</em></sub></p>
 </div>
 
@@ -174,13 +174,31 @@ For cron: `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 ## Support Scope
 
 > **tossctl covers 100% of the official Toss Open API's read & trade coverage — and goes beyond.**
-> It maps to every endpoint in the official [Open API docs](https://developers.tossinvest.com/docs) (accounts, holdings, quotes, orderbook, ticks, candles, price limits, sellable quantity, commissions, orders, …), and adds investor flows, market indices, AI signals, screener, watchlist management, transaction ledger, real-time push, fractional orders, dry-run preview, and more — **51 capabilities that aren't in the official API are tossctl-only.**
+> It maps to every endpoint in the official [Open API docs](https://developers.tossinvest.com/docs) (accounts, holdings, quotes, orderbook, ticks, candles, price limits, sellable quantity, commissions, orders, …), and adds investor flows, market indices, AI signals, screener, watchlist management, transaction ledger, real-time push, fractional orders, dry-run preview, and more — **53 capabilities that aren't in the official API are tossctl-only.**
 
 <p align="center">
   <img src="docs/assets/api-comparison.en.svg" alt="tossctl vs official Open API (upcoming) coverage — tossctl is a superset" width="900" />
 </p>
 
 The Toss Securities official Open API is currently **rolling out in stages to pre-applicants** and is a narrow, REST-only API (public docs: <https://developers.tossinvest.com/docs>). The `Official API (planned)` column below reflects that documented coverage, and the `tossctl` column is what we provide. **Every ✅ in the official column is also ✅ for tossctl — we cover 100% of the official API.**
+
+### Product domain and access channel are different axes
+
+`Securities`, `Banking`, and `MyData` are **product domains**. Official Open API,
+WTS, and mobile are **access channels**. There is no separate “platform” domain.
+
+| Product domain | Actual UI/API | tossctl status |
+|---|---|---|
+| Toss Securities | Official Open API, Web Trading System (WTS), and the Securities mobile surface inside the general Toss app | official + WTS implemented |
+| General Banking | Bank screens/mobile API in the general Toss app; no corresponding WTS web app | not implemented; no mobile-auth connector |
+| MyData | Card purchases, monthly spending, and external-finance mobile APIs in the general Toss app | partially confirmed statically; not implemented |
+| System | Login, Open API IP allowlist, API/app change monitoring | implemented |
+
+Accordingly, `banking status` is not a general Banking query. It is the **funding
+connection for Toss Securities stock accumulation (`securities + wts`)**. Card
+purchases, monthly spending, and bank transactions are not guessed through a WTS
+cookie merely because they appear in the same Toss app; they need their own mobile
+token and consent boundary to be verified first.
 
 - ✅ supported · ❌ not supported · 🔸 partial · 🆕 added within the last month
 - **`Official API (planned)` column = staged rollout to pre-applicants. ✅/🔸/❌ is expected coverage at launch** (subject to change across rollout phases).
@@ -255,8 +273,10 @@ The Toss Securities official Open API is currently **rolling out in stages to pr
 | **Theme fluctuation ranking** | `market themes` (today's top-moving themes, rising-stock counts) | ❌ | ✅ |
 | **Personalized news briefing** | `market briefing` (holding/watchlist asset · return · AI reasoning · news and related stocks) | ❌ | ✅ |
 | **🆕 Key earnings & economic releases** | `market key-events` (estimates · actuals · surprises · previous values) | ❌ | ✅ |
-| **🆕 Stock-accumulation open-banking status** | `banking status [--full]` (holder and account number masked by default) | ❌ | ✅ |
+| **🆕 Securities stock-accumulation funding status** | `banking status [--full]` (not general Banking; holder/account masked by default) | ❌ | ✅ |
 | **🆕 Notification preferences** | `notifications list` (read-only; internal user ID omitted) | ❌ | ✅ |
+| **🆕 Target-price alert reads & writes** | `quote alert list\|add\|remove <symbol>` (writes use preview + `--execute --confirm`) | ❌ | ✅ |
+| **🆕 Hidden-holding reads & writes** | `portfolio hidden list\|hide\|show` (account key omitted; post-write verification) | ❌ | ✅ |
 | **Toss AI signals** | `market signals` (per-symbol AI signal · keywords · move) | ❌ | ✅ |
 | **Stock screener** | `market screener [id]` (preset) · `--filter '<json>'` (custom) `--nation kr\|us` | ❌ | ✅ |
 | **Watchlist read & management** | `watchlist list [<group-id>] [--all]`·`groups`, `watchlist group create\|rename\|delete`, `watchlist add\|remove --group <id>` | ❌ | ✅ |
@@ -272,11 +292,12 @@ each omission. A successful chart response with zero candles also remains as an 
 row. Automation should inspect `missing` or empty CSV fields instead of assuming response rows
 always equal requested symbols.
 
-#### 📱 Mobile-app-only features (no web UI either)
+#### 📱 WTS-callable features discovered in the Securities mobile UI (no web UI)
 
-Most rows above have a screen in the Toss web app (WTS). The features below go one
-step further — they exist **only in the Toss mobile app, with no web UI at all**.
-tossctl opens even these up, via backend APIs callable with a web session.
+Most rows above have a screen in Toss Securities WTS. The features below were discovered
+in the Securities mobile surface inside the general Toss app, but their call contracts were
+separately verified with the current **Securities WTS session**. This does not mean general
+Banking/MyData mobile APIs are WTS-callable.
 
 | Feature | Command | Mobile app | Web (WTS) | tossctl |
 |---------|---------|:--:|:--:|:--:|
@@ -284,8 +305,8 @@ tossctl opens even these up, via backend APIs callable with a web session.
 | **Stock accumulation plans** | `accumulate list`, `accumulate status <symbol>` (recurring auto-buy: Active/Paused · amount/frequency · rounds) | ✅ (settings UI) | ❌ (no UI) | ✅ (read) |
 | **US dividend payout mode** | the «미국 배당» block in `account detail` (`CASH` paid out / `STOCK` reinvested + last change date) | ✅ (settings UI) | ❌ (no UI) | ✅ (read) |
 
-> This list moves rows into the general table above once Toss ships a web UI for them.
-> (Criterion: whether a real screen renders at the web route — tracked by the weekly monitor.)
+> Web UI presence is discovery and classification metadata, not a test of API callability.
+> These contracts were independently WTS-verified, so they remain `source=wts` without a web UI.
 
 ### Trading
 
@@ -326,7 +347,7 @@ Why tossctl wins long-term:
 
 - **Flexibility — the most open way to connect Toss Securities.** Via a terminal CLI, via an [MCP server](#mcp-server-tossctl-mcp) to any AI agent (Claude Code · Codex · Gemini · Cursor · Copilot), or from a script — all handled by **one `tossctl`**. **Start with no key at all**, and get **auto-routing** through the official path once you connect one. Not locked to any app, SDK, language, or agent.
 - **Breadth** — the official API opens a narrow API slowly; tossctl tracks the whole web API (catalog below) and is always wider.
-- **Speed** — on any platform new features integrate fastest inside the first-party app, so they always land in the web app (WTS) first, and a public API opens only a stable subset later (not anyone's fault, just the shape of the platform). The weekly monitor flags each new endpoint, so tossctl implements it **without waiting for an official release**. [Why the official API lags ↗](https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi)
+- **Speed** — Securities features may land in WTS and the mobile Securities surface before a stable subset reaches the public API. General Banking/MyData uses a separate mobile channel, not WTS. tossctl monitors WTS builds/endpoints and the general Toss Android version together, then implements only contracts whose access channel has been verified. [Why the official API lags ↗](https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi)
 - **Superset** — whatever the official API covers, tossctl [already covers 100%](#support-scope).
 
 #### WTS web API catalog (continuously tracked)
@@ -661,20 +682,21 @@ python3 -m pip install -e .
 tossctl account list
 tossctl account summary
 tossctl account overview [--full]               # regular + minor accounts; numbers masked by default
-tossctl banking status [--full]                  # stock-accumulation open-banking connection
+tossctl banking status [--full]                  # Securities accumulation funding (not general Banking)
 tossctl notifications list                       # read-only notification preferences
 tossctl portfolio positions
 tossctl portfolio allocation
 tossctl portfolio dividends [--year YYYY] [--by-payment-date]
+tossctl portfolio hidden list [--account <key>]  # holdings hidden from the Securities portfolio
 tossctl profit                                   # cumulative realized profit (by category)
 tossctl tax overseas [--year YYYY]               # overseas transfer income (tax)
-tossctl tax ria                                  # RIA tax-saving report (mobile-app-only)
+tossctl tax ria                                  # found in Securities mobile UI, WTS-call verified
 tossctl account interest [--year YYYY]           # deposit interest, per payment
 tossctl account commission                       # commission schedule per market
 tossctl order funding                            # buyable? deposit/exchange still needed
 tossctl market option-hours                      # US options business days
 tossctl community boards                         # popular lounges by followers
-tossctl accumulate list|status <symbol>          # stock accumulation (mobile-app-only)
+tossctl accumulate list|status <symbol>          # found in Securities mobile UI, WTS-call verified
 tossctl market investors|earnings|briefing|sectors|themes|index|ranking|signals
 tossctl market key-events                        # current key earnings and economic releases
 tossctl community rankings --type influencer|profit|followers
@@ -688,6 +710,7 @@ tossctl quote chart <symbol> --interval 5m
 tossctl quote trades|limits|warnings|flows <symbol>
 tossctl quote crypto BTC,ETH,SOL,XRP
 tossctl quote reasoning|signals <symbol>
+tossctl quote alert list <symbol>                 # Securities target-price alerts
 tossctl quote options AAPL [--expiry 2026-08-05]
 tossctl market filters PER PBR --nation kr
 tossctl quote supply 005930 --type short --count 20
@@ -700,6 +723,19 @@ tossctl watchlist list [<group-id>] [--all]
 tossctl watchlist groups
 tossctl transactions list|overview --market us|kr
 tossctl export positions|orders --market us|kr|all
+```
+
+### Non-trading settings writes
+
+The default call is a preview. Apply it only by passing its token back to the
+same command; tossctl then re-reads server state. These are not live orders and
+do not use the trading config gate.
+
+```bash
+tossctl quote alert add <symbol> --price <value> --currency KRW|USD
+tossctl quote alert add <symbol> --price <value> --currency KRW|USD --execute --confirm <token>
+tossctl quote alert remove <symbol> --price <value> --currency KRW|USD [--execute --confirm <token>]
+tossctl portfolio hidden hide|show <symbol> [--account <key>] [--execute --confirm <token>]
 ```
 
 ### Trading
@@ -744,11 +780,11 @@ tossctl auth extend --if-expiring 48h   # extend only when close to expiry (cron
 ### API regression watch
 
 ```bash
-tossctl monitor api           # schema-probe 46 endpoints (parallel); exit 0 pass, 1 fail
+tossctl monitor api           # schema-probe 48 endpoints (parallel); exit 0 pass, 1 fail
 tossctl monitor api --quiet   # for cron
 ```
 
-Checks the response schema of 46 read-only endpoints in parallel, using your own session on your own machine — to catch Toss server-side body-contract changes (like [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29)) early. It only returns an exit code, so you compose alert channels (Discord / Slack / ntfy / macOS / email) on the right side of `|| <command>` in your cron line. Recipes: [`AGENTS.md`](AGENTS.md), setup guide: [`docs/operations.md`](docs/operations.md).
+Checks the response schema of 48 read-only endpoints in parallel, using your own session on your own machine — to catch Toss server-side body-contract changes (like [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29)) early. It only returns an exit code, so you compose alert channels (Discord / Slack / ntfy / macOS / email) on the right side of `|| <command>` in your cron line. Recipes: [`AGENTS.md`](AGENTS.md), setup guide: [`docs/operations.md`](docs/operations.md).
 
 ## Development
 

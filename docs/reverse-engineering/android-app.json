@@ -1,0 +1,18 @@
+{
+  "package_id": "viva.republica.toss",
+  "scope": "general Toss Android app (mobile API; separate from Toss Securities WTS)",
+  "audited_artifact": {
+    "version_name": "5.275.0",
+    "version_code": 50527500,
+    "sha256": "06715f2d15dd530cb426474e87a4b39aaaf91d1013ef8db171f882d2bf29e2ca",
+    "analyzed_at": "2026-09-02",
+    "analysis": "docs/reverse-engineering/change-analysis/2026-09-02-android-static.md"
+  },
+  "latest_candidate": {
+    "version_name": "5.275.0",
+    "source": "APKPure metadata (untrusted candidate signal)",
+    "first_seen": "2026-09-03"
+  },
+  "audit_status": "current",
+  "trust_model": "A newer third-party metadata version only marks this audit stale. It must be downloaded and checked for package/signature continuity before static-analysis findings are promoted."
+}

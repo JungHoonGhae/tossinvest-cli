@@ -244,18 +244,19 @@ profit 계열처럼 POST 이고 파라미터가 필요하면:
 4. 안 되면 **실제 웹 요청 바디를 잡는다** — `node tools/capture_post_bodies.mjs <경로>`.
    아래 "첫 로드 POST 바디 캡처" 참고. (예전엔 여기가 막혀 있었다.)
 
-### 4. 웹 UI 유무 판정 = "모바일 전용" 분류의 유일한 기준
+### 4. 웹 UI 유무와 API 접근 경로를 따로 판정
 
-**카탈로그 candidate ≠ 모바일 전용.** 반드시 라이브로 웹 라우트를 열어 판정:
+**카탈로그 candidate ≠ mobile API.** 반드시 라이브로 웹 라우트를 열어 UI 존재 여부를 판정:
 
 ```
 $B goto /account/<feature> → 리다이렉트 없이 실제 화면이 뜨고 관련 텍스트가 보이면
-→ 웹 UI 있음 (일반 조회) / 뜨면 안 뜨거나 signin 리다이렉트면 → 웹 UI 없음 (모바일 전용)
+→ 웹 UI 있음 / 뜨지 않거나 signin 리다이렉트면 → 웹 UI 없음
 ```
 
-실측: accumulate=웹UI 없음(진짜 모바일 전용), profit·transfer-income=웹UI 있음.
-README 의 "📱 모바일 앱 전용" 서브섹션엔 **웹UI 없는 것만.** 토스가 UI 추가하면 일반
-표로 옮긴다 (판정을 주간 모니터가 추적하도록 하는 게 이상적 — TODO).
+실측: accumulate=웹UI 없음, profit·transfer-income=웹UI 있음. 다만 웹 UI가 없다는 사실은
+그 API가 mobile 인증이라는 뜻이 아니다. accumulate처럼 증권 모바일 화면에서 발견했어도
+WTS 세션으로 호출 검증된 계약은 `domain=securities, source=wts`다. 일반 Toss
+Banking/MyData의 `source=mobile` 계약은 별도 client/interceptor·토큰·동의를 확인해야 한다.
 
 ### 5. 구현 = 기존 RE 흐름 그대로
 
@@ -517,8 +518,10 @@ node tools/capture_post_bodies.mjs /feed/news --get            # GET 도 (조회
 3. `Network.requestWillBeSent` 에서 non-GET `/api/` 요청의 `postData` 수집
 4. 종료 시 브라우저·임시 프로필 정리
 
-**아무것도 안 잡히면**: 세션 만료(가장 흔함), 해당 라우트에 웹 UI 가 없음(= 모바일 전용),
-또는 화면이 느려서 `--wait` 을 늘려야 하는 경우다.
+**아무것도 안 잡히면**: 세션 만료(가장 흔함), 해당 라우트에 웹 UI가 없거나, 화면이 느려서
+`--wait`을 늘려야 하는 경우다. 웹 UI 부재만으로 모바일 전용이라 판정하지 않는다. WTS bundle에
+계약이 있고 현재 세션으로 검증되면 UI 없이도 `source=wts`이며, APK client binding의
+host·인증·interceptor까지 추적된 경우에만 `source=mobile` 후보로 분류한다.
 
 전제: Node 18+ (내장 `WebSocket` 사용, npm 설치 불필요) 와 Playwright 브라우저 캐시.
 
@@ -534,8 +537,9 @@ node tools/capture_post_bodies.mjs /feed/news --get            # GET 도 (조회
 4. request serializer에서 **wire field 이름과 기본값**, response serializer에서 필수 필드와
    자료형을 확인한다. UI 문자열이나 클래스명만으로 필드 의미를 만들지 않는다.
 5. repository/use-case 호출부에서 wrapper 해제 순서와 실제 선택하는 section/item을 확인한다.
-6. 네트워크 module의 base-client binding을 찾는다. 난독화로 host 문자열을 못 풀면
-   `partial`이다. 기존 마스킹 캡처나 read-only live probe로 host가 확인돼야 `verified`다.
+6. 네트워크 module의 base-client binding과 interceptor chain을 찾는다. host, request
+   cipher, session header 중 하나라도 풀리지 않으면 `partial`이다. 기존 마스킹 캡처나
+   read-only live probe로 전체 request envelope가 확인돼야 `verified`다.
 7. WTS와 Toss Home/MyData client를 분리한다. `.tossinvest.com` 세션을 다른 host에 보내
    인증 가능성을 시험하지 않는다.
 8. 라이브 검증은 읽기 전용으로 한 번만 하고 값 대신 key/type/count/masking 불변식만 본다.

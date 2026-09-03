@@ -9,6 +9,15 @@ Version history below (source: the Korean-language [CHANGELOG.md](https://github
 
 ## [Unreleased]
 
+### 새 기능
+- **`quote alert list|add|remove <symbol>`** — 토스증권 목표가 알림을 조회하고 추가·삭제합니다. 변경은 기본 preview이며 현재 알림 전체에 결합된 `confirm_token`을 `--execute --confirm`으로 다시 전달해야 합니다. 최대 10개·통화·가격을 로컬에서 검증하고, 요청 응답이 유실돼도 서버 상태를 재조회해 실제 적용 여부를 판정합니다.
+- **`portfolio hidden list|hide|show`** — 증권 포트폴리오에서 숨긴 보유종목을 조회·숨김·복원합니다. 기본 계좌 또는 `--account`를 선택할 수 있고 계좌 키는 출력하지 않습니다. 변경은 목표가 알림과 같은 preview/confirm/재검증 경계를 사용합니다.
+
+### 변경
+- operation catalog에 기능 영역 `domain`을 추가해 접근 경로 `backend`와 분리했습니다. 현재 `banking_status`는 일반 Banking이 아니라 `securities + wts`, Open API IP 관리는 `system + wts`로 명시됩니다. 일반 Toss Banking/MyData API는 웹 UI 유무와 무관하게 존재하지만 main-app session·header·cipher connector가 필요한 별도 모바일 인증 영역으로 문서화했습니다.
+- API 회귀 감시를 48개로 확대해 목표가 알림과 숨긴 보유종목의 읽기 계약을 감시합니다. 주간 모니터는 WTS build ID 변경과 일반 Toss Android 배포 후보도 함께 알리며, APK 후보는 서명·정적 감사를 마치기 전까지 `stale` 신호로만 취급합니다.
+- WTS endpoint 추출 결과가 기존 카탈로그의 75% 아래로 급감하면 부분 수집으로 보고 기존 파일을 보존합니다. 일시적인 route/chunk fetch 실패가 수백 개 endpoint 삭제로 기록되지 않습니다.
+
 ## [0.49.0] - 2026-09-03
 
 ### 새 기능

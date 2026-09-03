@@ -17,14 +17,14 @@ func newOpenAPIIPCmd(opts *rootOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:         "ip",
 		Short:       i18n.T("openapi.ip.short"),
-		Annotations: map[string]string{"source": "wts"},
+		Annotations: map[string]string{"source": "wts", "domain": "system"},
 	}
 
 	listCmd := &cobra.Command{
 		Use:         "list",
 		Short:       i18n.T("openapi.ip.list.short"),
 		Args:        cobra.NoArgs,
-		Annotations: map[string]string{"source": "wts"},
+		Annotations: map[string]string{"source": "wts", "domain": "system"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -48,7 +48,7 @@ func newOpenAPIIPCmd(opts *rootOptions) *cobra.Command {
 			"The default is a preview. Apply only with --execute and the preview's --confirm token. " +
 			"Every mutation is verified; on failure tossctl re-reads server state and restores the previous allowlist.",
 		Args:        cobra.NoArgs,
-		Annotations: map[string]string{"source": "wts"},
+		Annotations: map[string]string{"source": "wts", "domain": "system"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {

@@ -74,17 +74,17 @@ discovery/screening**, turning a plain query/trade tool into a full analysis too
 
 ### The official API lags by structure, not neglect
 
-On any platform, the first-party app is where the core experience lives. It is also the best
-place to ship and integrate new features fast, so new capabilities naturally land **in the app
-(WTS) first**. A public API carries real versioning, compatibility, and support costs, so it
-opens a carefully chosen, stable subset **afterwards**. The official API being conservative is
-reasonable, not stingy.
+First-party apps and web surfaces are where new capabilities can be integrated fastest.
+Securities features may land first in **Toss Securities WTS and the Securities mobile surface
+inside the general Toss app**. A public API carries versioning, compatibility, and support costs,
+so a stable subset can follow later. General Banking/MyData is different: it has no corresponding
+WTS web app and uses a separate mobile API boundary.
 
-As a result, the most Toss-flavored capabilities (investor flows, indices, AI signals, screener,
-real-time push) arrive in the app first and fastest. That is not anyone's fault, it is the shape
-of the platform. tossctl works **with** that shape rather than against it: it uses the path the
-app itself uses (**WTS as the primary path**) so you can use those features now, while
-auto-routing officially-supported features through the official path to keep stability.
+As a result, Securities capabilities such as investor flows, indices, AI signals, screener, and
+real-time push may arrive in WTS first. tossctl uses that Securities WTS path while auto-routing
+officially supported features through the official API. It does not reuse a WTS cookie for cards,
+spending, or general bank transactions merely because those screens live in the same Toss app;
+those remain separate until the mobile token and consent boundary is verified.
 
 <Callout type="info" title="Some tasks still need a web session even with an official key">
 The official key's **metadata and allowed-IP lookup or change** (`openapi status`, `openapi ip`) is

@@ -12,6 +12,25 @@ description: 공식 Open API 대비 커버리지
 - `공식 API` 칼럼 = 공개 문서 기준 커버리지; 공식 키 등록 시 해당 기능은 OAuth로 라우팅
 - 공식이 ❌ 인 행 = tossctl 고유 기능 (항상 WTS)
 
+## 기능 영역 ≠ 접근 경로
+
+`증권`·`Banking`·`MyData`는 기능 영역이고, 공식 Open API·WTS·mobile은 접근 경로입니다.
+WTS는 **토스증권 Web Trading System**이며 일반 Toss Banking의 웹앱이 아닙니다.
+
+| 기능 영역 | 접근 경로 | 현재 지원 |
+|---|---|---|
+| 토스증권 | official, WTS, Toss 앱 안의 증권 모바일 화면 | official + WTS |
+| 일반 Banking | 일반 Toss 앱 mobile API (대응 WTS 없음) | 미지원 — 별도 모바일 인증 필요 |
+| MyData 카드·소비 | 일반 Toss 앱 mobile API | 정적 계약 일부 확인, 미지원 |
+| 시스템 | 로그인·Open API IP·변경 감시 | 지원 |
+
+`banking status`는 이름과 달리 일반 Banking이 아니라 증권 주식모으기의 자금연결 상태로,
+`securities + wts`에 속합니다.
+
+웹 UI 부재 자체는 미지원 이유가 아닙니다. WTS 계약과 현재 웹 세션이 검증되면 UI 없이도
+호출할 수 있습니다. 일반 Banking/MyData는 API 계약이 없어서가 아니라 main-app session,
+app/device header, request/response cipher를 처리하는 mobile connector가 아직 없어서 미지원입니다.
+
 ## `openapi` 커맨드
 
 | 커맨드 | 설명 |
@@ -46,14 +65,16 @@ description: 공식 Open API 대비 커버리지
 | 실적(어닝콜) 일정 | `market earnings [--major]` | ❌ | ✅ |
 | 개인화 뉴스 브리핑 | `market briefing` (종목·수익률·AI 사유·뉴스) | ❌ | ✅ |
 | 핵심 실적·경제지표 | `market key-events` | ❌ | ✅ |
-| 주식모으기 오픈뱅킹 상태 | `banking status [--full]` | ❌ | ✅ |
+| 증권 주식모으기 자금연결 상태 | `banking status [--full]` (일반 Banking 아님) | ❌ | ✅ |
 | 알림 설정 조회 | `notifications list` | ❌ | ✅ |
+| 목표가 알림 조회·관리 | `quote alert list/add/remove` | ❌ | ✅ |
+| 숨긴 보유종목 조회·관리 | `portfolio hidden list/hide/show` | ❌ | ✅ |
 | 토스 AI 시그널 | `market signals` | ❌ | ✅ |
 | 조건검색(스크리너) | `market screener` | ❌ | ✅ |
 | 배당 내역 | `portfolio dividends` | ❌ | ✅ |
 | 누적 실현손익 | `profit` | ❌ | ✅ |
 | 해외 양도소득(세금) | `tax overseas --year N` | ❌ | ✅ |
-| 주식모으기 조회 📱 | `accumulate list/status` | ❌ *(웹 UI 없음, 모바일 앱 전용)* | ✅ |
+| 주식모으기 조회 📱 | `accumulate list/status` | ❌ *(웹 UI 없음; 증권 모바일 화면에서 발견 후 WTS 검증)* | ✅ |
 | 커뮤니티 랭킹 | `community rankings` | ❌ | ✅ |
 | 관심종목 조회·관리 | `watchlist ...` | ❌ | ✅ |
 | 거래내역 ledger / 현금 overview | `transactions list/overview` | ❌ | ✅ |

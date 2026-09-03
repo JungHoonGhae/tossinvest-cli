@@ -53,6 +53,8 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"market-key-events":        true,
 		"open-banking-status":      true,
 		"notification-settings":    true,
+		"price-alerts":             true,
+		"hidden-holdings":          true,
 	}
 	got := map[string]bool{}
 	for _, p := range Probes() {
@@ -167,6 +169,8 @@ func TestDiscoveryProbeChecksRejectBrokenSchemas(t *testing.T) {
 		"market-key-events":     {good: `{"result":{"earnings":[],"eci":{"indicators":[]}}}`, bad: `{"result":{"earnings":[]}}`},
 		"open-banking-status":   {good: `{"result":{"savingCount":0}}`, bad: `{"result":{}}`},
 		"notification-settings": {good: `{"result":[]}`, bad: `{"result":{}}`},
+		"price-alerts":          {good: `{"result":[]}`, bad: `{"result":{}}`},
+		"hidden-holdings":       {good: `{"result":{"hiddenStocks":[]}}`, bad: `{"result":{}}`},
 		"account-all-overview":  {good: `{"result":[{"data":{"accountOverviews":[],"minorAccountOverviews":[],"totalAssetAmount":0}}]}`, bad: `{"result":[{"data":{"accountOverviews":[]}}]}`},
 	}
 	probes := make(map[string]Probe)

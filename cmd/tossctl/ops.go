@@ -3,9 +3,12 @@ package main
 import (
 	"fmt"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/hiddenholding"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/jsoninput"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/openapiip"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/ops"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/pricealert"
 	"github.com/spf13/cobra"
 )
 
@@ -48,6 +51,7 @@ type listItem struct {
 	ID       string   `json:"id"`
 	Method   string   `json:"method"`
 	Path     string   `json:"path"`
+	Domain   string   `json:"domain"`
 	Category string   `json:"category"`
 	Summary  string   `json:"summary"`
 	Write    bool     `json:"write,omitempty"`
@@ -61,7 +65,7 @@ func newOpsListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List available API operations, optionally filtered",
 		Long: "List the operations in the registry as JSON. Filter with --query, which " +
-			"matches the id, path, category, and summary.\n\n" +
+			"matches the id, path, product domain, category, and summary.\n\n" +
 			"Needs no credentials: the catalog is a local declaration, not an API call. " +
 			"Operations you cannot yet run are listed too — `backend` tells you which " +
 			"login each one needs.",
@@ -75,7 +79,7 @@ func newOpsListCmd() *cobra.Command {
 			items := make([]listItem, 0, len(found))
 			for _, o := range found {
 				items = append(items, listItem{
-					ID: o.ID, Method: o.Method, Path: o.Path, Category: o.Category,
+					ID: o.ID, Method: o.Method, Path: o.Path, Domain: o.Domain, Category: o.Category,
 					Summary: o.Summary, Write: o.Write, Backend: o.Backend,
 					Required: o.RequiredNames(),
 				})
@@ -85,7 +89,7 @@ func newOpsListCmd() *cobra.Command {
 			})
 		},
 	}
-	cmd.Flags().StringVar(&query, "query", "", "Filter by substring of id, path, category, or summary")
+	cmd.Flags().StringVar(&query, "query", "", "Filter by id, path, product domain, category, or summary")
 	return cmd
 }
 
@@ -152,10 +156,13 @@ func newOpsCallCmd(opts *rootOptions) *cobra.Command {
 				return err
 			}
 			deps := &ops.Deps{
-				Client:  app.client.Official(),
-				WTS:     app.client,
-				Trading: app.tradingService,
-				Auth:    authSnapshot(app.session, app.client.Official(), app.tokenFile),
+				Client:         app.client.Official(),
+				WTS:            app.client,
+				Trading:        app.tradingService,
+				OpenAPIIP:      openapiip.NewService(app.client, openapiip.NewHTTPResolver(nil, "")),
+				PriceAlerts:    pricealert.NewService(app.client),
+				HiddenHoldings: hiddenholding.NewService(app.client),
+				Auth:           authSnapshot(app.session, app.client.Official(), app.tokenFile),
 			}
 			result, err := catalog.Call(cmd.Context(), deps, args[0], callArgs)
 			if err != nil {

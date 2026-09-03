@@ -83,7 +83,7 @@ func argStringSlice(args map[string]any, name string) ([]string, error) {
 func readOperations() []Operation {
 	return []Operation{
 		{
-			ID: "auth_status", Method: "GET", Path: "local:auth-status", Backend: "none",
+			ID: "auth_status", Method: "GET", Path: "local:auth-status", Backend: "none", Domain: "system",
 			Category: "system", Summary: "Which backends are connected and when they expire — WTS web session and official Open API key. No secrets returned. Call this to diagnose auth before other operations; a disconnected/expired backend means run `tossctl auth login` (WTS) or `tossctl openapi login` (official).",
 			handler: func(_ context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.Auth, nil

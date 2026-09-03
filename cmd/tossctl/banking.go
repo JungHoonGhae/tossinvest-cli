@@ -14,7 +14,7 @@ func newBankingCmd(opts *rootOptions) *cobra.Command {
 		Short:       i18n.T("banking.status.short"),
 		Long:        i18n.T("banking.status.long"),
 		Args:        cobra.NoArgs,
-		Annotations: map[string]string{"source": "wts"},
+		Annotations: map[string]string{"source": "wts", "domain": "securities"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {

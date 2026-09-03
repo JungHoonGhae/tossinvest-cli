@@ -10,7 +10,8 @@ the production JS bundles and classify it:
 
 Run with no args to refresh docs/reverse-engineering/wts-endpoints.json and
 print a summary + any endpoints added/removed since the committed catalog.
-Exit code 0 always; the workflow decides what to do with the diff.
+Exit code 0 reports a complete scan; collection failure or a suspicious mass
+shrink exits nonzero without overwriting the existing catalog.
 
 stdlib only (runs in CI without deps).
 """
@@ -62,6 +63,10 @@ IMPLEMENTED = [
     r"^/api/v1/autotrade/open-banking/info/find$",                 # banking status (read-only)
     r"^/api/v1/calendar/ai-summary/key-events$",                   # current key events
     r"^/api/v1/user-alimies$",                                     # notification settings
+    r"^/api/v1/user-price-alimy/[^/]+$",                           # price alert list/create
+    r"^/api/v1/user-price-alimy/[^/]+/[^/]+/[^/]+$",               # price alert delete
+    r"^/api/v1/my-assets/hidden-stocks/(hide|show)$",               # hidden holding write
+    r"^/api/v2/hidden-stocks$",                                     # hidden holding list
     r"^/api/v2/reasoning/personalized$",                           # enriched personalized briefing
     r"^/api/v1/interest/accounts/annual/history",       # account interest
     r"^/api/v1/ria-calculator/(report|limit|tax-savings/optimized)$",  # tax ria
@@ -270,6 +275,19 @@ REAL_SHADOWS = {
     "/api/v1/exchange/usd/base-exchange-rate",
 }
 
+# Contracts verified from a concrete call-site/static bundle trace but assembled
+# dynamically enough that the generic string extractor cannot recover them.
+# Keeping these in the generated inventory lets the weekly monitor retain and
+# diff every endpoint tossctl actually calls, including safe write surfaces.
+CURATED_CONTRACTS = {
+    "/api/v1/user-price-alimy/{stockCode}/{currency}/{targetPrice}": {
+        "method": "DELETE",
+        "host": "wts-api",
+        "evidence": "verified",
+        "note": "Exact DELETE contract verified by WTS static analysis on 2026-09-03. Exposed through preview/confirm/post-read verification.",
+    },
+}
+
 # 라우트가 아닌 것들: 에러 페이지, 정적 자산.
 _ROUTE_SKIP = re.compile(r"^/(?:\d{3}|_|api/|assets/|static/)|\.(?:js|css|png|svg|json|webp|ico)$")
 
@@ -473,6 +491,12 @@ def _probe_inventory_path(path):
             path,
             count=1,
         )
+    path = re.sub(
+        r"(^/api/v1/user-price-alimy/)[A-Z][A-Z0-9]{5,}$",
+        r"\1{stockCode}",
+        path,
+        count=1,
+    )
     path = re.sub(r"(^/api/v4/calendar/monthly/)[^/]+$", r"\1{month}", path)
     return path
 
@@ -535,6 +559,16 @@ def main():
         # look like "every endpoint was removed". Bail loudly instead.
         print("ERROR: no endpoints extracted (fetch failed?)", file=sys.stderr)
         return 1
+    if suspicious_inventory_shrink(len(prev_eps), len(paths)):
+        # A partial route/chunk fetch once collapsed 1,112 known paths to 325
+        # while the WTS build id itself was unchanged. Treat that as collection
+        # failure, not as a mass endpoint deletion, and preserve the catalog.
+        print(
+            f"ERROR: extracted endpoint count collapsed from {len(prev_eps)} to {len(paths)}; "
+            "refusing to overwrite the catalog",
+            file=sys.stderr,
+        )
+        return 1
 
     # The web bundle sometimes omits a reusable dynamic template even though
     # monitor.Probes executes a concrete representative URL. Merge those
@@ -549,6 +583,12 @@ def main():
         methods.add(probe["method"])
         facts["method"] = ",".join(sorted(methods))
         facts.setdefault("host", probe["host"])
+
+    for path, contract in CURATED_CONTRACTS.items():
+        paths.add(path)
+        facts = meta.setdefault(path, {})
+        for key, value in contract.items():
+            facts.setdefault(key, value)
 
     # 이번 추출에서 없어진 옛 키 — 잘린 그림자가 정식 경로로 승격되면 여기 들어온다.
     gone = prev_eps - paths
@@ -641,10 +681,36 @@ def main():
             print("   -", p)
     # machine-readable diff for CI
     if os.environ.get("WTS_DIFF_OUT"):
-        json.dump({"added": added, "removed": removed,
-                   "new_candidates": [p for p in added if endpoints[p]["status"] == "candidate"]},
+        json.dump(build_diff(prev, out, added, removed),
                   open(os.environ["WTS_DIFF_OUT"], "w"))
     return 0
+
+
+def build_diff(previous, current, added, removed):
+    """Return the stable machine payload consumed by the monitor workflow."""
+    previous_build = previous.get("build_id", "")
+    current_build = current.get("build_id", "")
+    previous_chunks = previous.get("chunk_count")
+    current_chunks = current.get("chunk_count")
+    return {
+        "added": added,
+        "removed": removed,
+        "new_candidates": [
+            path for path in added
+            if current["endpoints"][path]["status"] == "candidate"
+        ],
+        "build_changed": bool(previous_build and current_build and previous_build != current_build),
+        "previous_build_id": previous_build,
+        "current_build_id": current_build,
+        "chunk_count_changed": previous_chunks is not None and previous_chunks != current_chunks,
+        "previous_chunk_count": previous_chunks,
+        "current_chunk_count": current_chunks,
+    }
+
+
+def suspicious_inventory_shrink(previous_count, current_count):
+    """Flag a likely partial-fetch result without blocking normal API churn."""
+    return previous_count >= 100 and current_count < previous_count * 0.75
 
 
 if __name__ == "__main__":
