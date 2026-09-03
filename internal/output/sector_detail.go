@@ -23,9 +23,21 @@ func sectorDetailTotal(total, returned int) int {
 	return total
 }
 
+func appendRelatedSectorRows(rows [][]string, items []domain.RelatedSector) [][]string {
+	for _, item := range items {
+		rows = append(rows, []string{
+			"related_sector", strconv.Itoa(item.Depth), strconv.Itoa(item.ID), item.Name,
+			"", "", "", "", "",
+		})
+		rows = appendRelatedSectorRows(rows, item.SubSectors)
+	}
+	return rows
+}
+
 // WriteSectorDetail renders the aggregate without discarding any structured
-// data in JSON. CSV and table use one flat schema across stocks, ETFs, and news
-// so automation does not have to parse multiple independently formatted blocks.
+// data in JSON. CSV and table use one flat schema across stocks, ETFs, news,
+// and the related-sector tree so automation does not have to parse multiple
+// independently formatted blocks.
 func WriteSectorDetail(w io.Writer, format Format, detail domain.SectorDetail) error {
 	if format == FormatJSON {
 		return writeJSON(w, detail)
@@ -33,7 +45,7 @@ func WriteSectorDetail(w io.Writer, format Format, detail domain.SectorDetail) e
 	stockTotal := sectorDetailTotal(detail.StockTotalCount, len(detail.Stocks))
 	etfTotal := sectorDetailTotal(detail.ETFTotalCount, len(detail.ETFs))
 	newsTotal := sectorDetailTotal(detail.NewsTotalCount, len(detail.News))
-	rows := make([][]string, 0, len(detail.Stocks)+len(detail.ETFs)+len(detail.News))
+	rows := make([][]string, 0, len(detail.Stocks)+len(detail.ETFs)+len(detail.News)+len(detail.RelatedSectors))
 	for _, item := range detail.Stocks {
 		rows = append(rows, []string{
 			"stock", strconv.Itoa(item.Rank), item.ProductCode, item.Name,
@@ -53,12 +65,14 @@ func WriteSectorDetail(w io.Writer, format Format, detail domain.SectorDetail) e
 	for _, item := range detail.News {
 		rows = append(rows, []string{"news", "", item.ID, item.Title, "", "", item.Source, item.CreatedAt, strconv.Itoa(newsTotal)})
 	}
+	rows = appendRelatedSectorRows(rows, detail.RelatedSectors)
 
 	switch format {
 	case FormatCSV:
 		return writeCSV(w, []string{"type", "rank", "code", "name", "change_rate", "close", "source", "created_at", "total_count"}, rows)
 	case FormatTable:
-		if len(rows) == 0 {
+		hasMetadata := detail.ID != 0 || detail.Name != "" || detail.Summary != "" || detail.Description != "" || detail.Duration != "" || detail.ChangeRate != 0
+		if len(rows) == 0 && !hasMetadata {
 			_, err := fmt.Fprint(w, i18n.T("output.sectorDetail.empty"))
 			return err
 		}
@@ -69,6 +83,11 @@ func WriteSectorDetail(w io.Writer, format Format, detail domain.SectorDetail) e
 			len(detail.News), sectorDetailTotal(detail.NewsTotalCount, len(detail.News))); err != nil {
 			return err
 		}
+		if detail.Duration != "" || detail.ChangeRate != 0 {
+			if _, err := fmt.Fprintf(w, i18n.T("output.sectorDetail.performance"), formatFloat(detail.ChangeRate), detail.Duration); err != nil {
+				return err
+			}
+		}
 		if detail.Summary != "" {
 			if _, err := fmt.Fprintln(w, detail.Summary); err != nil {
 				return err
@@ -78,6 +97,9 @@ func WriteSectorDetail(w io.Writer, format Format, detail domain.SectorDetail) e
 			if _, err := fmt.Fprintln(w, detail.Description); err != nil {
 				return err
 			}
+		}
+		if len(rows) == 0 {
+			return nil
 		}
 		headers := []string{
 			i18n.T("output.sectorDetail.header.type"),

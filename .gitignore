@@ -29,6 +29,10 @@ CLAUDE.md
 /.design/
 /eval_results/
 
+# Local APK/XAPK/jadx inputs and outputs used for static analysis.
+# Keep these repository-relative for reproducible comparisons, but never commit them.
+/.artifacts/android/
+
 # docs site build artifacts
 website/site/
 website/.venv/

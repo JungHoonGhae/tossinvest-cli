@@ -115,7 +115,7 @@ investctl 은 공식 열만 다룬다. 맨 왼쪽 tossctl(비공식) 열은 *대
 | 계좌·보유·주문·시세 | ✅ | ✅ (OAuth2) | ✅ (각자 OAuth/키) |
 | transactions ledger | ✅ | ❌ (공식 표면 없음) | 미확인 |
 | watchlist | ✅ | ❌ | 미확인 |
-| push (실시간) | ✅ (SSE) | ✅ (웹소켓, 2026-08-19 출시 — tossctl 미구현) | KIS 는 WebSocket 있음 |
+| push (실시간) | ✅ (SSE) | ✅ (`stream`, 웹소켓 — 체결·호가·내 주문) | KIS 는 WebSocket 있음 |
 | 매수유의·상하한가·체결·환율·장운영 | ✅ | ✅ | 미확인 |
 | 선물옵션·해외·채권 | ❌ | ❌ | ✅ (KIS) |
 | rate limit | 없음 | 있음 (ACCOUNT 1/s 등) | 있음 |

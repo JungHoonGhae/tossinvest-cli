@@ -8,12 +8,14 @@ tossctl 사용자 관점의 변경 이력입니다. 각 버전에서 "무엇을 
 - **`quote alert list|add|remove <symbol>`** — 토스증권 목표가 알림을 조회하고 추가·삭제합니다. 변경은 기본 preview이며 현재 알림 전체에 결합된 `confirm_token`을 `--execute --confirm`으로 다시 전달해야 합니다. 최대 10개·통화·가격을 로컬에서 검증하고, 요청 응답이 유실돼도 서버 상태를 재조회해 실제 적용 여부를 판정합니다.
 - **`portfolio hidden list|hide|show`** — 증권 포트폴리오에서 숨긴 보유종목을 조회·숨김·복원합니다. 기본 계좌 또는 `--account`를 선택할 수 있고 계좌 키는 출력하지 않습니다. 변경은 목표가 알림과 같은 preview/confirm/재검증 경계를 사용합니다.
 - **`market briefing --scope personalized|kr|us`** — 기존 개인화 브리핑뿐 아니라 한국·미국 시장의 최신 AI 브리핑을 조회합니다. 웹 UI 노출 여부가 아니라 현재 WTS 세션으로 호출과 응답 계약이 검증된 API를 기준으로 연결했습니다.
-- **`market sector <id>`** — `market sectors`에서 찾은 업종 id로 개요와 구성 종목·관련 ETF·뉴스의 서버 기본 첫 페이지를 한 번에 조회합니다. WTS 화면에서 따로 호출하는 4개 읽기 API를 CLI·MCP의 단일 타입 응답으로 합치고, 각 배열의 반환 건수와 전체 건수를 함께 제공합니다.
+- **`market signal <symbol> [--type stocks|equity_etf]`** — 종목·주식형 ETF 하나의 현재 AI 시그널을 전체 근거·키워드·출처 뉴스·연관 종목 흐름까지 조회합니다. 현재 시그널이 없는 정상 종목은 오류가 아닌 명시적인 빈 상태로 반환하며 CLI·ops/MCP에서 같은 타입을 사용합니다.
+- **`market sector <id>`** — `market sectors`에서 찾은 업종 id로 개요와 현재 등락·기간·연관 업종 트리, 구성 종목·관련 ETF·뉴스의 서버 기본 첫 페이지를 한 번에 조회합니다. WTS 화면에서 따로 호출하는 5개 읽기 API를 CLI·MCP의 단일 타입 응답으로 합치고, 각 배열의 반환 건수와 전체 건수를 함께 제공합니다.
 - **`lending top [--size N]`** — 익명 처리된 사용자별 주식대여 누적 수익 상위 랭킹을 조회합니다. 기존 `lending expected`의 내 계좌 예상 수익과 구분됩니다.
 
 ### 변경
 - operation catalog에 기능 영역 `domain`을 추가해 접근 경로 `backend`와 분리했습니다. 현재 `banking_status`는 일반 Banking이 아니라 `securities + wts`, Open API IP 관리는 `system + wts`로 명시됩니다. 일반 Toss Banking/MyData API는 웹 UI 유무와 무관하게 존재하지만 main-app session·header·cipher connector가 필요한 별도 모바일 인증 영역으로 문서화했습니다.
-- API 회귀 감시를 54개로 확대해 목표가 알림·숨긴 보유종목과 새 국가별 브리핑·업종 상세 4개 의존 API·대여수익 랭킹의 읽기 계약을 감시합니다. 여러 API를 합치는 operation은 `ExtraProbes`로 모든 의존성을 등록합니다. 주간 모니터는 WTS build ID 변경과 일반 Toss Android 배포 후보도 함께 알리며, APK 후보는 서명·정적 감사를 마치기 전까지 `stale` 신호로만 취급합니다.
+- API 회귀 감시를 56개로 확대해 목표가 알림·숨긴 보유종목, 국가별 브리핑, AI 시그널 상세, 업종 상세 5개 의존 API, 대여수익 랭킹의 읽기 계약을 감시합니다. 여러 API를 합치는 operation은 `ExtraProbes`로 모든 의존성을 등록합니다. 주간 모니터는 WTS build ID 변경과 일반 Toss Android 배포 후보도 함께 알리며, APK 후보는 서명·정적 감사를 마치기 전까지 `stale` 신호로만 취급합니다.
+- APK/XAPK/jadx 정적 분석본은 저장소 상대 경로 `.artifacts/android/`에 버전별로 보관하되 Git에서 제외합니다. 분석 명령이 매번 다른 Downloads 경로에 의존하지 않고, 대형 바이너리·역컴파일 산출물은 커밋되지 않습니다.
 - WTS endpoint 추출 결과가 기존 카탈로그의 75% 아래로 급감하면 부분 수집으로 보고 기존 파일을 보존합니다. 일시적인 route/chunk fetch 실패가 수백 개 endpoint 삭제로 기록되지 않습니다.
 
 ## [0.49.0] - 2026-09-03

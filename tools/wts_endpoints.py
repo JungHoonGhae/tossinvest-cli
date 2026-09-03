@@ -133,10 +133,11 @@ IMPLEMENTED = [
     r"^/api/v1/community/top-rankings(?:/[^/]+)?$",              # community rankings
     r"^/api/v1/dashboard/wts/overview/ai-signals/personalized$", # market briefing
     r"^/api/v1/dashboard/wts/overview/ai-signals/latest$",       # market briefing --scope kr|us
+    r"^/api/v1/dashboard/wts/overview/ai-signals/detail$",       # market signal <symbol>
     r"^/api/v1/dividends/accounts/annual/history",               # portfolio dividends
     r"^/api/v1/prime/users/(info|benefits)$",                    # account prime
     r"^/api/v1/tics/all$",                                        # market sectors
-    r"^/api/v2/dashboard/wts/overview/tics/[^/]+/(overview|stocks|etfs|news)$", # market sector
+    r"^/api/v2/dashboard/wts/overview/tics/[^/]+/(simple|overview|stocks|etfs|news)$", # market sector
     r"^/api/v1/tics/rankings$",                                   # market themes
     r"^/api/v1/index-prices(?:/[^/]+)?$",                          # market index <code> (지수 상세)
     r"^/api/v2/autotrade/plan/find$",                             # accumulate list

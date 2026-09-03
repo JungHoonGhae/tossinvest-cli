@@ -81,7 +81,7 @@ Rules for agents:
 
 ## Probe 목록
 
-현재 `monitor api` 는 54개 read-only endpoint 를 감시합니다. 단일 진실 소스는
+현재 `monitor api` 는 56개 read-only endpoint 를 감시합니다. 단일 진실 소스는
 `internal/monitor.Probes()` 런타임 결과입니다. 대부분은 `internal/ops`
 레지스트리의 오퍼레이션 옆 `ProbeSpec` 에서 파생되고, 카탈로그 오퍼레이션이
 없는 CLI 전용 6개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
@@ -92,11 +92,13 @@ Rules for agents:
 - `investor-rankings` — `GET /api/v1/dashboard/wts/overview/rankings/by-investors`
 - `theme-rankings` — `GET /api/v1/tics/rankings`
 - `sectors-tics` — `GET /api/v1/tics/all`
+- `sector-detail-simple` — `GET /api/v2/dashboard/wts/overview/tics/1/simple`
 - `sector-detail-overview` — `GET /api/v2/dashboard/wts/overview/tics/1/overview`
 - `sector-detail-stocks` — `POST /api/v2/dashboard/wts/overview/tics/1/stocks`
 - `sector-detail-etfs` — `POST /api/v2/dashboard/wts/overview/tics/1/etfs`
 - `sector-detail-news` — `GET /api/v2/dashboard/wts/overview/tics/1/news`
 - `ai-signals` — `GET /api/v2/reasoning-contents/interest`
+- `ai-signal-detail` — `GET /api/v1/dashboard/wts/overview/ai-signals/detail?productCode=A005930&productType=STOCKS`
 - `screener-presets` — `GET /api/v2/screener/presets/common`
 - `trading-flows` — `GET /api/v1/stock-infos/trade/trend/trading-trend`
 - `earning-call` — `GET /api/v1/earning-call/upcoming`

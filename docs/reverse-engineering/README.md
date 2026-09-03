@@ -47,5 +47,11 @@ python3 tools/fetch_public_fixtures.py fixtures/responses/public
 검증하되 그 값은 화면에서만 본다. 캡처 도구가 값을 기본 마스킹하는 이유도 같다
 (`--raw` 출력은 이슈·PR 에 붙여넣지 말 것).
 
+APK/XAPK와 jadx 결과처럼 용량이 큰 정적 분석 자산은 저장소 안의
+`.artifacts/android/toss/<version>/`에 버전별로 둔다. 이 경로는 `.gitignore`와 로컬
+`.git/info/exclude`에서 제외되므로 Git에는 올라가지 않지만, 분석 스크립트와 후속 버전 diff가
+Downloads 같은 임시 위치에 의존하지 않는다. 공개 문서에는 package/version/hash/서명과
+검증된 계약만 남기고, 로컬 분석 메모와 원본 바이너리는 `.artifacts` 안에 보관한다.
+
 용어는 루트 [`CONTEXT.md`](../../CONTEXT.md), 되돌리기 어려운 결정은
 [`docs/adr/`](../adr/).

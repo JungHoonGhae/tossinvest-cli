@@ -59,22 +59,38 @@ type SectorNews struct {
 	ImageURLs []string `json:"image_urls,omitempty"`
 }
 
-// SectorDetail combines the independently served TICS overview, constituent
-// stocks, related ETFs, and news into one stable CLI/MCP response.
+// RelatedSector is the hierarchy returned beside a TICS detail. It is kept
+// separate from Sector because this contract carries depth and artwork rather
+// than the multi-duration performance fields used by `market sectors`.
+type RelatedSector struct {
+	ID         int             `json:"id"`
+	Name       string          `json:"name"`
+	Depth      int             `json:"depth"`
+	ImageURL   string          `json:"image_url,omitempty"`
+	SubSectors []RelatedSector `json:"sub_sectors"`
+}
+
+// SectorDetail combines the independently served TICS movement, overview,
+// related-sector tree, constituents, ETFs, and news into one stable CLI/MCP
+// response.
 type SectorDetail struct {
-	ID           int    `json:"id"`
-	Name         string `json:"name"`
-	Summary      string `json:"summary"`
-	Description  string `json:"description"`
-	Depth        int    `json:"depth"`
-	CompanyCount int    `json:"company_count"`
-	ETFCount     int    `json:"etf_count"`
+	ID           int     `json:"id"`
+	Name         string  `json:"name"`
+	Summary      string  `json:"summary"`
+	Description  string  `json:"description"`
+	ImageURL     string  `json:"image_url,omitempty"`
+	ChangeRate   float64 `json:"change_rate"`
+	Duration     string  `json:"duration,omitempty"`
+	Depth        int     `json:"depth"`
+	CompanyCount int     `json:"company_count"`
+	ETFCount     int     `json:"etf_count"`
 	// Total counts can exceed the arrays when WTS returns its default first page.
-	StockTotalCount int           `json:"stock_total_count"`
-	ETFTotalCount   int           `json:"etf_total_count"`
-	NewsTotalCount  int           `json:"news_total_count"`
-	Stocks          []SectorStock `json:"stocks"`
-	ETFs            []SectorETF   `json:"etfs"`
-	News            []SectorNews  `json:"news"`
-	FetchedAt       time.Time     `json:"fetched_at"`
+	StockTotalCount int             `json:"stock_total_count"`
+	ETFTotalCount   int             `json:"etf_total_count"`
+	NewsTotalCount  int             `json:"news_total_count"`
+	Stocks          []SectorStock   `json:"stocks"`
+	ETFs            []SectorETF     `json:"etfs"`
+	News            []SectorNews    `json:"news"`
+	RelatedSectors  []RelatedSector `json:"related_sectors"`
+	FetchedAt       time.Time       `json:"fetched_at"`
 }
