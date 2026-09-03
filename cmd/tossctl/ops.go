@@ -9,6 +9,8 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/ops"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/pricealert"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
+	watchlistservice "github.com/JungHoonGhae/tossinvest-cli/internal/watchlist"
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +19,7 @@ import (
 // monitor probes.
 //
 // It exists because the typed commands cannot enumerate themselves. An agent
-// driving tossctl can read `--help`, but nothing tells it that ~50 operations
+// driving tossctl can read `--help`, but nothing tells it that 100+ operations
 // exist, what each takes, or how to call one it has never seen. The MCP server
 // answers exactly that, and agents increasingly prefer a CLI to an MCP server
 // (see docs/research/2026-07-25-cli-mcp-single-declaration.md), so the same
@@ -45,27 +47,15 @@ func newOpsCmd(opts *rootOptions) *cobra.Command {
 	return cmd
 }
 
-// listItem is the compact per-operation shape, matching the MCP
-// list_operations payload field for field so an agent's parser works on both.
-type listItem struct {
-	ID       string   `json:"id"`
-	Method   string   `json:"method"`
-	Path     string   `json:"path"`
-	Domain   string   `json:"domain"`
-	Category string   `json:"category"`
-	Summary  string   `json:"summary"`
-	Write    bool     `json:"write,omitempty"`
-	Backend  string   `json:"backend,omitempty"`
-	Required []string `json:"required,omitempty"`
-}
-
 func newOpsListCmd() *cobra.Command {
 	var query string
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List available API operations, optionally filtered",
 		Long: "List the operations in the registry as JSON. Filter with --query, which " +
-			"matches the id, path, product domain, category, and summary.\n\n" +
+			"matches the canonical id, compatibility aliases, path, product domain, category, and summary.\n\n" +
+			"The list is a compact discovery index. Run `ops describe <id>` for the HTTP method/path, " +
+			"full parameter schema, and mutation policy before calling an operation.\n\n" +
 			"Needs no credentials: the catalog is a local declaration, not an API call. " +
 			"Operations you cannot yet run are listed too — `backend` tells you which " +
 			"login each one needs.",
@@ -73,23 +63,15 @@ func newOpsListCmd() *cobra.Command {
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			// No --limit: the whole catalog is ~50 operations, well under
-			// Catalog.List's own 200 cap, so a limit flag could never bind.
-			found := ops.NewCatalog().List(query, 0)
-			items := make([]listItem, 0, len(found))
-			for _, o := range found {
-				items = append(items, listItem{
-					ID: o.ID, Method: o.Method, Path: o.Path, Domain: o.Domain, Category: o.Category,
-					Summary: o.Summary, Write: o.Write, Backend: o.Backend,
-					Required: o.RequiredNames(),
-				})
-			}
+			// No --limit: the whole catalog is under Catalog.List's 200-item
+			// cap, so a limit flag could not currently bind.
+			items := ops.NewCatalog().ListItems(query, 0)
 			return output.WriteJSON(cmd.OutOrStdout(), map[string]any{
 				"count": len(items), "operations": items,
 			})
 		},
 	}
-	cmd.Flags().StringVar(&query, "query", "", "Filter by id, path, product domain, category, or summary")
+	cmd.Flags().StringVar(&query, "query", "", "Filter by id, alias, path, product domain, category, or summary")
 	return cmd
 }
 
@@ -98,7 +80,7 @@ func newOpsDescribeCmd() *cobra.Command {
 		Use:   "describe <operation>",
 		Short: "Show one operation's parameter schema",
 		Long: "Print an operation's full declaration as JSON: method, path, backend, " +
-			"whether it writes, and every parameter with its type and whether it is " +
+			"whether it writes, its mutation risk and approval policy, and every parameter with its type and whether it is " +
 			"required. This is what you need to build the --params object for `ops call`.\n\n" +
 			"Needs no credentials.",
 		Annotations:  map[string]string{"source": "local"},
@@ -124,14 +106,18 @@ func newOpsCallCmd(opts *rootOptions) *cobra.Command {
 			"what an operation accepts.\n\n" +
 			"Output is raw — account numbers and real names appear unmasked, unlike the " +
 			"typed commands. Do not paste it into an issue or a chat without checking it.\n\n" +
-			"Order writes are gated exactly as `tossctl order` is: config opt-in plus " +
-			"execute + confirm token in --params. A call without them returns a dry-run " +
-			"preview carrying the token.",
+			"Every write defaults to a dry-run preview carrying a confirm token. Execution " +
+			"requires execute + that preview token in --params. Inspect `ops describe` for " +
+			"the operation's risk, reversibility, config opt-in, irreversible acknowledgement, " +
+			"and verification policy before executing it.",
 		// Marked mutating because the write operations reachable here (place,
 		// cancel, modify) are the same ones `tossctl order` exposes — the gate
 		// lives in trading.Service, not in the command, so this door is no more
 		// permissive, but it is a door.
-		Annotations:  map[string]string{"source": "both", "mutating": "true"},
+		Annotations: map[string]string{
+			"source": "both", "mutating": "true", "writes_state": "possible",
+			"mutation_risk": "operation-defined", "reversibility": "operation-defined",
+		},
 		Args:         cobra.ExactArgs(1),
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -155,13 +141,21 @@ func newOpsCallCmd(opts *rootOptions) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			officialClient := app.client.Official()
+			// The operation catalog declares regular and conditional orders as
+			// official-only. Keep this machine surface identical to MCP even though
+			// the human-oriented `order` command retains its legacy hybrid broker.
+			officialTrading := trading.NewService(app.config.Trading, ops.OfficialBroker{Client: officialClient}).
+				WithConditionalBroker(app.client).
+				WithLineage(app.lineageService)
 			deps := &ops.Deps{
-				Client:         app.client.Official(),
+				Client:         officialClient,
 				WTS:            app.client,
-				Trading:        app.tradingService,
+				Trading:        officialTrading,
 				OpenAPIIP:      openapiip.NewService(app.client, openapiip.NewHTTPResolver(nil, "")),
 				PriceAlerts:    pricealert.NewService(app.client),
 				HiddenHoldings: hiddenholding.NewService(app.client),
+				Watchlists:     watchlistservice.NewService(app.client),
 				Auth:           authSnapshot(app.session, app.client.Official(), app.tokenFile),
 			}
 			result, err := catalog.Call(cmd.Context(), deps, args[0], callArgs)

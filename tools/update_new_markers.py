@@ -100,10 +100,13 @@ FEATURE_DATES = {
 # FEATURE_DATES with the actual changelog release date when it ships.
 UNRELEASED_FEATURES = {
     "account access-status",
+    "accumulate funding-status",
     "notifications status",
     "account trading-settings",
     "account transfer-accounts",
     "portfolio performance",
+    "portfolio folders",
+    "watchlist group create",
 }
 
 _KEYS = sorted(set(FEATURE_DATES) | UNRELEASED_FEATURES, key=len, reverse=True)

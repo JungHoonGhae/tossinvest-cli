@@ -154,7 +154,7 @@ tossctl account summary --output json
 tossctl account overview                 # 전체 계좌 합산 (번호 기본 마스킹)
 ```
 
-설치 후 새 버전이 나오면 `tossctl update` 로 갱신할 수 있습니다 (Homebrew로 설치했다면 `brew upgrade tossctl-cli` 로 자동 위임됩니다).
+설치 후 새 버전이 나오면 `tossctl update` 로 갱신할 수 있습니다 (Homebrew로 설치했다면 `brew upgrade tossctl` 로 자동 위임됩니다).
 
 > `auth login`에는 Google Chrome과 Python이 필요하며, 설치 스크립트가 자동으로 설정합니다.
 > Windows, Homebrew, 소스 빌드 등 다른 설치 방법은 [설치](#설치) 섹션을 참고하세요.
@@ -216,7 +216,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 ## 지원 범위
 
 > **tossctl 은 토스 공식 Open API 의 조회·거래 범위를 100% 커버하고, 그 너머까지 다룹니다.**
-> 공식 [Open API 문서](https://developers.tossinvest.com/docs)의 모든 엔드포인트(계좌·잔고·시세·호가·체결·캔들·상하한가·매도가능수량·수수료·주문 등)에 대응하며, 추가로 수급·시장지수·AI 시그널·조건검색·관심종목 관리·거래내역 ledger·실시간 푸시·원화 소수점 주문·dry-run preview 등 **55개가 공식 Open API에 없는 tossctl 고유 범위**입니다.
+> 공식 [Open API 문서](https://developers.tossinvest.com/docs)의 모든 엔드포인트(계좌·잔고·시세·호가·체결·캔들·상하한가·매도가능수량·수수료·주문 등)에 대응하며, 추가로 수급·시장지수·AI 시그널·조건검색·관심종목 관리·거래내역 ledger·실시간 푸시·원화 소수점 주문·dry-run preview 등 **58개가 공식 Open API에 없는 tossctl 고유 범위**입니다.
 
 <p align="center">
   <img src="docs/assets/api-comparison.svg" alt="tossctl vs 공식 Open API(예정) 커버리지 비교 — tossctl 이 상위집합" width="840" />
@@ -239,9 +239,9 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | MyData | 일반 Toss 앱의 카드·소비·외부 금융자산 모바일 API | 계약 일부 정적 확인, 미구현 |
 | 시스템 | 로그인, Open API 허용 IP, API·앱 변경 감시 | 구현 |
 
-따라서 `banking status`는 일반 Banking 조회가 아니라 **토스증권 주식모으기 자금연결
-상태(`securities + wts`)**입니다. 자동주문용 오픈뱅킹 등록과 거래목적 확인용 MyData 계좌
-존재 여부도 이 좁은 증권 흐름의 플래그이며 일반 Banking/MyData 조회가 아닙니다. 카드 결제 내역·이번 달 소비·은행 거래는 같은 Toss 앱에
+따라서 정식 명령 `accumulate funding-status`는 **토스증권 주식모으기 자금연결
+상태(`securities + wts`)**입니다. 이전 `banking status`는 호환용 deprecated alias입니다. 자동주문용 오픈뱅킹 등록도 이 좁은 증권 흐름의
+플래그이며 일반 Banking 조회가 아닙니다. 카드 결제 내역·이번 달 소비·은행 거래는 같은 Toss 앱에
 보이더라도 별도 모바일 토큰·동의 범위를 확인하기 전에는 WTS 쿠키로 추측 호출하지 않습니다.
 
 - ✅ 지원 · ❌ 미지원 · 🔸 부분 지원 · 🆕 최근 한 달 내 새로 추가된 기능
@@ -256,6 +256,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | 계좌 목록 / 요약 | `account list`, `account summary` | ✅ | ✅ |
 | 🆕 매수여력 (공식) | `account buying-power [--currency KRW\|USD]` (현금 기준, 계좌요약과 다른 개념) | ✅ | ✅ |
 | 포트폴리오 | `portfolio positions`, `portfolio allocation` (US: USD 병기) | ✅ | ✅ |
+| **🆕 포트폴리오 폴더** | `portfolio folders [--account]` (토스증권 앱과 같은 폴더·보유종목 구성, 읽기 전용) | ❌ | ✅ |
 | **🆕 포트폴리오 평가 이력** | `portfolio performance`, `portfolio snapshots`, `portfolio snapshot <date>` (전체 계좌 합산 기본, `--account` 선택; 웹 UI 없는 증권 WTS 읽기) | ❌ | ✅ |
 | 체결 내역 (틱) | `quote trades <symbol> --count N` | ✅ | ✅ |
 | 호가 (bid/ask 10단계) | `quote orderbook <symbol>` (매도·매수 잔량) | ✅ | ✅ |
@@ -285,7 +286,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **🆕 통합 검색** | `search <이름\|티커>` (종목 코드 조회) | ❌ | ✅ |
 | **🆕 미수금·반대매매 통지** | `account receivable --currency KRW\|USD` | ❌ | ✅ |
 | **수급 (투자자별 순매수)** | `quote flows <symbol>` (개인·외국인·기관, KR) | ❌ | ✅ |
-| **시장 지수** | `market index` (코스피·코스닥·나스닥·S&P500·VIX), `market index <코드\|이름>` 상세(OHLC·52주) | ❌ | ✅ |
+| **시장 지수** | `market index` (코스피·코스닥·나스닥·S&P500·VIX), `market index <코드\|이름>` 상세(OHLC·52주·시세원·거래 세션) | ❌ | ✅ |
 | **실시간 인기 순위** | `market ranking --size N` | ❌ | ✅ |
 | **공식 랭킹(거래대금/등락률)** | `market rankings --type ... --market KR --duration 1d` | ✅ | ✅ |
 | **시장 지표 현재가** | `market indicator KOSPI,KOSDAQ` | ✅ | ✅ |
@@ -322,13 +323,13 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **테마 등락 랭킹** | `market themes` (오늘 가장 많이 오른 테마, 상승종목 수) | ❌ | ✅ |
 | **AI 뉴스 브리핑** | `market briefing [--scope personalized\|kr\|us]` (개인화 또는 한국·미국 최신 브리핑) | ❌ | ✅ |
 | **🆕 핵심 실적·경제지표** | `market key-events` (실적 예상·발표·서프라이즈, 경제지표 실제·예상·직전값) | ❌ | ✅ |
-| **🆕 증권 주식모으기 자금연결 상태** | `banking status [--full]` (일반 Banking 아님; 연결·자동주문 등록과 거래목적 확인용 MyData 계좌 여부, 예금주·계좌번호 기본 마스킹) | ❌ | ✅ |
-| **🆕 알림 설정·상태 조회** | `notifications list`, `notifications status` (일반 설정과 받은함·AI 이슈·FOMC·분석 콘텐츠 상태; 읽기 전용, 내부 사용자 ID 제외) | ❌ | ✅ |
+| **🆕 증권 주식모으기 자금연결 상태** | `accumulate funding-status [--full]` (`banking status`는 deprecated alias; 일반 Banking 아님, 예금주·계좌번호 기본 마스킹) | ❌ | ✅ |
+| **🆕 알림 설정·상태 조회** | `notifications list`, `notifications status` (통합 알림 설정·받은함 미확인·AI 분석 동의; 읽기 전용, 내부 사용자 ID 제외) | ❌ | ✅ |
 | **🆕 목표가 알림 조회·관리** | `quote alert list\|add\|remove <symbol>` (변경은 preview + `--execute --confirm`) | ❌ | ✅ |
 | **🆕 숨긴 보유종목 조회·관리** | `portfolio hidden list\|hide\|show` (계좌 키 비노출, 변경 후 재검증) | ❌ | ✅ |
 | **토스 AI 시그널** | `market signals` (목록), `market signal <symbol>` (전체 근거·뉴스·연관 종목) | ❌ | ✅ |
 | **조건 검색 (스크리너)** | `market screener [id]` (프리셋) · `--filter '<json>'` (커스텀 조건) `--nation kr\|us` | ❌ | ✅ |
-| **관심 종목 조회·관리** | `watchlist list [<group-id>] [--all]`·`groups`, `watchlist group create\|rename\|delete`, `watchlist add\|remove --group <id>` (폴더별 조회 + CRUD + 종목 추가/제거) | ❌ | ✅ |
+| **🆕 관심 종목 조회·관리** | `watchlist list [<group-id>] [--all]`·`groups`, `watchlist group create\|rename\|delete`, `watchlist add\|remove --group <id>` (폴더별 조회 + CRUD + 종목 추가/제거) | ❌ | ✅ |
 | **거래내역 ledger** | `transactions list --market us\|kr` (매매·입출금·배당·입출고) | ❌ | ✅ |
 | **현금 overview** | `transactions overview --market us\|kr` (주문가능·출금가능·예정입금) | ❌ | ✅ |
 | **CSV 내보내기** | `export positions\|orders --market`, `transactions list --output csv` | ❌ | ✅ |
@@ -474,15 +475,16 @@ flowchart TD
 
 - **영속 게이트 (config.json):** 일반 주문의 `place`/`cancel`/`amend`, 조건주문의 `conditional` 경로 토글 + `sell`/`fractional` 스코프 선언 + `allow_live_order_actions` 마스터 킬스위치. (시장 US/KR 은 게이트 아님 — KR 주문이 US 보다 위험하지 않으므로 동일 취급)
 - **런타임 게이트 (매 실행):** `--execute` (preview 아닌 실제 실행) + `--confirm <token>` (preview 에서 받은 주문별 토큰).
-- 진짜 안전장치는 주문별 `--confirm <token>` — preview 를 봐야만 얻을 수 있어, 의도하지 않은 주문은 토큰이 어긋나 차단됩니다.
+- 주문별 `--confirm <token>`은 정확한 주문 의도를 다시 명시하게 하는 실수 방지 장치입니다. 토큰은 의도에서 결정적으로 계산되므로 일회용·재생 방지 권한으로 간주하면 안 되며, 기본 비활성화된 거래 설정과 사람의 실행 승인이 주 안전장치입니다.
 
 > **v0.5.x 간소화 히스토리:** 중복이던 TTL grant 레이어(`internal/permissions`)를 제거하고(`allow_live_order_actions` 가 같은 보호 제공), 거짓 이름이던 `--dangerously-skip-permissions`(이제 가리킬 permissions 가 없음 + 의미도 역방향)를 은퇴시켰습니다. 기존 플래그는 한 릴리즈 동안 deprecated no-op alias 로 받아들여 스크립트/agent 호환을 유지합니다.
 
 ## 공식 Open API 자동 라우팅 <!--since:2026-06-27-->
 
-tossctl은 웹 세션(WTS)만으로도 전부 동작합니다. 토스 공식 Open API 키를 선택적으로
-연결하면 공식 Open API가 지원하는 기능은 공식 API OAuth 경로로, 나머지는 WTS로 각각 처리하는 **자동
-라우팅**이 켜집니다. 키 없이도 모든 기능을 쓸 수 있고, 원하는 시점에 추가할 수 있습니다.
+tossctl은 웹 세션(WTS)으로 WTS 전용 기능과 대부분의 hybrid 조회·일반주문을 사용할 수 있습니다.
+토스 공식 Open API 키를 연결하면 공식 지원 기능은 OAuth 경로로, 나머지는 WTS로 각각 처리하는
+**자동 라우팅**이 켜집니다. `account buying-power`, `market business-days|stocks`, `quote metadata`,
+조건주문, `stream` 같은 official-only 명령은 공식 키가 필요합니다.
 
 > 공식 Open API 와 WTS 웹 세션의 차이(인증·갱신·커버리지·안정성), IP 자동 등록, 라우팅
 > 동작(다이어그램)은 [자동 라우팅 가이드](https://tossinvest-cli.vercel.app/docs/guide/hybrid-openapi)에 정리되어 있습니다.
@@ -535,25 +537,25 @@ claude mcp list   # → "tossctl: tossctl mcp - ✔ Connected"
 </p>
 
 Claude Desktop·Codex 등 **JSON 설정 방식** 호스트는 아래 [설정 예시](#mcp-호스트-json-설정)를 쓰세요.
-터미널에서 **사람이 CLI 로 직접** 쓰려면 MCP 등록 없이 `tossctl auth login`(웹 세션)만으로 전체
-기능을 씁니다 — [Quick Start](#빠른-시작) 참고. 두 경로는 같은 `tossctl` 하나를 공유합니다.
+터미널에서 **사람이 CLI 로 직접** 쓰려면 MCP 등록은 필요 없습니다. `tossctl auth login`은 WTS
+기능을, `tossctl openapi login`은 official-only 기능을 열며 두 경로는 같은 `tossctl`에서 조합됩니다.
 
 #### 왜 catalog 방식인가 — 상시 컨텍스트를 3개로 고정
 
 MCP 의 고질적 비용은 **툴 스키마가 모델 컨텍스트에 상시 상주**한다는 점입니다. API 하나당 툴
 하나로 등록하면, 그 툴의 이름·설명·파라미터 스키마 전부가 대화 내내 컨텍스트를 차지합니다.
-tossctl 의 API 표면은 **105개 오퍼레이션**(공식·WTS 조회, 일반·조건 주문, 시스템 오퍼레이션,
+tossctl 의 API 표면은 **111개 오퍼레이션**(공식·WTS 조회, 일반·조건 주문, 시스템 오퍼레이션,
 계속 증가) — 이걸 개별 툴로 노출하면 **그만큼의 스키마가 항상 떠 있게** 되어 토큰을 먹고, 툴 선택
 노이즈(비슷한 툴 사이 오판)도 커집니다.
 
 tossctl 은 KIS_MCP_Server 의 catalog 모드를 참조해, 앞단에 **고정 3개 툴만** 노출하고 나머지
 오퍼레이션 전부는 **필요할 때만 스키마를 꺼내오는** 구조로 뒤에 둡니다:
 
-- `list_operations` — 사용 가능한 오퍼레이션 목록(id·요약·write 여부) 조회, `query` 로 필터
-- `describe_operation` — 특정 오퍼레이션의 파라미터 스키마를 **그 순간에만** 조회
+- `list_operations` — 사용 가능한 오퍼레이션의 compact 색인(id·도메인·요약·backend·write 여부·필수 파라미터) 조회, `query` 로 필터
+- `describe_operation` — 특정 오퍼레이션의 method/path·전체 파라미터·쓰기 위험/승인/복구 정책을 **그 순간에만** 조회
 - `call_operation` — id + 파라미터로 실제 호출
 
-결과: 상시 컨텍스트 = **딱 3개 툴 스키마**. 오퍼레이션이 40개든 105개든 상주 비용은 3으로
+결과: 상시 컨텍스트 = **딱 3개 툴 스키마**. 오퍼레이션이 40개든 111개든 상주 비용은 3으로
 고정됩니다. 에이전트는 필요한 오퍼레이션을 `list_operations` 로 찾고 → `describe_operation` 으로
 그때 스키마를 읽고 → `call_operation` 으로 호출하므로, 안 쓰는 오퍼레이션의 스키마가 컨텍스트를
 차지하지 않습니다. (이 README 를 읽는 Claude Code 세션에서도 `tossctl` MCP 는 딱 이 3개 툴로
@@ -564,32 +566,33 @@ tossctl 은 KIS_MCP_Server 의 catalog 모드를 참조해, 앞단에 **고정 3
 호출하기 전에 오류로 반환합니다. 오래된 스키마의 인자를 섞어 보내는 대신 호출 직전에
 `describe_operation` 을 다시 읽으세요.
 
-#### MCP 가 노출하는 범위 — 조회는 공식+WTS, 주문은 공식 전용
+#### MCP 가 노출하는 범위 — 조회·설정은 공식+WTS, 주문은 공식 전용
 
-MCP 는 **조회를 공식 Open API + WTS 전용 기능 모두** 노출하고, **주문(write)은 공식 API 경로만**
-씁니다. 예외적으로 공식 Open API 허용 IP 교체는 WTS 설정 경로를 사용하되 preview·confirm·서버
-재검증·롤백을 모두 거칩니다. 각 오퍼레이션은 `list_operations` 결과에 `backend`로 표시됩니다 — `"wts"`(웹 세션 필요),
+MCP 는 **조회와 검증된 설정 변경을 공식 Open API + WTS에 걸쳐** 노출하고, **주문(write)은 공식 API 경로만**
+씁니다. `list_operations`는 `backend`와 write 여부를 표시하고, 쓰기의 전체 `mutation` 정책은 반드시 `describe_operation`에서 확인합니다. `backend`는 `"wts"`(웹 세션 필요),
 `"auto"`(공식·웹 세션 **둘 중 하나면 동작**, 공식 우선 후 웹 세션 폴백), 그 외는 공식 전용.
 
 - **조회(read)** — 공식 API(계좌·시세·호가·체결·캔들 등)와 **WTS 전용**(인기 순위·수급·AI 시그널·
   스크리너·업종·어닝·브리핑·배당 등 [토스 고유 기능](#왜-tossctl-인가--공식-api-는-토스-기능의-일부일-뿐))을
   함께 노출합니다. WTS 조회는 웹 세션이 필요하고, 없으면 해당 오퍼레이션이 `tossctl auth login`
   안내를 돌려줍니다. 증권 거래 설정·주식이체 계좌·주식모으기 자금연결은 각각
-  `trading_settings`·`securities_transfer_accounts`·`banking_status`로 조회하며, 앞의 두
+  `trading_settings`·`securities_transfer_accounts`·`accumulation_funding_status`로 조회하며, 마지막 오퍼레이션은 이전 `banking_status`도 alias로 허용합니다. 앞의 두
   오퍼레이션은 선택적 `account` 키로 기본 계좌 외 계좌도 지정합니다. 조회는 실패해도
   stale read 수준이라 에이전트에 노출해도 위험이 낮습니다.
 - **주문(write)** — 일반·조건주문의 생성·취소·정정은 **항상 공식 API 경로만** 사용합니다(WTS 미경유). 에이전트에
   주문을 맡기는 이상 제출 경로는 **토스가 공식 승인한 API** 여야 안전하고 정직하기 때문입니다.
-- **WTS 설정 쓰기(유일한 예외)** — `openapi_ip_replace_current`는 공식 Open API의 허용 IP 설정만
-  교체합니다. 기본 호출은 preview이고 `execute:true` + 유효한 `confirm` 토큰이 필요하며, 변경 뒤
-  서버 상태를 재검증하고 실패하면 기존 목록을 복구합니다. 주문이나 관심종목 쓰기는 WTS로 노출하지 않습니다.
+- **WTS 설정 쓰기** — Open API 허용 IP, 목표가 알림, 숨긴 보유종목, 관심종목 폴더·종목을 변경합니다.
+  모두 기본 preview이고 `execute:true` + 유효한 `confirm` 토큰이 필요하며 적용 뒤 서버 상태를
+  재조회합니다. 관심종목 토큰은 현재 WTS 세션에 묶이고 5분 뒤 만료됩니다. 폴더 삭제는
+  되돌릴 수 없어 `acknowledge_irreversible:true`도 필요합니다. 이 토큰은 정확한 의도를
+  승인하지만 서버측 single-use/idempotency key는 아니므로 같은 preview를 동시에 실행하면 안 됩니다.
 - **인증 분리.** 공식 조회·주문은 공식 키(`openapi login`), WTS 조회는 웹 세션(`auth login`).
   둘 중 **하나만 있어도 MCP 서버는 뜨고**, 각 오퍼레이션이 자기에게 필요한 인증을 확인합니다.
 
 이로써 CLI 로만 쓰던 **WTS 전용 기능을 에이전트도 MCP 로** 쓸 수 있습니다.
 
 > **업데이트는 자동입니다.** 호스트는 `tossctl mcp` 라는 **명령어**를 저장해 세션마다 새로 실행하므로,
-> `brew upgrade tossctl-cli`(또는 `tossctl update`)로 바이너리만 갱신하면 다음 세션·호스트 재시작 때
+> `brew upgrade tossctl`(또는 `tossctl update`)로 바이너리만 갱신하면 다음 세션·호스트 재시작 때
 > 새 오퍼레이션이 **재등록 없이** 반영됩니다(catalog 는 서버 시작 시 바이너리에서 구성).
 
 일반 주문(`place_order`·`cancel_order`·`modify_order`)과 조건주문(`place_conditional_order`·
@@ -622,8 +625,8 @@ Desktop·Codex 등 JSON 설정 방식 호스트는 다음을 설정 파일에 �
 | 실행 방식 | 셸 명령 (`tossctl …`) | 구조화된 MCP 툴 (JSON-RPC, 셸 불필요) |
 | 어디서 | 셸이 있는 어디서든 — 터미널·스크립트·cron, **그리고 셸을 쓰는 AI 에이전트**(Claude Code·Codex·Cursor…) | **MCP 네이티브 호스트** — 에이전트가 오퍼레이션을 툴로 호출 (catalog 3툴로 컨텍스트 최소화) |
 | 에이전트가 아는 법 | 프롬프트에 언급하거나 스킬·`AGENTS.md`/`CLAUDE.md` 로 등록해 존재를 알려줘야 함 — 알고 나면 [`tossctl ops list`](#에이전트가-cli-로-카탈로그를-쓰는-법--tossctl-ops) 로 전체 오퍼레이션을 스스로 탐색 | **등록 시 툴 목록에 자동 노출** → 별도 안내 없이 호출 |
-| 인증 | **웹 세션만으로** 전부 동작(공식 키 연결 시 자동 라우팅) | 공식 조회·주문엔 공식 키(`openapi login`), WTS 조회엔 웹 세션(`auth login`) — **최소 하나** |
-| 커버 범위 | **전부** — 공식 + WTS(조회·주문·실시간 스트리밍·관심종목 등) | **조회는 공식+WTS**, 주문은 공식 경로. 허용 IP 교체만 보호된 WTS 설정 쓰기로 포함; 실시간 스트리밍·관심종목 WTS 쓰기는 미포함 |
+| 인증 | WTS 기능은 웹 세션, official-only 기능은 공식 키(둘 다 연결하면 전체 범위) | 공식 조회·주문엔 공식 키(`openapi login`), WTS 조회엔 웹 세션(`auth login`) — **최소 하나** |
+| 커버 범위 | 두 인증을 연결하면 **공식 + WTS 전체**(조회·주문·실시간 스트리밍·관심종목 등) | **조회·설정은 공식+WTS**, 주문은 official-only. 목표가·숨김·관심종목·허용 IP 쓰기 포함; 실시간 스트리밍은 미포함 |
 | 자연어 | 에이전트가 자연어 → `tossctl` 명령으로 실행 | 에이전트가 자연어 → MCP 툴 호출 |
 
 - **AI 에이전트는 둘 다 씁니다 — 차이는 '아는 법'입니다.** MCP 는 등록하면 툴로 자동 노출돼 별도 안내 없이 호출됩니다(조회는 공식+WTS, 주문은 공식). CLI 는 셸을 다루는 에이전트(Claude Code·Codex·Cursor)가 잘 실행하지만, **프롬프트에 언급하거나 스킬·`AGENTS.md`/`CLAUDE.md` 로 알려줘야** 존재를 압니다 — 대신 **전체 기능**(실시간·WTS 쓰기 포함)에 결정적·파이프 가능합니다.
@@ -812,11 +815,12 @@ tossctl account overview [--full]               # 전체·미성년 계좌 합�
 tossctl account trading-settings [--account KEY] # 간편주문·KRX/NXT·ATS·옵션 시세 구독 설정 조회
 tossctl account transfer-accounts [--account KEY] [--full] # 증권 이체용 내/최근 계좌 조회
 tossctl account access-status [--account KEY]    # 최근 접속·신용거래 동결·사고계좌 상태
-tossctl banking status [--full]                  # 증권 자금연결·자동주문·거래목적 확인용 MyData 상태
+tossctl accumulate funding-status [--full]       # 증권 주식모으기 자금연결·자동주문 등록 상태
 tossctl notifications list                       # 알림 설정 조회(읽기 전용)
-tossctl notifications status                     # 받은함·AI 이슈·FOMC·분석 콘텐츠 상태
+tossctl notifications status                     # 통합 알림 설정·받은함·AI 분석 동의 상태
 tossctl portfolio positions
 tossctl portfolio allocation
+tossctl portfolio folders [--account KEY]       # 앱과 같은 폴더별 보유종목 구성
 tossctl portfolio performance [--account KEY]   # 최근 1개월 일별 원금·평가액·수익률
 tossctl portfolio snapshots [--account KEY] [--cursor CURSOR] [--limit N] # 날짜별 평가 이력
 tossctl portfolio snapshot YYYY-MM-DD [--account KEY] # 날짜별 시장·종목 상세
@@ -874,6 +878,11 @@ tossctl quote alert add <symbol> --price <value> --currency KRW|USD
 tossctl quote alert add <symbol> --price <value> --currency KRW|USD --execute --confirm <token>
 tossctl quote alert remove <symbol> --price <value> --currency KRW|USD [--execute --confirm <token>]
 tossctl portfolio hidden hide|show <symbol> [--account <key>] [--execute --confirm <token>]
+tossctl watchlist group create "장기 투자"
+tossctl watchlist group create "장기 투자" --execute --confirm <token>
+tossctl watchlist group rename <id> "핵심 종목" [--execute --confirm <token>]
+tossctl watchlist group delete <id> [--execute --confirm <token> --acknowledge-irreversible]
+tossctl watchlist add|remove <symbol> --group <id> [--execute --confirm <token>]
 ```
 
 ### 거래

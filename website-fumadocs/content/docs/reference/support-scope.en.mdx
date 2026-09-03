@@ -24,10 +24,9 @@ not a web app for general Toss Banking.
 | MyData cards/spending | general Toss mobile API | partially confirmed statically; unsupported |
 | System | login, Open API IP, change monitoring | supported |
 
-Despite its legacy name, `banking status` is the funding connection for
-Securities stock accumulation, so it is `securities + wts`, not general Banking. Its automated-order
-funding and trade-purpose MyData-account flags are also narrow Securities workflow states, not access
-to general Banking or MyData records.
+The canonical `accumulate funding-status` command is the funding connection for
+Securities stock accumulation, so it is `securities + wts`, not general Banking. The old `banking status` spelling is a deprecated alias. Its automated-order
+funding flag is also a narrow Securities workflow state, not access to general Banking records.
 
 The absence of a web UI is not itself a reason an API is unsupported. A WTS contract can be
 called without a UI once its current web-session contract is verified. General Banking/MyData
@@ -58,6 +57,7 @@ Use the global `--backend auto|wts|openapi` flag to override routing per request
 | Securities transfer accounts | `account transfer-accounts [--account <key>] [--full]` (masked by default; never initiates a transfer) | ❌ | ✅ |
 | Securities access and account restrictions | `account access-status [--account <key>]` (last login, margin freeze, accident-account count; no mutation) | ❌ | ✅ |
 | Portfolio | `portfolio positions`, `portfolio allocation` | ✅ | ✅ |
+| Portfolio folders | `portfolio folders [--account]` (the app's folder/holding organization; read-only) | ❌ | ✅ |
 | Portfolio valuation history | `portfolio performance`, `portfolio snapshots`, `portfolio snapshot <date>` (Securities WTS read with no current web UI; all accounts by default) | ❌ | ✅ |
 | Trade ticks / orderbook | `quote trades`, `quote orderbook` | ✅ | ✅ |
 | Price limits / buy cautions | `quote limits`, `quote warnings` | ✅ | ✅ |
@@ -65,15 +65,15 @@ Use the global `--backend auto|wts|openapi` flag to override routing per request
 | Quote / candles | `quote get`, `quote chart` | 🔸 | ✅ |
 | Multi-quote / live refresh | `quote batch --live` | ❌ | ✅ |
 | Investor flows | `quote flows` | ❌ | ✅ |
-| Market indices / index detail | `market index [<code\|name>]` | ❌ | ✅ |
+| Market indices / index detail | `market index [<code\|name>]` (detail includes price feed and trading session) | ❌ | ✅ |
 | Live popularity ranking | `market ranking` | ❌ | ✅ |
 | Net-buy by investor | `market investors` | ❌ | ✅ |
 | Sector movements & detail | `market sectors`, `market sector <id>` | ❌ | ✅ |
 | Earnings calendar & detail | `market earnings [event-id]` (`--major`: major companies) | ❌ | ✅ |
 | Personalized news briefing | `market briefing` (asset, return, reasoning, news) | ❌ | ✅ |
 | Key earnings & economic releases | `market key-events` | ❌ | ✅ |
-| Securities stock-accumulation funding status | `banking status [--full]` (includes automated-order registration and a trade-purpose MyData flag; not general Banking/MyData; internal ID omitted) | ❌ | ✅ |
-| Notification preferences and status | `notifications list`, `notifications status` (inbox, AI issue, FOMC, and reasoning-content state; no mutation) | ❌ | ✅ |
+| Securities stock-accumulation funding status | `accumulate funding-status [--full]` (`banking status` is a deprecated alias; not general Banking/MyData; internal ID omitted) | ❌ | ✅ |
+| Notification preferences and status | `notifications list`, `notifications status` (canonical preferences, inbox unread state, and AI-analysis agreement; no mutation) | ❌ | ✅ |
 | Target-price alert read & management | `quote alert list/add/remove` | ❌ | ✅ |
 | Hidden-holding read & management | `portfolio hidden list/hide/show` | ❌ | ✅ |
 | Toss AI signals | `market signals`, `market signal <symbol>` | ❌ | ✅ |

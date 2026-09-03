@@ -34,6 +34,7 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"asset-snapshot-detail-all":           true,
 		"asset-snapshot-detail-account":       true,
 		"portfolio-positions":                 true,
+		"portfolio-folders":                   true,
 		"watchlist":                           true,
 		"quote-stock-infos":                   true,
 		"pending-orders":                      true,
@@ -50,6 +51,7 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"stock-ranking":                       true,
 		"investor-rankings":                   true,
 		"index-prices":                        true,
+		"index-info":                          true,
 		"earning-call":                        true,
 		"earning-call-home":                   true,
 		"earning-call-detail":                 true,
@@ -71,7 +73,9 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"ai-signals":                          true,
 		"ai-signal-detail":                    true,
 		"screener-presets":                    true,
+		"stock-search":                        true,
 		"watchlist-groups":                    true,
+		"watchlist-group":                     true,
 		"market-calendar":                     true,
 		"market-halt":                         true,
 		"quote-reasons":                       true,
@@ -83,12 +87,8 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"open-banking-creatable":              true,
 		"open-banking-registration":           true,
 		"auto-trading-open-banking":           true,
-		"trade-purpose-mydata-account":        true,
 		"notification-settings":               true,
 		"notification-inbox-unread":           true,
-		"notification-ai-issue-release":       true,
-		"notification-fomc-live":              true,
-		"notification-reasoning-contents":     true,
 		"notification-reasoning-agreement":    true,
 		"notification-reasoning-news-count":   true,
 		"price-alerts":                        true,
@@ -190,6 +190,37 @@ func TestAccountKeyFromListUsesPrimaryThenFirstAccount(t *testing.T) {
 	if got := accountKeyFromList([]byte(`{"result":{"accountList":[{"key":"first-test"}]}}`)); got != "first-test" {
 		t.Fatalf("fallback key = %q", got)
 	}
+}
+
+func TestWatchlistGroupProbeUsesAuthenticatedFolderID(t *testing.T) {
+	t.Parallel()
+	if got := watchlistGroupIDFromList([]byte(`{"result":{"watchlists":[{"id":731}]}}`)); got != 731 {
+		t.Fatalf("watchlist group id = %d, want 731", got)
+	}
+	if got := watchlistGroupIDFromList([]byte(`{"result":{"watchlists":[]}}`)); got != 0 {
+		t.Fatalf("empty watchlist group id = %d, want 0", got)
+	}
+	if !watchlistGroupResponseContains([]byte(`{"result":{"watchlists":[{"id":731,"items":[]}]}}`), 731) {
+		t.Fatal("resolved watchlist response did not match requested folder")
+	}
+	if watchlistGroupResponseContains([]byte(`{"result":{"watchlists":[{"id":999,"items":[]}]}}`), 731) {
+		t.Fatal("different watchlist folder matched requested folder")
+	}
+
+	for _, probe := range Probes() {
+		if probe.Name != "watchlist-group" {
+			continue
+		}
+		if !probe.WatchlistGroupScoped || !strings.Contains(probe.URL, "ids={watchlistGroupId}") {
+			t.Fatalf("watchlist group probe = %#v", probe)
+		}
+		resolved := strings.ReplaceAll(probe.URL, "{watchlistGroupId}", "731")
+		if !strings.Contains(resolved, "ids=731") {
+			t.Fatalf("resolved URL = %q", resolved)
+		}
+		return
+	}
+	t.Fatal("watchlist-group probe missing")
 }
 
 func TestExpectPathTypes(t *testing.T) {
@@ -298,7 +329,7 @@ func TestDiscoveryProbeChecksRejectBrokenSchemas(t *testing.T) {
 		"open-banking-status":                 {good: `{"result":{"savingCount":0}}`, bad: `{"result":{}}`},
 		"open-banking-creatable":              {good: `{"result":true}`, bad: `{"result":"true"}`},
 		"open-banking-registration":           {good: `{"result":false}`, bad: `{"result":0}`},
-		"notification-settings":               {good: `{"result":[]}`, bad: `{"result":{}}`},
+		"notification-settings":               {good: `{"result":[{"type":"AI_ISSUE_SNS_RELEASE","enabled":true},{"type":"FOMC_LIVE","enabled":false},{"type":"REASONING_SUBSCRIPTION","enabled":true}]}`, bad: `{"result":{}}`},
 		"price-alerts":                        {good: `{"result":[]}`, bad: `{"result":{}}`},
 		"hidden-holdings":                     {good: `{"result":{"hiddenStocks":[]}}`, bad: `{"result":{}}`},
 		"account-all-overview":                {good: `{"result":[{"data":{"accountOverviews":[],"minorAccountOverviews":[],"totalAssetAmount":0}}]}`, bad: `{"result":[{"data":{"accountOverviews":[]}}]}`},

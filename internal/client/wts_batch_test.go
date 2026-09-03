@@ -176,6 +176,8 @@ func TestGetIndexDetail(t *testing.T) {
 			w.Write([]byte(`{"result":{"majorIndicatorInfos":[{"code":"COMP.NAI","displayName":"나스닥","nation":"us","price":{"latestPrice":26517.93,"basePrice":26021.65}}]}}`))
 		case strings.Contains(r.URL.Path, "/api/v1/index-prices/COMP.NAI"):
 			w.Write([]byte(`{"result":{"open":26410.62,"high":26559.74,"low":26188.68,"close":26517.93,"volume":17780101967,"base":26021.65,"high52w":27190.20,"low52w":19334.98}}`))
+		case strings.Contains(r.URL.Path, "/api/v2/index-infos/COMP.NAI"):
+			w.Write([]byte(`{"result":{"code":"COMP.NAI","name":"나스닥","priceFeedType":{"code":"REAL_TIME","description":"실시간"},"tradingStartAt":"2026-09-03T22:30:00+09:00","tradingEndAt":"2026-09-04T05:00:00+09:00","isMarketOpen":true}}`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -193,11 +195,96 @@ func TestGetIndexDetail(t *testing.T) {
 	if q.Change == 0 || q.ChangeRate == 0 {
 		t.Errorf("expected computed change, got %+v", q)
 	}
+	if q.PriceFeed.Code != "REAL_TIME" || q.PriceFeed.Description != "실시간" ||
+		q.TradingStartAt != "2026-09-03T22:30:00+09:00" || q.TradingEndAt != "2026-09-04T05:00:00+09:00" || !q.MarketOpen {
+		t.Errorf("verified index session metadata was not merged: %+v", q)
+	}
 
 	// unknown index -> error
 	if _, err := testClientFor(srv).GetIndexDetail(context.Background(), "no-such-index"); err == nil {
 		t.Error("expected error for unknown index")
 	}
+}
+
+func TestGetIndexDetailHandlesZeroBaseAndLabelsDependencyFailure(t *testing.T) {
+	t.Parallel()
+	t.Run("zero base", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case strings.Contains(r.URL.Path, "/indicator/index"):
+				_, _ = w.Write([]byte(`{"result":{"majorIndicatorInfos":[{"code":"ZERO.IDX","displayName":"Zero","nation":"us","price":{"latestPrice":100,"basePrice":0}}]}}`))
+			case strings.Contains(r.URL.Path, "/api/v1/index-prices/ZERO.IDX"):
+				_, _ = w.Write([]byte(`{"result":{"open":0,"high":100,"low":0,"close":100,"base":0}}`))
+			case strings.Contains(r.URL.Path, "/api/v2/index-infos/ZERO.IDX"):
+				_, _ = w.Write([]byte(`{"result":{"code":"ZERO.IDX","priceFeedType":{"code":"DELAYED","description":""},"tradingStartAt":"","tradingEndAt":"","isMarketOpen":false}}`))
+			default:
+				http.NotFound(w, r)
+			}
+		}))
+		t.Cleanup(srv.Close)
+		got, err := testClientFor(srv).GetIndexDetail(context.Background(), "ZERO.IDX")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got.Change != 100 || got.ChangeRate != 0 {
+			t.Fatalf("zero-base quote=%#v", got)
+		}
+	})
+
+	t.Run("missing price fields fail closed", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case strings.Contains(r.URL.Path, "/indicator/index"):
+				_, _ = w.Write([]byte(`{"result":{"majorIndicatorInfos":[{"code":"PRICE.IDX","displayName":"Price","nation":"us","price":{"latestPrice":100,"basePrice":90}}]}}`))
+			case strings.Contains(r.URL.Path, "/api/v1/index-prices/PRICE.IDX"):
+				_, _ = w.Write([]byte(`{"result":{}}`))
+			case strings.Contains(r.URL.Path, "/api/v2/index-infos/PRICE.IDX"):
+				_, _ = w.Write([]byte(`{"result":{"priceFeedType":{"code":"REAL_TIME","description":""},"tradingStartAt":"","tradingEndAt":"","isMarketOpen":false}}`))
+			default:
+				http.NotFound(w, r)
+			}
+		}))
+		t.Cleanup(srv.Close)
+		_, err := testClientFor(srv).GetIndexDetail(context.Background(), "PRICE.IDX")
+		if err == nil || !strings.Contains(err.Error(), "index price") || !strings.Contains(err.Error(), "required fields") {
+			t.Fatalf("error=%v", err)
+		}
+	})
+
+	t.Run("missing metadata fails closed", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case strings.Contains(r.URL.Path, "/indicator/index"):
+				_, _ = w.Write([]byte(`{"result":{"majorIndicatorInfos":[{"code":"EMPTY.IDX","displayName":"Empty","nation":"us","price":{"latestPrice":100,"basePrice":90}}]}}`))
+			case strings.Contains(r.URL.Path, "/api/v1/index-prices/EMPTY.IDX"):
+				_, _ = w.Write([]byte(`{"result":{"open":90,"high":100,"low":90,"close":100,"base":90}}`))
+			case strings.Contains(r.URL.Path, "/api/v2/index-infos/EMPTY.IDX"):
+				_, _ = w.Write([]byte(`{"result":{}}`))
+			default:
+				http.NotFound(w, r)
+			}
+		}))
+		t.Cleanup(srv.Close)
+		_, err := testClientFor(srv).GetIndexDetail(context.Background(), "EMPTY.IDX")
+		if err == nil || !strings.Contains(err.Error(), "index session metadata") {
+			t.Fatalf("error=%v", err)
+		}
+	})
+
+	t.Run("price dependency fails first", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.Contains(r.URL.Path, "/indicator/index") {
+				_, _ = w.Write([]byte(`{"result":{"majorIndicatorInfos":[{"code":"FAIL.IDX","displayName":"Failure","nation":"us","price":{}}]}}`))
+				return
+			}
+			http.Error(w, "synthetic", http.StatusBadGateway)
+		}))
+		t.Cleanup(srv.Close)
+		_, err := testClientFor(srv).GetIndexDetail(context.Background(), "FAIL.IDX")
+		if err == nil || !strings.Contains(err.Error(), "index price") || !strings.Contains(err.Error(), "502") {
+			t.Fatalf("error=%v", err)
+		}
+	})
 }
 
 func TestGetSectors(t *testing.T) {

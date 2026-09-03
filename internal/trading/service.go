@@ -155,7 +155,7 @@ func (s *Service) PreviewPlace(intent orderintent.PlaceIntent) Preview {
 
 func (s *Service) PreviewCancel(intent orderintent.CancelIntent) Preview {
 	canonical := orderintent.CanonicalCancel(intent)
-	warnings := []string{"Single-order cancel is wired for same-day pending orders and still reconciles through pending history."}
+	warnings := []string{"A transport error can leave cancellation outcome unknown; inspect pending and completed orders before retrying."}
 	if !s.policy.Cancel {
 		warnings = append(warnings, "Config currently disables `order cancel`.")
 	}
@@ -175,7 +175,7 @@ func (s *Service) PreviewCancel(intent orderintent.CancelIntent) Preview {
 func (s *Service) PreviewAmend(intent orderintent.AmendIntent) Preview {
 	canonical := orderintent.CanonicalAmend(intent)
 	warnings := []string{
-		"Amend reconciles against the surviving pending order record after mutation.",
+		"A transport error can leave amendment outcome unknown; inspect pending and completed orders before retrying.",
 		"Amend wiring exists, but the current beta slice still needs more live verification.",
 	}
 	if !s.policy.Amend {
@@ -207,7 +207,10 @@ func (s *Service) PreviewConditionalModify(intent orderintent.ConditionalModifyI
 }
 
 func (s *Service) previewConditional(kind, canonical string) Preview {
-	warnings := []string{"Conditional orders use the official Open API only."}
+	warnings := []string{
+		"Conditional orders use the official Open API only.",
+		"A transport error can leave the outcome unknown; inspect conditional-order state before retrying.",
+	}
 	if !s.policy.Conditional {
 		warnings = append(warnings, "Config currently disables conditional order actions.")
 	}

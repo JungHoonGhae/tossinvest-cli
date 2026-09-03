@@ -53,9 +53,33 @@ func newPortfolioCmd(opts *rootOptions) *cobra.Command {
 		newPortfolioPerformanceCmd(opts),
 		newPortfolioSnapshotsCmd(opts),
 		newPortfolioSnapshotCmd(opts),
+		newPortfolioFoldersCmd(opts),
 		newHiddenHoldingsCmd(opts),
 	)
 
+	return cmd
+}
+
+func newPortfolioFoldersCmd(opts *rootOptions) *cobra.Command {
+	var account string
+	cmd := &cobra.Command{
+		Use:         "folders",
+		Short:       i18n.T("portfolio.folders.short"),
+		Long:        i18n.T("portfolio.folders.long"),
+		Annotations: map[string]string{"source": "wts", "domain": "securities"},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			folders, err := app.client.ListPortfolioFolders(cmd.Context(), account)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WritePortfolioFolders(cmd.OutOrStdout(), app.format, folders)
+		},
+	}
+	cmd.Flags().StringVar(&account, "account", "", "Securities account key (default: primary account)")
 	return cmd
 }
 

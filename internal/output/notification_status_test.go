@@ -9,7 +9,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 )
 
-func TestWriteNotificationStatusPreservesEveryVerifiedSignal(t *testing.T) {
+func TestWriteNotificationStatusKeepsAccurateDeprecatedFieldWithoutPresentingItAsActionable(t *testing.T) {
 	t.Parallel()
 	status := domain.NotificationStatus{
 		InboxUnread:                   true,
@@ -25,11 +25,14 @@ func TestWriteNotificationStatusPreservesEveryVerifiedSignal(t *testing.T) {
 	}
 	for _, want := range []string{
 		"Inbox unread:", "AI issue SNS release alert:", "FOMC live alert:",
-		"Reasoning contents alert:", "Reasoning agreement:", "Reasoning news count:",
+		"Reasoning contents alert:", "Reasoning agreement:",
 	} {
 		if !strings.Contains(table.String(), want) {
 			t.Fatalf("table missing %q: %s", want, table.String())
 		}
+	}
+	if strings.Contains(table.String(), "Reasoning news count:") {
+		t.Fatalf("table retained non-notification corpus count: %s", table.String())
 	}
 
 	var jsonOut bytes.Buffer
@@ -43,12 +46,15 @@ func TestWriteNotificationStatusPreservesEveryVerifiedSignal(t *testing.T) {
 	wantJSON := map[string]any{
 		"inbox_unread": true, "ai_issue_sns_release_alert_enabled": true,
 		"fomc_live_alert_enabled": false, "reasoning_contents_alert_enabled": true,
-		"reasoning_agreement": true, "reasoning_news_count": float64(7),
+		"reasoning_agreement": true,
 	}
 	for key, want := range wantJSON {
 		if got, ok := decoded[key]; !ok || got != want {
 			t.Errorf("JSON %s = %#v, want %#v", key, got, want)
 		}
+	}
+	if got, ok := decoded["reasoning_news_count"]; !ok || got != float64(7) {
+		t.Fatalf("JSON compatibility field = %#v, present=%t", got, ok)
 	}
 
 	var csvOut bytes.Buffer

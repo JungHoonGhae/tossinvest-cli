@@ -146,7 +146,7 @@ func TestLooksLikeProductCodeAcceptsOptionGuid(t *testing.T) {
 		t.Error("option contract guid rejected as a product code")
 	}
 	// 기존 형태는 그대로 통과해야 한다.
-	for _, ok := range []string{"A005930", "US19801212001"} {
+	for _, ok := range []string{"A005930", "US19801212001", "US.AAPL"} {
 		if !looksLikeProductCode(ok) {
 			t.Errorf("%s rejected", ok)
 		}

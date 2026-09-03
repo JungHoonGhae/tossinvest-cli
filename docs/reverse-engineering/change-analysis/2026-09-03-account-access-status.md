@@ -6,7 +6,7 @@
 CLI와 ops/MCP에 연결했다. 모두 기능 영역은 `securities`, 접근 경로는 `wts`다.
 
 - `account access-status [--account <key>]`는 최근 증권 접속 환경과 계좌별 제한 신호를 읽는다.
-- `banking status [--full]`의 추가 필드는 주식모으기·자동주문 자금연결과 거래목적 확인 절차에
+- `accumulate funding-status [--full]`의 추가 필드는 주식모으기·자동주문 자금연결과 거래목적 확인 절차에
   한정된다. 일반 Toss Banking이나 카드·소비 MyData 조회가 아니다.
 
 어떤 호출도 계좌 잠금 해제, 설정 변경, 이체 또는 주문을 실행하지 않는다.
@@ -22,8 +22,8 @@ CLI와 ops/MCP에 연결했다. 모두 기능 영역은 `securities`, 접근 경
 | `wts-api` | `GET /api/v1/user/last-login-info` | `{channel, osName, agentName, timestamp}` | `account access-status` |
 | `wts-cert-api` | `GET /api/v1/margin/cert/frozen-account` | `{isFrozen, startDate, endDate}` | `account access-status` |
 | `wts-api` | `GET /api/v2/account/unlock/accident-account/count` | number | `account access-status` |
-| `wts-cert-api` | `GET /api/v1/trading/open-banking/auto-trading` | `{connectedAccountBankCode, isRegistered}` | `banking status` |
-| `wts-api` | `GET /api/v1/trade-purpose-verification/my-data/account/exists` | boolean | `banking status` |
+| `wts-cert-api` | `GET /api/v1/trading/open-banking/auto-trading` | `{connectedAccountBankCode, isRegistered}` | `accumulate funding-status` |
+| `wts-api` | `GET /api/v1/trade-purpose-verification/my-data/account/exists` | boolean 200 또는 400 | 보류 — 같은 정상 세션에서도 응답이 불안정해 callable/probe에서 제외 |
 
 마지막 MyData 경로는 정적 route descriptor와 라이브 스키마가 확인됐지만 일반 MyData 데이터를
 반환하는 계약은 아니다. 나머지 네 경로는 현재 번들의 구체적인 호출 지점과 라이브 스키마를 함께
@@ -43,5 +43,5 @@ CLI와 ops/MCP에 연결했다. 모두 기능 영역은 `securities`, 접근 경
 서명한 불투명한 account scope만 둔다.
 
 추가한 probe는 `account-last-login`, `account-margin-frozen`, `account-accident-count`,
-`auto-trading-open-banking`, `trade-purpose-mydata-account` 5개다. 이로써 `monitor api`는 총 76개
-읽기 계약을 검사한다.
+`auto-trading-open-banking` 4개다. 전체 수는 런타임
+operation catalog에서 파생되며 `docs/operations.md`에 동기화한다.

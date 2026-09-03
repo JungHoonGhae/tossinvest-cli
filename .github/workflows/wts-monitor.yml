@@ -35,6 +35,8 @@ jobs:
             echo "build_changed=$(jq -r '.build_changed' /tmp/wts_diff.json)"
             echo "previous_build=$(jq -r '.previous_build_id' /tmp/wts_diff.json)"
             echo "current_build=$(jq -r '.current_build_id' /tmp/wts_diff.json)"
+            echo "previous_builds=$(jq -c '.previous_build_ids' /tmp/wts_diff.json)"
+            echo "current_builds=$(jq -c '.current_build_ids' /tmp/wts_diff.json)"
           } >> "$GITHUB_OUTPUT"
 
       - name: Check general Toss Android app version
@@ -55,6 +57,11 @@ jobs:
 
       - name: Compose embed
         if: steps.scan.outputs.added != '0' || steps.scan.outputs.removed != '0' || steps.scan.outputs.build_changed == 'true' || steps.android.outputs.candidate_changed == 'true'
+        env:
+          PREVIOUS_BUILD: ${{ steps.scan.outputs.previous_build }}
+          CURRENT_BUILD: ${{ steps.scan.outputs.current_build }}
+          PREVIOUS_BUILDS: ${{ steps.scan.outputs.previous_builds }}
+          CURRENT_BUILDS: ${{ steps.scan.outputs.current_builds }}
         run: |
           SUMMARY=$(head -1 /tmp/wts_summary.txt)
           ADDED=$(jq -r '.added[]? | "• `\(.)`"' /tmp/wts_diff.json | head -20)
@@ -63,7 +70,7 @@ jobs:
           [ -n "$REMOVED" ] || REMOVED="—"
           trunc() { head -c 1400; }
           CATALOG_URL="https://github.com/${GITHUB_REPOSITORY}/blob/main/docs/reverse-engineering/wts-endpoints.json"
-          WTS_BUILD="**WTS build**"$'\n'"${{ steps.scan.outputs.previous_build }} → ${{ steps.scan.outputs.current_build }}"
+          WTS_BUILD="**WTS builds**"$'\n'"root: $PREVIOUS_BUILD → $CURRENT_BUILD"$'\n'"active: $PREVIOUS_BUILDS → $CURRENT_BUILDS"
           ANDROID="**일반 토스 Android 앱**"$'\n'"candidate ${{ steps.android.outputs.candidate }} · audited ${{ steps.android.outputs.audited }} · stale=${{ steps.android.outputs.audit_stale }} · source=${{ steps.android.outputs.metadata_source }}"
 
           # Components V2 (flags 32768): 웹/API 또는 앱 감사 변동 주황 Container.

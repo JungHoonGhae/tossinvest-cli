@@ -41,6 +41,19 @@ func TestRegistryInvariants(t *testing.T) {
 			t.Errorf("duplicate operation id %q", o.ID)
 		}
 		seenID[o.ID] = true
+		for _, alias := range o.Aliases {
+			if alias == "" || alias == o.ID {
+				t.Errorf("%s: invalid operation alias %q", o.ID, alias)
+			}
+			if seenID[alias] {
+				t.Errorf("%s: duplicate operation id or alias %q", o.ID, alias)
+			}
+			seenID[alias] = true
+			resolved, ok := c.Get(alias)
+			if !ok || resolved.ID != o.ID {
+				t.Errorf("%s: alias %q did not resolve to canonical operation", o.ID, alias)
+			}
+		}
 
 		switch o.Backend {
 		case "", "wts", "none", "auto":
@@ -50,6 +63,34 @@ func TestRegistryInvariants(t *testing.T) {
 		// WTS 전용 op 는 경로 관례(wts:)를 따른다 — 카탈로그 검색성 유지.
 		if o.Backend == "wts" && !strings.HasPrefix(o.Path, "wts:") {
 			t.Errorf("%s: wts operation path %q must start with \"wts:\"", o.ID, o.Path)
+		}
+		if o.Write {
+			if o.Mutation == nil {
+				t.Errorf("%s: write operation is missing mutation policy", o.ID)
+			} else {
+				if o.Mutation.RiskLevel == "" || o.Mutation.Reversibility == "" ||
+					o.Mutation.AuthorizationMode == "" || o.Mutation.Verification == "" {
+					t.Errorf("%s: incomplete mutation policy: %#v", o.ID, o.Mutation)
+				}
+				switch o.Mutation.AuthorizationMode {
+				case MutationAuthorizationState:
+					if !o.Mutation.RequiresPreview || !o.Mutation.RequiresFreshConfirmation {
+						t.Errorf("%s: state-confirmation mutation must require preview and fresh state confirmation: %#v", o.ID, o.Mutation)
+					}
+				case MutationAuthorizationIntent:
+					if !o.Mutation.RequiresPreview || o.Mutation.RequiresFreshConfirmation {
+						t.Errorf("%s: intent-confirmation mutation must require preview without claiming state freshness: %#v", o.ID, o.Mutation)
+					}
+				case MutationAuthorizationMandate:
+					if o.Mutation.RequiresFreshConfirmation || !o.Mutation.RequiresConfigOptIn {
+						t.Errorf("%s: bounded-mandate mutation must use config opt-in instead of fresh confirmation: %#v", o.ID, o.Mutation)
+					}
+				default:
+					t.Errorf("%s: unknown mutation authorization mode %q", o.ID, o.Mutation.AuthorizationMode)
+				}
+			}
+		} else if o.Mutation != nil {
+			t.Errorf("%s: read operation unexpectedly declares mutation policy", o.ID)
 		}
 
 		for _, p := range o.Params {
@@ -97,6 +138,45 @@ func TestRegistryInvariants(t *testing.T) {
 	// Catalog.Probes() 는 선언된 probe 를 전부, 한 번씩 노출한다.
 	if got := len(c.Probes()); got != len(seenProbe) {
 		t.Errorf("Probes() returned %d specs, want %d", got, len(seenProbe))
+	}
+}
+
+func TestLegacyBankingStatusAliasResolvesToSecuritiesFunding(t *testing.T) {
+	t.Parallel()
+	catalog := NewCatalog()
+	canonical, ok := catalog.Get("accumulation_funding_status")
+	if !ok {
+		t.Fatal("accumulation_funding_status operation missing")
+	}
+	legacy, ok := catalog.Get("banking_status")
+	if !ok || legacy.ID != canonical.ID {
+		t.Fatalf("banking_status alias = %#v, want canonical %q", legacy, canonical.ID)
+	}
+	if canonical.Domain != "securities" || canonical.Category != "accumulate" {
+		t.Fatalf("canonical funding classification = domain %q category %q", canonical.Domain, canonical.Category)
+	}
+	found := catalog.List("banking_status", 0)
+	if len(found) != 1 || found[0].ID != canonical.ID || len(found[0].Aliases) != 1 || found[0].Aliases[0] != "banking_status" {
+		t.Fatalf("alias search = %#v", found)
+	}
+}
+
+func TestFinancialOperationsDeclareStrongestGuardrail(t *testing.T) {
+	t.Parallel()
+	catalog := NewCatalog()
+	for _, id := range []string{
+		"place_order", "cancel_order", "modify_order",
+		"place_conditional_order", "cancel_conditional_order", "modify_conditional_order",
+	} {
+		op, ok := catalog.Get(id)
+		if !ok {
+			t.Fatalf("missing operation %q", id)
+		}
+		if op.Mutation == nil || op.Mutation.RiskLevel != MutationRiskFinancial ||
+			op.Mutation.Reversibility != MutationIrreversible || !op.Mutation.RequiresConfigOptIn ||
+			op.Mutation.AuthorizationMode != MutationAuthorizationIntent || op.Mutation.RequiresFreshConfirmation {
+			t.Errorf("%s: weak financial mutation policy: %#v", id, op.Mutation)
+		}
 	}
 }
 

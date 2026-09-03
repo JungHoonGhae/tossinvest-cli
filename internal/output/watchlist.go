@@ -22,9 +22,11 @@ func WriteWatchlist(w io.Writer, format Format, items []domain.WatchlistItem) er
 				item.Currency,
 				formatFloat(item.Base),
 				formatFloat(item.Last),
+				item.ProductCode,
 			})
 		}
-		return writeCSV(w, []string{"group", "symbol", "name", "currency", "base", "last"}, csvRows)
+		// Keep the released six-column prefix stable; append enrichment fields.
+		return writeCSV(w, []string{"group", "symbol", "name", "currency", "base", "last", "product_code"}, csvRows)
 	case FormatTable:
 		enabled := colorEnabled(w, format)
 		headers := []string{

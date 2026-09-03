@@ -174,7 +174,7 @@ For cron: `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 ## Support Scope
 
 > **tossctl covers 100% of the official Toss Open API's read & trade coverage — and goes beyond.**
-> It maps to every endpoint in the official [Open API docs](https://developers.tossinvest.com/docs) (accounts, holdings, quotes, orderbook, ticks, candles, price limits, sellable quantity, commissions, orders, …), and adds investor flows, market indices, AI signals, screener, watchlist management, transaction ledger, real-time push, fractional orders, dry-run preview, and more — **55 capabilities that aren't in the official API are tossctl-only.**
+> It maps to every endpoint in the official [Open API docs](https://developers.tossinvest.com/docs) (accounts, holdings, quotes, orderbook, ticks, candles, price limits, sellable quantity, commissions, orders, …), and adds investor flows, market indices, AI signals, screener, watchlist management, transaction ledger, real-time push, fractional orders, dry-run preview, and more — **58 capabilities that aren't in the official API are tossctl-only.**
 
 <p align="center">
   <img src="docs/assets/api-comparison.en.svg" alt="tossctl vs official Open API (upcoming) coverage — tossctl is a superset" width="900" />
@@ -194,10 +194,11 @@ WTS, and mobile are **access channels**. There is no separate “platform” dom
 | MyData | Card purchases, monthly spending, and external-finance mobile APIs in the general Toss app | partially confirmed statically; not implemented |
 | System | Login, Open API IP allowlist, API/app change monitoring | implemented |
 
-Accordingly, `banking status` is not a general Banking query. It is the **funding
-connection for Toss Securities stock accumulation (`securities + wts`)**. Its
-automated-order funding registration and trade-purpose MyData-account flag are
-also narrow Securities signals, not general Banking/MyData reads. Card
+Accordingly, the canonical `accumulate funding-status` command is the **funding
+connection for Toss Securities stock accumulation (`securities + wts`)**. The old
+`banking status` spelling remains as a deprecated compatibility alias. Its
+automated-order funding registration is also a narrow Securities signal, not a
+general Banking read. Card
 purchases, monthly spending, and bank transactions are not guessed through a WTS
 cookie merely because they appear in the same Toss app; they need their own mobile
 token and consent boundary to be verified first.
@@ -214,6 +215,7 @@ token and consent boundary to be verified first.
 | Accounts / summary | `account list`, `account summary` | ✅ | ✅ |
 | 🆕 Buying power (official) | `account buying-power [--currency KRW\|USD]` (cash-based; distinct from account summary) | ✅ | ✅ |
 | Portfolio | `portfolio positions`, `portfolio allocation` (USD for US) | ✅ | ✅ |
+| **🆕 Portfolio folders** | `portfolio folders [--account]` (the app's folder/holding organization; read-only) | ❌ | ✅ |
 | **🆕 Portfolio valuation history** | `portfolio performance`, `portfolio snapshots`, `portfolio snapshot <date>` (all accounts by default, `--account` optional; Securities WTS read with no current web UI) | ❌ | ✅ |
 | Trade ticks | `quote trades <symbol> --count N` | ✅ | ✅ |
 | Orderbook (10-level bid/ask) | `quote orderbook <symbol>` | ✅ | ✅ |
@@ -243,7 +245,7 @@ token and consent boundary to be verified first.
 | **🆕 Unified search** | `search <name\|ticker>` (resolve product codes) | ❌ | ✅ |
 | **🆕 Receivable / liquidation notice** | `account receivable --currency KRW\|USD` | ❌ | ✅ |
 | **Investor flows** | `quote flows <symbol>` (retail · foreign · inst., KR) | ❌ | ✅ |
-| **Market indices** | `market index` (KOSPI · KOSDAQ · Nasdaq · S&P500 · VIX), `market index <code\|name>` detail (OHLC · 52w) | ❌ | ✅ |
+| **Market indices** | `market index` (KOSPI · KOSDAQ · Nasdaq · S&P500 · VIX), `market index <code\|name>` detail (OHLC · 52w · price feed · trading session) | ❌ | ✅ |
 | **Live popularity ranking** | `market ranking --size N` | ❌ | ✅ |
 | **Official ranking (amount/change%)** | `market rankings --type ... --market KR --duration 1d` | ✅ | ✅ |
 | **Market indicator price** | `market indicator KOSPI,KOSDAQ` | ✅ | ✅ |
@@ -280,13 +282,13 @@ token and consent boundary to be verified first.
 | **Theme fluctuation ranking** | `market themes` (today's top-moving themes, rising-stock counts) | ❌ | ✅ |
 | **AI news briefing** | `market briefing [--scope personalized\|kr\|us]` (personalized or latest KR/US briefing) | ❌ | ✅ |
 | **🆕 Key earnings & economic releases** | `market key-events` (estimates · actuals · surprises · previous values) | ❌ | ✅ |
-| **🆕 Securities stock-accumulation funding status** | `banking status [--full]` (not general Banking; connection and automated-order registration plus trade-purpose MyData-account state; identity masked) | ❌ | ✅ |
-| **🆕 Notification preferences and status** | `notifications list`, `notifications status` (generic settings plus inbox, AI issue, FOMC, and reasoning-content state; read-only; internal user ID omitted) | ❌ | ✅ |
+| **🆕 Securities stock-accumulation funding status** | `accumulate funding-status [--full]` (`banking status` is a deprecated alias; not general Banking; identity masked) | ❌ | ✅ |
+| **🆕 Notification preferences and status** | `notifications list`, `notifications status` (canonical preferences, inbox unread state, and AI-analysis agreement; read-only; internal user ID omitted) | ❌ | ✅ |
 | **🆕 Target-price alert reads & writes** | `quote alert list\|add\|remove <symbol>` (writes use preview + `--execute --confirm`) | ❌ | ✅ |
 | **🆕 Hidden-holding reads & writes** | `portfolio hidden list\|hide\|show` (account key omitted; post-write verification) | ❌ | ✅ |
 | **Toss AI signals** | `market signals` (per-symbol AI signal · keywords · move) | ❌ | ✅ |
 | **Stock screener** | `market screener [id]` (preset) · `--filter '<json>'` (custom) `--nation kr\|us` | ❌ | ✅ |
-| **Watchlist read & management** | `watchlist list [<group-id>] [--all]`·`groups`, `watchlist group create\|rename\|delete`, `watchlist add\|remove --group <id>` | ❌ | ✅ |
+| **🆕 Watchlist read & management** | `watchlist list [<group-id>] [--all]`·`groups`, `watchlist group create\|rename\|delete`, `watchlist add\|remove --group <id>` | ❌ | ✅ |
 | **Transaction ledger** | `transactions list --market us\|kr` (trades · transfers · dividends) | ❌ | ✅ |
 | **Cash overview** | `transactions overview --market us\|kr` (orderable · withdrawable · incoming) | ❌ | ✅ |
 | **CSV export** | `export positions\|orders --market`, `transactions list --output csv` | ❌ | ✅ |
@@ -408,7 +410,7 @@ flowchart TD
 
 - **Persistent gates (config.json):** `place`/`cancel`/`amend` for regular orders, `conditional` for conditional orders, plus `sell`/`fractional` scope declarations and the `allow_live_order_actions` master kill-switch. (Market US/KR is not a gate — a KR order is no riskier than a US one, so they're treated symmetrically.)
 - **Runtime gates (every run):** `--execute` (perform the real mutation, not preview) + `--confirm <token>` (the per-order token from preview).
-- The real safety is the per-order `--confirm <token>` — you can only get it by running preview, so an unintended order is blocked by a token mismatch.
+- The per-order `--confirm <token>` is a mistake-prevention check that restates the exact order intent. It is deterministic, not a one-time or replay-resistant authorization; disabled-by-default trading configuration and human execution approval remain the primary safeguards.
 
 > **v0.5.x simplification:** removed the redundant TTL grant layer (`internal/permissions`; `allow_live_order_actions` already provides the same protection) and retired the misnamed `--dangerously-skip-permissions` (no permissions left to point at, and its meaning was inverted). The old flag is accepted as a deprecated no-op alias for one release to keep scripts/agents working.
 
@@ -452,19 +454,19 @@ session) for the full feature set — see [Quick Start](#quick-start). Both path
 
 MCP's inherent cost is that **tool schemas stay resident in the model's context**. Register one
 tool per API and every tool's name, description, and parameter schema occupies context for the
-whole conversation. tossctl's surface is **105 operations** across official and WTS reads,
-regular and conditional orders, and system operations — exposing them individually would keep **105 schemas always loaded**,
+whole conversation. tossctl's surface is **111 operations** across official and WTS reads,
+regular and conditional orders, and system operations — exposing them individually would keep **111 schemas always loaded**,
 burning tokens and adding tool-choice noise (mis-picks between similar tools).
 
 Following KIS_MCP_Server's catalog mode, tossctl fronts everything with **just three fixed
-tools** and keeps the 105 operations behind an **on-demand schema fetch**:
+tools** and keeps the 111 operations behind an **on-demand schema fetch**:
 
-- `list_operations` — list available operations (id, summary, write flag), filter with `query`
-- `describe_operation` — fetch one operation's parameter schema **only at that moment**
+- `list_operations` — fetch a compact discovery index (id, domain, summary, backend, write flag, required parameter names), filter with `query`
+- `describe_operation` — fetch one operation's method/path, full parameter schema, and mutation risk/approval/recovery policy **only at that moment**
 - `call_operation` — call by id with parameters
 
 Result: the always-on context is **exactly three tool schemas**. Whether there are 20 operations
-or 105, the resident cost stays at three. The agent finds an operation via `list_operations` →
+or 111, the resident cost stays at three. The agent finds an operation via `list_operations` →
 reads its schema via `describe_operation` → calls it via `call_operation`, so unused operations
 never sit in context. (The very Claude Code session reading this README sees `tossctl` as just
 those three tools.)
@@ -474,13 +476,12 @@ Arguments to `call_operation` must match the names and primitive types declared 
 that would lose precision when converted to `float64` fail before any backend call. Refresh the
 operation schema immediately before calling instead of mixing in parameters from an older copy.
 
-### What MCP exposes — reads: official + WTS; orders: official only
+### What MCP exposes — reads/settings: official + WTS; orders: official only
 
-MCP exposes **reads from both the official Open API and WTS-only features**, and keeps
-**order writes on the official API path only**. The sole WTS settings write is official Open API
-allowed-IP replacement, protected by preview, confirmation, server re-verification, and rollback.
-Each operation is tagged with a `backend`
-in `list_operations`: `"wts"` (needs a web session), `"auto"` (**either credential works** —
+MCP exposes **reads and verified settings changes across the official Open API and WTS**, and keeps
+**order writes on the official API path only**. `list_operations` tags each operation with a `backend`
+and write flag; inspect every write's full `mutation` policy through `describe_operation`.
+Backends are `"wts"` (needs a web session), `"auto"` (**either credential works** —
 official first, web-session fallback), or official-only otherwise.
 
 - **Reads.** Official (accounts, quotes, orderbook, candles…) plus **WTS-only** (rankings,
@@ -489,14 +490,16 @@ official first, web-session fallback), or official-only otherwise.
   a web session; without one, those operations return a `tossctl auth login` hint. A failed read
   is at worst a stale read, so exposing it to an agent is low-risk. Securities trading settings,
   stock-transfer accounts, and accumulation funding status are exposed as `trading_settings`,
-  `securities_transfer_accounts`, and `banking_status` respectively. The first two accept an
+  `securities_transfer_accounts`, and `accumulation_funding_status` respectively. The last operation also accepts the legacy `banking_status` alias. The first two accept an
   optional `account` key for non-primary Securities accounts.
 - **Writes.** Regular and conditional place / cancel / modify always use the **official API path** (never WTS): if an
   agent can submit orders, the path should be one **Toss officially sanctions** — safer and more honest.
-- **WTS settings write (sole exception).** `openapi_ip_replace_current` changes only the official
-  Open API allowlist. It previews by default, requires `execute:true` plus a valid `confirm` token,
-  re-verifies server state, and restores the previous list on failure. WTS order and watchlist
-  writes remain unavailable through MCP.
+- **WTS settings writes.** Open API allowed IPs, target-price alerts, hidden holdings, and watchlist
+  folders/items are changeable. Each previews by default, requires `execute:true` plus a valid
+  `confirm` token, and re-reads server state. Watchlist tokens are bound to the current WTS session
+  and expire after five minutes. Irreversible folder deletion also requires
+  `acknowledge_irreversible:true`. The token authorizes an exact intent but is not a server-side
+  single-use/idempotency key, so do not execute the same preview concurrently.
 - **Split auth.** Official reads/orders use the official key (`openapi login`); WTS reads use the
   web session (`auth login`). **Either alone starts the server**, and each operation checks the
   auth it needs.
@@ -504,7 +507,7 @@ official first, web-session fallback), or official-only otherwise.
 So the **WTS-only features that used to be CLI-only are now reachable from an agent via MCP too.**
 
 > **Updates are automatic.** The host stores the *command* `tossctl mcp` and respawns it each
-> session, so `brew upgrade tossctl-cli` (or `tossctl update`) makes new operations appear with
+> session, so `brew upgrade tossctl` (or `tossctl update`) makes new operations appear with
 > **no re-registration** (the catalog is built from the binary at startup). When a newer version
 > exists, the server also surfaces an "update available" note in its initialize `instructions`
 > so MCP-only users (who never see the CLI's stderr) learn about it through their agent.
@@ -539,8 +542,8 @@ Two entry points to the same `tossctl` binary, and **both work well with AI agen
 | Mechanism | Shell commands (`tossctl …`) | Structured MCP tools (JSON-RPC, no shell) |
 | Where | Anywhere a shell exists — terminal, scripts, cron, **and AI agents that shell out** (Claude Code, Codex, Cursor…) | **MCP-native hosts** — the agent calls operations as tools (catalog keeps 3 tools resident) |
 | How the agent finds it | Must be mentioned in the prompt, or registered via a skill / `AGENTS.md` / `CLAUDE.md` | **Auto-listed as tools once registered** → called without extra prompting |
-| Auth | Runs on the **web session alone** (auto-routes when an official key is connected) | Official reads/orders need the official key (`openapi login`); WTS reads need the web session (`auth login`) — **at least one** |
-| Coverage | **Everything** — official + WTS (reads, orders, real-time streaming, watchlist, …) | **Reads: official + WTS**; orders: official path. Allowed-IP replacement is the sole guarded WTS settings write; no real-time streaming or WTS watchlist writes |
+| Auth | Web session for WTS features; official key for official-only commands (connect both for the full surface) | Official reads/orders need the official key (`openapi login`); WTS reads need the web session (`auth login`) — **at least one** |
+| Coverage | With both credentials: **official + WTS** reads, orders, real-time streaming, watchlist, … | **Reads/settings: official + WTS**; orders: official-only. Target-price, hidden-holding, watchlist, and allowed-IP writes included; no real-time streaming |
 | Natural language | Agent turns NL → `tossctl` commands | Agent turns NL → MCP tool calls |
 
 - **AI agents use both — the difference is discovery.** MCP is auto-listed as tools once registered, so it's called with no extra prompting (reads: official + WTS; orders: official). The CLI runs fine from a shell-capable agent (Claude Code, Codex, Cursor), but the agent only knows it exists if you **mention it in the prompt or register it via a skill / `AGENTS.md` / `CLAUDE.md`** — in return you get the **full feature set** (incl. real-time and WTS writes), deterministic and pipeable.
@@ -695,11 +698,12 @@ tossctl account overview [--full]               # regular + minor accounts; numb
 tossctl account trading-settings [--account KEY] # simple trade, KRX/NXT, ATS, option tick settings
 tossctl account transfer-accounts [--account KEY] [--full] # transfer destinations; masked by default
 tossctl account access-status [--account KEY]    # last login, margin freeze, accident-account state
-tossctl banking status [--full]                  # Securities funding, auto-order, trade-purpose MyData state
+tossctl accumulate funding-status [--full]       # Securities accumulation funding and auto-order registration
 tossctl notifications list                       # read-only notification preferences
-tossctl notifications status                     # inbox, AI issue, FOMC, reasoning-content state
+tossctl notifications status                     # canonical preferences, inbox, AI-analysis agreement
 tossctl portfolio positions
 tossctl portfolio allocation
+tossctl portfolio folders [--account KEY]       # app-style folder/holding organization
 tossctl portfolio performance [--account KEY]   # one-month daily principal, value, and return
 tossctl portfolio snapshots [--account KEY] [--cursor CURSOR] [--limit N] # dated valuation history
 tossctl portfolio snapshot YYYY-MM-DD [--account KEY] # market and holding detail for one date
@@ -758,6 +762,11 @@ tossctl quote alert add <symbol> --price <value> --currency KRW|USD
 tossctl quote alert add <symbol> --price <value> --currency KRW|USD --execute --confirm <token>
 tossctl quote alert remove <symbol> --price <value> --currency KRW|USD [--execute --confirm <token>]
 tossctl portfolio hidden hide|show <symbol> [--account <key>] [--execute --confirm <token>]
+tossctl watchlist group create "Long term"
+tossctl watchlist group create "Long term" --execute --confirm <token>
+tossctl watchlist group rename <id> "Core holdings" [--execute --confirm <token>]
+tossctl watchlist group delete <id> [--execute --confirm <token> --acknowledge-irreversible]
+tossctl watchlist add|remove <symbol> --group <id> [--execute --confirm <token>]
 ```
 
 ### Trading
@@ -806,7 +815,7 @@ tossctl monitor api           # schema-probe 82 endpoints (parallel); exit 0 pas
 tossctl monitor api --quiet   # for cron
 ```
 
-Checks the response schema of 82 read-only endpoints in parallel, using your own session on your own machine — to catch Toss server-side body-contract changes (like [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29)) early. It only returns an exit code, so you compose alert channels (Discord / Slack / ntfy / macOS / email) on the right side of `|| <command>` in your cron line. Recipes: [`AGENTS.md`](AGENTS.md), setup guide: [`docs/operations.md`](docs/operations.md).
+Checks the response schema of 82 read-only endpoints in parallel, using your own session on your own machine — to catch Toss server-side body-contract changes (like [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29)) early. It only returns an exit code, so you compose alert channels (Discord / Slack / ntfy / macOS / email) on the right side of `|| <command>`. Recipes: [`AGENTS.md`](AGENTS.md), setup guide: [`docs/operations.md`](docs/operations.md).
 
 ## Development
 

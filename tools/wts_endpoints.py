@@ -22,6 +22,9 @@ import os
 import re
 import subprocess
 import sys
+import threading
+import urllib.error
+import urllib.parse
 import urllib.request
 
 BASE = "https://www.tossinvest.com"
@@ -37,6 +40,89 @@ GO_WTS_SOURCE_ROOTS = (
 GO_FMT_VERB_RE = re.compile(
     r"%(?:\[[0-9]+\])?[-+#0 ']*[0-9]*(?:\.[0-9]+)?[vTtbcdoOqxXUeEfgGsxp]"
 )
+
+# Public bundle discovery normally observes only a handful of builds, roughly
+# one hundred chunks, and a few hundred routes. These deliberately generous
+# ceilings keep a malformed/noisy bundle from turning the weekly monitor into
+# an unbounded crawler. Exceeding a ceiling fails before catalog overwrite.
+DISCOVERY_MAX_BUILDS = 8
+DISCOVERY_MAX_CHUNKS = 1000
+DISCOVERY_MAX_ROUTES = 2000
+DISCOVERY_MAX_REDIRECTS = 5
+DISCOVERY_MAX_RESPONSE_BYTES = 16 * 1024 * 1024
+DISCOVERY_MAX_TOTAL_BYTES = 256 * 1024 * 1024
+
+
+class WTSFetchError(RuntimeError):
+    def __init__(self, message, status=None):
+        super().__init__(message)
+        self.status = status
+
+
+def _origin(url):
+    parsed = urllib.parse.urlparse(url)
+    scheme = parsed.scheme.lower()
+    host = (parsed.hostname or "").lower()
+    port = parsed.port
+    if port is None:
+        port = {"http": 80, "https": 443}.get(scheme)
+    return scheme, host, port
+
+
+BASE_ORIGIN = _origin(BASE)
+
+
+class SameOriginRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        target = urllib.parse.urljoin(req.full_url, newurl)
+        if _origin(target) != BASE_ORIGIN:
+            fp.close()
+            raise RuntimeError(
+                f"refusing redirected WTS asset outside {BASE_ORIGIN}: {_origin(target)}"
+            )
+        return super().redirect_request(req, fp, code, msg, headers, target)
+
+    def http_error_302(self, req, fp, code, msg, headers):
+        # urllib's default handler drains the complete redirect response before
+        # following it. Returning the response lets fetch() close it unread and
+        # follow a bounded number of same-origin hops under its own budget.
+        location = headers.get("Location") or headers.get("URI")
+        if not isinstance(location, str) or not location:
+            fp.close()
+            raise RuntimeError("WTS redirect response is missing Location")
+        target = urllib.parse.urljoin(req.full_url, location)
+        if _origin(target) != BASE_ORIGIN:
+            fp.close()
+            raise RuntimeError(
+                f"refusing redirected WTS asset outside {BASE_ORIGIN}: {_origin(target)}"
+            )
+        return fp
+
+    http_error_301 = http_error_302
+    http_error_303 = http_error_302
+    http_error_307 = http_error_302
+    http_error_308 = http_error_302
+
+
+FETCH_OPENER = urllib.request.build_opener(SameOriginRedirectHandler())
+
+
+class DiscoveryByteBudget:
+    """Thread-safe monotonic downloaded-byte budget shared by the crawler."""
+
+    def __init__(self, limit=DISCOVERY_MAX_TOTAL_BYTES):
+        self.limit = limit
+        self.used = 0
+        self._lock = threading.Lock()
+
+    def reserve(self, count):
+        with self._lock:
+            next_total = self.used + count
+            self.used = next_total
+            if next_total > self.limit:
+                raise RuntimeError(
+                    f"WTS discovery byte budget exceeded: {next_total}>{self.limit}"
+                )
 
 # The bundle currently declares these reads on cert, while live WTS captures
 # used by the production client verified the same paths on info. Both hosts are
@@ -62,16 +148,12 @@ IMPLEMENTED = [
     r"^/api/v1/openapi/client/allowed-ips(?:/[^/]+)?$",            # openapi IP allowlist
     r"^/api/v1/autotrade/open-banking/(info/find|creatable|need-registration)$", # accumulation funding status
     r"^/api/v1/trading/open-banking/auto-trading$",              # automated-order funding registration
-    r"^/api/v1/trade-purpose-verification/my-data/account/exists$", # narrow Securities verification link
     r"^/api/v1/user/last-login-info$",                            # account access status
     r"^/api/v1/margin/cert/frozen-account$",                      # account-specific margin freeze
     r"^/api/v2/account/unlock/accident-account/count$",            # account-specific incident count
     r"^/api/v1/inbox-alimies/has-unread$",                        # inbox unread state
-    r"^/api/v1/ai-issue/sns-release/alimy$",                      # AI issue release alert
-    r"^/api/v1/fomc-live/alimy$",                                 # FOMC live alert
-    r"^/api/v1/reasoning-contents/alimy/subscription$",           # reasoning content alert
     r"^/api/v1/reasoning/agreement$",                             # reasoning agreement state
-    r"^/api/v1/reasoning-news/count$",                            # reasoning-news count
+    r"^/api/v1/reasoning-news/count$",                            # deprecated global content count output
     r"^/api/v1/trading/settings/simple-trade$",                    # trading settings (read-only)
     r"^/api/v2/trading/settings/investor-exchange-choice-type$",   # KRX/NXT routing preference
     r"^/api/v1/users/settings/me/ats-notification$",               # ATS notification preference
@@ -84,6 +166,7 @@ IMPLEMENTED = [
     r"^/api/v1/asset-snapshot/(?:all-accounts/)?(?:page|detail-by-date)$",
     r"^/api/v1/calendar/ai-summary/key-events$",                   # current key events
     r"^/api/v1/user-alimies$",                                     # notification settings
+    r"^/api/v2/index-infos/[^/]+$",                                 # index session/feed metadata
     r"^/api/v1/user-price-alimy/[^/]+$",                           # price alert list/create
     r"^/api/v1/user-price-alimy/[^/]+/[^/]+/[^/]+$",               # price alert delete
     r"^/api/v1/my-assets/hidden-stocks/(hide|show)$",               # hidden holding write
@@ -124,7 +207,11 @@ IMPLEMENTED = [
     r"^/api/v2/search/stocks",
     r"^/api/v1/c-chart/",
     r"^/api/v1/rankings/realtime/stock",
-    r"^/api/v\d+/new-watchlists",
+    r"^/api/v1/new-watchlists$",
+    r"^/api/v1/new-watchlists/groups$",
+    r"^/api/v1/new-watchlists/groups/simple$",
+    r"^/api/v1/new-watchlists/groups/\{(?:id|param)\}$",
+    r"^/api/v1/new-watchlists/items(?:/remove)?$",
     r"^/api/v2/screener/",
     r"^/api/v1/dashboard/wts/overview/(exchange-rates|indicator/index)",
     r"^/api/v1/dashboard/common/cached-orderable-amount",
@@ -202,6 +289,9 @@ RECOMMENDED = [
 
 # excluded: out of scope. (pattern, reason)
 EXCLUDED = [
+    (r"^/api/v\d+/(?:ai-issue/sns-release/alimy|fomc-live/alimy|reasoning-contents/alimy/subscription)$",
+     "redundant notification preference read (/user-alimies is canonical)"),
+    (r"^/api/v\d+/dashboard/intelligences/all$", "home UI polling/composition placeholder"),
     (r"^/api/v\d+/(account-open|multi-account-open)", "account opening flow"),
     (r"^/api/v\d+/account/additional-account-open", "account opening flow"),
     (r"^/api/v\d+/account/frontend/(terms|product-eligibility|opening|pension|ria|minor|mip|contracts|test|is-test)", "onboarding/eligibility UI"),
@@ -243,12 +333,111 @@ EXCLUDED = [
 ]
 
 
-def fetch(path):
+def fetch(path, budget=None):
+    # Route HTML and chunks occasionally return a transient empty/error response.
+    # A single miss makes the route walk look like real endpoint deletion, so
+    # retry each public asset before the inventory-level shrink guard decides.
+    last_error = None
+    for _ in range(3):
+        try:
+            current_url = BASE + path
+            response = None
+            for redirect_count in range(DISCOVERY_MAX_REDIRECTS + 1):
+                req = urllib.request.Request(current_url, headers={"User-Agent": UA})
+                response = FETCH_OPENER.open(req, timeout=25)
+                status = response.getcode()
+                if not isinstance(status, int) or not 300 <= status < 400:
+                    break
+                location = response.headers.get("Location") or response.headers.get("URI")
+                response.close()
+                if not isinstance(location, str) or not location:
+                    raise RuntimeError("WTS redirect response is missing Location")
+                target = urllib.parse.urljoin(current_url, location)
+                if _origin(target) != BASE_ORIGIN:
+                    raise RuntimeError(
+                        f"refusing redirected WTS asset outside {BASE_ORIGIN}: {_origin(target)}"
+                    )
+                if redirect_count == DISCOVERY_MAX_REDIRECTS:
+                    raise RuntimeError(
+                        f"WTS asset exceeded {DISCOVERY_MAX_REDIRECTS} redirects: {path}"
+                    )
+                current_url = target
+            if response is None:
+                raise RuntimeError(f"failed to open WTS asset: {path}")
+            try:
+                final_url = response.geturl()
+                if isinstance(final_url, str):
+                    if _origin(final_url) != BASE_ORIGIN:
+                        raise RuntimeError(
+                            f"refusing redirected WTS asset outside {BASE_ORIGIN}: {_origin(final_url)}"
+                        )
+                chunks = []
+                response_bytes = 0
+                while True:
+                    piece = response.read(64 * 1024)
+                    if not piece:
+                        break
+                    response_bytes += len(piece)
+                    if budget is not None:
+                        budget.reserve(len(piece))
+                    if response_bytes > DISCOVERY_MAX_RESPONSE_BYTES:
+                        raise RuntimeError(
+                            f"WTS asset exceeds {DISCOVERY_MAX_RESPONSE_BYTES} byte limit: {path}"
+                        )
+                    chunks.append(piece)
+                payload = b"".join(chunks)
+            finally:
+                response.close()
+            body = payload.decode("utf-8", "ignore")
+            if body:
+                return body
+            last_error = RuntimeError("empty response")
+        except urllib.error.HTTPError as exc:
+            try:
+                if exc.code == 404:
+                    raise WTSFetchError(
+                        f"failed to fetch required WTS asset {path} (HTTP 404)",
+                        status=404,
+                    ) from exc
+                last_error = exc
+            finally:
+                exc.close()
+        except RuntimeError:
+            raise
+        except Exception as exc:
+            last_error = exc
+    detail = "empty response"
+    if isinstance(last_error, urllib.error.HTTPError):
+        detail = f"HTTP {last_error.code}"
+    elif last_error is not None:
+        detail = type(last_error).__name__
+    status = last_error.code if isinstance(last_error, urllib.error.HTTPError) else None
+    raise WTSFetchError(
+        f"failed to fetch required WTS asset {path} after 3 attempts ({detail})",
+        status=status,
+    ) from last_error
+
+
+def fetch_route(path, budget=None):
+    """Fetch a guessed UI route; a definitive 404 is absence, not truncation."""
     try:
-        req = urllib.request.Request(BASE + path, headers={"User-Agent": UA})
-        return urllib.request.urlopen(req, timeout=25).read().decode("utf-8", "ignore")
-    except Exception:
-        return ""
+        body = fetch(path, budget)
+    except WTSFetchError as exc:
+        if exc.status == 404:
+            return None
+        raise
+    if not body:
+        raise RuntimeError(f"failed to fetch required WTS route: {path}")
+    return body
+
+
+def require_fetched_assets(paths, bodies):
+    """Abort inventory collection when a discovered asset could not be read."""
+    missing = [path for path, body in zip(paths, bodies) if not body]
+    if missing:
+        preview = ", ".join(missing[:5])
+        suffix = f" (+{len(missing) - 5} more)" if len(missing) > 5 else ""
+        raise RuntimeError(f"failed to fetch required WTS assets: {preview}{suffix}")
 
 
 # 앱 라우트별로 청크가 갈린다. `/` 와 `_buildManifest.js` 만 보면 **초기·공유 청크만**
@@ -306,11 +495,267 @@ REAL_SHADOWS = {
 # Keeping these in the generated inventory lets the weekly monitor retain and
 # diff every endpoint tossctl actually calls, including safe write surfaces.
 CURATED_CONTRACTS = {
+    "/api/v1/trade-purpose-verification/my-data/account/exists": {
+        "method": "GET",
+        "host": "wts-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static route is exact, but repeated read-only calls with a valid session alternated between boolean 200 and 400 on 2026-09-03. Removed from accumulate funding-status and monitoring until the missing state/header or stable response contract is identified.",
+    },
     "/api/v1/user-price-alimy/{stockCode}/{currency}/{targetPrice}": {
         "method": "DELETE",
         "host": "wts-api",
         "evidence": "verified",
         "note": "Exact DELETE contract verified by WTS static analysis on 2026-09-03. Exposed through preview/confirm/post-read verification.",
+    },
+    "/api/v2/share-holdings/folders": {
+        "method": "POST",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static call contract: create a user-defined holdings folder with {folderType,name,items}. Exact enum and live UI response still require capture before implementation.",
+        "mutation": {
+            "writes_state": True,
+            "risk_level": "preference",
+            "reversibility": "reversible",
+            "approval": "per-execution",
+        },
+    },
+    "/api/v2/share-holdings/folders/{folderKey}": {
+        "method": "DELETE",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static call contract: delete one holdings folder. Folder identity, ordering, and membership cannot be restored exactly; live UI capture is required before implementation.",
+        "mutation": {
+            "writes_state": True,
+            "risk_level": "destructive",
+            "reversibility": "irreversible",
+            "approval": "per-execution+irreversible-acknowledgement",
+        },
+    },
+    "/api/v2/share-holdings/folders/name/{folderKey}": {
+        "method": "PUT",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static call contract: rename a holdings folder with {name}. Live UI capture is required before implementation.",
+        "mutation": {
+            "writes_state": True,
+            "risk_level": "preference",
+            "reversibility": "reversible",
+            "approval": "per-execution",
+        },
+    },
+    "/api/v2/share-holdings/folders/move": {
+        "method": "PUT",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static call contract: reorder folders with {folderKeys}. Live UI capture is required before implementation.",
+        "mutation": {
+            "writes_state": True,
+            "risk_level": "preference",
+            "reversibility": "reversible",
+            "approval": "per-execution",
+        },
+    },
+    "/api/v2/share-holdings/folders/items": {
+        "method": "PUT",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static call contract: move a holding with {folderItemKey,toFolderKey,beforeFolderItemKey}. Live UI capture is required before implementation.",
+        "mutation": {
+            "writes_state": True,
+            "risk_level": "preference",
+            "reversibility": "reversible",
+            "approval": "per-execution",
+        },
+    },
+    "/api/v2/share-holdings/folders/validate-name": {
+        "method": "POST",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static read-like validation contract {name}; no state change expected, but live response is not captured.",
+        "mutation": {
+            "writes_state": False,
+            "risk_level": "none",
+            "reversibility": "not-applicable",
+            "approval": "none",
+        },
+    },
+    "/api/v1/paper/init": {
+        "method": "POST",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static call contract has no request body. It initializes or applies for the paper-options environment after selecting an options account. Education/eligibility behavior and strict live-ledger isolation must be verified before implementation; no bypass parameter was found.",
+        "mutation": {
+            "writes_state": True,
+            "risk_level": "simulation-enrollment",
+            "reversibility": "unknown",
+            "approval": "per-execution",
+        },
+    },
+    "/api/v1/paper/cash-balance": {
+        "method": "GET",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static read contract returns a simulated orderableAmount. Safe exposure still depends on proving the paper account/session cannot resolve to the live ledger.",
+    },
+    "/api/v1/paper/deposit": {
+        "method": "POST",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static contract changes simulated cash; the observed UI submits an amount. Exact validation/receipt and paper-only isolation remain unverified.",
+        "mutation": {
+            "writes_state": True,
+            "risk_level": "simulation",
+            "reversibility": "unknown",
+            "approval": "per-execution",
+        },
+    },
+    "/api/v1/paper/education/lecture-video": {
+        "method": "GET",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static paper-education lecture lookup. The server-side eligibility relationship is not yet verified.",
+    },
+    "/api/v1/paper/education/summary": {
+        "method": "GET",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static paper-education summary read. Response schema is not captured.",
+    },
+    "/api/v1/paper/education/session/{action}": {
+        "method": "POST",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static session actions are open, heartbeat, close, and complete. Completion is an education/eligibility attestation and must remain human-driven until the legitimate flow and receipt are verified.",
+        "mutation": {
+            "writes_state": True,
+            "risk_level": "eligibility",
+            "reversibility": "unknown",
+            "approval": "human-only",
+        },
+    },
+    "/api/v1/paper/education/redirect-push": {
+        "method": "POST",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Sends a Toss-app push that redirects the user to required online education. It does not bypass education.",
+        "mutation": {
+            "writes_state": True,
+            "risk_level": "notification",
+            "reversibility": "irreversible",
+            "approval": "per-execution",
+        },
+    },
+    "/api/v2/paper/dashboard/asset/sections/all": {
+        "method": "POST",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Read-like static contract with {types:[section]}; response schema and paper-only account isolation remain unverified.",
+        "mutation": {
+            "writes_state": False,
+            "risk_level": "none",
+            "reversibility": "not-applicable",
+            "approval": "none",
+        },
+    },
+    "/api/v2/paper/trading/order/prepare": {
+        "method": "POST",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Exact paper-order prepare route is present in the static bundle. The complete request schema, validation branches, and receipt/orderKey contract are not yet isolated.",
+        "mutation": {
+            "writes_state": False,
+            "risk_level": "simulation",
+            "reversibility": "not-applicable",
+            "approval": "none",
+        },
+    },
+    "/api/v2/paper/trading/order/create": {
+        "method": "POST",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Exact paper-order create route is present in the static bundle. The full payload, orderKey propagation, response receipt, and strict live-ledger isolation remain unverified.",
+        "mutation": {
+            "writes_state": True,
+            "risk_level": "simulation",
+            "reversibility": "irreversible",
+            "approval": "per-execution",
+        },
+    },
+    "/api/v2/paper/trading/order/cancel/prepare/{date}/{orderNo}": {
+        "method": "POST",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static prepare body includes after-market/reservation flags, quantity, stockCode, tradeType, orderId, and withOrderKey. No state change is expected, but the receipt is unverified.",
+        "mutation": {
+            "writes_state": False,
+            "risk_level": "simulation",
+            "reversibility": "not-applicable",
+            "approval": "none",
+        },
+    },
+    "/api/v3/paper/trading/order/cancel/{date}/{orderNo}": {
+        "method": "POST",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static simulated-cancel contract uses the prepare orderKey in X-Order-Key and repeats the order identity/body. Post-cancel verification is not captured.",
+        "mutation": {
+            "writes_state": True,
+            "risk_level": "simulation",
+            "reversibility": "irreversible",
+            "approval": "per-execution",
+        },
+    },
+    "/api/v3/paper/trading/order/bulk-cancel/prepare": {
+        "method": "POST",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static prepare body is {orderCancels:[{orderDate,orderNo,tradeType,isAfterMarketOrder,stockCode,isReservationOrder}]}.",
+        "mutation": {
+            "writes_state": False,
+            "risk_level": "simulation",
+            "reversibility": "not-applicable",
+            "approval": "none",
+        },
+    },
+    "/api/v3/paper/trading/order/bulk-cancel": {
+        "method": "POST",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static simulated bulk-cancel contract repeats the prepared orderCancels array. Result exposes failedCancelCount; exact per-order receipts are not captured.",
+        "mutation": {
+            "writes_state": True,
+            "risk_level": "simulation",
+            "reversibility": "irreversible",
+            "approval": "per-execution",
+        },
+    },
+    "/api/v3/paper/trading/order/{orderNo}/available-actions": {
+        "method": "GET",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "priority": "deferred",
+        "note": "Static read contract for the actions currently allowed on one simulated order.",
     },
 }
 
@@ -340,37 +785,121 @@ def discover_routes(blob):
     return sorted(out)
 
 
+def _html_build_id(html):
+    match = re.search(r'"buildId":"([^"]+)"', html)
+    return match.group(1) if match else ""
+
+
+def _add_build_manifest_chunks(build_id, chunks, budget=None):
+    if not build_id:
+        return
+    path = f"/assets/v2/_next/static/{build_id}/_buildManifest.js"
+    manifest = fetch(path, budget)
+    require_fetched_assets([path], [manifest])
+    for path in re.findall(r'"(chunks/[^"]+\.js)"', manifest):
+        chunks.add("/assets/v2/_next/static/" + path)
+    chunks.update(re.findall(CHUNK_RE, manifest))
+    return manifest
+
+
+def _check_discovery_budget(build_ids, chunks, routes):
+    counts = {
+        "builds": (len(build_ids), DISCOVERY_MAX_BUILDS),
+        "chunks": (len(chunks), DISCOVERY_MAX_CHUNKS),
+        "routes": (len(routes), DISCOVERY_MAX_ROUTES),
+    }
+    exceeded = [f"{name}={count}>{limit}" for name, (count, limit) in counts.items() if count > limit]
+    if exceeded:
+        raise RuntimeError("WTS discovery budget exceeded: " + ", ".join(exceeded))
+
+
+def _fetch_many(paths, fetcher, max_workers):
+    """Fetch in parallel, cancelling queued work as soon as one asset fails."""
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
+    futures = [executor.submit(fetcher, path) for path in paths]
+    indices = {future: index for index, future in enumerate(futures)}
+    results = [None] * len(futures)
+    try:
+        for future in concurrent.futures.as_completed(futures):
+            results[indices[future]] = future.result()
+        return results
+    except Exception:
+        for future in futures:
+            future.cancel()
+        raise
+    finally:
+        executor.shutdown(wait=True, cancel_futures=True)
+
+
 def collect_paths():
-    idx = fetch("/")
-    m = re.search(r'"buildId":"([^"]+)"', idx)
-    build_id = m.group(1) if m else ""
+    byte_budget = DiscoveryByteBudget()
+    idx = fetch("/", byte_budget)
+    require_fetched_assets(["/"], [idx])
+    root_build_id = _html_build_id(idx)
+    if not root_build_id:
+        raise RuntimeError("WTS root response is missing buildId; refusing partial discovery")
+    build_ids = {root_build_id} - {""}
     chunks = set(re.findall(CHUNK_RE, idx))
-    if build_id:
-        bm = fetch(f"/assets/v2/_next/static/{build_id}/_buildManifest.js")
-        for f in re.findall(r'"(chunks/[^"]+\.js)"', bm):
-            chunks.add("/assets/v2/_next/static/" + f)
-        for f in re.findall(CHUNK_RE, bm):
-            chunks.add(f)
+    routes = set(discover_routes(idx))
+    fetched_routes = {"/"}
+    loaded_builds = set()
+    chunk_bodies = {}
 
-    # 1차: 초기 청크를 읽어 라우트 목록을 알아낸다.
-    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as ex:
-        seed = "\n".join(ex.map(fetch, chunks))
-    routes = discover_routes(seed)
+    # Walk builds, chunks, and routes to a fixed point. A rolling deploy can
+    # reveal build B from a route declared by build A, and build B can in turn
+    # reveal another route served by build C. A hard-coded "second pass" loses
+    # C and silently publishes an incomplete catalog.
+    for _ in range(32):
+        progressed = False
 
-    # 2차: 각 라우트 HTML 에서 그 페이지 전용 청크를 걷는다.
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
-        for html in ex.map(fetch, [r for r in routes if r != "/"]):
-            chunks.update(re.findall(CHUNK_RE, html))
+        _check_discovery_budget(build_ids, chunks, routes)
+
+        new_builds = sorted(build_ids - loaded_builds)
+        for build_id in new_builds:
+            _add_build_manifest_chunks(build_id, chunks, byte_budget)
+            loaded_builds.add(build_id)
+            progressed = True
+
+        _check_discovery_budget(build_ids, chunks, routes)
+
+        new_chunks = sorted(chunks - set(chunk_bodies))
+        if new_chunks:
+            bodies = _fetch_many(new_chunks, lambda path: fetch(path, byte_budget), 12)
+            require_fetched_assets(new_chunks, bodies)
+            for path, body in zip(new_chunks, bodies):
+                chunk_bodies[path] = body
+                routes.update(discover_routes(body))
+            progressed = True
+
+        _check_discovery_budget(build_ids, chunks, routes)
+
+        new_routes = sorted(routes - fetched_routes)
+        if new_routes:
+            route_html = _fetch_many(new_routes, lambda path: fetch_route(path, byte_budget), 8)
+            for route, html in zip(new_routes, route_html):
+                fetched_routes.add(route)
+                if html is None:
+                    continue
+                routes.update(discover_routes(html))
+                chunks.update(re.findall(CHUNK_RE, html))
+                if build_id := _html_build_id(html):
+                    build_ids.add(build_id)
+            progressed = True
+
+        _check_discovery_budget(build_ids, chunks, routes)
+
+        if not progressed:
+            break
+    else:
+        raise RuntimeError("WTS build/route discovery did not converge after 32 passes")
 
     # 정렬해서 받는다 — `chunks` 는 set 이라 순회 순서가 실행마다 달라지고, 그러면
     # 같은 번들에서 매번 다른 카탈로그가 나온다(한 경로가 PATCH/DELETE 를 둘 다 선언할 때
     # 먼저 읽힌 쪽이 이겼다). CI 가 매 실행 diff 를 만들어낸다.
-    ordered = sorted(chunks)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as ex:
-        blob = "\n".join(ex.map(fetch, ordered))
+    blob = "\n".join(chunk_bodies[path] for path in sorted(chunk_bodies))
     globals()["_ROUTE_COUNT"] = len(routes)
     norm, meta = derive_paths(blob)
-    return build_id, len(chunks), norm, meta
+    return root_build_id, sorted(build_ids), len(chunks), norm, meta
 
 
 
@@ -539,7 +1068,7 @@ def _probe_inventory_path(path):
         path,
         count=1,
     )
-    for prefix in ("stock-infos", "stock-prices", "index-prices"):
+    for prefix in ("stock-infos", "stock-prices", "index-prices", "index-infos"):
         path = re.sub(
             rf"(^/api/v[0-9]+/{prefix}/)[A-Z][A-Z0-9]{{5,}}",
             rf"\1{{code}}",
@@ -608,13 +1137,16 @@ def main():
     prev_eps_map = prev.get("endpoints", {})
     prev_eps = set(prev_eps_map.keys())
 
-    build_id, n_chunks, paths, meta = collect_paths()
+    build_id, build_ids, n_chunks, paths, meta = collect_paths()
     if not paths:
         # Never overwrite the catalog on a failed/empty fetch — that would
         # look like "every endpoint was removed". Bail loudly instead.
         print("ERROR: no endpoints extracted (fetch failed?)", file=sys.stderr)
         return 1
-    if suspicious_inventory_shrink(len(prev_eps), len(paths)):
+    if incomplete_unchanged_build(
+        catalog_build_ids(prev), build_ids,
+        prev.get("chunk_count"), n_chunks,
+    ) or suspicious_inventory_shrink(len(prev_eps), len(paths)):
         # A partial route/chunk fetch once collapsed 1,112 known paths to 325
         # while the WTS build id itself was unchanged. Treat that as collection
         # failure, not as a mass endpoint deletion, and preserve the catalog.
@@ -710,6 +1242,7 @@ def main():
     out = {
         "source": "tossinvest.com web bundles",
         "build_id": build_id,
+        "build_ids": build_ids,
         "chunk_count": n_chunks,
         "total": len(paths),
         "counts": counts,
@@ -726,7 +1259,8 @@ def main():
 
     print(f"WTS endpoints: {len(paths)} total "
           f"(implemented {counts['implemented']}, candidate {counts['candidate']}, "
-          f"excluded {counts['excluded']}) · build {build_id} · {n_chunks} chunks")
+          f"excluded {counts['excluded']}) · root build {build_id} · "
+          f"active builds {','.join(build_ids)} · {n_chunks} chunks")
     if added:
         print(f"\n+ {len(added)} NEW since catalog:")
         for p in added:
@@ -746,6 +1280,8 @@ def build_diff(previous, current, added, removed):
     """Return the stable machine payload consumed by the monitor workflow."""
     previous_build = previous.get("build_id", "")
     current_build = current.get("build_id", "")
+    previous_builds = catalog_build_ids(previous)
+    current_builds = catalog_build_ids(current)
     previous_chunks = previous.get("chunk_count")
     current_chunks = current.get("chunk_count")
     return {
@@ -755,18 +1291,43 @@ def build_diff(previous, current, added, removed):
             path for path in added
             if current["endpoints"][path]["status"] == "candidate"
         ],
-        "build_changed": bool(previous_build and current_build and previous_build != current_build),
+        "build_changed": bool(previous_builds and current_builds and previous_builds != current_builds),
         "previous_build_id": previous_build,
         "current_build_id": current_build,
+        "previous_build_ids": previous_builds,
+        "current_build_ids": current_builds,
         "chunk_count_changed": previous_chunks is not None and previous_chunks != current_chunks,
         "previous_chunk_count": previous_chunks,
         "current_chunk_count": current_chunks,
-    }
+}
+
+
+def catalog_build_ids(catalog):
+    """Return a stable active-build identity with legacy build_id fallback."""
+    explicit = catalog.get("build_ids")
+    if isinstance(explicit, list) and explicit:
+        return sorted({str(item) for item in explicit if item})
+    legacy = str(catalog.get("build_id", ""))
+    # Split the short-lived comma-joined representation emitted by development
+    # builds so the next generated catalog migrates without false churn.
+    return sorted({item for item in legacy.split(",") if item})
 
 
 def suspicious_inventory_shrink(previous_count, current_count):
     """Flag a likely partial-fetch result without blocking normal API churn."""
     return previous_count >= 100 and current_count < previous_count * 0.75
+
+
+def incomplete_unchanged_build(previous_build, current_build, previous_chunks, current_chunks):
+    """Reject a smaller chunk walk when the immutable Next build did not change."""
+    previous_build = sorted(previous_build) if isinstance(previous_build, (list, tuple, set)) else catalog_build_ids({"build_id": previous_build})
+    current_build = sorted(current_build) if isinstance(current_build, (list, tuple, set)) else catalog_build_ids({"build_id": current_build})
+    return bool(
+        previous_build
+        and previous_build == current_build
+        and previous_chunks is not None
+        and current_chunks < previous_chunks
+    )
 
 
 if __name__ == "__main__":

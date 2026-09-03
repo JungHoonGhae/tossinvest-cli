@@ -128,6 +128,46 @@ func TestWriteMarketIndicesCSV(t *testing.T) {
 	}
 }
 
+func TestWriteIndexQuoteIncludesVerifiedSessionMetadata(t *testing.T) {
+	t.Parallel()
+	quote := domain.IndexQuote{
+		Code: "COMP.NAI", Name: "Nasdaq", Open: 100, High: 105, Low: 99, Close: 104, Base: 101,
+		PriceFeed:      domain.IndexPriceFeed{Code: "REAL_TIME", Description: "realtime"},
+		TradingStartAt: "2026-09-03T22:30:00+09:00",
+		TradingEndAt:   "2026-09-04T05:00:00+09:00",
+		MarketOpen:     true,
+	}
+
+	var table bytes.Buffer
+	if err := WriteIndexQuote(&table, FormatTable, quote); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"REAL_TIME", "realtime", quote.TradingStartAt, quote.TradingEndAt, "true"} {
+		if !strings.Contains(table.String(), want) {
+			t.Errorf("table missing %q: %s", want, table.String())
+		}
+	}
+
+	var csvOut bytes.Buffer
+	if err := WriteIndexQuote(&csvOut, FormatCSV, quote); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(csvOut.String(), "code,name,open,high,low,close,change,change_rate,high_52w,low_52w,nation,base,volume,price_feed_code,price_feed_description,trading_start_at,trading_end_at,market_open\n") ||
+		!strings.Contains(csvOut.String(), "REAL_TIME,realtime,"+quote.TradingStartAt+","+quote.TradingEndAt+",true") {
+		t.Errorf("CSV reordered its released prefix or omitted session metadata: %s", csvOut.String())
+	}
+
+	var jsonOut bytes.Buffer
+	if err := WriteIndexQuote(&jsonOut, FormatJSON, quote); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`"price_feed"`, `"trading_start_at"`, `"trading_end_at"`, `"market_open": true`} {
+		if !strings.Contains(jsonOut.String(), want) {
+			t.Errorf("JSON missing %q: %s", want, jsonOut.String())
+		}
+	}
+}
+
 func TestWriteStockRankingTable(t *testing.T) {
 	var buf bytes.Buffer
 	sr := domain.StockRanking{Stocks: []domain.RankedStock{

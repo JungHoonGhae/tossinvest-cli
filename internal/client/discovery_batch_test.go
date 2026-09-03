@@ -138,8 +138,6 @@ func TestGetOpenBankingStatusMapsOnlyStableObservedFields(t *testing.T) {
 			_, _ = w.Write([]byte(`{"result":false}`))
 		case "/api/v1/trading/open-banking/auto-trading":
 			_, _ = w.Write([]byte(`{"result":{"connectedAccountBankCode":"039","isRegistered":true}}`))
-		case "/api/v1/trade-purpose-verification/my-data/account/exists":
-			_, _ = w.Write([]byte(`{"result":true}`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -159,7 +157,7 @@ func TestGetOpenBankingStatusMapsOnlyStableObservedFields(t *testing.T) {
 	if !got.ConnectionCreatable || got.RegistrationRequired {
 		t.Fatalf("capabilities = %#v", got)
 	}
-	if !got.AutoTradingRegistered || got.AutoTradingBankCode != "039" || !got.TradePurposeMyDataAccountExists {
+	if !got.AutoTradingRegistered || got.AutoTradingBankCode != "039" {
 		t.Fatalf("securities-linked banking states = %#v", got)
 	}
 }
@@ -176,8 +174,6 @@ func TestGetOpenBankingStatusAllowsDisconnectedAccount(t *testing.T) {
 			_, _ = w.Write([]byte(`{"result":true}`))
 		case "/api/v1/trading/open-banking/auto-trading":
 			_, _ = w.Write([]byte(`{"result":{"connectedAccountBankCode":"","isRegistered":false}}`))
-		case "/api/v1/trade-purpose-verification/my-data/account/exists":
-			_, _ = w.Write([]byte(`{"result":false}`))
 		default:
 			http.NotFound(w, r)
 		}
@@ -194,7 +190,7 @@ func TestGetOpenBankingStatusAllowsDisconnectedAccount(t *testing.T) {
 	if got.ConnectionCreatable || !got.RegistrationRequired {
 		t.Fatalf("disconnected capabilities = %#v", got)
 	}
-	if got.AutoTradingRegistered || got.AutoTradingBankCode != "" || got.TradePurposeMyDataAccountExists {
+	if got.AutoTradingRegistered || got.AutoTradingBankCode != "" {
 		t.Fatalf("disconnected linked states = %#v", got)
 	}
 }
@@ -216,5 +212,24 @@ func TestGetNotificationSettingsOmitsInternalUserID(t *testing.T) {
 	}
 	if len(got.Settings) != 2 || got.Settings[0].Type != "CALENDAR_AI_SUMMARY_WEEKLY" || !got.Settings[0].Enabled || got.Settings[1].Type != "" {
 		t.Fatalf("settings = %#v", got.Settings)
+	}
+}
+
+func TestGetNotificationSettingsRejectsMissingResultOrEnabled(t *testing.T) {
+	t.Parallel()
+	for name, body := range map[string]string{
+		"missing result":  `{}`,
+		"missing enabled": `{"result":[{"type":"FOMC_LIVE"}]}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				_, _ = w.Write([]byte(body))
+			}))
+			t.Cleanup(server.Close)
+			if _, err := testClientFor(server).GetNotificationSettings(context.Background()); err == nil {
+				t.Fatal("incomplete notification settings response was accepted")
+			}
+		})
 	}
 }

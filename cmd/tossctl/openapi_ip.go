@@ -48,7 +48,7 @@ func newOpenAPIIPCmd(opts *rootOptions) *cobra.Command {
 			"The default is a preview. Apply only with --execute and the preview's --confirm token. " +
 			"Every mutation is verified; on failure tossctl re-reads server state and restores the previous allowlist.",
 		Args:        cobra.NoArgs,
-		Annotations: map[string]string{"source": "wts", "domain": "system"},
+		Annotations: mutationAnnotations("wts", "system", "preference", "compensating"),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {

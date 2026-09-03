@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/tui"
+	watchlistservice "github.com/JungHoonGhae/tossinvest-cli/internal/watchlist"
 	"github.com/spf13/cobra"
 )
 
@@ -144,107 +146,136 @@ func newWatchlistGroupCmd(opts *rootOptions) *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		&cobra.Command{
-			Use:         "create <name>",
-			Short:       i18n.T("watchlist.group.create.short"),
-			Args:        cobra.MinimumNArgs(1),
-			Annotations: map[string]string{"source": "wts"},
-			RunE: func(cmd *cobra.Command, args []string) error {
-				app, err := newAppContext(opts)
-				if err != nil {
-					return err
-				}
-				g, err := app.client.CreateWatchlistGroup(cmd.Context(), strings.Join(args, " "))
-				if err != nil {
-					return userFacingCommandError(err)
-				}
-				fmt.Fprintf(cmd.OutOrStdout(), "folder created: %s (id=%d)\n", g.Name, g.ID)
-				return nil
-			},
-		},
-		&cobra.Command{
-			Use:         "rename [<id>] <new-name>",
-			Short:       i18n.T("watchlist.group.rename.short"),
-			Args:        cobra.RangeArgs(1, 2),
-			Annotations: map[string]string{"source": "wts"},
-			RunE: func(cmd *cobra.Command, args []string) error {
-				var name string
-				var rawID string
-				if len(args) == 2 {
-					rawID = args[0]
-					name = strings.Join(args[1:], " ")
-				} else {
-					name = args[0]
-				}
-
-				resolver := folderResolverFor(cmd)
-				intent, err := resolver.required(rawID)
-				if err != nil {
-					return err
-				}
-				app, err := newAppContext(opts)
-				if err != nil {
-					return err
-				}
-				id := intent.id
-				if intent.mode == folderIntentInteractive {
-					id, err = pickFolderID(cmd.Context(), app, resolver.in, resolver.out)
-					if err != nil {
-						return err
-					}
-				}
-				if err := app.client.RenameWatchlistGroup(cmd.Context(), id, name); err != nil {
-					return userFacingCommandError(err)
-				}
-				fmt.Fprintf(cmd.OutOrStdout(), "folder renamed: id=%d -> %s\n", id, name)
-				return nil
-			},
-		},
-		&cobra.Command{
-			Use:         "delete [<id>]",
-			Short:       i18n.T("watchlist.group.delete.short"),
-			Args:        cobra.MaximumNArgs(1),
-			Annotations: map[string]string{"source": "wts"},
-			RunE: func(cmd *cobra.Command, args []string) error {
-				rawID := ""
-				if len(args) == 1 {
-					rawID = args[0]
-				}
-				resolver := folderResolverFor(cmd)
-				intent, err := resolver.required(rawID)
-				if err != nil {
-					return err
-				}
-
-				app, err := newAppContext(opts)
-				if err != nil {
-					return err
-				}
-				id := intent.id
-				if intent.mode == folderIntentInteractive {
-					id, err = pickFolderID(cmd.Context(), app, resolver.in, resolver.out)
-					if err != nil {
-						return err
-					}
-				}
-				if err := app.client.DeleteWatchlistGroup(cmd.Context(), id); err != nil {
-					return userFacingCommandError(err)
-				}
-				fmt.Fprintf(cmd.OutOrStdout(), "folder deleted: id=%d\n", id)
-				return nil
-			},
-		},
+		newWatchlistGroupCreateCmd(opts),
+		newWatchlistGroupRenameCmd(opts),
+		newWatchlistGroupDeleteCmd(opts),
 	)
+	return cmd
+}
+
+func newWatchlistGroupCreateCmd(opts *rootOptions) *cobra.Command {
+	var execute bool
+	var confirm string
+	cmd := &cobra.Command{
+		Use: "create <name>", Short: i18n.T("watchlist.group.create.short"), Args: cobra.MinimumNArgs(1),
+		Annotations: watchlistMutationAnnotations(false),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			plan, err := watchlistservice.NewService(app.client).ChangeGroup(
+				cmd.Context(), watchlistservice.GroupCreate, 0, strings.Join(args, " "),
+				watchlistservice.ExecuteOptions{Execute: execute, Confirm: confirm},
+			)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return renderWatchlistPlan(cmd.OutOrStdout(), app.format, plan)
+		},
+	}
+	bindWatchlistExecutionFlags(cmd, &execute, &confirm, nil)
+	return cmd
+}
+
+func newWatchlistGroupRenameCmd(opts *rootOptions) *cobra.Command {
+	var execute bool
+	var confirm string
+	cmd := &cobra.Command{
+		Use: "rename [<id>] <new-name>", Short: i18n.T("watchlist.group.rename.short"), Args: cobra.RangeArgs(1, 2),
+		Annotations: watchlistMutationAnnotations(false),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			var rawID, name string
+			if len(args) == 2 {
+				rawID, name = args[0], args[1]
+			} else {
+				name = args[0]
+			}
+			resolver := folderResolverFor(cmd)
+			intent, err := resolver.required(rawID)
+			if err != nil {
+				return err
+			}
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			id := intent.id
+			if intent.mode == folderIntentInteractive {
+				id, err = pickFolderID(cmd.Context(), app, resolver.in, resolver.out)
+				if err != nil {
+					return err
+				}
+			}
+			plan, err := watchlistservice.NewService(app.client).ChangeGroup(
+				cmd.Context(), watchlistservice.GroupRename, id, name,
+				watchlistservice.ExecuteOptions{Execute: execute, Confirm: confirm},
+			)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return renderWatchlistPlan(cmd.OutOrStdout(), app.format, plan)
+		},
+	}
+	bindWatchlistExecutionFlags(cmd, &execute, &confirm, nil)
+	return cmd
+}
+
+func newWatchlistGroupDeleteCmd(opts *rootOptions) *cobra.Command {
+	var execute bool
+	var confirm string
+	var acknowledge bool
+	cmd := &cobra.Command{
+		Use: "delete [<id>]", Short: i18n.T("watchlist.group.delete.short"), Args: cobra.MaximumNArgs(1),
+		Annotations: watchlistMutationAnnotations(true),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			rawID := ""
+			if len(args) == 1 {
+				rawID = args[0]
+			}
+			resolver := folderResolverFor(cmd)
+			intent, err := resolver.required(rawID)
+			if err != nil {
+				return err
+			}
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			id := intent.id
+			if intent.mode == folderIntentInteractive {
+				id, err = pickFolderID(cmd.Context(), app, resolver.in, resolver.out)
+				if err != nil {
+					return err
+				}
+			}
+			plan, err := watchlistservice.NewService(app.client).ChangeGroup(
+				cmd.Context(), watchlistservice.GroupDelete, id, "",
+				watchlistservice.ExecuteOptions{Execute: execute, Confirm: confirm, AcknowledgeIrreversible: acknowledge},
+			)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return renderWatchlistPlan(cmd.OutOrStdout(), app.format, plan)
+		},
+	}
+	bindWatchlistExecutionFlags(cmd, &execute, &confirm, &acknowledge)
 	return cmd
 }
 
 func newWatchlistAddRemoveCmd(opts *rootOptions, verb, short string) *cobra.Command {
 	var groupID int64
+	var execute bool
+	var confirm string
+	action := watchlistservice.ItemAdd
+	if verb == "remove" {
+		action = watchlistservice.ItemRemove
+	}
 	c := &cobra.Command{
 		Use:         verb + " <symbol or name>",
 		Short:       short,
 		Args:        cobra.MinimumNArgs(1),
-		Annotations: map[string]string{"source": "wts"},
+		Annotations: watchlistMutationAnnotations(false),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {
@@ -253,25 +284,100 @@ func newWatchlistAddRemoveCmd(opts *rootOptions, verb, short string) *cobra.Comm
 			if groupID == 0 {
 				return fmt.Errorf("--group <folder-id> is required (see `watchlist groups`)")
 			}
-			symbol := strings.Join(args, " ")
-			if verb == "add" {
-				err = app.client.AddWatchlistItem(cmd.Context(), groupID, symbol)
-			} else {
-				err = app.client.RemoveWatchlistItem(cmd.Context(), groupID, symbol)
-			}
+			plan, err := watchlistservice.NewService(app.client).ChangeItem(
+				cmd.Context(), action, groupID, strings.Join(args, " "),
+				watchlistservice.ExecuteOptions{Execute: execute, Confirm: confirm},
+			)
 			if err != nil {
 				return userFacingCommandError(err)
 			}
-			action := "added"
-			if verb == "remove" {
-				action = "removed"
-			}
-			fmt.Fprintf(cmd.OutOrStdout(), "watchlist %s: %s (folder id=%d)\n", action, symbol, groupID)
-			return nil
+			return renderWatchlistPlan(cmd.OutOrStdout(), app.format, plan)
 		},
 	}
 	c.Flags().Int64Var(&groupID, "group", 0, "target folder id (see `watchlist groups`)")
+	bindWatchlistExecutionFlags(c, &execute, &confirm, nil)
 	return c
+}
+
+func watchlistMutationAnnotations(irreversible bool) map[string]string {
+	if irreversible {
+		return mutationAnnotations("wts", "securities", "destructive", "irreversible")
+	}
+	return mutationAnnotations("wts", "securities", "preference", "reversible")
+}
+
+func bindWatchlistExecutionFlags(cmd *cobra.Command, execute *bool, confirm *string, acknowledge *bool) {
+	cmd.Flags().BoolVar(execute, "execute", false, "apply the previewed watchlist change")
+	cmd.Flags().StringVar(confirm, "confirm", "", "confirm token from a fresh preview")
+	if acknowledge != nil {
+		cmd.Flags().BoolVar(acknowledge, "acknowledge-irreversible", false, "acknowledge that deleting this folder cannot be undone")
+	}
+}
+
+func renderWatchlistPlan(w io.Writer, format output.Format, plan watchlistservice.Plan) error {
+	if format == output.FormatJSON {
+		return output.WriteJSON(w, plan)
+	}
+	if format == output.FormatCSV {
+		return writeCommandCSV(w, [][]string{
+			{"kind", "action", "group_id", "group_name", "new_name", "product_code", "current_item_count", "irreversible", "requires_irreversible_acknowledgement", "noop", "applied", "reconciled", "confirm_token", "affected_items"},
+			{plan.Kind, string(plan.Action), strconv.FormatInt(plan.GroupID, 10), plan.GroupName, plan.NewName, plan.ProductCode, strconv.Itoa(plan.CurrentItemCount), strconv.FormatBool(plan.Irreversible), strconv.FormatBool(plan.RequiresIrreversibleAcknowledgement), strconv.FormatBool(plan.Noop), strconv.FormatBool(plan.Applied), strconv.FormatBool(plan.Reconciled), plan.ConfirmToken, renderWatchlistPreviewItems(plan.AffectedItems)},
+		})
+	}
+	if format != output.FormatTable {
+		return fmt.Errorf("unsupported output format: %s", format)
+	}
+	var rendered strings.Builder
+	status := "preview"
+	if plan.Applied {
+		status = "applied"
+	} else if plan.Noop {
+		status = "up to date"
+	}
+	fmt.Fprintf(&rendered, "Status:     %s\nAction:     %s\nFolder:     %s (id=%d)\n", status, plan.Action, plan.GroupName, plan.GroupID)
+	if plan.NewName != "" {
+		fmt.Fprintf(&rendered, "New name:   %s\n", plan.NewName)
+	}
+	if plan.ProductCode != "" {
+		fmt.Fprintf(&rendered, "Product:    %s\n", plan.ProductCode)
+	}
+	if plan.Irreversible {
+		fmt.Fprintf(&rendered, "Risk:       irreversible deletion (%d current item(s))\n", plan.CurrentItemCount)
+		if affected := renderWatchlistPreviewItems(plan.AffectedItems); affected != "" {
+			fmt.Fprintf(&rendered, "Affected:   %s\n", affected)
+		}
+	}
+	if plan.Reconciled {
+		fmt.Fprintln(&rendered, "Verified:   server applied the request despite a transport error")
+	}
+	if !plan.Applied && !plan.Noop {
+		ack := ""
+		if plan.RequiresIrreversibleAcknowledgement {
+			ack = " --acknowledge-irreversible"
+		}
+		fmt.Fprintf(&rendered, "Confirm:    %s\nNext:       repeat this command with --execute --confirm %s%s\n", plan.ConfirmToken, plan.ConfirmToken, ack)
+	}
+	_, err := io.WriteString(w, rendered.String())
+	return err
+}
+
+func renderWatchlistPreviewItems(items []watchlistservice.PreviewItem) string {
+	rendered := make([]string, 0, len(items))
+	for _, item := range items {
+		details := make([]string, 0, 2)
+		if item.Symbol != "" && item.Symbol != item.ProductCode {
+			details = append(details, item.Symbol)
+		}
+		if item.Name != "" {
+			details = append(details, item.Name)
+		}
+		value := item.ProductCode
+		if len(details) > 0 {
+			value += " (" + strings.Join(details, ", ") + ")"
+		}
+		rendered = append(rendered, value)
+	}
+	return strings.Join(rendered, "; ")
 }
 
 func newWatchlistListCmd(opts *rootOptions) *cobra.Command {

@@ -21,6 +21,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/updatecheck"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/version"
+	watchlistservice "github.com/JungHoonGhae/tossinvest-cli/internal/watchlist"
 	"github.com/spf13/cobra"
 )
 
@@ -49,8 +50,9 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 			"command `tossctl mcp`. It covers the official Open API (reads plus gated " +
 			"order place/cancel/modify) and, when a web session is present, the WTS-only " +
 			"reads (rankings, flows, AI signals, screener, sectors, earnings, briefing, " +
-			"community, dividends, Prime, transactions), plus safely gated Open API IP " +
-			"management. Order mutations follow the same config gate and execute/confirm " +
+			"community, dividends, Prime, transactions), plus safely gated account-setting " +
+			"writes. Every write publishes its risk, reversibility, approval, and verification " +
+			"policy. Order mutations follow the same config gate and execute/confirm " +
 			"flow as `tossctl order` and use the official " +
 			"API only (no WTS). Needs at least one credential: `tossctl openapi login` " +
 			"(official) and/or `tossctl auth login` (WTS web session).",
@@ -123,6 +125,7 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 				OpenAPIIP:      ipManager,
 				PriceAlerts:    pricealert.NewService(routed),
 				HiddenHoldings: hiddenholding.NewService(routed),
+				Watchlists:     watchlistservice.NewService(routed),
 			}, "tossinvest-cli", version.Current().Version)
 
 			// Read-only auth snapshot for the auth_status operation (no secrets —
@@ -139,7 +142,7 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 				cur := version.Current().Version
 				if updatecheck.IsNewer(latest, cur) {
 					server.AppendInstructions(fmt.Sprintf(
-						"Update available: tossctl v%s (this server runs v%s). Tell the user they can update with `brew upgrade tossctl-cli` or `tossctl update`, then restart this MCP server to pick it up.",
+						"Update available: tossctl v%s (this server runs v%s). Tell the user they can update with `brew upgrade tossctl` or `tossctl update`, then restart this MCP server to pick it up.",
 						latest, cur))
 				}
 			}

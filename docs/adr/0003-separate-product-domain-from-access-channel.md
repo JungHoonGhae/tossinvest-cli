@@ -35,8 +35,9 @@ request/response cipher interceptor 소유권을 추적한 뒤에만 mobile 후�
 ## 결과
 
 - 기존 operation은 기본적으로 `domain=securities`이며 인증·IP·감시는 `system`으로 명시한다.
-- `banking_status`라는 기존 이름은 유지하지만 의미는 주식모으기 자금연결 상태이므로
-  `domain=securities`, `backend=wts`다.
+- 정식 operation ID는 `accumulation_funding_status`, CLI는
+  `accumulate funding-status`다. 이전 `banking_status`와 `banking status`는 호환용
+  deprecated alias이며, 실제 분류는 `domain=securities`, `backend=wts`다.
 - 일반 은행·카드·소비 API는 계약이 존재해도 mobile 인증/cipher connector가 구현되기 전까지
   operation으로 노출하지 않는다.
 - 향후 mobile connector는 WTS 세션과 별도 secret storage·동의·마스킹 경계를 가져야 한다.

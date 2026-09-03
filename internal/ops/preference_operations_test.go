@@ -79,7 +79,7 @@ func TestPreferenceOperationsAreSecuritiesWTSWrites(t *testing.T) {
 			t.Fatalf("operation %s write=%v", id, op.Write)
 		}
 	}
-	banking, _ := catalog.Get("banking_status")
+	banking, _ := catalog.Get("accumulation_funding_status")
 	if banking.Domain != "securities" {
 		t.Fatalf("banking_status domain = %q, want securities", banking.Domain)
 	}

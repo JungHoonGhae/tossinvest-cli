@@ -45,7 +45,7 @@ func newHiddenHoldingChangeCmd(opts *rootOptions, action hiddenholding.Action) *
 		Use:         string(action) + " <symbol or name>",
 		Short:       i18n.T("portfolio.hidden." + string(action) + ".short"),
 		Args:        cobra.MinimumNArgs(1),
-		Annotations: map[string]string{"source": "wts", "domain": "securities"},
+		Annotations: mutationAnnotations("wts", "securities", "preference", "reversible"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := newAppContext(opts)
 			if err != nil {

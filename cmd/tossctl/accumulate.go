@@ -11,6 +11,7 @@ func newAccumulateCmd(opts *rootOptions) *cobra.Command {
 		Use:   "accumulate",
 		Short: i18n.T("accumulate.short"),
 	}
+	cmd.AddCommand(newAccumulationFundingStatusCmd(opts, "funding-status"))
 
 	cmd.AddCommand(&cobra.Command{
 		Use:         "list",
