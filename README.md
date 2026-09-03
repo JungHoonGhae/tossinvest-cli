@@ -323,7 +323,7 @@ cron 이면 `0 9 * * * /opt/homebrew/bin/tossctl auth extend --if-expiring 48h`.
 | **AI 뉴스 브리핑** | `market briefing [--scope personalized\|kr\|us]` (개인화 또는 한국·미국 최신 브리핑) | ❌ | ✅ |
 | **🆕 핵심 실적·경제지표** | `market key-events` (실적 예상·발표·서프라이즈, 경제지표 실제·예상·직전값) | ❌ | ✅ |
 | **🆕 증권 주식모으기 자금연결 상태** | `banking status [--full]` (일반 Banking 아님; 연결·자동주문 등록과 거래목적 확인용 MyData 계좌 여부, 예금주·계좌번호 기본 마스킹) | ❌ | ✅ |
-| **🆕 알림 설정 조회** | `notifications list` (읽기 전용, 내부 사용자 ID 제외) | ❌ | ✅ |
+| **🆕 알림 설정·상태 조회** | `notifications list`, `notifications status` (일반 설정과 받은함·AI 이슈·FOMC·분석 콘텐츠 상태; 읽기 전용, 내부 사용자 ID 제외) | ❌ | ✅ |
 | **🆕 목표가 알림 조회·관리** | `quote alert list\|add\|remove <symbol>` (변경은 preview + `--execute --confirm`) | ❌ | ✅ |
 | **🆕 숨긴 보유종목 조회·관리** | `portfolio hidden list\|hide\|show` (계좌 키 비노출, 변경 후 재검증) | ❌ | ✅ |
 | **토스 AI 시그널** | `market signals` (목록), `market signal <symbol>` (전체 근거·뉴스·연관 종목) | ❌ | ✅ |
@@ -542,7 +542,7 @@ Claude Desktop·Codex 등 **JSON 설정 방식** 호스트는 아래 [설정 예
 
 MCP 의 고질적 비용은 **툴 스키마가 모델 컨텍스트에 상시 상주**한다는 점입니다. API 하나당 툴
 하나로 등록하면, 그 툴의 이름·설명·파라미터 스키마 전부가 대화 내내 컨텍스트를 차지합니다.
-tossctl 의 API 표면은 **104개 오퍼레이션**(공식·WTS 조회, 일반·조건 주문, 시스템 오퍼레이션,
+tossctl 의 API 표면은 **105개 오퍼레이션**(공식·WTS 조회, 일반·조건 주문, 시스템 오퍼레이션,
 계속 증가) — 이걸 개별 툴로 노출하면 **그만큼의 스키마가 항상 떠 있게** 되어 토큰을 먹고, 툴 선택
 노이즈(비슷한 툴 사이 오판)도 커집니다.
 
@@ -553,7 +553,7 @@ tossctl 은 KIS_MCP_Server 의 catalog 모드를 참조해, 앞단에 **고정 3
 - `describe_operation` — 특정 오퍼레이션의 파라미터 스키마를 **그 순간에만** 조회
 - `call_operation` — id + 파라미터로 실제 호출
 
-결과: 상시 컨텍스트 = **딱 3개 툴 스키마**. 오퍼레이션이 40개든 104개든 상주 비용은 3으로
+결과: 상시 컨텍스트 = **딱 3개 툴 스키마**. 오퍼레이션이 40개든 105개든 상주 비용은 3으로
 고정됩니다. 에이전트는 필요한 오퍼레이션을 `list_operations` 로 찾고 → `describe_operation` 으로
 그때 스키마를 읽고 → `call_operation` 으로 호출하므로, 안 쓰는 오퍼레이션의 스키마가 컨텍스트를
 차지하지 않습니다. (이 README 를 읽는 Claude Code 세션에서도 `tossctl` MCP 는 딱 이 3개 툴로
@@ -814,6 +814,7 @@ tossctl account transfer-accounts [--account KEY] [--full] # 증권 이체용 �
 tossctl account access-status [--account KEY]    # 최근 접속·신용거래 동결·사고계좌 상태
 tossctl banking status [--full]                  # 증권 자금연결·자동주문·거래목적 확인용 MyData 상태
 tossctl notifications list                       # 알림 설정 조회(읽기 전용)
+tossctl notifications status                     # 받은함·AI 이슈·FOMC·분석 콘텐츠 상태
 tossctl portfolio positions
 tossctl portfolio allocation
 tossctl portfolio performance [--account KEY]   # 최근 1개월 일별 원금·평가액·수익률
@@ -936,11 +937,11 @@ tossctl openapi logout      # 자격증명 파일 삭제
 ### API 회귀 감시
 
 ```bash
-tossctl monitor api           # 76개 endpoint schema probe (병렬); exit 0 통과, 1 실패
+tossctl monitor api           # 82개 endpoint schema probe (병렬); exit 0 통과, 1 실패
 tossctl monitor api --quiet   # cron 용
 ```
 
-본인 머신에서 본인 세션으로 76개 read-only endpoint 응답 schema 를 병렬 점검합니다. [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) 같은 토스 서버측 body 계약 변경을 조기 감지할 목적. exit code 만 반환하므로 알림 채널 (Discord / Slack / ntfy / macOS / 이메일) 은 cron 라인의 `|| <command>` 우항에서 사용자가 합성합니다. 합성 recipe: [`AGENTS.md`](AGENTS.md). 설정 가이드: [`docs/operations.md`](docs/operations.md).
+본인 머신에서 본인 세션으로 82개 read-only endpoint 응답 schema 를 병렬 점검합니다. [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) 같은 토스 서버측 body 계약 변경을 조기 감지할 목적. exit code 만 반환하므로 알림 채널 (Discord / Slack / ntfy / macOS / 이메일) 은 cron 라인의 `|| <command>` 우항에서 사용자가 합성합니다. 합성 recipe: [`AGENTS.md`](AGENTS.md). 설정 가이드: [`docs/operations.md`](docs/operations.md).
 
 ## 주문 ref rollover
 

@@ -66,6 +66,12 @@ IMPLEMENTED = [
     r"^/api/v1/user/last-login-info$",                            # account access status
     r"^/api/v1/margin/cert/frozen-account$",                      # account-specific margin freeze
     r"^/api/v2/account/unlock/accident-account/count$",            # account-specific incident count
+    r"^/api/v1/inbox-alimies/has-unread$",                        # inbox unread state
+    r"^/api/v1/ai-issue/sns-release/alimy$",                      # AI issue release alert
+    r"^/api/v1/fomc-live/alimy$",                                 # FOMC live alert
+    r"^/api/v1/reasoning-contents/alimy/subscription$",           # reasoning content alert
+    r"^/api/v1/reasoning/agreement$",                             # reasoning agreement state
+    r"^/api/v1/reasoning-news/count$",                            # reasoning-news count
     r"^/api/v1/trading/settings/simple-trade$",                    # trading settings (read-only)
     r"^/api/v2/trading/settings/investor-exchange-choice-type$",   # KRX/NXT routing preference
     r"^/api/v1/users/settings/me/ats-notification$",               # ATS notification preference
@@ -439,7 +445,7 @@ def apply_override_metadata(entry, override):
     """
     if not override:
         return
-    for key in ("method", "host", "evidence"):
+    for key in ("method", "host", "evidence", "implemented_methods", "deferred_methods"):
         if override.get(key) and not entry.get(key):
             entry[key] = override[key]
 

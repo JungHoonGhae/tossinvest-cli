@@ -139,6 +139,8 @@
   "notifications.short": "알림 설정",
   "notifications.list.short": "WTS 알림 설정 목록",
   "notifications.list.long": "모든 알림 종류와 활성화 여부를 조회합니다. 쓰기 계약이 완전히 검증되기 전까지 변경은 토스 앱에서만 하며, 이 명령은 읽기 전용입니다. 웹앱(WTS) 전용.",
+  "notifications.status.long": "받은함 미확인 여부, AI 이슈·FOMC 알림, AI 분석 콘텐츠 알림, 분석 동의 상태와 관련 뉴스 수를 읽기 전용으로 조회합니다. 구독이나 동의 상태를 변경하지 않습니다.",
+  "notifications.status.short": "알림 및 AI 콘텐츠 상태 조회",
   "market.investorTrading.short": "시장 투자자별 매매동향 (코스피/코스닥, 공식 API 키 필요)",
   "market.investors.short": "투자자 유형별(외국인, 기관, 개인) 순매수 랭킹",
   "market.issues.long": "지금 시장이 가장 많이 이야기하는 **토픽**을 순위로 봅니다. 각 토픽의 순위 변동(▲▼)과 관련 기사 수가 함께 나옵니다.\n\n`market news`(헤드라인 목록)·`market briefing`(AI 카테고리 묶음)과 다른 축입니다 — 이쪽은 **토픽 자체의 랭킹**입니다.\n\n`--full` 로 각 토픽의 관련 기사를 함께 봅니다. 웹앱(WTS) 전용.",
