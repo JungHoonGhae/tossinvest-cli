@@ -33,6 +33,7 @@ pr_url="$(gh pr create \
   --base main \
   --head "$branch" \
   --title "$title" \
+  --label maintenance \
   --body "$body")"
 
 # Events emitted by GITHUB_TOKEN do not recursively trigger ordinary push/PR
