@@ -7,8 +7,8 @@
 <h1 align="center">tossinvest-cli</h1>
 
 <p align="center">
-  A CLI and MCP server for using Toss Securities accounts, quotes, market data, and orders from terminals and AI agents.
-  <br />One <code>tossctl</code> interface connects the official Open API with features otherwise available only on the web.
+  <strong>Toss Securities beyond the official API, through CLI and MCP.</strong>
+  <br />Cover the official Open API and add WTS-only flows, AI signals, news, dividends, and watchlists through one <code>tossctl</code> interface.
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="#quick-start"><strong>Quick Start</strong></a> ·
-  <a href="#what-it-provides"><strong>Features</strong></a> ·
+  <a href="#why-tossctl"><strong>Why tossctl</strong></a> ·
   <a href="#cli-and-mcp"><strong>CLI and MCP</strong></a> ·
   <a href="#safety-model"><strong>Safety</strong></a> ·
   <a href="https://tossinvest-cli.vercel.app/en/docs"><strong>Docs</strong></a>
@@ -28,6 +28,27 @@
 
 > [!WARNING]
 > This is not an official Toss Securities product. Features outside the official Open API use Toss Securities' internal web API unofficially, may violate its Terms of Service, and can change without notice. You are responsible for account restrictions, losses, and other consequences of use.
+
+## Why tossctl?
+
+tossctl does not discard or bypass the official Open API. **It prefers the official path where supported and fills the gaps with Toss Securities WTS.** You call one CLI, JSON, or MCP interface without having to know which backend provides each feature.
+
+<p align="center">
+  <img src="docs/assets/api-comparison.en.svg" alt="tossctl includes the complete official Open API surface and adds WTS-only features" width="840" />
+</p>
+
+| Representative feature | Official Open API | tossctl |
+|---|:---:|:---:|
+| Accounts, balances, quotes, order books, orders | ✅ | ✅ official first |
+| Live rankings, investor flows, market issues | ❌ | ✅ WTS |
+| AI price reasoning, signals, screener | ❌ | ✅ WTS |
+| News, earnings calls, dividends, realized profit | ❌ | ✅ WTS |
+| Watchlist folders, price alerts, hidden holdings | ❌ | ✅ WTS |
+| All-account overview, portfolio folders and history | ❌ | ✅ WTS |
+| Transaction ledger, cash overview, SSE push | ❌ | ✅ WTS |
+| JSON, CSV, MCP, API-contract regression monitoring | ❌ | ✅ |
+
+If the official API is enough, you keep its safer supported path. When analysis or automation needs more, the same tool opens the additional WTS surface. These are representative examples; the [support scope](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope) tracks the complete current comparison.
 
 ## Quick Start
 
@@ -118,6 +139,20 @@ For other MCP hosts:
 ```
 
 See the [AI agent guide](https://tossinvest-cli.vercel.app/en/docs/guide/agents) and [MCP guide](https://tossinvest-cli.vercel.app/en/docs/guide/mcp) for details.
+
+## Preview
+
+### Install through the first query
+
+<p align="center">
+  <img src="docs/assets/demo/install.gif" alt="Install and sign in to tossctl, then run the first account query" width="760" />
+</p>
+
+### Connect MCP to an AI agent
+
+<p align="center">
+  <img src="docs/assets/demo/mcp.gif" alt="Connect the tossctl MCP server to an AI agent" width="760" />
+</p>
 
 ## Examples
 
@@ -233,17 +268,20 @@ Use [Issues](https://github.com/JungHoonGhae/tossinvest-cli/issues) for bugs and
 
 <!-- sponsors:end -->
 
+## Contributors
+
+Thanks to everyone who has helped build tossinvest-cli. See [`CONTRIBUTING.md`](CONTRIBUTING.md) to join in.
+
+[![tossinvest-cli contributors](https://contrib.rocks/image?repo=JungHoonGhae/tossinvest-cli)](https://github.com/JungHoonGhae/tossinvest-cli/graphs/contributors)
+
 ## Star History
 
-<p align="center">
-  <a href="https://www.star-history.com/#JungHoonGhae/tossinvest-cli&Date">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/star-history/star-history-dark.svg" />
-      <source media="(prefers-color-scheme: light)" srcset="docs/assets/star-history/star-history-light.svg" />
-      <img alt="Star History Chart" src="docs/assets/star-history/star-history-light.svg" width="600" />
-    </picture>
-  </a>
-</p>
+<!-- star-history:start -->
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/star-history/star-history-dark.svg">
+  <img alt="Star history" src="docs/assets/star-history/star-history-light.svg">
+</picture>
+<!-- star-history:end -->
 
 ## License
 

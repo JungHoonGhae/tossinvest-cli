@@ -19,7 +19,7 @@
   <rect width="940" height="660" fill="#FFFFFF"/>
 
   <text x="32" y="42" class="title">조회 · 거래 기능 비교</text>
-  <text x="32" y="66" class="subtitle">tossctl = 공식 Open API <tspan font-weight="800" fill="#191F28">100% 커버</tspan> ＋ 공식엔 없는 12개 기능까지</text>
+  <text x="32" y="66" class="subtitle">tossctl = 공식 Open API <tspan font-weight="800" fill="#191F28">전 범위</tspan> ＋ WTS 전용 기능</text>
 
   <rect x="24" y="86" width="892" height="512" rx="16" fill="#EAF2FF" stroke="#3182F6" stroke-width="2.5"/>
   <rect x="44" y="100" width="276" height="32" rx="16" fill="#3182F6"/>
@@ -58,8 +58,8 @@
   <text x="402" y="420" class="plus">＋</text><text x="424" y="420" class="item-strong">거래내역 ledger · 현금 overview</text>
   <text x="402" y="451" class="plus">＋</text><text x="424" y="451" class="item-strong">멀티 시세 · 실시간 갱신</text>
   <text x="402" y="482" class="plus">＋</text><text x="424" y="482" class="item-strong">실시간 푸시 (SSE 스트림)</text>
-  <text x="402" y="513" class="plus">＋</text><text x="424" y="513" class="item-strong">소수점 주문 (금액 기반)</text>
+  <text x="402" y="513" class="plus">＋</text><text x="424" y="513" class="item-strong">원화 소수점 주문</text>
   <text x="402" y="544" class="plus">＋</text><text x="424" y="544" class="item-strong">dry-run preview · 안전 게이트 · CSV</text>
 
-  <text x="32" y="626" class="foot">공식 Open API 는 사전 신청자 대상 단계적 롤아웃 중(REST only) — 범위는 변동될 수 있습니다. tossctl 은 공식 전 범위를 100% 커버하고 12개 이상을 더 제공합니다.</text>
+  <text x="32" y="626" class="foot">공식 Open API 범위는 변동될 수 있습니다. tossctl은 공식 경로를 우선 사용하고, 없는 기능은 WTS로 보완합니다.</text>
 </svg>

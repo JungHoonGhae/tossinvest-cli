@@ -7,8 +7,8 @@
 <h1 align="center">tossinvest-cli</h1>
 
 <p align="center">
-  토스증권 계좌·시세·시장 데이터·주문을 터미널과 AI 에이전트에서 다루는 CLI + MCP 서버.
-  <br />공식 Open API와 웹에서만 제공되는 기능을 하나의 <code>tossctl</code> 인터페이스로 연결합니다.
+  <strong>공식 API로는 못 보는 토스증권 데이터까지, CLI와 MCP로.</strong>
+  <br />공식 Open API 범위를 포함하고 수급·AI 시그널·뉴스·배당·관심종목 등 WTS 전용 기능까지 하나의 <code>tossctl</code>로 연결합니다.
 </p>
 
 <p align="center">
@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="#빠른-시작"><strong>빠른 시작</strong></a> ·
-  <a href="#무엇을-할-수-있나요"><strong>기능</strong></a> ·
+  <a href="#왜-tossctl인가"><strong>왜 tossctl인가</strong></a> ·
   <a href="#cli와-mcp"><strong>CLI와 MCP</strong></a> ·
   <a href="#안전-모델"><strong>안전</strong></a> ·
   <a href="https://tossinvest-cli.vercel.app/docs"><strong>문서</strong></a>
@@ -28,6 +28,27 @@
 
 > [!WARNING]
 > 이 프로젝트는 토스증권 공식 제품이 아닙니다. 공식 Open API 외 기능은 토스증권 웹 내부 API를 비공식적으로 사용하며, 이용약관 위반에 해당할 수 있고 예고 없이 변경될 수 있습니다. 계좌 제한·손실 등 사용 결과는 사용자 본인의 책임입니다.
+
+## 왜 tossctl인가?
+
+공식 Open API를 버리거나 우회하기 위한 도구가 아닙니다. **공식 API가 지원하는 작업은 공식 경로를 우선 사용하고, 지원하지 않는 토스증권 기능은 WTS로 보완**합니다. 사용자는 어느 API에 있는지 구분하지 않고 같은 CLI·JSON·MCP 인터페이스로 호출할 수 있습니다.
+
+<p align="center">
+  <img src="docs/assets/api-comparison.svg" alt="tossctl은 공식 Open API 전 범위를 포함하고 WTS 전용 기능까지 제공합니다" width="840" />
+</p>
+
+| 대표 기능 | 공식 Open API | tossctl |
+|---|:---:|:---:|
+| 계좌·잔고·시세·호가·주문 | ✅ | ✅ 공식 API 우선 |
+| 실시간 인기 순위·투자자 수급·시장 이슈 | ❌ | ✅ WTS |
+| AI 등락 사유·종목 시그널·조건검색 | ❌ | ✅ WTS |
+| 뉴스·어닝콜·배당·누적 실현손익 | ❌ | ✅ WTS |
+| 관심종목 폴더·목표가 알림·숨긴 종목 관리 | ❌ | ✅ WTS |
+| 전체 계좌 합산·포트폴리오 폴더·평가 이력 | ❌ | ✅ WTS |
+| 거래내역 ledger·현금 overview·SSE 푸시 | ❌ | ✅ WTS |
+| JSON·CSV·MCP·API 계약 회귀 감시 | ❌ | ✅ |
+
+즉, 공식 API만 필요한 사용자는 더 안전한 공식 경로를 그대로 쓰고, 그 범위를 넘어서는 분석·자동화가 필요할 때만 WTS 기능을 함께 얻습니다. 위 표는 대표 사례이며 현재 전체 비교는 [지원 범위](https://tossinvest-cli.vercel.app/docs/reference/support-scope)에서 추적합니다.
 
 ## 빠른 시작
 
@@ -118,6 +139,20 @@ tossctl ops describe dividends
 ```
 
 자세한 내용은 [AI 에이전트 가이드](https://tossinvest-cli.vercel.app/docs/guide/agents)와 [MCP 가이드](https://tossinvest-cli.vercel.app/docs/guide/mcp)를 참고하세요.
+
+## 사용 모습
+
+### 설치에서 첫 조회까지
+
+<p align="center">
+  <img src="docs/assets/demo/install.gif" alt="tossctl 설치와 로그인 후 첫 계좌 조회" width="760" />
+</p>
+
+### AI 에이전트에 MCP 연결
+
+<p align="center">
+  <img src="docs/assets/demo/mcp.gif" alt="tossctl MCP 서버를 AI 에이전트에 연결" width="760" />
+</p>
 
 ## 사용 예
 
@@ -233,17 +268,20 @@ make tidy
 
 <!-- sponsors:end -->
 
+## Contributors
+
+기여해 주신 모든 분께 감사합니다. 참여 방법은 [`CONTRIBUTING.md`](CONTRIBUTING.md)를 참고하세요.
+
+[![tossinvest-cli contributors](https://contrib.rocks/image?repo=JungHoonGhae/tossinvest-cli)](https://github.com/JungHoonGhae/tossinvest-cli/graphs/contributors)
+
 ## Star History
 
-<p align="center">
-  <a href="https://www.star-history.com/#JungHoonGhae/tossinvest-cli&Date">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/star-history/star-history-dark.svg" />
-      <source media="(prefers-color-scheme: light)" srcset="docs/assets/star-history/star-history-light.svg" />
-      <img alt="Star History Chart" src="docs/assets/star-history/star-history-light.svg" width="600" />
-    </picture>
-  </a>
-</p>
+<!-- star-history:start -->
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/star-history/star-history-dark.svg">
+  <img alt="Star history" src="docs/assets/star-history/star-history-light.svg">
+</picture>
+<!-- star-history:end -->
 
 ## License
 
