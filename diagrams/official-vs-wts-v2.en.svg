@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="720" viewBox="0 0 1600 720" role="img" aria-labelledby="title description">
+  <title id="title">Official API first, extended by WTS</title>
+  <desc id="description">Users and AI agents access the official Open API and WTS-only capabilities through one tossctl interface</desc>
+  <defs>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#173b70"/>
+      <stop offset="1" stop-color="#10284d"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 12 6 L 0 12 Z" fill="#3182f6"/>
+    </marker>
+    <style>
+      .t { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .label { font-size: 13px; font-weight: 700; letter-spacing: 1.6px; fill: #3182f6; }
+      .title { font-size: 29px; font-weight: 750; fill: #ffffff; }
+      .body { font-size: 16px; fill: #aeb8c4; }
+      .card-title { font-size: 20px; font-weight: 700; fill: #ffffff; }
+      .card-body { font-size: 15px; fill: #96a3b2; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="720" fill="#111418"/>
+  <rect width="8" height="720" fill="#3182f6"/>
+
+  <text class="t title" x="48" y="58">Official API first, extended by WTS</text>
+  <text class="t body" x="48" y="91">One interface selects the best route based on what the official API supports.</text>
+
+  <text class="t label" x="48" y="154">INPUT</text>
+  <rect x="48" y="172" width="260" height="112" rx="12" fill="#19212b" stroke="#394553"/>
+  <text class="t card-title" x="178" y="218" text-anchor="middle">User / AI agent</text>
+  <text class="t card-body" x="178" y="250" text-anchor="middle">One command, automatic routing</text>
+
+  <path d="M 308 228 H 374" fill="none" stroke="#3182f6" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <text class="t label" x="392" y="128">ONE INTERFACE</text>
+  <rect x="392" y="146" width="398" height="166" rx="16" fill="url(#core)" stroke="#3182f6" stroke-width="1.5"/>
+  <rect x="424" y="174" width="82" height="28" rx="14" fill="#3182f6"/>
+  <text class="t" x="465" y="194" fill="#ffffff" font-size="13" font-weight="700" text-anchor="middle">tossctl</text>
+  <text class="t title" x="424" y="244">CLI · JSON · MCP</text>
+  <text class="t body" x="424" y="279">The interface stays the same. Only the data route changes.</text>
+
+  <path d="M 790 220 C 824 220 824 202 856 202" fill="none" stroke="#647386" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M 790 252 C 824 252 824 422 856 422" fill="none" stroke="#3182f6" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="872" y="124" width="680" height="174" rx="14" fill="#171c23" stroke="#4b5968" stroke-width="1.3"/>
+  <rect x="904" y="150" width="84" height="26" rx="13" fill="#28313c"/>
+  <text class="t" x="946" y="168" fill="#c8d0da" font-size="12" font-weight="700" text-anchor="middle">OFFICIAL</text>
+  <text class="t card-title" x="904" y="216">Official Open API</text>
+  <text class="t card-body" x="904" y="248">Supported operations stay on the official route.</text>
+  <text class="t" x="1520" y="216" fill="#d7dee7" font-size="17" text-anchor="end">Accounts · Quotes · Orders</text>
+
+  <rect x="872" y="326" width="680" height="294" rx="14" fill="#111e30" stroke="#3182f6" stroke-width="1.5"/>
+  <rect x="904" y="352" width="86" height="26" rx="13" fill="#173b70"/>
+  <text class="t" x="947" y="370" fill="#8fc2ff" font-size="12" font-weight="700" text-anchor="middle">WTS ONLY</text>
+  <text class="t card-title" x="904" y="412">Toss Securities beyond the official API</text>
+  <text class="t card-body" x="904" y="442">The extra surface unique to tossctl.</text>
+
+  <rect x="904" y="474" width="194" height="108" rx="11" fill="#18283c" stroke="#285f9f"/>
+  <text class="t card-title" x="1001" y="515" text-anchor="middle">Market insights</text>
+  <text class="t card-body" x="1001" y="548" text-anchor="middle">Flows · AI signals · News</text>
+
+  <rect x="1115" y="474" width="194" height="108" rx="11" fill="#18283c" stroke="#285f9f"/>
+  <text class="t card-title" x="1212" y="515" text-anchor="middle">Assets / Personal</text>
+  <text class="t card-body" x="1212" y="548" text-anchor="middle">P&amp;L · Watchlists · Alerts</text>
+
+  <rect x="1326" y="474" width="194" height="108" rx="11" fill="#18283c" stroke="#285f9f"/>
+  <text class="t card-title" x="1423" y="515" text-anchor="middle">Automation</text>
+  <text class="t card-body" x="1423" y="548" text-anchor="middle">Ledger · Push · Monitoring</text>
+
+  <text class="t" x="48" y="676" fill="#697788" font-size="14">Official when available. WTS only where needed. Users call one tossctl interface.</text>
+</svg>

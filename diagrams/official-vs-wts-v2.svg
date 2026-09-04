@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="720" viewBox="0 0 1600 720" role="img" aria-labelledby="title description">
+  <title id="title">공식 API 우선, WTS로 확장</title>
+  <desc id="description">사용자와 AI 에이전트가 tossctl 하나로 공식 Open API와 WTS 전용 기능을 이용하는 구조</desc>
+  <defs>
+    <linearGradient id="core" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#173b70"/>
+      <stop offset="1" stop-color="#10284d"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 12 6 L 0 12 Z" fill="#3182f6"/>
+    </marker>
+    <style>
+      .t { font-family: Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+      .label { font-size: 13px; font-weight: 700; letter-spacing: 1.6px; fill: #3182f6; }
+      .title { font-size: 29px; font-weight: 750; fill: #ffffff; }
+      .body { font-size: 16px; fill: #aeb8c4; }
+      .card-title { font-size: 20px; font-weight: 700; fill: #ffffff; }
+      .card-body { font-size: 15px; fill: #96a3b2; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="720" fill="#111418"/>
+  <rect width="8" height="720" fill="#3182f6"/>
+
+  <text class="t title" x="48" y="58">공식 API 우선, WTS로 확장</text>
+  <text class="t body" x="48" y="91">하나의 인터페이스가 지원 여부에 따라 가장 적합한 경로를 선택합니다.</text>
+
+  <text class="t label" x="48" y="154">INPUT</text>
+  <rect x="48" y="172" width="260" height="112" rx="12" fill="#19212b" stroke="#394553"/>
+  <text class="t card-title" x="178" y="218" text-anchor="middle">사용자 / AI 에이전트</text>
+  <text class="t card-body" x="178" y="250" text-anchor="middle">명령 한 번, 백엔드는 자동 선택</text>
+
+  <path d="M 308 228 H 374" fill="none" stroke="#3182f6" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <text class="t label" x="392" y="128">ONE INTERFACE</text>
+  <rect x="392" y="146" width="398" height="166" rx="16" fill="url(#core)" stroke="#3182f6" stroke-width="1.5"/>
+  <rect x="424" y="174" width="82" height="28" rx="14" fill="#3182f6"/>
+  <text class="t" x="465" y="194" fill="#ffffff" font-size="13" font-weight="700" text-anchor="middle">tossctl</text>
+  <text class="t title" x="424" y="244">CLI · JSON · MCP</text>
+  <text class="t body" x="424" y="279">호출 방식은 같고, 데이터 경로만 달라집니다.</text>
+
+  <path d="M 790 220 C 824 220 824 202 856 202" fill="none" stroke="#647386" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M 790 252 C 824 252 824 422 856 422" fill="none" stroke="#3182f6" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="872" y="124" width="680" height="174" rx="14" fill="#171c23" stroke="#4b5968" stroke-width="1.3"/>
+  <rect x="904" y="150" width="84" height="26" rx="13" fill="#28313c"/>
+  <text class="t" x="946" y="168" fill="#c8d0da" font-size="12" font-weight="700" text-anchor="middle">OFFICIAL</text>
+  <text class="t card-title" x="904" y="216">공식 Open API</text>
+  <text class="t card-body" x="904" y="248">지원되는 작업은 공식 경로를 우선 사용합니다.</text>
+  <text class="t" x="1520" y="216" fill="#d7dee7" font-size="17" text-anchor="end">계좌 · 시세 · 주문</text>
+
+  <rect x="872" y="326" width="680" height="294" rx="14" fill="#111e30" stroke="#3182f6" stroke-width="1.5"/>
+  <rect x="904" y="352" width="86" height="26" rx="13" fill="#173b70"/>
+  <text class="t" x="947" y="370" fill="#8fc2ff" font-size="12" font-weight="700" text-anchor="middle">WTS ONLY</text>
+  <text class="t card-title" x="904" y="412">공식 API 밖의 토스증권 기능</text>
+  <text class="t card-body" x="904" y="442">tossctl만의 확장 영역입니다.</text>
+
+  <rect x="904" y="474" width="194" height="108" rx="11" fill="#18283c" stroke="#285f9f"/>
+  <text class="t card-title" x="1001" y="515" text-anchor="middle">시장 인사이트</text>
+  <text class="t card-body" x="1001" y="548" text-anchor="middle">수급 · AI 시그널 · 뉴스</text>
+
+  <rect x="1115" y="474" width="194" height="108" rx="11" fill="#18283c" stroke="#285f9f"/>
+  <text class="t card-title" x="1212" y="515" text-anchor="middle">자산 / 개인화</text>
+  <text class="t card-body" x="1212" y="548" text-anchor="middle">손익 · 관심종목 · 알림</text>
+
+  <rect x="1326" y="474" width="194" height="108" rx="11" fill="#18283c" stroke="#285f9f"/>
+  <text class="t card-title" x="1423" y="515" text-anchor="middle">자동화</text>
+  <text class="t card-body" x="1423" y="548" text-anchor="middle">거래내역 · 푸시 · 감시</text>
+
+  <text class="t" x="48" y="676" fill="#697788" font-size="14">지원되면 공식 API. 없을 때만 WTS. 사용자는 하나의 tossctl만 호출합니다.</text>
+</svg>

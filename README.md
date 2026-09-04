@@ -33,7 +33,7 @@
 공식 Open API를 버리거나 우회하기 위한 도구가 아닙니다. **공식 API가 지원하는 작업은 공식 경로를 우선 사용하고, 지원하지 않는 토스증권 기능은 WTS로 보완**합니다. 사용자는 어느 API에 있는지 구분하지 않고 같은 CLI·JSON·MCP 인터페이스로 호출할 수 있습니다.
 
 <p align="center">
-  <img src="diagrams/official-vs-wts.svg" alt="tossctl에서 공식 Open API와 WTS 전용 기능으로 이어지는 경로" width="900" />
+  <img src="diagrams/official-vs-wts-v2.svg" alt="tossctl에서 공식 Open API와 WTS 전용 기능으로 이어지는 경로" width="100%" />
 </p>
 
 공식 API만 필요한 사용자는 더 안전한 공식 경로를 그대로 쓰고, 그 범위를 넘어서는 분석·자동화가 필요할 때만 WTS 기능을 함께 얻습니다. 전체 비교는 [지원 범위](https://tossinvest-cli.vercel.app/docs/reference/support-scope)에서 추적합니다.
