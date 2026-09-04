@@ -19,7 +19,7 @@
   <rect width="1080" height="660" fill="#FFFFFF"/>
 
   <text x="32" y="42" class="title">Read &amp; trade coverage</text>
-  <text x="32" y="66" class="subtitle">tossctl = <tspan font-weight="800" fill="#191F28">100% of the official Open API</tspan> ＋ 12 features it doesn't have</text>
+  <text x="32" y="66" class="subtitle">tossctl = <tspan font-weight="800" fill="#191F28">the complete official Open API surface</tspan> ＋ WTS-only features</text>
 
   <rect x="24" y="86" width="1032" height="512" rx="16" fill="#EAF2FF" stroke="#3182F6" stroke-width="2.5"/>
   <rect x="44" y="100" width="318" height="32" rx="16" fill="#3182F6"/>
@@ -56,8 +56,8 @@
   <text x="462" y="420" class="plus">＋</text><text x="484" y="420" class="item-strong">Transaction ledger &amp; cash overview</text>
   <text x="462" y="451" class="plus">＋</text><text x="484" y="451" class="item-strong">Multi-quote &amp; live refresh</text>
   <text x="462" y="482" class="plus">＋</text><text x="484" y="482" class="item-strong">Real-time push (SSE stream)</text>
-  <text x="462" y="513" class="plus">＋</text><text x="484" y="513" class="item-strong">Fractional orders (amount-based)</text>
+  <text x="462" y="513" class="plus">＋</text><text x="484" y="513" class="item-strong">KRW-settled fractional orders</text>
   <text x="462" y="544" class="plus">＋</text><text x="484" y="544" class="item-strong">Dry-run preview · safety gates · CSV</text>
 
-  <text x="32" y="626" class="foot">The official Open API is rolling out in stages to pre-applicants (REST only) and its scope may change. tossctl covers 100% of it and adds 12+ more.</text>
+  <text x="32" y="626" class="foot">The official Open API may change. tossctl prefers its supported path and fills the remaining gaps through WTS.</text>
 </svg>
