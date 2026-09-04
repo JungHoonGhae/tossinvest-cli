@@ -10,6 +10,15 @@ import update_new_markers as markers  # noqa: E402
 
 
 class TestNewMarkers(unittest.TestCase):
+    def test_markers_live_with_detailed_support_scope_not_readme(self):
+        self.assertEqual(
+            markers.FILES,
+            [
+                "website-fumadocs/content/docs/reference/support-scope.mdx",
+                "website-fumadocs/content/docs/reference/support-scope.en.mdx",
+            ],
+        )
+
     def test_unreleased_commands_are_not_given_fake_release_dates(self):
         for command in markers.UNRELEASED_FEATURES:
             with self.subTest(command=command):

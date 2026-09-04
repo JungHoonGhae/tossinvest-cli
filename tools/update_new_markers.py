@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Maintain 🆕 markers on README comparison-table rows.
+"""Maintain 🆕 markers on support-scope comparison-table rows.
 
 Policy: a feature row is marked 🆕 if its command was first released within the
 last NEW_WINDOW_DAYS (rolling, from today). Release dates live in FEATURE_DATES
 below (single source of truth — keyed by the command shown in the row), so the
-README tables stay clean (no inline date comments).
+support-scope tables stay clean (no inline date comments).
 
     python3 tools/update_new_markers.py          # uses today
     NEW_MARKER_DATE=2026-06-19 python3 tools/update_new_markers.py   # pin date
@@ -19,7 +19,10 @@ import re
 import sys
 
 NEW_WINDOW_DAYS = 30
-FILES = ["README.md", "README.en.md"]
+FILES = [
+    "website-fumadocs/content/docs/reference/support-scope.mdx",
+    "website-fumadocs/content/docs/reference/support-scope.en.mdx",
+]
 
 # command (as written in the row's `backticks`) -> first-release date.
 # Longest keys are matched first so e.g. "market ranking" never matches a

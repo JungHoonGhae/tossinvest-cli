@@ -8,7 +8,7 @@ description: 공식 Open API 대비 커버리지
 나머지는 WTS 경로로 처리됩니다. 자세한 설정 방법은
 [하이브리드 가이드](/docs/guide/hybrid-openapi)를 참고하세요.
 
-- ✅ 지원 · ❌ 미지원 · 🔸 부분 지원
+- ✅ 지원 · ❌ 미지원 · 🔸 부분 지원 · 🆕 최근 30일 내 추가 또는 아직 미출시
 - `공식 API` 칼럼 = 공개 문서 기준 커버리지; 공식 키 등록 시 해당 기능은 OAuth로 라우팅
 - 공식이 ❌ 인 행 = tossctl 고유 기능 (항상 WTS)
 
@@ -51,13 +51,13 @@ app/device header, request/response cipher를 처리하는 mobile connector가 �
 | 기능 | 명령 | 공식 API | tossctl |
 |------|------|:--:|:--:|
 | 계좌 목록 / 요약 | `account list`, `account summary` | ✅ | ✅ |
-| 전체 계좌 자산 | `account overview [--full]` | ❌ | ✅ |
-| 증권 거래 설정 조회 | `account trading-settings [--account <key>]` (간편주문만 계좌별) | ❌ | ✅ |
-| 증권 주식이체 계좌 조회 | `account transfer-accounts [--account <key>] [--full]` (번호 기본 마스킹, 이체 실행 없음) | ❌ | ✅ |
-| 증권 접속·계좌 제한 상태 | `account access-status [--account <key>]` (최근 접속, 신용거래 동결, 사고계좌 수; 변경 없음) | ❌ | ✅ |
+| 🆕 전체 계좌 자산 | `account overview [--full]` | ❌ | ✅ |
+| 🆕 증권 거래 설정 조회 | `account trading-settings [--account <key>]` (간편주문만 계좌별) | ❌ | ✅ |
+| 🆕 증권 주식이체 계좌 조회 | `account transfer-accounts [--account <key>] [--full]` (번호 기본 마스킹, 이체 실행 없음) | ❌ | ✅ |
+| 🆕 증권 접속·계좌 제한 상태 | `account access-status [--account <key>]` (최근 접속, 신용거래 동결, 사고계좌 수; 변경 없음) | ❌ | ✅ |
 | 포트폴리오 | `portfolio positions`, `portfolio allocation` | ✅ | ✅ |
-| 포트폴리오 폴더 | `portfolio folders [--account]` (앱과 같은 폴더·보유종목 구성, 읽기 전용) | ❌ | ✅ |
-| 포트폴리오 평가 이력 | `portfolio performance`, `portfolio snapshots`, `portfolio snapshot <date>` (웹 UI 없는 증권 WTS 읽기, 기본 전 계좌 합산) | ❌ | ✅ |
+| 🆕 포트폴리오 폴더 | `portfolio folders [--account]` (앱과 같은 폴더·보유종목 구성, 읽기 전용) | ❌ | ✅ |
+| 🆕 포트폴리오 평가 이력 | `portfolio performance`, `portfolio snapshots`, `portfolio snapshot <date>` (웹 UI 없는 증권 WTS 읽기, 기본 전 계좌 합산) | ❌ | ✅ |
 | 체결 틱 / 호가 | `quote trades`, `quote orderbook` | ✅ | ✅ |
 | 상·하한가 / 매수 유의 | `quote limits`, `quote warnings` | ✅ | ✅ |
 | 매도가능수량 / 수수료 | `quote sellable`, `quote commission` | ✅ | ✅ |
@@ -70,9 +70,9 @@ app/device header, request/response cipher를 처리하는 mobile connector가 �
 | 업종별 등락·상세 | `market sectors`, `market sector <id>` | ❌ | ✅ |
 | 실적(어닝콜) 일정·상세 | `market earnings [event-id]` (`--major`: 주요 기업) | ❌ | ✅ |
 | 개인화 뉴스 브리핑 | `market briefing` (종목·수익률·AI 사유·뉴스) | ❌ | ✅ |
-| 핵심 실적·경제지표 | `market key-events` | ❌ | ✅ |
-| 증권 주식모으기 자금연결 상태 | `accumulate funding-status [--full]` (`banking status`는 deprecated alias; 일반 Banking/MyData 아님, 내부 ID 미출력) | ❌ | ✅ |
-| 알림 설정·상태 조회 | `notifications list`, `notifications status` (통합 설정·받은함·AI 분석 동의, 변경 없음) | ❌ | ✅ |
+| 🆕 핵심 실적·경제지표 | `market key-events` | ❌ | ✅ |
+| 🆕 증권 주식모으기 자금연결 상태 | `accumulate funding-status [--full]` (`banking status`는 deprecated alias; 일반 Banking/MyData 아님, 내부 ID 미출력) | ❌ | ✅ |
+| 🆕 알림 설정·상태 조회 | `notifications list`, `notifications status` (통합 설정·받은함·AI 분석 동의, 변경 없음) | ❌ | ✅ |
 | 목표가 알림 조회·관리 | `quote alert list/add/remove` | ❌ | ✅ |
 | 숨긴 보유종목 조회·관리 | `portfolio hidden list/hide/show` | ❌ | ✅ |
 | 토스 AI 시그널 | `market signals`, `market signal <symbol>` | ❌ | ✅ |
