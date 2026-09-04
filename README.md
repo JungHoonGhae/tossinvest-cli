@@ -266,8 +266,8 @@ make tidy
 
 <!-- star-history:start -->
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/star-history/star-history-dark.svg">
-  <img alt="Star history" src="docs/assets/star-history/star-history-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/star-history/star-history-v2-dark.svg">
+  <img alt="Star history" src="docs/assets/star-history/star-history-v2-light.svg">
 </picture>
 <!-- star-history:end -->
 

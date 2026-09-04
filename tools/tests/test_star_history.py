@@ -14,6 +14,9 @@ SPEC.loader.exec_module(MODULE)
 
 
 class TestStarHistory(unittest.TestCase):
+    def test_versioned_asset_name_avoids_stale_readme_cache(self):
+        self.assertEqual("star-history-v2", MODULE.OUT_BASENAME)
+
     def test_chart_matches_readme_visual_contract(self):
         start = datetime(2026, 1, 1, tzinfo=timezone.utc)
         timestamps = [start + timedelta(days=i) for i in range(125)]
