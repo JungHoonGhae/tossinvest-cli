@@ -244,14 +244,14 @@ jobs:
           git diff --cached --quiet && { echo "이미 최신"; exit 0; }
           git commit -m "docs(migration): openapi-snapshot 자동 갱신"
 
-      - name: README 🆕 마커 자동 갱신 (롤링 30일 윈도우)
+      - name: 지원 범위 🆕 마커 자동 갱신 (롤링 30일 윈도우)
         run: |
           python3 tools/update_new_markers.py
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add README.md README.en.md
+          git add website-fumadocs/content/docs/reference/support-scope.mdx website-fumadocs/content/docs/reference/support-scope.en.mdx
           git diff --cached --quiet && { echo "🆕 마커 최신"; exit 0; }
-          git commit -m "docs(readme): 🆕 마커 자동 갱신 (최근 한 달 윈도우) [skip ci]"
+          git commit -m "docs(scope): 🆕 마커 자동 갱신 (최근 한 달 윈도우) [skip ci]"
 
       - name: Open protected automation PR
         env:
@@ -259,7 +259,7 @@ jobs:
         run: |
           bash tools/open_automation_pr.sh \
             automation/daily-monitor \
-            "chore(monitor): 공식 API 스냅샷·README 자동 갱신"
+            "chore(monitor): 공식 API 스냅샷·지원 범위 자동 갱신"
 
       # API 변경의 AI 해석은 공개 저장소에 self-hosted runner를 연결하지 않기 위해
       # 소유자 Mac의 Codex 예약 작업 또는 launchd + ChatGPT 로그인된 Codex CLI가 수행한다.
