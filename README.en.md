@@ -33,7 +33,7 @@
 tossctl does not discard or bypass the official Open API. **It prefers the official path where supported and fills the gaps with Toss Securities WTS.** You call one CLI, JSON, or MCP interface without having to know which backend provides each feature.
 
 <p align="center">
-  <img src="diagrams/official-vs-wts.en.svg" alt="tossctl routes supported work to the official Open API and adds WTS-only capabilities" width="900" />
+  <img src="diagrams/official-vs-wts-v2.en.svg" alt="tossctl routes supported work to the official Open API and adds WTS-only capabilities" width="100%" />
 </p>
 
 If the official API is enough, you keep its safer supported path. When analysis or automation needs more, the same tool opens the additional WTS surface. The [support scope](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope) tracks the complete current comparison.
