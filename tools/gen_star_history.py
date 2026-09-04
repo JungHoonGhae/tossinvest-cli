@@ -20,6 +20,7 @@ from html import escape
 
 REPO = "JungHoonGhae/tossinvest-cli"
 OUT_DIR = "docs/assets/star-history"
+OUT_BASENAME = "star-history-v2"
 MLABEL = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
@@ -150,7 +151,7 @@ def main():
         return
     os.makedirs(OUT_DIR, exist_ok=True)
     for theme in ("dark", "light"):
-        with open(f"{OUT_DIR}/star-history-{theme}.svg", "w") as f:
+        with open(f"{OUT_DIR}/{OUT_BASENAME}-{theme}.svg", "w") as f:
             f.write(build(ts, theme))
     print(f"{len(ts)} stars, {ts[0].date()} -> {ts[-1].date()}")
 
