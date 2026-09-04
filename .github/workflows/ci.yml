@@ -71,7 +71,12 @@ jobs:
 
       - name: Audit website dependencies
         working-directory: website-fumadocs
-        run: pnpm audit --audit-level high
+        env:
+          npm_config_fetch_retries: "1"
+          npm_config_fetch_timeout: "10000"
+        # Advisories still fail the job. This only prevents npm registry
+        # availability from hiding the dependency-review result below.
+        run: pnpm audit --audit-level high --ignore-registry-errors
 
       - name: Build documentation website
         working-directory: website-fumadocs
