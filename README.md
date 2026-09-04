@@ -15,7 +15,6 @@
   <a href="https://github.com/JungHoonGhae/tossinvest-cli/actions/workflows/ci.yml"><img src="https://github.com/JungHoonGhae/tossinvest-cli/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://github.com/JungHoonGhae/tossinvest-cli/releases"><img src="https://img.shields.io/github/v/release/JungHoonGhae/tossinvest-cli" alt="Latest release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/JungHoonGhae/tossinvest-cli" alt="MIT License" /></a>
-  <a href="https://github.com/JungHoonGhae/tossinvest-cli/stargazers"><img src="https://img.shields.io/github/stars/JungHoonGhae/tossinvest-cli" alt="GitHub stars" /></a>
 </p>
 
 <p align="center">
@@ -34,21 +33,10 @@
 공식 Open API를 버리거나 우회하기 위한 도구가 아닙니다. **공식 API가 지원하는 작업은 공식 경로를 우선 사용하고, 지원하지 않는 토스증권 기능은 WTS로 보완**합니다. 사용자는 어느 API에 있는지 구분하지 않고 같은 CLI·JSON·MCP 인터페이스로 호출할 수 있습니다.
 
 <p align="center">
-  <img src="docs/assets/api-comparison.svg" alt="tossctl은 공식 Open API 전 범위를 포함하고 WTS 전용 기능까지 제공합니다" width="840" />
+  <img src="diagrams/official-vs-wts.svg" alt="tossctl에서 공식 Open API와 WTS 전용 기능으로 이어지는 경로" width="900" />
 </p>
 
-| 대표 기능 | 공식 Open API | tossctl |
-|---|:---:|:---:|
-| 계좌·잔고·시세·호가·주문 | ✅ | ✅ 공식 API 우선 |
-| 실시간 인기 순위·투자자 수급·시장 이슈 | ❌ | ✅ WTS |
-| AI 등락 사유·종목 시그널·조건검색 | ❌ | ✅ WTS |
-| 뉴스·어닝콜·배당·누적 실현손익 | ❌ | ✅ WTS |
-| 관심종목 폴더·목표가 알림·숨긴 종목 관리 | ❌ | ✅ WTS |
-| 전체 계좌 합산·포트폴리오 폴더·평가 이력 | ❌ | ✅ WTS |
-| 거래내역 ledger·현금 overview·SSE 푸시 | ❌ | ✅ WTS |
-| JSON·CSV·MCP·API 계약 회귀 감시 | ❌ | ✅ |
-
-즉, 공식 API만 필요한 사용자는 더 안전한 공식 경로를 그대로 쓰고, 그 범위를 넘어서는 분석·자동화가 필요할 때만 WTS 기능을 함께 얻습니다. 위 표는 대표 사례이며 현재 전체 비교는 [지원 범위](https://tossinvest-cli.vercel.app/docs/reference/support-scope)에서 추적합니다.
+공식 API만 필요한 사용자는 더 안전한 공식 경로를 그대로 쓰고, 그 범위를 넘어서는 분석·자동화가 필요할 때만 WTS 기능을 함께 얻습니다. 전체 비교는 [지원 범위](https://tossinvest-cli.vercel.app/docs/reference/support-scope)에서 추적합니다.
 
 ## 빠른 시작
 

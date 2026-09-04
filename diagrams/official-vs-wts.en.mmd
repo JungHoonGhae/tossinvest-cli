@@ -1,0 +1,21 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Inter, Arial, sans-serif","primaryColor":"#E8F3FF","primaryTextColor":"#191F28","primaryBorderColor":"#3182F6","lineColor":"#6B7684","secondaryColor":"#F2F4F6","tertiaryColor":"#FFFFFF"},"flowchart":{"htmlLabels":false,"curve":"basis","nodeSpacing":30,"rankSpacing":48}}}%%
+graph TD
+  U["User / AI agent"] --> T["tossctl"]
+  T --> O["Official Open API - Preferred when available"]
+  T --> W["WTS-only extensions - Where the official API stops"]
+  O --> B["Accounts / Quotes / Orders"]
+  W --> I["Market insights - Flows / AI signals / News"]
+  W --> P["Portfolio / Personalization - Dividends / P&amp;L / History / Watchlists / Alerts"]
+  W --> A["Automation - Ledger / Push / Monitoring"]
+
+  classDef user fill:#FFFFFF,stroke:#B0B8C1,color:#191F28,stroke-width:1.5px;
+  classDef core fill:#3182F6,stroke:#1B64DA,color:#FFFFFF,stroke-width:2px;
+  classDef official fill:#F2F4F6,stroke:#8B95A1,color:#333D4B,stroke-width:1.5px;
+  classDef wts fill:#E8F3FF,stroke:#3182F6,color:#191F28,stroke-width:2px;
+  classDef feature fill:#F7FAFF,stroke:#8AB8F8,color:#333D4B,stroke-width:1.5px;
+
+  class U user;
+  class T core;
+  class O official;
+  class W wts;
+  class B,I,P,A feature;

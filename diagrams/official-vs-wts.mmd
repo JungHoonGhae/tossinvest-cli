@@ -1,0 +1,21 @@
+%%{init: {"theme":"base","themeVariables":{"fontFamily":"Arial, Apple SD Gothic Neo, sans-serif","primaryColor":"#E8F3FF","primaryTextColor":"#191F28","primaryBorderColor":"#3182F6","lineColor":"#6B7684","secondaryColor":"#F2F4F6","tertiaryColor":"#FFFFFF"},"flowchart":{"htmlLabels":false,"curve":"basis","nodeSpacing":30,"rankSpacing":48}}}%%
+graph TD
+  U["사용자 / AI 에이전트"] --> T["tossctl"]
+  T --> O["공식 Open API - 지원되는 작업은 공식 경로 우선"]
+  T --> W["WTS 전용 확장 - 공식 API 밖의 기능"]
+  O --> B["계좌 / 시세 / 주문"]
+  W --> I["시장 인사이트 - 수급 / AI 시그널 / 뉴스"]
+  W --> P["포트폴리오 / 개인화 - 배당 / 손익 / 평가 이력 / 관심종목 / 알림"]
+  W --> A["자동화 - 거래내역 / 푸시 / 회귀 감시"]
+
+  classDef user fill:#FFFFFF,stroke:#B0B8C1,color:#191F28,stroke-width:1.5px;
+  classDef core fill:#3182F6,stroke:#1B64DA,color:#FFFFFF,stroke-width:2px;
+  classDef official fill:#F2F4F6,stroke:#8B95A1,color:#333D4B,stroke-width:1.5px;
+  classDef wts fill:#E8F3FF,stroke:#3182F6,color:#191F28,stroke-width:2px;
+  classDef feature fill:#F7FAFF,stroke:#8AB8F8,color:#333D4B,stroke-width:1.5px;
+
+  class U user;
+  class T core;
+  class O official;
+  class W wts;
+  class B,I,P,A feature;

@@ -15,7 +15,6 @@
   <a href="https://github.com/JungHoonGhae/tossinvest-cli/actions/workflows/ci.yml"><img src="https://github.com/JungHoonGhae/tossinvest-cli/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://github.com/JungHoonGhae/tossinvest-cli/releases"><img src="https://img.shields.io/github/v/release/JungHoonGhae/tossinvest-cli" alt="Latest release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/JungHoonGhae/tossinvest-cli" alt="MIT License" /></a>
-  <a href="https://github.com/JungHoonGhae/tossinvest-cli/stargazers"><img src="https://img.shields.io/github/stars/JungHoonGhae/tossinvest-cli" alt="GitHub stars" /></a>
 </p>
 
 <p align="center">
@@ -34,21 +33,10 @@
 tossctl does not discard or bypass the official Open API. **It prefers the official path where supported and fills the gaps with Toss Securities WTS.** You call one CLI, JSON, or MCP interface without having to know which backend provides each feature.
 
 <p align="center">
-  <img src="docs/assets/api-comparison.en.svg" alt="tossctl includes the complete official Open API surface and adds WTS-only features" width="840" />
+  <img src="diagrams/official-vs-wts.en.svg" alt="tossctl routes supported work to the official Open API and adds WTS-only capabilities" width="900" />
 </p>
 
-| Representative feature | Official Open API | tossctl |
-|---|:---:|:---:|
-| Accounts, balances, quotes, order books, orders | ✅ | ✅ official first |
-| Live rankings, investor flows, market issues | ❌ | ✅ WTS |
-| AI price reasoning, signals, screener | ❌ | ✅ WTS |
-| News, earnings calls, dividends, realized profit | ❌ | ✅ WTS |
-| Watchlist folders, price alerts, hidden holdings | ❌ | ✅ WTS |
-| All-account overview, portfolio folders and history | ❌ | ✅ WTS |
-| Transaction ledger, cash overview, SSE push | ❌ | ✅ WTS |
-| JSON, CSV, MCP, API-contract regression monitoring | ❌ | ✅ |
-
-If the official API is enough, you keep its safer supported path. When analysis or automation needs more, the same tool opens the additional WTS surface. These are representative examples; the [support scope](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope) tracks the complete current comparison.
+If the official API is enough, you keep its safer supported path. When analysis or automation needs more, the same tool opens the additional WTS surface. The [support scope](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope) tracks the complete current comparison.
 
 ## Quick Start
 
