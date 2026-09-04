@@ -239,7 +239,7 @@ jobs:
             exit 0
           fi
           git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/migration/.openapi-snapshot.json docs/migration/openapi.latest.json docs/migration/asyncapi.latest.json
           git diff --cached --quiet && { echo "이미 최신"; exit 0; }
           git commit -m "docs(migration): openapi-snapshot 자동 갱신"
@@ -248,7 +248,7 @@ jobs:
         run: |
           python3 tools/update_new_markers.py
           git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add README.md README.en.md
           git diff --cached --quiet && { echo "🆕 마커 최신"; exit 0; }
           git commit -m "docs(readme): 🆕 마커 자동 갱신 (최근 한 달 윈도우) [skip ci]"
