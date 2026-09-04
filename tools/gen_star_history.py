@@ -14,7 +14,9 @@ Usage:
 import os
 import time
 import subprocess
+from bisect import bisect_right
 from datetime import datetime, timezone
+from html import escape
 
 REPO = "JungHoonGhae/tossinvest-cli"
 OUT_DIR = "docs/assets/star-history"
@@ -64,53 +66,77 @@ def build(ts: list[datetime], theme: str) -> str:
     n = len(ts)
     t0, t1 = ts[0], ts[-1]
     span = max((t1 - t0).total_seconds(), 1)
-    W, H = 800, 400
-    PL, PR, PT, PB = 64, 24, 28, 48
+    W, H = 800, 533.333
+    PL, PR, PT, PB = 70, 30, 60, 50
     IW, IH = W - PL - PR, H - PT - PB
-    maxy = n
+    step = 100 if n < 1000 else 1000
+    maxy = max(step, n * 1.1)
 
     def x_of(t): return (t - t0).total_seconds() / span
-    def sx(x): return PL + x * IW
-    def sy(y): return PT + (1 - y / maxy) * IH
 
-    pts = [(x_of(t), i + 1) for i, t in enumerate(ts)]
-    yticks = list(range(0, maxy + 1, 100))
-    if not yticks or yticks[-1] < maxy:
-        yticks.append((yticks[-1] if yticks else 0) + 100)
+    sample_count = min(50, max(12, n))
+    sample_times = [t0 + (t1 - t0) * i / sample_count for i in range(sample_count + 1)]
+    pts = [(x_of(t), bisect_right(ts, t)) for t in sample_times]
+    pts[0] = (0.0, 0)
+    yticks = list(range(0, int(maxy) + 1, step))
 
-    months = []
-    cur = datetime(t0.year, t0.month, 1, tzinfo=timezone.utc)
-    while cur <= t1:
-        months.append(cur)
-        y = cur.year + (cur.month // 12)
-        m = cur.month % 12 + 1
-        cur = datetime(y, m, 1, tzinfo=timezone.utc)
+    tick_count = 8
+    xticks = [t0 + (t1 - t0) * i / tick_count for i in range(tick_count + 1)]
 
     if theme == "dark":
-        grid, axis, line, fill, txt, dot = "#30363d", "#8b949e", "#e3b341", "#e3b34122", "#c9d1d9", "#e3b341"
+        bg, txt, muted = "#0d1117", "#f0f6fc", "#f0f6fc"
     else:
-        grid, axis, line, fill, txt, dot = "#e5e7eb", "#6b7280", "#d4a017", "#d4a01720", "#374151", "#d4a017"
+        bg, txt, muted = "#ffffff", "#24292f", "#24292f"
+    line = "#ff6b6b"
+    font = "xkcd,'Comic Neue','Chalkboard SE','Comic Sans MS',sans-serif"
+
+    def y_label(value: int) -> str:
+        if value >= 1000:
+            return f"{value // 1000}K" if value % 1000 == 0 else f"{value / 1000:.1f}K"
+        return str(value)
 
     P = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" '
-         f'font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif">']
-    P.append(f'<rect width="{W}" height="{H}" fill="none"/>')
-    P.append(f'<text x="{PL}" y="18" fill="{txt}" font-size="13" font-weight="600">Star History — {REPO}</text>')
-    P.append(f'<text x="{W-PR}" y="18" fill="{axis}" font-size="11" text-anchor="end">{n} ★</text>')
+         f'style="stroke-width:3;font-family:{font};background:{bg}">']
+    P.append("<defs><filter id=\"rough\" x=\"-5\" y=\"-5\" width=\"100%\" height=\"100%\" filterUnits=\"userSpaceOnUse\">"
+             "<feTurbulence type=\"fractalNoise\" baseFrequency=\".05\" result=\"noise\"/>"
+             "<feDisplacementMap in=\"SourceGraphic\" in2=\"noise\" scale=\"5\" xChannelSelector=\"R\" yChannelSelector=\"G\"/>"
+             "</filter></defs>")
+    P.append(f'<rect width="{W}" height="{H}" fill="{bg}"/>')
+    P.append(f'<g transform="translate({PL} {PT})">')
+
+    # The roughened frame and coral line intentionally mirror OpenConnector's
+    # self-hosted chart aesthetic while keeping the data source in this repo.
+    P.append(f'<g fill="none" stroke="{muted}" stroke-linecap="round" filter="url(#rough)">')
+    P.append(f'<path d="M 0 0 L 0 {IH:.1f} L {IW:.1f} {IH:.1f}"/>')
+    P.append('</g>')
     for yt in yticks:
-        Y = sy(yt)
-        P.append(f'<line x1="{PL}" y1="{Y:.1f}" x2="{W-PR}" y2="{Y:.1f}" stroke="{grid}" stroke-width="1"/>')
-        P.append(f'<text x="{PL-8}" y="{Y+4:.1f}" fill="{axis}" font-size="10" text-anchor="end">{yt}</text>')
-    for mo in months:
-        X = max(PL, min(W - PR, sx(x_of(mo)) if mo >= t0 else PL))
-        P.append(f'<text x="{X:.1f}" y="{H-PB+18}" fill="{axis}" font-size="10" text-anchor="middle">{MLABEL[mo.month-1]}</text>')
-    d = "M " + " L ".join(f"{sx(x):.1f} {sy(y):.1f}" for x, y in pts)
-    area = (f"M {sx(0):.1f} {sy(0):.1f} L "
-            + " L ".join(f"{sx(x):.1f} {sy(y):.1f}" for x, y in pts)
-            + f" L {sx(pts[-1][0]):.1f} {sy(0):.1f} Z")
-    P.append(f'<path d="{area}" fill="{fill}" stroke="none"/>')
-    P.append(f'<path d="{d}" fill="none" stroke="{line}" stroke-width="2.5" stroke-linejoin="round"/>')
-    ex, ey = pts[-1]
-    P.append(f'<circle cx="{sx(ex):.1f}" cy="{sy(ey):.1f}" r="4" fill="{dot}"/>')
+        Y = (1 - yt / maxy) * IH
+        if yt:
+            P.append(f'<text x="-10" y="{Y + 5:.1f}" fill="{txt}" font-size="16" font-weight="700" text-anchor="end">{y_label(yt)}</text>')
+    for index, tick in enumerate(xticks):
+        X = x_of(tick) * IW
+        anchor = "start" if index == 0 else "end" if index == tick_count else "middle"
+        P.append(f'<text x="{X:.1f}" y="{IH + 20:.1f}" fill="{txt}" font-size="15" font-weight="700" text-anchor="{anchor}">{MLABEL[tick.month - 1]} {tick.day:02d}</text>')
+
+    coords = [(x * IW, (1 - y / maxy) * IH) for x, y in pts]
+    d = f"M {coords[0][0]:.1f} {coords[0][1]:.1f}"
+    for (x0, y0), (x1, y1) in zip(coords, coords[1:]):
+        middle = (x0 + x1) / 2
+        d += f" C {middle:.1f} {y0:.1f} {middle:.1f} {y1:.1f} {x1:.1f} {y1:.1f}"
+    P.append(f'<path d="{d}" fill="none" stroke="{line}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" filter="url(#rough)"/>')
+
+    legend_width = max(210, len(REPO) * 9 + 36)
+    P.append(f'<g transform="translate(12 10)" filter="url(#rough)">')
+    P.append(f'<rect width="{legend_width}" height="34" rx="5" fill="{bg}" stroke="{txt}"/>')
+    P.append(f'<rect x="10" y="11" width="11" height="11" rx="2" fill="{line}" stroke="none"/>')
+    P.append(f'<text x="29" y="23" fill="{txt}" font-size="15" font-weight="700">{escape(REPO)}</text>')
+    P.append('</g>')
+    P.append(f'<text x="{IW / 2:.1f}" y="{IH + 43:.1f}" fill="{txt}" font-size="16" font-weight="700" text-anchor="middle">Date</text>')
+    P.append(f'<text x="{-PL + 18}" y="{IH / 2:.1f}" fill="{txt}" font-size="16" font-weight="700" text-anchor="middle" transform="rotate(-90 {-PL + 18} {IH / 2:.1f})">GitHub Stars</text>')
+    P.append('</g>')
+    P.append('<circle cx="327" cy="23" r="11" fill="#3182f6"/>')
+    P.append('<text x="327" y="28" fill="#ffffff" font-family="sans-serif" font-size="14" font-weight="700" text-anchor="middle">t</text>')
+    P.append(f'<text x="400" y="30" fill="{txt}" font-size="20" font-weight="700" text-anchor="middle">Star History</text>')
     P.append("</svg>")
     return "\n".join(P)
 
