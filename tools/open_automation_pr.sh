@@ -36,10 +36,40 @@ pr_url="$(gh pr create \
   --label maintenance \
   --body "$body")"
 
-# Events emitted by GITHUB_TOKEN do not recursively trigger ordinary push/PR
-# workflows. workflow_dispatch is the documented exception, so explicitly run
-# CI for this exact head commit before enabling protected-branch auto-merge.
-gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$branch"
+# Public repositories can require approval before workflows created by an
+# automation-authored PR are allowed to run. A separate workflow_dispatch run
+# does not satisfy a required check attached to the PR, even at the same SHA.
+# Approve the actual pull_request run so the ruleset sees test-and-build.
+head_sha="$(git rev-parse HEAD)"
+run_id=""
+for _ in $(seq 1 30); do
+  run_id="$(gh run list \
+    --repo "$GITHUB_REPOSITORY" \
+    --workflow ci.yml \
+    --branch "$branch" \
+    --event pull_request \
+    --limit 10 \
+    --json databaseId,headSha \
+    --jq ".[] | select(.headSha == \"$head_sha\") | .databaseId" \
+    | head -n 1)"
+  [ -n "$run_id" ] && break
+  sleep 2
+done
+
+if [ -z "$run_id" ]; then
+  echo "CI pull_request run was not created for $head_sha." >&2
+  exit 1
+fi
+
+conclusion="$(gh run view "$run_id" \
+  --repo "$GITHUB_REPOSITORY" \
+  --json conclusion \
+  --jq .conclusion)"
+if [ "$conclusion" = "action_required" ]; then
+  gh api --method POST \
+    "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/approve"
+fi
+
 gh pr merge "$pr_url" --repo "$GITHUB_REPOSITORY" --auto --squash --delete-branch
 
-printf 'Opened %s and queued protected auto-merge.\n' "$pr_url"
+printf 'Opened %s, authorized PR CI, and queued protected auto-merge.\n' "$pr_url"

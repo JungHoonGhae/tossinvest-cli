@@ -50,6 +50,16 @@ class AutomationIdentityTests(unittest.TestCase):
             "GITHUB_TOKEN-created PRs cannot rely on a follow-up labeling workflow",
         )
 
+    def test_automation_prs_authorize_the_attached_ci_run(self):
+        source = AUTOMATION_PR_HELPER.read_text(encoding="utf-8")
+        self.assertIn("--event pull_request", source)
+        self.assertIn("actions/runs/$run_id/approve", source)
+        self.assertNotIn(
+            "gh workflow run ci.yml",
+            source,
+            "workflow_dispatch checks are not attached to the pull request",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
