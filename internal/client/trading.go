@@ -923,10 +923,9 @@ func equalFloat(a, b float64) bool {
 }
 
 func (c *Client) reconcilePlacedOrder(ctx context.Context, productCode, symbol, market string, expectedPriceKRW, expectedQty float64, startedAt time.Time) (tradingflow.MutationResult, error) {
-	completedEarliest := startedAt.Add(-mutationCompletedLookback)
-	for attempt := 0; attempt < mutationReconcileAttempts; attempt++ {
+	return newOrderReconciler(c).run(ctx, startedAt, func(earliestCompleted time.Time) (tradingflow.MutationResult, bool, error) {
 		if order, err := c.findMatchingPendingOrder(ctx, productCode, symbol, expectedPriceKRW, expectedQty, ""); err != nil {
-			return tradingflow.MutationResult{}, err
+			return tradingflow.MutationResult{}, false, err
 		} else if order != nil {
 			return tradingflow.MutationResult{
 				Kind:      "place",
@@ -937,11 +936,11 @@ func (c *Client) reconcilePlacedOrder(ctx context.Context, productCode, symbol, 
 				Quantity:  order.Quantity,
 				Price:     order.Price,
 				OrderDate: order.OrderDate,
-			}, nil
+			}, true, nil
 		}
 
-		if order, err := c.findMatchingCompletedOrder(ctx, market, productCode, symbol, expectedPriceKRW, expectedQty, completedEarliest, true, nil); err != nil {
-			return tradingflow.MutationResult{}, err
+		if order, err := c.findMatchingCompletedOrder(ctx, market, productCode, symbol, expectedPriceKRW, expectedQty, earliestCompleted, true, nil); err != nil {
+			return tradingflow.MutationResult{}, false, err
 		} else if order != nil {
 			return tradingflow.MutationResult{
 				Kind:                  "place",
@@ -954,32 +953,26 @@ func (c *Client) reconcilePlacedOrder(ctx context.Context, productCode, symbol, 
 				Price:                 order.Price,
 				AverageExecutionPrice: order.AverageExecutionPrice,
 				OrderDate:             order.OrderDate,
-			}, nil
+			}, true, nil
 		}
-
-		if attempt < mutationReconcileAttempts-1 {
-			if err := waitForNextMutationCheck(ctx); err != nil {
-				return tradingflow.MutationResult{}, err
-			}
+		return tradingflow.MutationResult{}, false, nil
+	}, func() tradingflow.MutationResult {
+		return tradingflow.MutationResult{
+			Kind:     "place",
+			Status:   "unknown",
+			Symbol:   symbol,
+			Market:   market,
+			Quantity: expectedQty,
+			Price:    expectedPriceKRW,
+			Warnings: []string{"Broker accepted the request but the final state was not visible in pending or completed history yet."},
 		}
-	}
-
-	return tradingflow.MutationResult{
-		Kind:     "place",
-		Status:   "unknown",
-		Symbol:   symbol,
-		Market:   market,
-		Quantity: expectedQty,
-		Price:    expectedPriceKRW,
-		Warnings: []string{"Broker accepted the request but the final state was not visible in pending or completed history yet."},
-	}, nil
+	})
 }
 
 func (c *Client) reconcileAmendedOrder(ctx context.Context, originalOrderID, productCode, symbol, market string, expectedPriceKRW, expectedQty float64, startedAt time.Time) (tradingflow.MutationResult, error) {
-	completedEarliest := startedAt.Add(-mutationCompletedLookback)
-	for attempt := 0; attempt < mutationReconcileAttempts; attempt++ {
+	return newOrderReconciler(c).run(ctx, startedAt, func(completedEarliest time.Time) (tradingflow.MutationResult, bool, error) {
 		if order, err := c.findMatchingPendingOrder(ctx, productCode, symbol, expectedPriceKRW, expectedQty, originalOrderID); err != nil {
-			return tradingflow.MutationResult{}, err
+			return tradingflow.MutationResult{}, false, err
 		} else if order != nil {
 			return tradingflow.MutationResult{
 				Kind:            "amend",
@@ -992,11 +985,11 @@ func (c *Client) reconcileAmendedOrder(ctx context.Context, originalOrderID, pro
 				Quantity:        order.Quantity,
 				Price:           order.Price,
 				OrderDate:       order.OrderDate,
-			}, nil
+			}, true, nil
 		}
 
 		if order, err := c.findMatchingCompletedOrder(ctx, market, productCode, symbol, expectedPriceKRW, expectedQty, completedEarliest, false, nil); err != nil {
-			return tradingflow.MutationResult{}, err
+			return tradingflow.MutationResult{}, false, err
 		} else if order != nil {
 			return tradingflow.MutationResult{
 				Kind:                  "amend",
@@ -1011,26 +1004,21 @@ func (c *Client) reconcileAmendedOrder(ctx context.Context, originalOrderID, pro
 				Price:                 order.Price,
 				AverageExecutionPrice: order.AverageExecutionPrice,
 				OrderDate:             order.OrderDate,
-			}, nil
+			}, true, nil
 		}
-
-		if attempt < mutationReconcileAttempts-1 {
-			if err := waitForNextMutationCheck(ctx); err != nil {
-				return tradingflow.MutationResult{}, err
-			}
+		return tradingflow.MutationResult{}, false, nil
+	}, func() tradingflow.MutationResult {
+		return tradingflow.MutationResult{
+			Kind:            "amend",
+			Status:          "unknown",
+			OriginalOrderID: originalOrderID,
+			Symbol:          symbol,
+			Market:          "us",
+			Quantity:        expectedQty,
+			Price:           expectedPriceKRW,
+			Warnings:        []string{"Broker accepted the amend request but the surviving order state is not yet visible."},
 		}
-	}
-
-	return tradingflow.MutationResult{
-		Kind:            "amend",
-		Status:          "unknown",
-		OriginalOrderID: originalOrderID,
-		Symbol:          symbol,
-		Market:          "us",
-		Quantity:        expectedQty,
-		Price:           expectedPriceKRW,
-		Warnings:        []string{"Broker accepted the amend request but the surviving order state is not yet visible."},
-	}, nil
+	})
 }
 
 func (c *Client) reconcileCanceledOrder(ctx context.Context, originalOrderID, productCode, symbol, market string, expectedPriceKRW, expectedQty float64, startedAt time.Time) (tradingflow.MutationResult, error) {
