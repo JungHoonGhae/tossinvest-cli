@@ -30,6 +30,11 @@ tossctl config status
   "update_check": {
     "enabled": true
   },
+  "openapi": {
+    "enabled": true,
+    "prefer": "auto",
+    "fallback": true
+  },
   "experimental": {
     "paper_trading": false
   }
@@ -42,7 +47,8 @@ tossctl config status
 | `trading.sell` | Allow sells when `place` is also enabled |
 | `trading.fractional` | Allow US fractional orders when `place` is also enabled |
 | `trading.allow_live_order_actions` | Master kill switch for every live-account order |
-| `trading.dangerous_automation.accept_fx_consent` | Automatically accept the server consent for supported orders that require FX |
+| `trading.dangerous_automation.accept_fx_consent` | Accept only post-prepare FX consent for supported WTS US-stock KRW buys; never skips order execute/confirm |
+| `openapi.enabled`·`prefer`·`fallback` | Official routing, starting preference, and eligible read fallback to WTS; never cross-backend order retry |
 | `update_check.enabled` | New-version notice on/off (never pollutes automation output) |
 | `experimental.paper_trading` | Expose the rolling-out US-options paper CLI, ops/MCP operations, and dedicated probes. Default `false` |
 

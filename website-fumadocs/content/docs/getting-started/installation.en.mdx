@@ -11,7 +11,7 @@ description: Install tossctl (macOS·Linux·Windows·Homebrew·source)
 curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.sh | sh
 ```
 
-Handles download, checksum verification, and PATH setup automatically.
+Downloads, verifies the checksum, and installs to `/usr/local/bin` by default. Ensure that directory is on your PATH.
 
 ## Windows (PowerShell)
 
@@ -27,7 +27,7 @@ brew install JungHoonGhae/tossinvest-cli/tossctl
 brew upgrade tossctl
 ```
 
-## From source (Go 1.25+)
+## From source (Go 1.25.13 or later)
 
 ```bash
 go install github.com/JungHoonGhae/tossinvest-cli/cmd/tossctl@latest
@@ -35,8 +35,9 @@ go install github.com/JungHoonGhae/tossinvest-cli/cmd/tossctl@latest
 
 ## Prerequisites
 
-- **`auth login` requires Google Chrome and Python.** The one-line installer sets them
-  up automatically; in manual setups, `tossctl doctor` tells you what's missing.
+- **WTS login (`auth login`) requires Google Chrome, Python 3.11+, Playwright, and auth-helper.** Installers place auth-helper and attempt dependency installation if Python is available. They do not install Chrome or Python themselves.
+- `go install` installs only the binary. For WTS login, also install the release's auth-helper or follow [`auth-helper/README.md`](https://github.com/JungHoonGhae/tossinvest-cli/blob/main/auth-helper/README.md).
+- Official calls require an official key; WTS calls require a valid web session. Run `tossctl doctor` to check missing dependencies and credentials.
 
 ## Verify
 

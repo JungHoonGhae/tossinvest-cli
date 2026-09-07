@@ -5,13 +5,13 @@ description: 시작 방식 선택부터 로그인·조회·거래까지
 
 ## 시작 방식 선택
 
-tossctl은 두 경로로 토스증권에 접근합니다 — **WTS 웹 세션**(비공식, 전체 기능)과 **공식 Open API**(공식, 안정적이지만 범위가 좁음). 목적에 맞게 고르세요.
+tossctl은 두 경로로 토스증권에 접근합니다 — **WTS 웹 세션**(비공식 증권 기능)과 **공식 Open API**(공식, 안정적이지만 범위가 좁음). 목적에 맞게 고르세요.
 
 | 방식 | 설정 | 적합 |
 |---|---|---|
-| **① 빠른 시작 · WTS만** | `tossctl auth login` 한 번 | 가장 빠르고 전체 기능. 사전 신청 불필요. 세션은 약 7일마다 폰 승인 필요 |
+| **① 빠른 시작 · WTS만** | `tossctl auth login` 한 번 | WTS 조회·설정·일반 주문. 공식 키 전용 명령은 제외. 세션 만료 시 폰 승인 필요 |
 | **② 공식 API만 · openapi** | `tossctl openapi login` | 공식 지원 기능만(좁음). 토큰 자동 갱신 → 무인 운영(CI·서버)에 적합. 사전 신청·IP 등록 필요 |
-| **③ 둘 다 · 자동 라우팅 (권장)** | 위 둘 다 등록 | 최대 안정성 + 최대 범위. 공식 지원은 공식 경로, 나머지는 WTS 로 자동 라우팅 |
+| **③ 둘 다 · 자동 라우팅 (권장)** | 위 둘 다 등록 | 지원되는 공식·WTS 기능을 함께 사용. 조회 폴백과 주문 경로는 아래 가이드 참고 |
 
 대부분은 **①로 바로 시작**하면 됩니다(아래 1번부터). 공식 키 **발급 절차**, 자동 라우팅 동작, 두 경로의 차이는 [공식 Open API 자동 라우팅](/docs/guide/hybrid-openapi) 가이드에 정리되어 있습니다. 처음이라면 `tossctl init` 위저드가 방식 선택부터 끝까지 안내합니다.
 
@@ -34,7 +34,7 @@ tossctl auth status
 ### GUI 없는 환경 (SSH 서버·CI)
 
 ```bash
-tossctl auth login --headless --qr-output /tmp/toss-qr.png
+tossctl auth login --link --headless --qr-output /tmp/toss-qr.png
 ```
 
 QR URL과 확인 문자가 stderr로 출력됩니다. URL을 폰으로 전달해 탭하면 카메라 없이 인증됩니다.
@@ -59,7 +59,7 @@ tossctl market index                # 주요 시장 지수
 tossctl market index nasdaq         # 지수 상세 (OHLC·52주)
 ```
 
-모든 조회는 `--output json|csv|table` 을 지원합니다.
+일반 조회는 `--output json|csv|table`을 지원합니다. 차트·실시간 스트림 등은 명령별 출력 옵션을 확인하세요.
 
 ```bash
 tossctl account summary --output json
@@ -74,7 +74,7 @@ tossctl account summary --output json
 tossctl order preview --symbol TSLA --side buy --qty 1 --price 250
 
 # 2) 실제 실행 — 2단계 게이트
-tossctl order place --symbol TSLA --side buy --qty 1 --price 250 --execute --confirm <token>
+tossctl order place --symbol TSLA --side buy --qty 1 --price 250 --execute --confirm 'PREVIEW_CONFIRM_TOKEN'
 ```
 
-자세한 보호 장치는 [안전 모델](/docs/guide/safety)을 참고하세요.
+실행하려면 preview에서 반환된 토큰으로 `PREVIEW_CONFIRM_TOKEN`을 바꾸고 사람이 최종 확인하세요. 자세한 보호 장치는 [안전 모델](/docs/guide/safety)을 참고하세요.

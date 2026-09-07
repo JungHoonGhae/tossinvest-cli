@@ -3,10 +3,7 @@ title: Official Open API Auto-routing
 description: Connect an official key and supported features route through the official OAuth path, the rest through the WTS web session — automatically
 ---
 
-tossctl works fully with just a **web session (WTS)**. Registering an official Toss Open API
-key turns on **auto-routing**: features the official API supports go through the official OAuth
-path, and everything else goes through WTS. Everything works without a key too, and you can add
-one whenever you like.
+A **web session (WTS)** supports implemented WTS features and most hybrid reads and regular CLI orders. An official key adds official routing and official-only commands such as `account buying-power`, `market business-days|stocks`, `quote metadata`, conditional orders, and `stream`. A web session alone does not cover the entire CLI.
 
 ## Official Open API vs WTS web session
 
@@ -17,14 +14,14 @@ understanding the difference tells you which combination you need.
 |---|---|---|
 | What | Toss's **official** OAuth REST API | **Unofficial reuse** of the internal API behind Toss web/app |
 | Auth | API Key·Secret → OAuth access token | QR + phone-approved login (session cookie) |
-| Renewal | Tokens **auto-reissued** (no interruption) | ~7-day activity expiry, needs **phone push approval** |
-| Coverage | Officially-supported features (accounts, quotes, orders, …) | **All of WTS** — flows, indices, AI signals, screener, real-time push, fractional orders, etc. |
+| Renewal | Tokens **auto-reissued** based on server expiry | **Phone push approval** or re-login when the session expires |
+| Coverage | Officially-supported features (accounts, quotes, orders, …) | Implemented WTS features — flows, indices, AI signals, screener, real-time push, fractional orders, etc. |
 | Stability | High (official contract, versioned spec) | Unofficial, **can change without notice** |
-| Prerequisites | Pre-application + approval + **allowed-IP registration** | Login only |
+| Prerequisites | Official eligibility/key + **allowed-IP registration** | Login only |
 | Terms (TOS) | Officially allowed | **May violate TOS** |
 | Unattended (CI/server/agent) | Suitable | Periodic human (phone) interaction |
 
-In short — **the official API is stable but narrow; WTS covers everything but is unofficial and
+In short — **the official API is stable but narrow; WTS adds Securities features but is unofficial and
 its session expires more often.** tossctl combines them: officially-covered requests go through
 the official path (stability), the rest through WTS (coverage), routed automatically.
 
@@ -36,10 +33,9 @@ What "broader scope" actually means. **Official-only ❌ → tossctl (incl. WTS)
 
 | What you want | Official | tossctl |
 |---|:---:|---|
-| How much you've actually made/lost on a stock (realized P&L) | ❌ no execution price | ✅ `completed_orders` aggregates all-time fills |
-| Yearly dividends & withholding → comprehensive-tax threshold check | ❌ | ✅ `dividends` (gross/net, monthly) |
-| Overseas capital-gains tax / loss-offset filing data | ❌ | ✅ `transactions` + `completed_orders` |
-| Monthly dividend cash flow (received + scheduled) | ❌ | ✅ `dividends` monthly |
+| Cumulative realized P&L for your account | No dedicated P&L report | ✅ CLI `profit` reads server-provided cumulative realized P&L |
+| Yearly dividend and withholding records | ❌ | ✅ `dividends` (gross/net, monthly) |
+| Overseas transfer-income records | ❌ | ✅ CLI `tax overseas` (cross-check broker records before filing) |
 
 #### Market flows & indices
 
@@ -59,38 +55,34 @@ What "broader scope" actually means. **Official-only ❌ → tossctl (incl. WTS)
 | Total assets & P&L in one view | △ combine `holdings`+`buying_power` | ✅ `account_summary` |
 | Holdings / pending orders without an official key | ❌ key required | ✅ `positions` / `pending_orders` |
 
-#### Combined (the real value)
+#### Combine data in external analysis
+
+These examples combine source data; they do not provide automatic tax filing or total-return calculations. Check date ranges and pagination limits.
 
 | What you want | Official | tossctl |
 |---|:---:|---|
-| True total return of a covered-call ETF (dividends − NAV loss) | ❌ | ✅ `completed_orders` + `dividends` |
+| Export fills and dividends for external analysis | ❌ | ✅ `completed_orders` + `dividends` |
 | Post-mortem of flows after you bought a stock | ❌ | ✅ `completed_orders` + `trading_flows` |
 
 <Callout type="info" title="In one line">
-The official API stops at *"query a stock you already know and place orders."* tossctl adds
-**realized-P&L / dividend / tax review of your own account + market-flow & index context +
-discovery/screening**, turning a plain query/trade tool into a full analysis tool.
+tossctl adds **realized P&L, dividend and tax records, investor flows, indices, and discovery/screening**
+to official account, quote, and order APIs. Query the data through one CLI/MCP interface and use it in external analysis.
 </Callout>
 
-### The official API lags by structure, not neglect
+### Securities WTS and the general Toss app are separate
 
-First-party apps and web surfaces are where new capabilities can be integrated fastest.
-Securities features may land first in **Toss Securities WTS and the Securities mobile surface
-inside the general Toss app**. A public API carries versioning, compatibility, and support costs,
-so a stable subset can follow later. General Banking/MyData is different: it has no corresponding
-WTS web app and uses a separate mobile API boundary.
+The current WTS extension covers **Toss Securities**: implemented features such as investor flows,
+indices, AI signals, and screeners. General Toss card payments, monthly spending, and bank
+transaction histories are not supported.
 
-As a result, Securities capabilities such as investor flows, indices, AI signals, screener, and
-real-time push may arrive in WTS first. tossctl uses that Securities WTS path while auto-routing
-officially supported features through the official API. It does not reuse a WTS cookie for cards,
-spending, or general bank transactions merely because those screens live in the same Toss app;
-those remain separate until the mobile token and consent boundary is verified.
+Screens in the same app do not imply shared credentials, consent, or permissions. Banking
+requires separate API and authorization verification; a WTS cookie is not assumed to grant access.
 
 <Callout type="info" title="Some tasks still need a web session even with an official key">
 The official key's **metadata and allowed-IP lookup or change** (`openapi status`, `openapi ip`) is
 served by a Toss WTS internal endpoint (`/api/v1/openapi/client`), so it requires a **web
 session login first**. Runtime calls (accounts, quotes, orders) work with just the OAuth token.
-The IP of the machine you use the key from is usually registered automatically; if you need
+Check that your machine's egress IP is registered; if you need
 other IPs (e.g., a server), you can add them via WTS (Toss web). After a network change,
 preview `tossctl openapi ip replace-current`, then apply it with `--execute --confirm <token>`.
 
@@ -100,54 +92,39 @@ account data are sent with that request.
 
 ## How auto-routing works
 
-For each request, the router checks "is it officially supported → is a key present → preference".
+Each command declares a `source=official|wts|both|local` policy. A `both` read normally checks the official key and preference before choosing its starting route.
 
-```mermaid
-flowchart TD
-    request["Read or order request"] --> supported{"Supported by the official API?"}
-    supported -- "No" --> wts["WTS web session"]
-    supported -- "Yes" --> key{"Official key available?"}
-    key -- "No" --> wts
-    key -- "Yes" --> official["Official Open API"]
-    official --> success{"Call succeeded?"}
-    success -- "Yes" --> result["Return result"]
-    success -- "No · read" --> fallback{"WTS fallback enabled?"}
-    fallback -- "Yes" --> wts
-    fallback -- "No" --> error["Return error"]
-    success -- "No · order" --> error
-    wts --> result
-```
-
-| Request | Path |
+| Request | Route and failure behavior |
 |---|---|
-| Not officially supported | → **WTS web session** |
-| Official-supported · no key | → **WTS web session** |
-| Official-supported · key present | → **Official Open API (OAuth)** |
-| Official path temporarily fails | → orders **error out** (no duplicate), everything else **falls back to WTS** |
+| Official-only | Official key required. Missing key or pinned WTS returns an error; no WTS substitute |
+| WTS-only | Web session required; an official key is not a substitute |
+| Both read | Official preferred by default; fallback requires an equivalent WTS implementation and enabled fallback |
+| Regular CLI order | Select one official or WTS backend at the start; no cross-backend retry after submission |
+| MCP/ops live order / conditional order | Official API only |
+| Local | No remote API call |
 
-- Reads and trades the official API supports are routed via OAuth token, which is more stable
-- Features outside the official scope (flows, indices, AI signals, etc.) always go through WTS
-- If the official route is temporarily unavailable, tossctl auto-falls back to WTS (one-line stderr notice)
-- **Orders never cross-fallback** (a failed official route errors out rather than risk a duplicate order)
+Eligible read fallback errors are transport errors, auth/IP errors, 429, and 5xx. Other domain 4xx errors pass through. **Orders and settings writes never cross-fallback.** `--backend openapi` preserves the read fallback setting; set `openapi.fallback=false` as well to restrict supported reads to the official path.
+
+An exception is `market fx`: it starts with WTS to preserve the broader FX feed and attempts official USD/KRW on failure. Check command help, the catalog, and [Support Scope](/en/docs/reference/support-scope) for each route.
 
 ## Which auth do you need?
 
 | Scenario | Web session | Official key | Notes |
 |---|:---:|:---:|---|
 | Official-supported features only (most stable) | needed for setup | required | Runtime is token-only; key IP/metadata lookup needs a session |
-| All features incl. WTS-only | required | not needed | Shorter expiry, more frequent refresh |
+| Implemented WTS Securities features | required | not needed | Shorter expiry, more frequent refresh |
 | **Both (recommended)** | **required** | **required** | **Max stability + full scope + fallback** |
 
 <Callout type="info" title="Benefits of registering an official key">
-With an official key, tossctl automatically re-issues OAuth tokens **without interruption**. CI pipelines, servers, and agents can run unattended with no human interaction — tokens live much longer than web sessions, and the impact of Toss internal API changes is reduced.
+tossctl renews OAuth tokens based on the expiry returned by the server. Official calls do not require WTS session renewal, but keys, allowed IPs, and eligibility must remain valid. Automation must still handle refresh failures.
 </Callout>
 
 ## Getting your official Open API key
 
-1. **Pre-registration** — Apply at [corp.tossinvest.com/ko/open-api](https://corp.tossinvest.com/ko/open-api).
+1. **Check eligibility** — Consult the [official overview](https://corp.tossinvest.com/ko/open-api) for current application and access requirements.
 2. **Official docs** — Full spec at [developers.tossinvest.com/docs](https://developers.tossinvest.com/docs).
-3. **Issue the key** — After approval, go to **Toss app → Settings → Open API** to generate your API Key and Secret.
-4. **Allowed IPs** — The IP of the machine you use the key from is usually registered automatically. If you need other IPs (e.g., a server), add them via WTS (Toss web). Requests from unlisted IPs are blocked (diagnose with `tossctl openapi status`; the IP list lookup needs a web session).
+3. **Issue the key** — Follow the official Open API settings available to your account to generate an API Key and Secret.
+4. **Allowed IPs** — Check that your machine's egress IP is registered. If you need other IPs (e.g., a server), add them via WTS (Toss web). Requests from unlisted IPs are blocked (diagnose with `tossctl openapi status`; the IP list lookup needs a web session).
 
 ## Secret handling
 
@@ -168,9 +145,7 @@ tossctl openapi status   # auto-reads env vars
 **② Credentials file written by `tossctl openapi login` (personal dev machine)**
 
 ```bash
-tossctl openapi login \
-  --key tsck_live_xxxxxxxxxxxxxxxxxxxx \
-  --secret tssk_live_xxxxxxxxxxxxxxxxxxxx
+tossctl openapi login
 # → <config dir>/openapi-credentials.json (mode 0600)
 ```
 
@@ -198,7 +173,6 @@ tossctl init
 ```bash
 # Pass via env or enter interactively
 tossctl openapi login
-tossctl openapi login --key tsck_live_xxxx --secret tssk_live_xxxx
 ```
 
 ### Status and diagnostics
@@ -259,14 +233,14 @@ tossctl account summary --backend auto       # default: auto-routing
 |---|---|
 | `openapi.enabled` | Use the official route (default `true`; only active when a key is present) |
 | `openapi.prefer` | `"auto"` \| `"openapi"` \| `"wts"` — starting route for officially-supported features (`auto`/`openapi` prefer official; `wts` disables it) |
-| `openapi.fallback` | Allow WTS fallback when the official route fails (default `true`; always `false` for orders) |
+| `openapi.fallback` | Allow WTS fallback for eligible errors on supported reads (default `true`; does not apply to writes) |
 
 ## Fallback and source display
 
-When the official route is temporarily unavailable, tossctl switches to WTS and prints one line to stderr:
+For an eligible read error with an equivalent WTS implementation and fallback enabled, tossctl reports the switch on stderr:
 
 ```
-[tossctl] official route unavailable, falling back to wts (account summary)
+tossctl: official path unavailable, falling back to web session (…)
 ```
 
 If fallbacks are frequent, run `tossctl openapi status` and `tossctl doctor` to diagnose.

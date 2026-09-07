@@ -11,7 +11,7 @@ description: tossctl 설치 (macOS·Linux·Windows·Homebrew·소스)
 curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.sh | sh
 ```
 
-다운로드·체크섬 검증·PATH 등록까지 자동으로 처리합니다.
+다운로드·체크섬 검증 후 기본 `/usr/local/bin`에 설치합니다. 이 경로가 PATH에 포함되어 있어야 합니다.
 
 ## Windows (PowerShell)
 
@@ -27,7 +27,7 @@ brew install JungHoonGhae/tossinvest-cli/tossctl
 brew upgrade tossctl
 ```
 
-## 소스 빌드 (Go 1.25+)
+## 소스 빌드 (Go 1.25.13 이상)
 
 ```bash
 go install github.com/JungHoonGhae/tossinvest-cli/cmd/tossctl@latest
@@ -35,9 +35,9 @@ go install github.com/JungHoonGhae/tossinvest-cli/cmd/tossctl@latest
 
 ## 사전 요구사항
 
-- **로그인(`auth login`)에는 Google Chrome 과 Python 이 필요**합니다. 한 줄 설치
-  스크립트가 자동으로 설정하며, 수동 환경에서는 `tossctl doctor` 가 무엇이 빠졌는지
-  알려줍니다.
+- **WTS 로그인(`auth login`)에는 Google Chrome, Python 3.11+, Playwright와 auth-helper가 필요**합니다. 설치 스크립트는 auth-helper를 배치하고 Python이 있으면 의존성 설치를 시도합니다. Chrome·Python 자체를 자동 설치하지는 않습니다.
+- `go install`은 바이너리만 설치합니다. WTS 로그인도 필요하면 릴리즈의 auth-helper를 함께 설치하거나 저장소의 [`auth-helper/README.md`](https://github.com/JungHoonGhae/tossinvest-cli/blob/main/auth-helper/README.md)를 따르세요.
+- 공식 API 호출에는 공식 키가, WTS 호출에는 유효한 웹 세션이 필요합니다. 빠진 의존성과 인증 상태는 `tossctl doctor`로 확인합니다.
 
 ## 설치 확인
 

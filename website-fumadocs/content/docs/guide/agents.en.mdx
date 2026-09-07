@@ -13,14 +13,15 @@ drive Toss Securities. This page lists the rules for using it safely and correct
 ## Core rules
 
 1. **Always call with `--output json`.** Table output is for humans — do not parse it.
-2. **Read first.** `account`, `portfolio`, `quote`, `market`, `transactions` are side-effect free.
+2. **Check the leaf command's policy.** `quote alert`, `portfolio hidden`, and `watchlist` include writes. Inspect `mutating`, `writes_state`, `environment`, and the operation's `mutation` policy instead of inferring safety from the parent command.
 3. **Trading is disabled by default.** It fails unless allowed in `config.json`. Do not
    enable it on your own — ask the user.
 4. **Always run `order preview` before placing** to confirm quantity, price, and amount
    (no order is sent).
 5. **Live trades are two-step**: `--execute` + `--confirm <token>`. The token comes from
    the preview/confirm flow — never guess or bypass it.
-6. **Mind PII.** Responses include account numbers, balances, and holdings. Do not forward
+6. **Settings and paper writes also need approval in the current request.** Settings use a preview and state-bound confirmation; irreversible actions need an extra acknowledgement. Paper writes use separate opt-in and `--execute`, never reusable as live approval.
+7. **Mind PII.** Responses include account numbers, balances, and holdings. Do not forward
    or log them externally.
 
 ## Recommended workflow
@@ -31,7 +32,7 @@ drive Toss Securities. This page lists the rules for using it safely and correct
 3. tossctl account summary --output json
 4. tossctl portfolio positions --output json
 5. (on a trade request) tossctl order preview ... --output json  → user confirmation
-6. only after approval: tossctl order place ... --execute --confirm <token>
+6. a human performs the final live-order confirmation (no automatic agent submission)
 ```
 
 ## Session & auth
@@ -46,7 +47,7 @@ drive Toss Securities. This page lists the rules for using it safely and correct
 Registering an official Toss Open API key routes officially-supported reads/trades through OAuth
 with tokens that auto-refresh. The web session (WTS) has a ~7-day activity expiry that needs
 periodic phone approval; the official path has no such limit, which suits CI, servers, and
-long-running agents. Everything still works without a key.
+long-running agents. WTS features work with a web session, but official-only reads, conditional orders, and `stream` require an official key.
 
 - **Non-interactive setup**: set `TOSSCTL_OPENAPI_KEY` / `TOSSCTL_OPENAPI_SECRET` env vars, then
   `tossctl openapi login` (flags also work). The credential file is saved `0600`.
@@ -62,14 +63,14 @@ long-running agents. Everything still works without a key.
 ## Output contract
 
 - On success, JSON on stdout; on failure, a non-zero exit code + stderr message.
-- Quote/summary types have stable keys. Server-side changes are caught early by
-  `tossctl monitor api`.
+- `tossctl monitor api` checks 82 read endpoints by default, plus four paper probes after opt-in. It does not guarantee detection of every outage or data error.
 
 ## Don't
 
 - Leave real account data in public output, commits, or logs.
 - Place orders without preview, guess `--confirm` tokens, or bypass the trade gate.
 - Parse table output (human-formatted, fragile) — always JSON.
+- Automatically run `tossctl update`. Use read-only `tossctl update --check` for version checks.
 
 ## See also
 

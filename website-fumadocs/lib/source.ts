@@ -2,6 +2,8 @@ import { docs } from 'fumadocs-mdx:collections/server';
 import { type InferPageType, loader } from 'fumadocs-core/source';
 import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
 import { i18n } from '@/lib/i18n';
+import { resourceSegments } from './doc-resources';
+import { absoluteUrl } from './site';
 
 export const source = loader({
   i18n,
@@ -11,7 +13,7 @@ export const source = loader({
 });
 
 export function getPageImage(page: InferPageType<typeof source>) {
-  const segments = [...page.slugs, 'image.png'];
+  const segments = resourceSegments(page.locale, page.slugs, 'image.png');
 
   return {
     segments,
@@ -23,6 +25,8 @@ export async function getLLMText(page: InferPageType<typeof source>) {
   const processed = await page.data.getText('processed');
 
   return `# ${page.data.title}
+
+Source: ${absoluteUrl(page.url)}
 
 ${processed}`;
 }

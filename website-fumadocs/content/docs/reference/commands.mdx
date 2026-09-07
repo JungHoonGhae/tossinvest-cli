@@ -1,10 +1,9 @@
 ---
 title: 명령 레퍼런스
-description: tossctl 전체 명령
+description: 주요 CLI 명령과 전체 기능 탐색 방법
 ---
 
-모든 조회 명령은 `--output table|json|csv` 를 지원합니다(기본 table). 자동화/에이전트는
-`--output json` 을 쓰세요.
+주요 명령을 기능별로 정리합니다. 전체 CLI 옵션은 `tossctl --help`와 각 하위 명령의 `--help`, ops/MCP 카탈로그는 `tossctl ops list`·`tossctl ops describe <id>`가 기준입니다. 일반 조회는 `--output table|json|csv`를 지원하며 차트·스트림은 명령별 출력 형식을 확인하세요.
 
 ## 인증 (auth)
 
@@ -19,6 +18,7 @@ description: tossctl 전체 명령
 | 명령 | 설명 |
 |------|------|
 | `tossctl account list` | 계좌 목록 |
+| `tossctl account buying-power` | 공식 매수가능금액(공식 키 필요) |
 | `tossctl account summary` | 총자산·평가손익·시장별 |
 | `tossctl portfolio positions` | 보유 종목 (미국은 USD 병기) |
 | `tossctl portfolio allocation` | 자산 배분 |
@@ -39,6 +39,8 @@ description: tossctl 전체 명령
 | 명령 | 설명 |
 |------|------|
 | `tossctl quote get <symbol>` | 시세(OHLC·52주·시총·거래대금·체결강도) |
+| `tossctl quote flows <symbol>` | 투자자별 순매수 흐름(WTS) |
+| `tossctl quote metadata <symbol>` | 공식 종목 메타데이터(공식 키 필요) |
 | `tossctl quote batch <s1,s2,...> [--chart] [--live]` | 멀티 시세 / 실시간 갱신 |
 | `tossctl quote chart <symbol> --interval 1m\|...\|60m` | ASCII 캔들 차트 |
 | `tossctl quote orderbook <symbol>` | 10단계 호가 |
@@ -55,6 +57,8 @@ description: tossctl 전체 명령
 | 명령 | 설명 |
 |------|------|
 | `tossctl market index [<코드\|이름>]` | 주요 지수 목록 / 인자 주면 상세(OHLC·52주·시세원·장 시작/종료·운영 여부) |
+| `tossctl market news [--limit N]` | 시장 뉴스 |
+| `tossctl market business-days <KR\|US>` · `tossctl market stocks <MARKET>` | 공식 영업일·종목 조회(공식 키 필요) |
 | `tossctl market ranking --size N` | 실시간 인기 종목 |
 | `tossctl market investors` | 투자자별(외국인·기관·개인) 순매수 상위 |
 | `tossctl market sectors [<id>]` | 업종별 등락(대분류/하위, 1일·1개월·1년) |
@@ -86,7 +90,9 @@ description: tossctl 전체 명령
 | `tossctl order amend --order-id <id> ... [--execute --confirm <token>]` | 기본 preview; 같은 명령의 token으로 주문 정정 |
 | `tossctl orders list` · `orders completed` · `order show <id>` | 미체결/체결/단건 조회 |
 
-소수점(금액 기반) 주문: `order place --fractional --amount <krw> --qty 0` (미국 시장가).
+소수점 매수는 `--fractional --type market --amount <krw>`, 매도는 `--fractional --type market --side sell --qty <수량>`을 사용합니다. symbol·side 등 나머지 주문 입력과 미리보기·실행 게이트도 필요합니다. 소수점 매도는 라이브 미검증입니다.
+
+조건주문은 `order conditional list/get/place/cancel/modify`로 조회·관리하며 공식 키가 필요합니다. CLI 일반 주문은 공식/WTS 중 한 경로, ops/MCP 실주문은 공식 전용입니다.
 
 ## 거래내역 · 내보내기
 
@@ -131,11 +137,28 @@ description: tossctl 전체 명령
 | `tossctl openapi logout` | 자격증명 파일 삭제 |
 | `tossctl <명령> --backend auto\|wts\|openapi` | 요청별 라우팅 백엔드 지정(전역, 기본 auto) |
 
+## 실험적 모의투자 (paper)
+
+`experimental.paper_trading` 옵트인 사용자에게만 노출됩니다. 서버 이용 가능 여부와 [알려진 제한](/docs/reference/support-scope)을 먼저 확인하세요.
+
+| 명령 | 설명 |
+|---|---|
+| `tossctl paper status` | 모의 잔고·선행 상태 조회 |
+| `tossctl paper init` · `paper deposit <amount>` | 초기화·모의 자금 추가의 기본 preview |
+| `tossctl paper order place <option-code>` · `paper order cancel <order-id>` | 모의 주문·취소의 기본 preview |
+| `tossctl paper orders pending` · `paper orders completed` | 모의 주문 이력 |
+| `tossctl paper orders cancel-all` | 모의 미체결 일괄 취소 preview |
+| `tossctl paper order live-preview <option-code>` | 같은 의도를 실주문 미리보기로 변환; 제출하지 않음 |
+
+모의 쓰기 실행은 현재 요청의 명시적 승인과 `--execute`가 필요합니다. 실거래 승인을 대신하지 않습니다.
+
 ## 운영 (push · monitor · doctor)
 
 | 명령 | 설명 |
 |------|------|
+| `tossctl stream --trade <symbol>` | 공식 WebSocket 체결 구독(공식 키 필요; MCP에는 스트림 미노출) |
+| `tossctl update --check` | 읽기 전용 업데이트 확인 |
 | `tossctl push listen` | 실시간 푸시(주문/체결/보유 변경) 스트림(SSE) |
-| `tossctl monitor api` | 핵심 조회 API 헬스 점검(서버측 변경 조기 감지) |
+| `tossctl monitor api` | 기본 82개 조회 probe, paper 옵트인 시 4개 추가; 성공 exit 0, 실패 exit 1 |
 | `tossctl doctor [--report]` | 환경·세션 진단 + 공식 키·토큰·IP 허용 점검(JSON, 홈 경로 마스킹) |
 | `tossctl version` | 버전·업데이트 가능 여부 |

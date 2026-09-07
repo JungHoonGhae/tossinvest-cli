@@ -3,13 +3,11 @@ title: Support Scope
 description: Coverage vs the official Open API
 ---
 
-**tossctl covers 100% of the official Toss Open API's read & trade scope — and goes beyond.**
-Register an official key and the features it supports are **actually routed through OAuth**;
-the rest go through WTS. See the [Hybrid guide](/en/docs/guide/hybrid-openapi) for setup.
+**Compare implemented official Open API and WTS-only capabilities.** Implementation is not a guarantee of availability: credentials, eligibility, market hours, and server state can restrict calls. See the [Hybrid guide](/en/docs/guide/hybrid-openapi) for setup.
 
 - ✅ supported · ❌ not supported · 🔸 partial · 🆕 added within 30 days or not yet released
-- `Official API` column = coverage per public docs; with an official key, ✅ rows are routed via OAuth
-- Rows where official is ❌ = tossctl-only (always via WTS)
+- The `Official API` column describes the public contract. Actual routing follows each command's policy and configuration.
+- Official ❌ rows are WTS additions or local features; CSV output and preview are not themselves WTS endpoints.
 
 ## Product domain ≠ access channel
 
@@ -47,7 +45,9 @@ connector are not implemented—not because those APIs do not exist.
 
 Use the global `--backend auto|wts|openapi` flag to override routing per request.
 
-## Read-only
+## Reads and settings
+
+Some rows include both reads and changes. `add/remove`, `hide/show`, and watchlist mutations are writes governed by the [Safety Model](/en/docs/guide/safety).
 
 | Feature | Command | Official API | tossctl |
 |------|------|:--:|:--:|
@@ -101,6 +101,12 @@ Use the global `--backend auto|wts|openapi` flag to override routing per request
 <Callout type="info" title="Fractional sell (beta)">
   Implements the **US market fractional-quantity SELL** added in official Open API 1.1.5 (`order place --fractional --side sell --qty 0.5`, up to 6 decimals). Contract-tested, but **not yet live-verified** — run `order preview` before any live trade. Fractional buy remains amount-based (`--amount`).
 </Callout>
+
+## Experimental US-options paper trading
+
+Hidden by default; opt in with `tossctl config experimental paper-trading --enable`. CLI commands include `paper status/init/deposit`, `paper order place/cancel/live-preview`, and `paper orders pending/completed/cancel-all`. MCP gains eight operations and monitor gains four probes.
+
+Observations from 2026-09-03 verified simulated order creation/cancellation but recorded initialization 500s and inconsistent education state. This does not establish stability or availability to every user. Check `rolling_features` in the WTS inventory below for current observations. Paper and live authorization remain separate.
 
 ## Verification basis
 

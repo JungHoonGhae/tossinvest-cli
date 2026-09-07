@@ -5,14 +5,13 @@ description: From choosing a setup to login, reads, and trades
 
 ## Choose your setup
 
-tossctl reaches Toss Securities through two paths — the **WTS web session** (unofficial, full
-feature set) and the **official Open API** (official, stable but narrower). Pick what fits.
+tossctl reaches Toss Securities through two paths — the **WTS web session** (unofficial Securities features) and the **official Open API** (official, stable but narrower). Pick what fits.
 
 | Setup | How | Best for |
 |---|---|---|
-| **① Fast start · WTS only** | one `tossctl auth login` | Fastest, full features. No application needed. Session needs phone approval ~every 7 days |
+| **① Fast start · WTS only** | one `tossctl auth login` | WTS reads/settings/regular orders; excludes official-key-only commands. Phone approval on session expiry |
 | **② Official API only · openapi** | `tossctl openapi login` | Officially-supported features only (narrow). Tokens auto-refresh → great for unattended runs (CI/servers). Needs application + IP registration |
-| **③ Both · auto-routing (recommended)** | register both | Max stability + full scope. Officially-supported requests use the official path, the rest WTS |
+| **③ Both · auto-routing (recommended)** | register both | Use supported official and WTS features together; see the guide for read fallback and order routing |
 
 Most people just **start with ①** (step 1 below). The official key **issuance steps**, how
 auto-routing works, and the difference between the two paths are covered in the
@@ -39,7 +38,7 @@ tossctl auth status
 ### Headless environments (SSH servers, CI)
 
 ```bash
-tossctl auth login --headless --qr-output /tmp/toss-qr.png
+tossctl auth login --link --headless --qr-output /tmp/toss-qr.png
 ```
 
 The QR URL and answer letter are printed to stderr. Forward the URL to your phone and tap
@@ -65,7 +64,7 @@ tossctl market index                # major indices
 tossctl market index nasdaq         # index detail (OHLC, 52w)
 ```
 
-Every read command supports `--output json|csv|table`.
+General reads support `--output json|csv|table`. Check command-specific output options for charts and live streams.
 
 ```bash
 tossctl account summary --output json
@@ -80,7 +79,7 @@ Trading must be explicitly enabled in `config.json`, and you should always previ
 tossctl order preview --symbol TSLA --side buy --qty 1 --price 250
 
 # 2) live execution — two-step gate
-tossctl order place --symbol TSLA --side buy --qty 1 --price 250 --execute --confirm <token>
+tossctl order place --symbol TSLA --side buy --qty 1 --price 250 --execute --confirm 'PREVIEW_CONFIRM_TOKEN'
 ```
 
-See the [Safety Model](/en/docs/guide/safety) for all guardrails.
+Replace `PREVIEW_CONFIRM_TOKEN` with the token returned by the fresh preview and have a human confirm the live order. See the [Safety Model](/en/docs/guide/safety) for all guardrails.
