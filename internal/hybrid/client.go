@@ -61,17 +61,26 @@ func New(wts *client.Client, off *official.Client, pol Policy, stderr io.Writer)
 // the hybrid router does not front. Nil is meaningful — Catalog.Call turns it
 // into "run `tossctl openapi login`".
 func (c *Client) Official() *official.Client {
-	if c.pol.Prefer == routing.WTS {
+	if !c.readPolicy().officialEnabled(c.off) {
 		return nil
 	}
 	return c.off
+}
+
+func (c *Client) readPolicy() readPolicy {
+	stderr := c.stderr
+	if stderr == nil {
+		stderr = io.Discard
+	}
+	return readPolicy{prefer: c.pol.Prefer, fallback: c.pol.Fallback, stderr: stderr}
 }
 
 // route is the single decision point. It is intentionally backend-agnostic
 // (takes two closures, never touches c.off itself beyond the nil check) so the
 // routing logic is unit-testable without any real client.
 func route[T any](c *Client, official func() (T, error), wts func() (T, error)) (T, error) {
-	if c.off == nil || c.pol.Prefer == routing.WTS {
+	p := c.readPolicy()
+	if !p.officialEnabled(c.off) {
 		return wts()
 	}
 	v, err := official()
@@ -80,8 +89,8 @@ func route[T any](c *Client, official func() (T, error), wts func() (T, error)) 
 		// would spam stderr.
 		return v, nil
 	}
-	if c.pol.Fallback && officialShouldFallback(err) {
-		fmt.Fprintf(c.stderr, "tossctl: official path unavailable, falling back to web session (%v)\n", err)
+	if p.fallbackEnabled(err) {
+		fmt.Fprintf(p.stderr, "tossctl: official path unavailable, falling back to web session (%v)\n", err)
 		return wts()
 	}
 	return v, err // official's domain error — no fallback.
