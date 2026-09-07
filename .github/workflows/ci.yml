@@ -82,6 +82,20 @@ jobs:
         working-directory: website-fumadocs
         run: pnpm build
 
+      - name: Check rendered documentation and localized resources
+        working-directory: website-fumadocs
+        run: |
+          pnpm start --hostname localhost --port 3000 > /tmp/tossctl-docs-server.log 2>&1 &
+          docs_server_pid=$!
+          trap 'kill "$docs_server_pid" 2>/dev/null || true' EXIT
+          for _attempt in {1..30}; do
+            if curl --silent --fail http://localhost:3000/llms.txt > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          pnpm check:docs || { cat /tmp/tossctl-docs-server.log; exit 1; }
+
       - name: Review dependency changes
         if: github.event_name == 'pull_request'
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0

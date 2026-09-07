@@ -1,10 +1,9 @@
 ---
 title: Command Reference
-description: All tossctl commands
+description: Key CLI commands and complete surface discovery
 ---
 
-Every read command supports `--output table|json|csv` (default table). Automation and
-agents should use `--output json`.
+This is a curated command reference. Use `tossctl --help` and subcommand help for all CLI options; use `tossctl ops list` and `tossctl ops describe <id>` for the ops/MCP catalog. General reads support `--output table|json|csv`; charts and streams have command-specific output formats.
 
 ## Auth
 
@@ -19,6 +18,7 @@ agents should use `--output json`.
 | Command | Description |
 |------|------|
 | `tossctl account list` | Accounts |
+| `tossctl account buying-power` | Official buying power (official key required) |
 | `tossctl account summary` | Total assets, P&L, by market |
 | `tossctl portfolio positions` | Holdings (USD shown for US) |
 | `tossctl portfolio allocation` | Allocation |
@@ -39,6 +39,8 @@ agents should use `--output json`.
 | Command | Description |
 |------|------|
 | `tossctl quote get <symbol>` | Quote (OHLC, 52w, market cap, trading value, strength) |
+| `tossctl quote flows <symbol>` | Investor net-buy flows (WTS) |
+| `tossctl quote metadata <symbol>` | Official stock metadata (official key required) |
 | `tossctl quote batch <s1,s2,...> [--chart] [--live]` | Multi-quote / live refresh |
 | `tossctl quote chart <symbol> --interval 1m\|...\|60m` | ASCII candle chart |
 | `tossctl quote orderbook <symbol>` | 10-level orderbook |
@@ -55,6 +57,8 @@ agents should use `--output json`.
 | Command | Description |
 |------|------|
 | `tossctl market index [<code\|name>]` | Major indices / detail (OHLC, 52w, feed, session start/end/open state) with an argument |
+| `tossctl market news [--limit N]` | Market news |
+| `tossctl market business-days <KR\|US>` · `tossctl market stocks <MARKET>` | Official business days and stock directory (official key required) |
 | `tossctl market ranking --size N` | Live popularity ranking |
 | `tossctl market investors` | Top net-buy by investor (foreign, institution, retail) |
 | `tossctl market sectors [<id>]` | Sector movements (top-level/sub, 1d·1m·1y) |
@@ -86,7 +90,9 @@ Trading is disabled by default. See the [Safety Model](/en/docs/guide/safety).
 | `tossctl order amend --order-id <id> ... [--execute --confirm <token>]` | Preview by default; amend with that command's token |
 | `tossctl orders list` · `orders completed` · `order show <id>` | Pending/filled/single lookup |
 
-Fractional (amount-based) order: `order place --fractional --amount <krw> --qty 0` (US market order).
+Fractional buys use `--fractional --type market --amount <krw>`; sells use `--fractional --type market --side sell --qty <quantity>`. Supply the other order fields and pass preview/execution gates. Fractional sells are not live-verified.
+
+Conditional orders use `order conditional list/get/place/cancel/modify` and require an official key. Regular CLI orders choose an official/WTS route; ops/MCP live orders are official-only.
 
 ## Transactions & Export
 
@@ -131,11 +137,28 @@ Connect an official key and supported reads/trades route through OAuth (tokens a
 | `tossctl openapi logout` | Delete the credential file |
 | `tossctl <command> --backend auto\|wts\|openapi` | Pick the routing backend per request (global, default auto) |
 
+## Experimental paper trading
+
+Visible only after opting into `experimental.paper_trading`. Check server availability and [known limits](/en/docs/reference/support-scope) first.
+
+| Command | Description |
+|---|---|
+| `tossctl paper status` | Simulated cash and prerequisite status |
+| `tossctl paper init` · `paper deposit <amount>` | Preview initialization or simulated funding |
+| `tossctl paper order place <option-code>` · `paper order cancel <order-id>` | Preview simulated placement or cancellation |
+| `tossctl paper orders pending` · `paper orders completed` | Simulated order history |
+| `tossctl paper orders cancel-all` | Preview bulk cancellation of simulated orders |
+| `tossctl paper order live-preview <option-code>` | Convert intent to a live preview without submission |
+
+Paper writes require explicit approval in the current request and `--execute`; they never authorize live trades.
+
 ## Ops (push · monitor · doctor)
 
 | Command | Description |
 |------|------|
+| `tossctl stream --trade <symbol>` | Official WebSocket trade subscription (official key required; not exposed as MCP streaming) |
+| `tossctl update --check` | Read-only update check |
 | `tossctl push listen` | Real-time push stream (orders/fills/holdings) via SSE |
-| `tossctl monitor api` | Core read API health (early server-change detection) |
+| `tossctl monitor api` | 82 read probes by default, four more after paper opt-in; exit 0 on success, 1 on failure |
 | `tossctl doctor [--report]` | Env/session diagnostics + official key/token/IP checks (JSON, home paths masked) |
 | `tossctl version` | Version / update availability |

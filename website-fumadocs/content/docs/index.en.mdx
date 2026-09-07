@@ -1,13 +1,13 @@
 ---
 title: Introduction
-description: An unofficial CLI (tossctl) for driving Toss Securities from AI agents and the terminal
+description: Toss Securities CLI and MCP server combining official Open API and WTS-only features
 ---
 
-**An unofficial CLI for driving Toss Securities from AI agents and the terminal.** The binary is `tossctl`.
+**Toss Securities beyond the official API, through CLI and MCP.** The binary is `tossctl`.
 
-It reuses your Toss Securities web session to read accounts, quotes, and transaction history, and to
-place limited trades. Claude Code · Codex · Cursor · OpenClaw · bash · HTTP — any tool or agent drives
-it through one command surface (`tossctl`), and humans can use it directly too.
+Combine official accounts, quotes, and orders with WTS-only investor flows, AI signals, dividends,
+and watchlists. Use the CLI in terminals and scripts, or MCP with AI agents. Official keys and
+WTS web sessions are separate credentials; each feature checks the authentication it needs.
 
 <Callout type="warn" title="Unofficial project">
   This is not an official Toss Securities product. It uses the internal web API unofficially, which may
@@ -22,15 +22,15 @@ it through one command surface (`tossctl`), and humans can use it directly too.
 
 ## At a glance
 
-- **Covers 100% of the official Open API's (upcoming) read & trade scope** — and goes beyond.
+- **Combines the official API with WTS.** Supported reads prefer the official API by default; WTS-only features need a web session.
 - Features the official API lacks: investor flows, indices, detailed index quotes, AI signals, news
   briefing, screener, dividends, sector moves, community rankings, watchlist management, ledger,
-  real-time push, fractional orders, dry-run preview.
+SSE push, and dry-run preview.
 - Output: table · JSON · CSV · SSE — ready for automation and agent pipelines.
 
-See [Support Scope](/en/docs/reference/support-scope) for the full comparison.
+The current scope is **Toss Securities**, not general Toss banking or card spending. US-options paper trading requires a separate opt-in. See [Support Scope](/en/docs/reference/support-scope) for the full comparison.
 
-## 30-second start
+## Install and run your first query
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.sh | sh

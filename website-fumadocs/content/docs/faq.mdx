@@ -11,15 +11,15 @@ description: tossctl 자주 묻는 질문 — 합법성·인증·세션·거래�
 공식이 아닙니다. tossctl은 토스증권 웹 내부 API를 비공식적으로 재사용하며, 이용약관(TOS) 위반에 해당할 수 있습니다. API는 예고 없이 바뀔 수 있고, 사용에 따른 계좌 제한·손실·불이익의 책임은 본인에게 있습니다.
 
 ### 공식 Open API와 무슨 관계인가요?
-토스 공식 Open API는 사전 신청자에게 단계적으로 열리는 중이고, 현재 범위는 토스 WTS 전체 기능의 약 4%(~20개)뿐입니다. tossctl은 그 범위를 100% 포함하고, 공식에 아직 없는 기능까지 제공합니다. 자세한 비교는 [지원 범위](/docs/reference/support-scope) 참고.
+공식 Open API의 계좌·시세·주문에 WTS 전용 수급·AI 시그널·배당·관심종목 기능을 더합니다. 기능·endpoint·오퍼레이션은 서로 다른 단위이므로 비율로 비교하지 않습니다. 자세한 비교는 [지원 범위](/docs/reference/support-scope) 참고.
 
 ### 공식 API가 넓어지면 어떻게 되나요?
-선택적 자동 라우팅으로 갑니다 — 공식 API 없이도 전부 동작하고, 원하면 공식 API를 연결해 지원 기능은 공식 경로로 자동 라우팅해 안정성을 더할 수 있습니다.
+공식 API 변경을 추적해 지원 경로를 갱신합니다. WTS 세션만으로 쓸 수 있는 기능과 공식 키 전용 기능은 다르며, 지원되는 조회는 기본적으로 공식 경로를 우선 사용합니다.
 
 ## 설치
 
 ### 무엇이 필요한가요?
-조회 기능은 바이너리만으로 동작합니다. `auth login`(브라우저 로그인)에는 Google Chrome과 Python이 필요하며, 설치 스크립트가 자동으로 점검·설치합니다.
+일반 조회는 바이너리와 해당 기능의 인증이 필요합니다. WTS 로그인에는 Chrome·Python 3.11+·Playwright·auth-helper가 필요합니다. 설치 스크립트는 Chrome·Python 자체를 설치하지 않으므로 `tossctl doctor`로 확인하세요.
 
 ### Windows에서도 되나요?
 됩니다. PowerShell 한 줄(`irm https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.ps1 | iex`) 또는 GitHub Releases 바이너리로 설치하세요.
@@ -27,7 +27,7 @@ description: tossctl 자주 묻는 질문 — 합법성·인증·세션·거래�
 ## 인증·세션
 
 ### 로그인은 됐는데 `auth status`가 `invalid`/거부(400·401·403)됩니다
-v0.10.1 이전 버전의 알려진 버그입니다. tossctl이 보내는 User-Agent가 macOS로 고정돼 있어, 다른 OS(Windows·Linux)에서 만든 세션과 불일치해 토스 서버가 거부했습니다. **v0.10.1 이상으로 업데이트**하면 해결됩니다.
+세션 만료·로그인 유지 미승인·인증 환경 불일치 등 원인이 다를 수 있습니다. `tossctl doctor --report`와 `tossctl auth status`로 진단한 뒤 필요하면 다시 로그인하세요. v0.10.1 이전에는 OS별 User-Agent 불일치 버그도 있었지만 모든 인증 실패가 같은 원인은 아닙니다.
 
 ```bash
 tossctl auth logout
@@ -47,19 +47,19 @@ QR 스캔 후 폰에서 **"이 기기 로그인 유지"** 확인을 꼭 눌러�
 ## 거래
 
 ### 실수로 주문이 나갈 수 있나요?
-없습니다. 거래는 설치 직후 전부 꺼져 있고, `config.json`에서 기능별로 직접 켜야 합니다. 실거래는 `--execute` + `--confirm <token>` 2단계를 거치고, 그 전에 `tossctl order preview`로 미리 확인할 수 있습니다. [안전 모델](/docs/guide/safety) 참고.
+기본 설정에서는 차단됩니다. 거래는 설치 직후 전부 꺼져 있고, `config.json`에서 기능별로 직접 켜야 합니다. 실거래는 `--execute` + `--confirm <token>` 2단계를 거치고, 그 전에 `tossctl order preview`로 미리 확인할 수 있습니다. [안전 모델](/docs/guide/safety) 참고.
 
 ### 어떤 주문을 지원하나요?
-한국·미국 주식 지정가 매수/매도, 미국 주식 소수점(금액) 시장가 주문, 당일 미체결 취소를 지원합니다(베타). 정정은 추가 검증 중입니다.
+한국·미국 주식 일반 주문·취소·정정, 공식 API 조건주문, 미국 시장가 소수점 매수(금액)·매도(수량)를 지원합니다. 소수점 매도는 계약 테스트를 통과했지만 라이브 미검증입니다. 주문별 제약은 [지원 범위](/docs/reference/support-scope)와 `--help`를 확인하세요.
 
 ## 에이전트·출력
 
 ### AI 에이전트와 어떻게 연동하나요?
-모든 명령이 `--output json`으로 구조화된 결과를 내보내고, 안전·정확하게 쓰는 규칙은 [AI 에이전트 가이드](/docs/guide/agents)에 정리돼 있습니다. LLM이 바로 읽도록 [`/llms.txt`](/llms.txt)·[`/llms-full.txt`](/llms-full.txt)도 제공합니다.
+일반 조회 명령은 `--output json`으로 구조화된 결과를 내보내고, 안전·정확하게 쓰는 규칙은 [AI 에이전트 가이드](/docs/guide/agents)에 정리돼 있습니다. LLM이 바로 읽도록 [`/llms.txt`](/llms.txt)·[`/llms-full.txt`](/llms-full.txt)도 제공합니다.
 
 ### 출력 형식은?
 표(table)·JSON·CSV·SSE를 지원해 스크립트·파이프라인에 바로 연결할 수 있습니다.
 
 ## 도움받기
 
-문제·제안은 [GitHub Issues](https://github.com/JungHoonGhae/tossinvest-cli/issues)에 남겨 주세요. 버그 제보 시 `tossctl doctor --report` 출력을 함께 주시면 진단이 빠릅니다(민감정보는 자동 제외됩니다).
+문제·제안은 [GitHub Issues](https://github.com/JungHoonGhae/tossinvest-cli/issues)에 남겨 주세요. 버그 제보 시 `tossctl doctor --report` 출력을 함께 주시면 진단이 빠릅니다(홈 경로 등은 마스킹되지만 공유 전 출력 내용을 검토하세요).

@@ -6,6 +6,7 @@ import type { Metadata } from 'next';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { LLMCopyButton, ViewOptions } from '@/components/ai/page-actions';
 import { gitConfig } from '@/components/layouts/shared';
+import { resourceSegments } from '@/lib/doc-resources';
 
 export default async function Page(props: PageProps<'/[lang]/docs/[[...slug]]'>) {
   const params = await props.params;
@@ -13,7 +14,7 @@ export default async function Page(props: PageProps<'/[lang]/docs/[[...slug]]'>)
   if (!page) notFound();
 
   const MDX = page.data.body;
-  const markdownUrl = `/llms.mdx/docs/${[...page.slugs, 'index.mdx'].join('/')}`;
+  const markdownUrl = `/llms.mdx/docs/${resourceSegments(params.lang, page.slugs, 'index.mdx').join('/')}`;
 
   return (
     <DocsPage
@@ -28,7 +29,7 @@ export default async function Page(props: PageProps<'/[lang]/docs/[[...slug]]'>)
         <LLMCopyButton markdownUrl={markdownUrl} />
         <ViewOptions
           markdownUrl={markdownUrl}
-          githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/website/content/docs/${page.path}`}
+          githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/website-fumadocs/content/docs/${page.path}`}
         />
       </div>
       <DocsBody>
@@ -55,6 +56,13 @@ export async function generateMetadata(props: PageProps<'/[lang]/docs/[[...slug]
   return {
     title: page.data.title,
     description: page.data.description,
+    alternates: {
+      canonical: page.url,
+      languages: {
+        ko: source.getPage(params.slug, 'ko')?.url,
+        en: source.getPage(params.slug, 'en')?.url,
+      },
+    },
     openGraph: {
       images: getPageImage(page).url,
     },

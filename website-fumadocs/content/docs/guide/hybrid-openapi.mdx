@@ -18,10 +18,10 @@ tossctl이 토스증권에 접근하는 두 경로입니다. 성격이 다르므
 |---|---|---|
 | 무엇 | 토스가 **공식 제공**하는 OAuth REST API | 토스 웹/앱이 쓰는 **내부 API를 비공식 재사용** |
 | 인증 | API Key·Secret → OAuth 액세스 토큰 | QR + 폰 승인 로그인(세션 쿠키) |
-| 갱신 | 토큰 **자동 재발급**(무중단) | 약 7일 활동 만료, **폰 푸시 승인** 필요 |
+| 갱신 | 서버의 만료값 기준 **자동 재발급** | 세션 만료 시 **폰 푸시 승인** 또는 재로그인 필요 |
 | 커버리지 | 공식 지원 기능(계좌·시세·주문 등) | WTS 기능 — 수급·시장지수·AI 시그널·스크리너·실시간 푸시·소수점 주문 등 포함 |
 | 안정성 | 높음(공식 계약, 스펙 버전 관리) | 비공식, **예고 없이 변경 가능** |
-| 사전 조건 | 사전 신청·승인 + **허용 IP 등록** | 로그인만 |
+| 사전 조건 | 공식 이용 자격·키 + **허용 IP 등록** | 로그인만 |
 | 약관(TOS) | 공식 허용 | **위반 소지** |
 | 무인 운영(CI·서버·에이전트) | 적합 | 주기적 사람(폰) 개입 필요 |
 
@@ -37,11 +37,9 @@ WTS로(범위) 자동 라우팅합니다.
 
 | 하고 싶은 것 | 공식 | tossctl |
 |---|:---:|---|
-| 특정 종목으로 지금까지 실제 얼마 벌고 잃었나(실현손익) | ❌ 체결단가 없음 | ✅ `completed_orders` 로 전 기간 체결가 집계 |
-| 연도별 배당·원천세 → 금융소득종합과세 대상 판단 | ❌ | ✅ `dividends` (세전/세후·월별) |
-| 해외주식 양도세·양도차손 통산 신고자료 | ❌ | ✅ `transactions` + `completed_orders` |
-| 손실 종목 실현 시 절세효과 시뮬레이션 | ❌ | ✅ 실현손익 데이터로 계산 |
-| 월별 배당 현금흐름(받은 것 + 예정) | ❌ | ✅ `dividends` monthly |
+| 내 계좌의 누적 실현손익 | 별도 손익 리포트 없음 | ✅ CLI `profit`으로 서버 제공 누적 실현손익 조회 |
+| 연도별 배당·원천세 내역 확인 | ❌ | ✅ `dividends` (세전/세후·월별) |
+| 해외주식 양도소득 내역 조회 | ❌ | ✅ CLI `tax overseas` (신고 전 증권사 자료와 대조) |
 
 #### 시장 수급·지수 (판단의 무게추)
 
@@ -62,37 +60,33 @@ WTS로(범위) 자동 라우팅합니다.
 | 총자산·평가손익을 한 화면에 | △ `holdings`+`buying_power` 조합 | ✅ `account_summary` 한 번에 |
 | 공식 키 없이 보유·대기주문 조회 | ❌ 키 필요 | ✅ `positions` / `pending_orders` |
 
-#### 결합 시나리오 (여기가 진짜 가치)
+#### 외부 분석에 결합하기
+
+아래는 원자료를 조합하는 사용 예입니다. 세금 계산·신고나 총수익 자동 계산을 제공한다는 뜻은 아닙니다. 조회 기간·페이지 제한을 확인하세요.
 
 | 하고 싶은 것 | 공식 | tossctl |
 |---|:---:|---|
-| 커버드콜 ETF 진짜 총수익(배당 − NAV손실) | ❌ | ✅ `completed_orders` + `dividends` |
+| 체결·배당 데이터를 외부 분석 도구에 전달 | ❌ | ✅ `completed_orders` + `dividends` |
 | 매수 후 그 종목 수급이 어땠나 사후분석 | ❌ | ✅ `completed_orders` + `trading_flows` |
-| 손실 실현이 세금·종합과세에 미치는 영향 통합 판단 | ❌ | ✅ 실현손익 + 배당 + 양도 데이터 |
 
 <Callout type="info" title="한 줄 정리">
-공식은 *"아는 종목을 정밀 조회하고 주문을 넣는다"* 까지. tossctl은 여기에 **내 계좌의
-실현손익·배당·세금 복기 + 시장 수급·지수 맥락 + 발굴·스크리닝**을 더해, 단순 조회/거래
-도구를 **세무·수급·리서치가 붙은 종합 분석 도구**로 확장합니다.
+공식 API의 계좌·시세·주문에 **실현손익·배당·세금 기록, 시장 수급·지수, 종목 발굴·스크리닝**을
+더합니다. 필요한 데이터를 같은 CLI·MCP 인터페이스로 조회하고 외부 분석에 활용할 수 있습니다.
 </Callout>
 
-### 공식 API가 한 발 늦는 건 구조 때문입니다
+### 증권 WTS와 일반 토스 앱의 경계
 
-자사 앱과 웹은 새 기능을 가장 빠르게 실험하고 통합하기 좋은 공간입니다. 증권 기능은
-**토스증권 WTS와 일반 Toss 앱 안의 증권 모바일 화면**에 먼저 들어갈 수 있고, 외부 공개용
-API는 버전·호환성·지원 부담 때문에 안정적인 일부를 뒤따라 엽니다. 반면 일반 Banking/MyData는
-대응 WTS 웹앱이 없는 별도 mobile API 영역입니다.
+현재 tossctl의 WTS 확장은 **토스증권** 범위입니다. 수급·시장지수·AI 시그널·스크리너처럼
+구현된 증권 기능을 제공하며, 일반 토스 앱의 카드 결제내역·월 소비·은행 거래내역은 지원하지 않습니다.
 
-그 결과 수급·시장지수·AI 시그널·스크리너·실시간 푸시 같은 증권 기능은 WTS에 먼저 출시될
-수 있습니다. tossctl은 증권의 WTS 경로를 활용하고, 공식이 지원하는 기능은 공식 경로로
-자동 라우팅합니다. 카드·소비·일반 은행 거래는 같은 Toss 앱에 보인다는 이유로 WTS 쿠키를
-재사용하지 않고 별도 모바일 인증 경계를 검증할 때까지 분리합니다.
+같은 앱에 화면이 있어도 인증·동의·권한이 같다는 뜻은 아닙니다. 뱅킹 기능은 별도 API와
+인증 경계를 검증해야 하며, WTS 쿠키만으로 호출 가능하다고 가정하지 않습니다.
 
 <Callout type="info" title="공식 키를 써도 일부 작업은 웹 세션이 필요합니다">
 공식 키의 **메타데이터·허용 IP 조회·변경**(`openapi status`, `openapi ip`)은 토스
 WTS 내부 엔드포인트(`/api/v1/openapi/client`)로 제공되므로 **웹 세션 로그인이 선행**되어야
 합니다. 반면 런타임 호출(계좌·시세·주문)은 세션 없이 OAuth 토큰만으로 동작합니다. 허용 IP는
-보통 **키를 쓰는 현재 컴퓨터 IP가 자동 등록**되며, 다른 IP(예: 서버)가 필요하면 WTS(토스 웹)에서
+공식 키의 설정 화면에서 관리하며, 다른 IP(예: 서버)가 필요하면 WTS(토스 웹)에서
 추가로 등록할 수 있습니다. 네트워크가 바뀐 경우 `tossctl openapi ip replace-current`로
 preview한 뒤 `--execute --confirm <token>`을 붙여 교체할 수 있습니다.
 
@@ -102,54 +96,39 @@ preview한 뒤 `--execute --confirm <token>`을 붙여 교체할 수 있습니�
 
 ## 자동 라우팅 동작
 
-요청마다 "공식이 지원하는가 → 키가 있는가 → 설정(prefer)" 순으로 경로를 고릅니다.
+각 명령은 `source=official|wts|both|local` 정책을 갖습니다. `both` 조회는 기본적으로 공식 키와 설정을 확인해 시작 경로를 선택합니다.
 
-```mermaid
-flowchart TD
-    request["조회 또는 주문 요청"] --> supported{"공식 API 지원?"}
-    supported -- "아니요" --> wts["WTS 웹 세션"]
-    supported -- "예" --> key{"공식 키 사용 가능?"}
-    key -- "아니요" --> wts
-    key -- "예" --> official["공식 Open API"]
-    official --> success{"호출 성공?"}
-    success -- "예" --> result["결과 반환"]
-    success -- "아니요 · 조회" --> fallback{"WTS 폴백 허용?"}
-    fallback -- "예" --> wts
-    fallback -- "아니요" --> error["오류 반환"]
-    success -- "아니요 · 주문" --> error
-    wts --> result
-```
-
-| 요청 조건 | 선택 경로 |
+| 요청 | 경로와 실패 처리 |
 |---|---|
-| 공식 API 미지원 기능 | → **WTS 웹 세션** |
-| 공식 지원 · 공식 키 없음 | → **WTS 웹 세션** |
-| 공식 지원 · 공식 키 있음 | → **공식 Open API (OAuth)** |
-| 공식 경로 일시 실패 | → 주문이면 **오류**(중복 방지), 그 외 **WTS 폴백** |
+| official-only | 공식 키 필요. 키가 없거나 WTS로 고정하면 오류. WTS 대체 없음 |
+| WTS-only | 웹 세션 필요. 공식 키로 대체하지 않음 |
+| both 조회 | 기본 공식 우선. 동등한 WTS 구현이 있고 fallback 설정이 켜진 경우에만 전환 가능 |
+| CLI 일반 주문 | 시작할 때 공식 또는 WTS 한 경로 선택. 제출 후 교차 폴백 없음 |
+| MCP·ops 실주문 / 조건주문 | 공식 API 전용 |
+| local | 원격 API 호출 없음 |
 
-- 공식이 지원하는 조회·거래는 OAuth 토큰으로 라우팅 → 더 안정적
-- 공식 범위 밖(수급·시장지수·AI 시그널 등)은 항상 WTS
-- 공식 경로가 일시적으로 불가하면 WTS로 자동 폴백(stderr 한 줄 알림)
-- **주문은 교차 폴백하지 않음** (중복 주문 방지를 위해 공식 경로 실패 시 그냥 오류)
+지원 조회의 폴백 대상은 전송 오류·인증/IP 오류·429·5xx입니다. 일반 도메인 4xx 오류는 그대로 반환합니다. **주문·설정 쓰기는 교차 폴백하지 않습니다.** `--backend openapi`도 조회 fallback 설정을 유지하므로, 공식 조회만 사용하려면 `openapi.fallback=false`를 함께 설정하세요.
+
+예외적으로 `market fx`는 더 넓은 환율 피드를 보존하기 위해 WTS를 먼저 사용하고, 실패하면 공식 USD/KRW 조회를 시도합니다. 명령별 경로는 `--help`·카탈로그와 [지원 범위](/docs/reference/support-scope)를 확인하세요.
 
 ## 어떤 인증이 필요한가
 
 | 시나리오 | 웹 세션 | 공식 키 | 비고 |
 |---|:---:|:---:|---|
 | 공식 지원 기능만 (가장 안정적) | 초기 설정 시 필요 | 필요 | 런타임은 토큰만, 키 IP·메타 조회엔 세션 필요 |
-| 고유·비공식 기능까지 전부 | 필요 | 불필요 | 더 빨리 끊김, 갱신 주기 짧음 |
+| WTS로 구현된 증권 기능 | 필요 | 불필요 | 더 빨리 끊김, 갱신 주기 짧음 |
 | **둘 다 (권장)** | **필요** | **필요** | **최대 안정성 + 최대 범위 + 폴백** |
 
 <Callout type="info" title="공식 키 등록 이점">
-공식 키를 연결하면 tossctl이 OAuth 토큰을 **무중단으로 자동 재발급**합니다. CI·서버·에이전트에서 사람 개입 없이 무인 운영할 수 있고, 웹 세션 대비 만료 주기가 훨씬 길며, 토스 내부 API 변경의 영향도 적습니다.
+공식 키를 연결하면 서버가 반환한 만료 시각을 기준으로 OAuth 토큰을 자동 재발급합니다. 공식 경로의 호출에는 WTS 세션 갱신이 필요하지 않지만, 키·허용 IP·이용 자격은 유효해야 하며 재발급 실패도 처리해야 합니다.
 </Callout>
 
 ## 공식 Open API 키 발급
 
-1. **사전 신청** — [corp.tossinvest.com/ko/open-api](https://corp.tossinvest.com/ko/open-api) 에서 신청합니다.
+1. **이용 조건 확인** — [공식 안내](https://corp.tossinvest.com/ko/open-api)에서 현재 신청·이용 조건을 확인합니다.
 2. **공식 문서** — [developers.tossinvest.com/docs](https://developers.tossinvest.com/docs) 에서 전체 스펙을 확인합니다.
-3. **키 발급** — 승인 후 **토스 앱 설정 > Open API** 에서 API Key · Secret을 발급합니다.
-4. **허용 IP** — 키를 쓰는 현재 컴퓨터 IP는 보통 자동으로 등록됩니다. 다른 IP(예: 서버)가 필요하면 WTS(토스 웹)에서 추가로 등록할 수 있습니다. 미등록 IP에서 요청하면 차단됩니다 (`tossctl openapi status` 로 진단 — IP 목록 조회에는 웹 세션이 필요).
+3. **키 발급** — 계정에 제공된 공식 Open API 설정 화면의 안내에 따라 API Key·Secret을 발급합니다.
+4. **허용 IP** — 현재 컴퓨터의 출구 IP가 허용 목록에 있는지 확인하세요. 다른 IP(예: 서버)가 필요하면 WTS(토스 웹)에서 추가로 등록할 수 있습니다. 미등록 IP에서 요청하면 차단됩니다 (`tossctl openapi status` 로 진단 — IP 목록 조회에는 웹 세션이 필요).
 
 ## 시크릿 안전 취급
 
@@ -170,9 +149,7 @@ tossctl openapi status   # 환경변수 자동 인식
 **② `tossctl openapi login` 이 만드는 자격증명 파일 (개인 개발 환경)**
 
 ```bash
-tossctl openapi login \
-  --key tsck_live_xxxxxxxxxxxxxxxxxxxx \
-  --secret tssk_live_xxxxxxxxxxxxxxxxxxxx
+tossctl openapi login
 # → <config dir>/openapi-credentials.json (권한 0600) 에 저장
 ```
 
@@ -200,7 +177,6 @@ tossctl init
 ```bash
 # 환경변수로 넘기거나 대화형으로 입력
 tossctl openapi login
-tossctl openapi login --key tsck_live_xxxx --secret tssk_live_xxxx
 ```
 
 ### 상태 확인 · 진단
@@ -261,14 +237,14 @@ tossctl account summary --backend auto       # 기본값: 자동 라우팅
 |---|---|
 | `openapi.enabled` | 공식 경로 사용 여부 (기본 `true`, 키 있을 때만 실제 활성화) |
 | `openapi.prefer` | `"auto"` \| `"openapi"` \| `"wts"` — 공식이 지원하는 기능의 시작 경로 (`auto`·`openapi`는 공식 우선, `wts`는 공식 비활성화) |
-| `openapi.fallback` | 공식 경로 실패 시 WTS 폴백 허용 (기본 `true`; 주문은 항상 `false`) |
+| `openapi.fallback` | 지원 조회의 폴백 대상 오류에서만 WTS 전환 허용 (기본 `true`; 쓰기에는 적용 안 함) |
 
 ## 폴백 · 소스 표시
 
-공식 경로가 일시적으로 쓸 수 없을 때 tossctl은 WTS로 자동 전환하고 stderr에 한 줄을 출력합니다:
+동등한 WTS 구현이 있는 조회에서 폴백 대상 오류가 발생하고 설정이 허용하면 전환 사실을 stderr로 알립니다:
 
 ```
-[tossctl] official route unavailable, falling back to wts (account summary)
+tossctl: official path unavailable, falling back to web session (…)
 ```
 
 폴백이 잦으면 `tossctl openapi status` 와 `tossctl doctor` 로 원인을 확인하세요.

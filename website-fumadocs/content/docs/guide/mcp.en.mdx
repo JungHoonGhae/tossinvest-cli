@@ -28,14 +28,17 @@ claude mcp add tossctl tossctl mcp
 claude mcp list   # → "tossctl: tossctl mcp - ✔ Connected"
 ```
 
-For JSON-config hosts (Claude Desktop, Codex, …) see [JSON config](#mcp-host-json-config).
+For Codex, register with the following command; see the [official OpenAI MCP documentation](https://developers.openai.com/codex/mcp/).
 
-## Why a catalog — pin the always-on context to 3
+```bash
+codex mcp add tossctl -- tossctl mcp
+```
 
-MCP's chronic cost is that **tool schemas live in the model's context at all times.** Register one
-tool per API and every tool's name, description and parameter schema occupies context for the whole
-conversation. tossctl's API surface is **111 operations** (and growing) — exposed as individual
-tools, that many schemas are always resident, burning tokens and adding tool-selection noise.
+For hosts supporting `mcpServers` JSON (such as Claude Desktop), see [JSON config](#mcp-host-json-config).
+
+## Why a catalog — load schemas when needed
+
+tossctl's default API surface is **111 operations**. Instead of listing every schema up front, agents discover the operation and schema they need. Tool-loading behavior varies by host, so no fixed token savings are guaranteed.
 
 Following [KIS_MCP_Server](https://github.com/pineconedata/kis-mcp-server)'s catalog mode, tossctl
 exposes **just 3 fixed tools** up front and keeps every operation behind them, fetching a schema
@@ -47,9 +50,7 @@ exposes **just 3 fixed tools** up front and keeps every operation behind them, f
 | `describe_operation` | Fetch one operation's method/path, full parameters, and mutation risk/approval/recovery policy **on demand** |
 | `call_operation` | Invoke by id + params |
 
-Result: always-on context = **exactly 3 tool schemas**. Whether there are 40 operations or 111, the
-resident cost stays 3. The agent finds an operation via `list_operations` → reads its schema via
-`describe_operation` → calls it via `call_operation`, so unused operations never occupy context.
+MCP exposes **three tools**: `list_operations` → `describe_operation` → `call_operation`. Search results and call responses still consume context; total token usage is not constant.
 
 ```mermaid
 sequenceDiagram
@@ -70,7 +71,7 @@ sequenceDiagram
     Registry-->>Agent: Result or safety-gate error
 ```
 
-<Callout type="info" title="Updates are automatic">
+<Callout type="info" title="Restart the host after updating the binary">
 The host stores the **command** `tossctl mcp` and re-runs it each session, so upgrading just the
 binary (`brew upgrade tossctl` or `tossctl update`) surfaces new operations **without
 re-registering** on the next session/host restart (the catalog is built from the binary at server
@@ -91,8 +92,7 @@ and a write flag; inspect every write's full `mutation` policy through `describe
   Securities trading settings, transfer accounts, and accumulation funding status are
   `trading_settings`, `securities_transfer_accounts`, and `accumulation_funding_status` respectively. The last operation also accepts the legacy `banking_status` alias. The
   first two accept an optional `account` key for non-primary Securities accounts.
-- **Live writes** — create/cancel/amend always use the **official API path only** (never WTS). If you let
-  an agent place orders, the submission path should be the API Toss officially sanctions.
+- **Live writes** — create/cancel/amend always use the **official API path only** (never WTS). The live-order catalog is wired to an official broker, unlike the WTS route available to regular CLI orders.
 - **WTS settings writes** — Open API allowed IPs, target-price alerts, hidden holdings, and watchlist
   folders/items are changeable. Each previews by default, requires `execute:true` plus a valid
   `confirm` token, and re-reads server state. Watchlist tokens are bound to the current WTS session
@@ -101,8 +101,7 @@ and a write flag; inspect every write's full `mutation` policy through `describe
 - **Experimental paper orders** — eight operations join discovery only when
   `experimental.paper_trading=true`. They declare `environment=paper` and
   `experimental=paper-trading`, use only WTS's isolated simulation ledger, and require
-  `simulation_execute` (`execute:true`, no live confirmation). `/paper/init` still returns an
-  opaque 500, so the surface is not stable.
+  `simulation_execute` (`execute:true`, no live confirmation). Observations from 2026-09-03 include initialization 500s and inconsistent education state. Track current observations and promotion criteria in `rolling_features` in the [WTS inventory](https://github.com/JungHoonGhae/tossinvest-cli/blob/main/docs/reverse-engineering/wts-endpoints.json).
 - **Separate auth** — official reads/orders use the official key (`openapi login`), WTS reads use the
   web session (`auth login`). The server starts with **either one**, and each operation checks the
   auth it needs. Use the `auth_status` operation to see which backends are connected and when they
@@ -127,7 +126,7 @@ acknowledgement where applicable.
 
 ## MCP host JSON config
 
-Claude Code is one line — `claude mcp add` above. JSON-config hosts (Claude Desktop, Codex, …) take
+Claude Code is one line — `claude mcp add` above. Hosts supporting `mcpServers` JSON (such as Claude Desktop) take
 this in their config file (`tossctl` must be on `PATH`):
 
 ```json
@@ -151,9 +150,9 @@ just different ways to connect.
 | Auth | Web session for WTS features; official key for official-only commands (connect both for the full surface) | Official key for official reads/orders, web session for WTS reads — at least one |
 | Coverage | With both credentials: official + WTS reads, orders, live streaming, and watchlist writes | Reads/settings official+WTS, orders official-only. Target-price, hidden-holding, watchlist, and allowed-IP writes included; no live streaming |
 
-- **Scripts, cron, pipes, reproducible automation** fit the CLI (same command = same result).
+- **Scripts, cron, pipes, reproducible automation** fit the CLI (explicit inputs and structured output).
 - **MCP-native agents** call it as a tool with no extra instruction once registered.
-- Either way, **read data and order safety gates are identical**.
+- Live-order confirmation gates are shared, but CLI/MCP coverage, credentials, and submission routes differ as shown above.
 
 ---
 

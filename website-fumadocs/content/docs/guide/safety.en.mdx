@@ -3,7 +3,7 @@ title: Safety Model
 description: Trading guardrails
 ---
 
-tossctl keeps reads open but guards **trading with multiple gates** to prevent accidents.
+tossctl applies **separate execution policies to live trading, settings, and paper trading**. They reduce unintended submissions, but cannot guarantee against wrongly approved orders or losses.
 
 ## Disabled by default
 
@@ -43,21 +43,31 @@ A live trade requires both:
 
 ```bash
 tossctl order place --symbol TSLA --side buy --qty 1 --price 250 \
-  --execute --confirm <token>
+  --execute --confirm 'PREVIEW_CONFIRM_TOKEN'
 ```
 
-- Without `--execute`, everything is treated as dry-run.
-- The `--confirm <token>` value comes from the confirmation flow — it cannot be guessed or bypassed.
+- Order commands do not submit without `--execute`.
+- Replace `PREVIEW_CONFIRM_TOKEN` with the fresh preview token: `order preview` for place, or the cancel/amend command's own preview.
 
 ## Always preview first
 
-`order preview` computes quantity, price, fill amount, and commission without sending an order.
+`order preview` validates order intent, quantity, price, and estimated value without sending an order. Estimates do not guarantee fills or final fees.
 
 ```bash
 tossctl order preview --symbol TSLA --side buy --qty 1 --price 250
 ```
 
 Agents must follow **preview → user confirmation → place**.
+
+## Submission routes and uncertain outcomes
+
+Regular CLI orders select one official or WTS backend. MCP/`ops` live orders and all conditional orders are official-only. A failure never triggers a cross-backend resubmission. WTS history reconciliation is best-effort; inspect `unknown` or `pending` outcomes before retrying the same order.
+
+## Settings and paper trading
+
+Watchlists, price alerts, hidden holdings, and allowed-IP changes preview by default. Execution requires approval for the current request and a state-bound confirmation token. Irreversible actions require an additional acknowledgement.
+
+US-options paper trading is exposed only with `experimental.paper_trading=true`. Simulation writes use a separate `simulation_execute` policy and `--execute`, not live config or tokens. `paper order live-preview` creates a live preview but never submits an order. Do not treat server-rejected initialization, education, or orders as approved.
 
 ## Market symmetry
 
@@ -66,9 +76,9 @@ asymmetric option was removed.)
 
 ## Privacy
 
-- Login intermediate files, QR images, and the session folder are stored owner-only (`0600`).
+- State files and QR images use owner-only `0600`; state directories use `0700` on supported operating systems.
 - `doctor --report` JSON masks home paths automatically.
-- `monitor` alert paths never forward response bodies (account numbers, balances) externally.
+- Default `monitor` summaries omit raw account responses. Review custom webhooks, logs, and data sent to AI hosts separately.
 
 ## Agent notes
 

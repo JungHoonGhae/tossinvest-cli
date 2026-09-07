@@ -6,7 +6,8 @@
   "scripts": {
     "build": "node scripts/sync-changelog.mjs && next build",
     "dev": "node scripts/sync-changelog.mjs && next dev",
-    "start": "serve out",
+    "start": "next start",
+    "check:docs": "node scripts/check-docs.mjs",
     "types:check": "node scripts/sync-changelog.mjs && fumadocs-mdx && next build",
     "sync:changelog": "node scripts/sync-changelog.mjs"
   },

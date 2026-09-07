@@ -3,14 +3,12 @@ title: 지원 범위
 description: 공식 Open API 대비 커버리지
 ---
 
-**tossctl 은 토스 공식 Open API의 조회·거래 범위를 100% 커버하고, 그 너머까지
-다룹니다.** 공식 키를 등록하면 공식이 지원하는 기능은 **실제로 OAuth 경로로 라우팅**되며,
-나머지는 WTS 경로로 처리됩니다. 자세한 설정 방법은
+**공식 Open API와 WTS 전용 기능의 지원 범위를 비교합니다.** 구현 여부와 실제 이용 가능 여부는 다릅니다. 인증·이용 자격·거래 시간·서버 상태에 따라 호출이 제한될 수 있습니다. 자세한 설정 방법은
 [하이브리드 가이드](/docs/guide/hybrid-openapi)를 참고하세요.
 
 - ✅ 지원 · ❌ 미지원 · 🔸 부분 지원 · 🆕 최근 30일 내 추가 또는 아직 미출시
-- `공식 API` 칼럼 = 공개 문서 기준 커버리지; 공식 키 등록 시 해당 기능은 OAuth로 라우팅
-- 공식이 ❌ 인 행 = tossctl 고유 기능 (항상 WTS)
+- `공식 API` 칼럼은 공개 계약 기준입니다. 실제 제출 경로는 명령별 정책과 설정을 따릅니다.
+- 공식이 ❌인 행은 WTS 추가 기능 또는 로컬 기능입니다. CSV·preview 자체는 WTS endpoint가 아닙니다.
 
 ## 기능 영역 ≠ 접근 경로
 
@@ -46,7 +44,9 @@ app/device header, request/response cipher를 처리하는 mobile connector가 �
 
 전역 플래그 `--backend auto|wts|openapi` 로 요청별 라우팅을 직접 지정할 수 있습니다.
 
-## 조회 (읽기 전용)
+## 조회·설정 지원
+
+조회와 변경을 함께 제공하는 행이 있습니다. `add/remove`, `hide/show`, 관심종목 변경은 쓰기이며 [안전 모델](/docs/guide/safety)의 preview·confirm 정책을 따릅니다.
 
 | 기능 | 명령 | 공식 API | tossctl |
 |------|------|:--:|:--:|
@@ -100,6 +100,12 @@ app/device header, request/response cipher를 처리하는 mobile connector가 �
 <Callout type="info" title="소수점 매도 (beta)">
   공식 Open API 1.1.5에 추가된 **미국 시장가 소수점 수량 매도**(`order place --fractional --side sell --qty 0.5`, 소수점 6자리)를 구현했습니다. 계약 테스트는 통과했으나 **라이브 검증은 아직**입니다 — 실거래 전 `order preview`로 확인하세요. 소수점 매수는 기존대로 금액 기반(`--amount`)입니다.
 </Callout>
+
+## 실험적 미국 옵션 모의투자
+
+기본적으로 숨겨져 있으며 `tossctl config experimental paper-trading --enable`로 옵트인합니다. CLI의 `paper status/init/deposit`, `paper order place/cancel/live-preview`, `paper orders pending/completed/cancel-all`을 제공하고 MCP에는 8개 오퍼레이션, monitor에는 4개 probe가 추가됩니다.
+
+2026-09-03 관측에서 모의 주문 생성·취소는 동작했지만 초기화 500과 교육 상태 불일치가 남았습니다. 모든 사용자에게 제공되거나 안정화되었다는 뜻은 아닙니다. 최신 관측은 아래 WTS 기록의 `rolling_features`를 확인하세요. 실거래 권한과는 분리됩니다.
 
 ## 검증 기준
 

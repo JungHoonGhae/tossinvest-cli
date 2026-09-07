@@ -12,13 +12,14 @@ description: 에이전트가 안전·정확하게 쓰는 규칙
 ## 핵심 규칙
 
 1. **항상 `--output json` 으로 호출**하라. 표(table) 출력은 사람용이며, 파싱하지 말 것.
-2. **읽기 먼저.** `account`, `portfolio`, `quote`, `market`, `transactions` 는 부작용이 없다.
+2. **말단 명령의 정책을 확인하라.** `quote alert`·`portfolio hidden`·`watchlist`에는 쓰기가 있다. 상위 명령 이름만으로 읽기 전용이라 판단하지 말고 `mutating`, `writes_state`, `environment`와 ops의 `mutation` 정책을 확인하라.
 3. **거래는 기본 비활성.** `config.json` 에서 허용되지 않으면 실패한다. 임의로 켜지 말고
    사용자에게 확인받아라.
 4. **주문 전 반드시 `order preview`** 를 실행해 수량·가격·금액을 확인하라(주문 안 나감).
 5. **실거래는 2단계**: `--execute` + `--confirm <token>`. token 은 preview/확인 흐름에서
    나온 값이며, 추측하거나 우회하지 마라.
-6. **개인정보 주의.** 응답에는 계좌번호·잔고·보유 종목이 들어있다. 외부로 전송·로깅하지 마라.
+6. **비거래 쓰기·모의투자도 현재 요청의 승인이 필요하다.** 설정 변경은 preview와 상태에 묶인 confirm, 불가역 작업은 추가 acknowledgement를 요구한다. paper 쓰기는 별도 옵트인 후 `--execute`를 사용하며 실거래 승인으로 재사용하지 않는다.
+7. **개인정보 주의.** 응답에는 계좌번호·잔고·보유 종목이 들어있다. 외부로 전송·로깅하지 마라.
 
 ## 권장 워크플로
 
@@ -28,7 +29,7 @@ description: 에이전트가 안전·정확하게 쓰는 규칙
 3. tossctl account summary --output json
 4. tossctl portfolio positions --output json
 5. (거래 요청 시) tossctl order preview ... --output json  → 사용자 확인
-6. 승인 후에만 tossctl order place ... --execute --confirm <token>
+6. 사람이 최종 확인한 뒤 live 명령 실행 (에이전트가 자동 주문하지 않음)
 ```
 
 ## 세션·인증
@@ -60,14 +61,14 @@ description: 에이전트가 안전·정확하게 쓰는 규칙
 ## 출력 계약
 
 - 성공 시 stdout 에 JSON, 실패 시 비정상 종료 코드 + stderr 메시지.
-- 시세·요약 등 자료형은 안정적인 키를 가진다. 서버측 변경은 `tossctl monitor api` 가
-  조기에 감지하도록 돼 있다.
+- `tossctl monitor api`는 기본 82개 조회 endpoint를 점검한다. paper 옵트인 시 전용 4개가 추가된다. 모든 장애나 데이터 오류를 보장해서 탐지하지는 않는다.
 
 ## 하지 말 것
 
 - 실제 계좌 데이터를 공개 출력/커밋/로그에 남기기.
 - preview 없이 주문 실행, `--confirm` 토큰 추측, 거래 게이트 우회.
 - table 출력 파싱(형식이 사람용이라 깨지기 쉬움) — 항상 JSON.
+- 에이전트가 `tossctl update`를 자동 실행하기. 업데이트 확인은 읽기 전용 `tossctl update --check`를 사용한다.
 
 ## 같이 보기
 
