@@ -1,8 +1,8 @@
 {
   "source": "tossinvest.com web bundles",
-  "build_id": "S2JOk3dbR30ziH6ToNktG",
+  "build_id": "7r39ou7dRVa7AiAbxAXNF",
   "build_ids": [
-    "S2JOk3dbR30ziH6ToNktG"
+    "7r39ou7dRVa7AiAbxAXNF"
   ],
   "chunk_count": 77,
   "total": 1147,
@@ -10970,9 +10970,9 @@
     "paper-trading-us-options": {
       "lifecycle": "rolling_out",
       "stability": "experimental",
-      "checked_at": "2026-09-03",
+      "checked_at": "2026-09-07",
       "active_build_ids": [
-        "S2JOk3dbR30ziH6ToNktG"
+        "7r39ou7dRVa7AiAbxAXNF"
       ],
       "bundle_markers": {
         "option.paper.wts.open": true
@@ -11079,5 +11079,5 @@
       ]
     }
   },
-  "updated_at": "2026-09-03"
+  "updated_at": "2026-09-07"
 }

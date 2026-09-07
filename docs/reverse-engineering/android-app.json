@@ -9,10 +9,10 @@
     "analysis": "docs/reverse-engineering/change-analysis/2026-09-02-android-static.md"
   },
   "latest_candidate": {
-    "version_name": "5.275.0",
+    "version_name": "5.276.0",
     "source": "APKPure metadata (untrusted candidate signal)",
-    "first_seen": "2026-09-03"
+    "first_seen": "2026-09-07"
   },
-  "audit_status": "current",
+  "audit_status": "stale",
   "trust_model": "A newer third-party metadata version only marks this audit stale. It must be downloaded and checked for package/signature continuity before static-analysis findings are promoted."
 }
