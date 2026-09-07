@@ -7,7 +7,9 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
 )
 
-func TestMutationPathKeepsWritesOnOneBackend(t *testing.T) {
+// Execution and the absence of cross-backend retries are tested through the
+// broker in broker_test.go; this table only checks the initial path decision.
+func TestMutationPathSelectsInitialBackend(t *testing.T) {
 	t.Parallel()
 
 	regular := orderintent.PlaceIntent{Symbol: "AAPL", CurrencyMode: "USD"}

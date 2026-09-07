@@ -274,6 +274,50 @@ func TestCancelPendingOrderReturnsCompletedHistoryRollover(t *testing.T) {
 	}
 }
 
+func TestCancelPendingOrderDoesNotConfirmDisappearance(t *testing.T) {
+	t.Parallel()
+	const date = "2026-09-07"
+	pendingCalls, completedCalls, cancelCalls := 0, 0, 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/trading/orders/histories/all/pending":
+			pendingCalls++
+			if pendingCalls == 1 {
+				_, _ = io.WriteString(w, `{"result":[{"stockCode":"US20220809012","orderedDate":"`+date+`","orderNo":14,"tradeType":"buy","orderPrice":700,"orderUsdPrice":0.4753,"quantity":1,"pendingQuantity":1,"orderPriceTypeCode":"00","status":"체결대기"}]}`)
+			} else {
+				_, _ = io.WriteString(w, `{"result":[]}`)
+			}
+		case "/api/v2/wts/trading/order/cancel/prepare/" + date + "/14":
+			_, _ = io.WriteString(w, `{"result":{"orderKey":"test-key","authRequired":{"required":false}}}`)
+		case "/api/v3/wts/trading/order/cancel/" + date + "/14":
+			cancelCalls++
+			_, _ = io.WriteString(w, `{"result":{"message":"취소 되었어요."}}`)
+		case "/api/v2/trading/my-orders/markets/us/by-date/completed":
+			completedCalls++
+			_, _ = io.WriteString(w, `{"result":{"body":[]}}`)
+		default:
+			t.Errorf("unexpected request: %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	t.Cleanup(server.Close)
+	c := New(Config{
+		HTTPClient: server.Client(), APIBaseURL: server.URL, InfoBaseURL: server.URL, CertBaseURL: server.URL,
+		Session: &session.Session{
+			Cookies: map[string]string{"SESSION": "test-session"},
+			Headers: map[string]string{"App-Version": "test-build"},
+			Storage: map[string]string{"localStorage:qr-tabId": "test-tab"},
+		},
+	})
+	result, err := c.CancelPendingOrder(context.Background(), orderintent.CancelIntent{OrderID: date + "/14", Symbol: "TSLL"})
+	if err != nil || result.Status != "unknown" || result.OriginalOrderID != date+"/14" || len(result.Warnings) == 0 {
+		t.Fatalf("unconfirmed cancellation = %+v, %v", result, err)
+	}
+	if cancelCalls != 1 || pendingCalls != 1+mutationReconcileAttempts || completedCalls != mutationReconcileAttempts {
+		t.Fatalf("cancel/pending/completed calls = %d/%d/%d: only history reads may repeat", cancelCalls, pendingCalls, completedCalls)
+	}
+}
+
 func TestBuildAmendBodyMatchesCapturedShape(t *testing.T) {
 	order := pendingOrderDetails{
 		OrderNo:            "13",
