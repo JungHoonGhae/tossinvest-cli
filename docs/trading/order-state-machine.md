@@ -2,6 +2,19 @@
 
 Initial observations captured from the TSLL order page on 2026-03-11.
 
+## CLI result confirmation
+
+The CLI shares one read-only reconciliation path for place, amend and cancel.
+It polls pending/completed history at most eight times, 250 ms apart; it never
+resubmits a mutation. A disappeared pending order without a canceled history row
+returns `unknown`, not `canceled`. Users must inspect history before retrying.
+
+Matching checks symbol, buy/sell direction, market when present, price and
+quantity. Multiple matching rows remain `unknown` rather than selecting the first
+order. Amendment matching excludes the original order and canceled rows.
+Matching without a broker-provided correlation identifier remains best-effort;
+these checks are not an idempotency guarantee for concurrent identical orders.
+
 ## Current Working Model
 
 The web order page appears to build trading state in layers.

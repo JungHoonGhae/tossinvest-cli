@@ -112,6 +112,12 @@ go run ./tools/wtsinventory -mode probes -root "$(pwd)" | jq 'length'
 
 각 probe 는 status 200 + 핵심 JSON 경로 존재 + 타입을 검사합니다. Toss 가 새 필드를 추가하는 변경은 통과시키고, 핵심 필드가 사라지거나 빈 응답을 받으면 실패합니다.
 
+계좌·관심종목 폴더에 의존하는 probe는 선행 조회를 검증한 뒤 실행합니다. 폴더 조회가
+정상이고 목록이 비었을 때만 `skipped`로 표시합니다. 선행 조회 실패·응답 손상·probe 누락은
+`blocked by account-list` 또는 `blocked by watchlist-groups`로 실패 처리하고, 선행 probe의
+원래 상태 코드도 남깁니다. `--quiet`에서도 이 실패 사유를 출력합니다. 선행 조회에 의존하지
+않는 probe는 계속 검사합니다.
+
 ### Cron + 알림 합성
 
 `monitor api` 는 exit 0/1 만 반환합니다. 알림 채널은 cron 라인의 `||` 우항에서 사용자가 자유롭게 합성합니다. `crontab -e`:
@@ -169,6 +175,10 @@ webhook 페이로드:
 공용 의존성은 `ProbeRefs`로 이름을 참조해 실제 probe는 한 번만 실행합니다. 계좌 범위
 요청은 `AccountScoped: true`로 표시하면 monitor가 먼저 검증한 `account-list` 응답에서
 기본 계좌 키를 구해 `accountKey` 헤더로 넣습니다.
+
+실행 회귀 테스트는 `internal/monitor/runner_test.go`에 있습니다. 실제 실행 경로에 로컬 HTTP
+서버 또는 fixture transport를 연결해 선행 조회·인증 정보 전달·동시 실행 제한·취소를 검증하며,
+실제 토스 세션은 사용하지 않습니다.
 
 ```go
 Probe: &ProbeSpec{

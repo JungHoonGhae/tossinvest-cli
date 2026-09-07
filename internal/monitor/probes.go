@@ -128,7 +128,13 @@ const maxConcurrentProbes = 8
 // the session for auth. Results are returned in probe order regardless of
 // completion order, so output stays stable.
 func Run(ctx context.Context, sess *session.Session, enabledExperiments ...string) []Result {
-	probes := Probes(enabledExperiments...)
+	return runProbes(ctx, sess, Probes(enabledExperiments...), &http.Client{})
+}
+
+// runProbes owns prerequisite resolution and execution. The HTTP client is an
+// internal transport seam: tests exercise this same path without live sessions
+// or replacing global transports. Callers still use Run's catalog and defaults.
+func runProbes(ctx context.Context, sess *session.Session, probes []Probe, httpClient *http.Client) []Result {
 	results := make([]Result, len(probes))
 	accountListIndex := -1
 	watchlistGroupsIndex := -1
@@ -138,7 +144,7 @@ func Run(ctx context.Context, sess *session.Session, enabledExperiments ...strin
 		if probe.Name == "account-list" {
 			accountListIndex = i
 			var body []byte
-			results[i], body = executeProbe(ctx, sess, probe, "")
+			results[i], body = executeProbe(ctx, sess, probe, "", httpClient)
 			if results[i].OK {
 				accountKey = accountKeyFromList(body)
 			}
@@ -151,7 +157,7 @@ func Run(ctx context.Context, sess *session.Session, enabledExperiments ...strin
 		}
 		watchlistGroupsIndex = i
 		var body []byte
-		results[i], body = executeProbe(ctx, sess, probe, "")
+		results[i], body = executeProbe(ctx, sess, probe, "", httpClient)
 		if results[i].OK {
 			watchlistGroupID = watchlistGroupIDFromList(body)
 		}
@@ -164,16 +170,35 @@ func Run(ctx context.Context, sess *session.Session, enabledExperiments ...strin
 		if i == accountListIndex || i == watchlistGroupsIndex {
 			continue
 		}
+		if err := ctx.Err(); err != nil {
+			results[i] = Result{Probe: p, Detail: "context: " + err.Error()}
+			continue
+		}
+		select {
+		case sem <- struct{}{}:
+		case <-ctx.Done():
+			results[i] = Result{Probe: p, Detail: "context: " + ctx.Err().Error()}
+			continue
+		}
 		wg.Add(1)
-		sem <- struct{}{}
 		go func(i int, p Probe) {
 			defer wg.Done()
 			defer func() { <-sem }()
+			if p.AccountScoped && (accountListIndex < 0 || !results[accountListIndex].OK) {
+				results[i] = Result{Probe: p, Detail: "blocked by account-list: prerequisite did not succeed"}
+				return
+			}
 			if p.AccountScoped && accountKey == "" {
 				results[i] = Result{Probe: p, Detail: "account-list did not return a primary account key"}
 				return
 			}
 			if p.WatchlistGroupScoped {
+				// Only a successful, schema-checked empty list makes this probe
+				// inapplicable. A failed or missing prerequisite is not empty.
+				if watchlistGroupsIndex < 0 || !results[watchlistGroupsIndex].OK {
+					results[i] = Result{Probe: p, Detail: "blocked by watchlist-groups: prerequisite did not succeed"}
+					return
+				}
 				if watchlistGroupID == 0 {
 					results[i] = Result{Probe: p, Skipped: true, Detail: "not applicable: account has no watchlist folders"}
 					return
@@ -190,7 +215,7 @@ func Run(ctx context.Context, sess *session.Session, enabledExperiments ...strin
 					return nil
 				}
 			}
-			results[i] = runOne(ctx, sess, p, accountKey)
+			results[i], _ = executeProbe(ctx, sess, p, accountKey, httpClient)
 		}(i, p)
 	}
 	wg.Wait()
@@ -230,13 +255,12 @@ func watchlistGroupIDFromList(body []byte) int64 {
 	return envelope.Result.Watchlists[0].ID
 }
 
-func runOne(ctx context.Context, sess *session.Session, p Probe, accountKey string) Result {
-	result, _ := executeProbe(ctx, sess, p, accountKey)
-	return result
-}
-
-func executeProbe(ctx context.Context, sess *session.Session, p Probe, accountKey string) (Result, []byte) {
+func executeProbe(ctx context.Context, sess *session.Session, p Probe, accountKey string, httpClient *http.Client) (Result, []byte) {
 	res := Result{Probe: p}
+	if err := ctx.Err(); err != nil {
+		res.Detail = "context: " + err.Error()
+		return res, nil
+	}
 	reqCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -269,15 +293,19 @@ func executeProbe(ctx context.Context, sess *session.Session, p Probe, accountKe
 	}
 
 	start := time.Now()
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := httpClient.Do(req)
 	res.Duration = time.Since(start)
 	if err != nil {
 		res.Detail = "transport: " + err.Error()
 		return res, nil
 	}
 	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	res.Status = resp.StatusCode
+	if err != nil {
+		res.Detail = "read response: " + err.Error()
+		return res, nil
+	}
 	if checkErr := p.Check(resp.StatusCode, body); checkErr != nil {
 		res.Detail = checkErr.Error()
 		return res, body

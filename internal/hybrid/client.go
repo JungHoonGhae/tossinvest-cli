@@ -70,27 +70,24 @@ func (c *Client) Official() *official.Client {
 // route is the single decision point. It is intentionally backend-agnostic
 // (takes two closures, never touches c.off itself beyond the nil check) so the
 // routing logic is unit-testable without any real client.
-func route[T any](c *Client, official func() (T, error), wts func() (T, error)) (T, error) {
-	if c.off == nil || c.pol.Prefer == routing.WTS {
+func route[T any](c *Client, officialCall func() (T, error), wts func() (T, error)) (T, error) {
+	if c.Official() == nil {
 		return wts()
 	}
-	v, err := official()
+	v, err := officialCall()
 	if err == nil {
 		// Happy path is silent on purpose: a "via official" line on every call
 		// would spam stderr.
 		return v, nil
 	}
-	if c.pol.Fallback && officialShouldFallback(err) {
-		fmt.Fprintf(c.stderr, "tossctl: official path unavailable, falling back to web session (%v)\n", err)
+	if c.pol.Fallback && official.ShouldFallback(err) {
+		if c.stderr != nil {
+			fmt.Fprintf(c.stderr, "tossctl: official path unavailable, falling back to web session (%v)\n", err)
+		}
 		return wts()
 	}
 	return v, err // official's domain error — no fallback.
 }
-
-// officialShouldFallback is a thin alias so route reads cleanly; it reports
-// whether err indicates the official API is unavailable (transient/auth/etc.)
-// rather than a domain error like 404.
-func officialShouldFallback(err error) bool { return official.ShouldFallback(err) }
 
 // officialSymbolPattern mirrors the official API's own symbol validation —
 // `^[A-Za-z0-9.,\-]+$`, taken verbatim from the `rule: Pattern` it returns on a

@@ -100,3 +100,22 @@ func TestMonitorReportsInapplicableStateDependentProbeAsSkipped(t *testing.T) {
 		}
 	}
 }
+
+func TestMonitorReportsBlockedProbeAsFailure(t *testing.T) {
+	for _, quiet := range []bool{false, true} {
+		results := []monitor.Result{
+			failing("watchlist-groups", 503),
+			{Probe: monitor.Probe{Name: "watchlist-group"}, Detail: "blocked by watchlist-groups: prerequisite did not succeed"},
+		}
+		var stdout, stderr bytes.Buffer
+		printResults(&stdout, &stderr, results, quiet)
+		if !strings.Contains(stdout.String(), "0 passed, 2 failed, 0 skipped") {
+			t.Errorf("quiet=%t: blocked probe miscounted: %s", quiet, stdout.String())
+		}
+		for _, want := range []string{"watchlist-groups — status=503", "watchlist-group — status=0: blocked by watchlist-groups"} {
+			if !strings.Contains(stderr.String(), want) {
+				t.Errorf("quiet=%t: missing failure %q: %s", quiet, want, stderr.String())
+			}
+		}
+	}
+}

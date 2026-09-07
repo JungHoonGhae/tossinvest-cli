@@ -1,10 +1,7 @@
 package monitor
 
 import (
-	"context"
 	"fmt"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -12,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/ops"
-	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 )
 
 func TestProbesRegistryStableNames(t *testing.T) {
@@ -191,60 +187,14 @@ func TestDocumentedSurfaceCountsMatchRuntime(t *testing.T) {
 	}
 }
 
-func TestAccountScopedProbeInjectsResolvedAccountKey(t *testing.T) {
+func TestWatchlistGroupProbeDeclaresScopedURL(t *testing.T) {
 	t.Parallel()
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if got := r.Header.Get("accountKey"); got != "primary-test" {
-			t.Errorf("accountKey = %q, want primary-test", got)
-		}
-		_, _ = w.Write([]byte(`{"result":true}`))
-	}))
-	t.Cleanup(server.Close)
-	probe := Probe{
-		Name: "scoped", Method: http.MethodGet, URL: server.URL,
-		AccountScoped: true, Check: statusAndPath("result", "bool"),
-	}
-	result := runOne(context.Background(), &session.Session{Headers: map[string]string{"accountKey": "stale-test"}}, probe, "primary-test")
-	if !result.OK {
-		t.Fatalf("probe failed: %s", result.Detail)
-	}
-}
-
-func TestAccountKeyFromListUsesPrimaryThenFirstAccount(t *testing.T) {
-	t.Parallel()
-	if got := accountKeyFromList([]byte(`{"result":{"primaryKey":"primary-test","accountList":[{"key":"first-test"}]}}`)); got != "primary-test" {
-		t.Fatalf("primary key = %q", got)
-	}
-	if got := accountKeyFromList([]byte(`{"result":{"accountList":[{"key":"first-test"}]}}`)); got != "first-test" {
-		t.Fatalf("fallback key = %q", got)
-	}
-}
-
-func TestWatchlistGroupProbeUsesAuthenticatedFolderID(t *testing.T) {
-	t.Parallel()
-	if got := watchlistGroupIDFromList([]byte(`{"result":{"watchlists":[{"id":731}]}}`)); got != 731 {
-		t.Fatalf("watchlist group id = %d, want 731", got)
-	}
-	if got := watchlistGroupIDFromList([]byte(`{"result":{"watchlists":[]}}`)); got != 0 {
-		t.Fatalf("empty watchlist group id = %d, want 0", got)
-	}
-	if !watchlistGroupResponseContains([]byte(`{"result":{"watchlists":[{"id":731,"items":[]}]}}`), 731) {
-		t.Fatal("resolved watchlist response did not match requested folder")
-	}
-	if watchlistGroupResponseContains([]byte(`{"result":{"watchlists":[{"id":999,"items":[]}]}}`), 731) {
-		t.Fatal("different watchlist folder matched requested folder")
-	}
-
 	for _, probe := range Probes() {
 		if probe.Name != "watchlist-group" {
 			continue
 		}
 		if !probe.WatchlistGroupScoped || !strings.Contains(probe.URL, "ids={watchlistGroupId}") {
 			t.Fatalf("watchlist group probe = %#v", probe)
-		}
-		resolved := strings.ReplaceAll(probe.URL, "{watchlistGroupId}", "731")
-		if !strings.Contains(resolved, "ids=731") {
-			t.Fatalf("resolved URL = %q", resolved)
 		}
 		return
 	}

@@ -21,7 +21,6 @@ import (
 	"io"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
-	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
 
@@ -64,7 +63,7 @@ func (c *Client) Broker() trading.Broker {
 // brokerage, so a retry risks a duplicate. The wrapped error tells the user to
 // verify acceptance via `tossctl orders` before retrying.
 func (b *hybridBroker) PlacePendingOrder(ctx context.Context, intent orderintent.PlaceIntent) (trading.MutationResult, error) {
-	if b.off == nil || b.pol.Prefer == routing.WTS || !officialEligiblePlace(intent) {
+	if b.pol.mutationPath(b.off != nil, &intent) == mutationWTS {
 		return b.wts.PlacePendingOrder(ctx, intent)
 	}
 	res, err := b.off.PlaceOrder(ctx, intent)
@@ -77,7 +76,7 @@ func (b *hybridBroker) PlacePendingOrder(ctx context.Context, intent orderintent
 // CancelPendingOrder routes by config only (no intent eligibility to judge).
 // No cross-fallback on official failure.
 func (b *hybridBroker) CancelPendingOrder(ctx context.Context, intent orderintent.CancelIntent) (trading.MutationResult, error) {
-	if b.off == nil || b.pol.Prefer == routing.WTS {
+	if b.pol.mutationPath(b.off != nil, nil) == mutationWTS {
 		return b.wts.CancelPendingOrder(ctx, intent)
 	}
 	res, err := b.off.CancelOrder(ctx, intent.OrderID)
@@ -89,7 +88,7 @@ func (b *hybridBroker) CancelPendingOrder(ctx context.Context, intent orderinten
 
 // AmendPendingOrder routes by config only. No cross-fallback on official failure.
 func (b *hybridBroker) AmendPendingOrder(ctx context.Context, intent orderintent.AmendIntent) (trading.MutationResult, error) {
-	if b.off == nil || b.pol.Prefer == routing.WTS {
+	if b.pol.mutationPath(b.off != nil, nil) == mutationWTS {
 		return b.wts.AmendPendingOrder(ctx, intent)
 	}
 	res, err := b.off.ModifyOrder(ctx, intent)

@@ -54,6 +54,17 @@ func TestRouteFallsBackOnServerError(t *testing.T) {
 	}
 }
 
+func TestRouteFallbackWithNilWriter(t *testing.T) {
+	c := &Client{off: &official.Client{}, pol: Policy{Fallback: true}}
+	wtsCalls := 0
+	got, err := route(c,
+		func() (string, error) { return "", official.ErrServer },
+		func() (string, error) { wtsCalls++; return "wts", nil })
+	if err != nil || got != "wts" || wtsCalls != 1 {
+		t.Fatalf("fallback = %q, %v; WTS calls = %d", got, err, wtsCalls)
+	}
+}
+
 func TestRouteDoesNotFallbackOnDomainError(t *testing.T) {
 	var buf bytes.Buffer
 	c := &Client{off: &official.Client{}, pol: Policy{Prefer: "auto", Fallback: true}, stderr: &buf}
