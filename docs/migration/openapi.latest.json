@@ -29,7 +29,7 @@
         }
       },
       "KrSymbol": {
-        "description": "국내(KR) 종목 심볼. KRX 6자리 종목코드 (예: 005930).",
+        "description": "국내(KR) 종목 심볼. KRX 6자리 종목코드 (숫자 또는 영문·숫자 조합; 예: 005930, 0101N0).",
         "examples": {
           "krx": {
             "summary": "삼성전자",
@@ -55,7 +55,7 @@
         }
       },
       "Symbol": {
-        "description": "종목 심볼. KRX: 6자리 숫자 (예: 005930), US: 영문 티커 (예: AAPL). 영문 대/소문자, 숫자, '.', '-' 만 허용한다.",
+        "description": "종목 심볼. KRX: 6자리 종목코드 (숫자 또는 영문·숫자 조합; 예: 005930, 0101N0), US: 영문 티커 (예: AAPL). 영문 대/소문자, 숫자, '.', '-' 만 허용한다.",
         "examples": {
           "krx": {
             "summary": "삼성전자",
@@ -75,7 +75,7 @@
         }
       },
       "SymbolQuery": {
-        "description": "종목 심볼. KRX: 6자리 숫자 (예: 005930), US: 영문 티커 (예: AAPL). 영문 대/소문자, 숫자, '.', '-' 만 허용한다.",
+        "description": "종목 심볼. KRX: 6자리 종목코드 (숫자 또는 영문·숫자 조합; 예: 005930, 0101N0), US: 영문 티커 (예: AAPL). 영문 대/소문자, 숫자, '.', '-' 만 허용한다.",
         "examples": {
           "krx": {
             "summary": "삼성전자",
@@ -434,6 +434,16 @@
                     "requestId": "01HXYZABCDEFG123456789"
                   }
                 }
+              },
+              "tokenRevoked": {
+                "summary": "재발급으로 무효화된 토큰",
+                "value": {
+                  "error": {
+                    "code": "token-revoked",
+                    "message": "새로 발급된 토큰으로 대체되어 더 이상 유효하지 않은 토큰입니다. 최신 토큰으로 다시 시도해 주세요.",
+                    "requestId": "01HXYZABCDEFG123456789"
+                  }
+                }
               }
             },
             "schema": {
@@ -647,7 +657,7 @@
       "CandlePageResponse": {
         "properties": {
           "candles": {
-            "description": "캔들 목록",
+            "description": "캔들 목록. 최신순(`timestamp` 내림차순) 정렬 — 배열 첫 요소가 가장 최근 봉, 마지막 요소가 가장 오래된 봉입니다.",
             "items": {
               "$ref": "#/components/schemas/Candle"
             },
@@ -901,7 +911,7 @@
             "nullable": true
           },
           "symbol": {
-            "description": "종목 심볼. KRX: 6자리 숫자, US: 영문 티커",
+            "description": "종목 심볼. KRX: 6자리 종목코드 (숫자 또는 영문·숫자 조합), US: 영문 티커",
             "example": "005930",
             "type": "string"
           },
@@ -1023,7 +1033,7 @@
             "type": "string"
           },
           "symbol": {
-            "description": "종목 심볼. KRX: 6자리 숫자, US: 영문 티커",
+            "description": "종목 심볼. KRX: 6자리 종목코드 (숫자 또는 영문·숫자 조합), US: 영문 티커",
             "example": "005930",
             "type": "string"
           },
@@ -1463,7 +1473,7 @@
             "type": "string"
           },
           "symbol": {
-            "description": "종목 심볼. KR: 6자리 숫자, US: 티커",
+            "description": "종목 심볼. KR: 6자리 종목코드 (숫자 또는 영문·숫자 조합), US: 티커",
             "example": "005930",
             "type": "string"
           }
@@ -1981,7 +1991,7 @@
       "MarketIndicatorCandlePageResponse": {
         "properties": {
           "candles": {
-            "description": "캔들 목록",
+            "description": "캔들 목록. 최신순(`timestamp` 내림차순) 정렬 — 배열 첫 요소가 가장 최근 봉, 마지막 요소가 가장 오래된 봉입니다.",
             "items": {
               "$ref": "#/components/schemas/MarketIndicatorCandle"
             },
@@ -2236,7 +2246,7 @@
             "$ref": "#/components/schemas/OrderStatus"
           },
           "symbol": {
-            "description": "종목 심볼. KRX: 6자리 숫자, US: 영문 티커",
+            "description": "종목 심볼. KRX: 6자리 종목코드 (숫자 또는 영문·숫자 조합), US: 영문 티커",
             "example": "005930",
             "type": "string"
           },
@@ -2318,7 +2328,7 @@
                 "type": "string"
               },
               "symbol": {
-                "description": "종목 심볼. KRX: 6자리 숫자, US: 영문 티커",
+                "description": "종목 심볼. KRX: 6자리 종목코드 (숫자 또는 영문·숫자 조합), US: 영문 티커",
                 "example": "005930",
                 "type": "string"
               },
@@ -3051,7 +3061,7 @@
             "type": "integer"
           },
           "symbol": {
-            "description": "종목 심볼. KR: 6자리 숫자 (예: 005930), US: 영문 티커 (예: AAPL)",
+            "description": "종목 심볼. KR: 6자리 종목코드 (숫자 또는 영문·숫자 조합; 예: 005930, 0101N0), US: 영문 티커 (예: AAPL)",
             "example": "005930",
             "type": "string"
           },
@@ -3966,7 +3976,7 @@
   "info": {
     "description": "토스증권 트레이딩 Open API 의 REST 스펙입니다. 실시간 체결·호가·본인 주문 이벤트 스트리밍은 REST 가 아닌 웹소켓 API(`wss://openapi-ws.tossinvest.com/ws/v1`)로 제공되며, 별도의 AsyncAPI 3.0 문서 (https://openapi.tossinvest.com/openapi-docs/latest/asyncapi.json)가 실시간 스펙의 source of truth 입니다.",
     "title": "토스증권 Open API",
-    "version": "1.2.14"
+    "version": "1.2.15"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -4196,7 +4206,7 @@
     },
     "/api/v1/candles": {
       "get": {
-        "description": "종목의 캔들(OHLCV) 차트 데이터를 조회합니다. 최대 200개 봉을 반환합니다.\n\n**Rate Limits Group**: `MARKET_DATA_CHART`\n",
+        "description": "종목의 캔들(OHLCV) 차트 데이터를 조회합니다. 최대 200개 봉을 반환합니다.\n\n봉은 최신순(`timestamp` 내림차순)으로 정렬됩니다 — 배열의 첫 요소가 가장 최근 봉, 마지막 요소가 가장 오래된 봉입니다.\n\n**Rate Limits Group**: `MARKET_DATA_CHART`\n",
         "operationId": "getCandles",
         "parameters": [
           {
@@ -4550,7 +4560,7 @@
             }
           },
           {
-            "description": "종목 심볼 필터 (선택). `OPEN`/`CLOSED` 모두에서 사용할 수 있습니다.\nKRX: 6자리 숫자 (`005930`), US: 영문 티커 (`AAPL`).\n",
+            "description": "종목 심볼 필터 (선택). `OPEN`/`CLOSED` 모두에서 사용할 수 있습니다.\nKRX: 6자리 종목코드 (숫자 또는 영문·숫자 조합; 예: `005930`·`0101N0`), US: 영문 티커 (`AAPL`).\n",
             "example": "005930",
             "in": "query",
             "name": "symbol",
@@ -5390,7 +5400,7 @@
             "$ref": "#/components/parameters/AccountSeq"
           },
           {
-            "description": "종목 심볼. KR: 6자리 숫자 (예: 005930), US: 티커 (예: AAPL).\n영문 대/소문자, 숫자, '.', '-' 만 허용한다.\n제공 시 해당 종목만 필터링하여 반환하며, 요약 필드도 해당 종목 기준으로 재계산합니다.\n미제공 시 전체 보유 종목을 반환합니다.\n",
+            "description": "종목 심볼. KR: 6자리 종목코드 (숫자 또는 영문·숫자 조합; 예: 005930, 0101N0), US: 티커 (예: AAPL).\n영문 대/소문자, 숫자, '.', '-' 만 허용한다.\n제공 시 해당 종목만 필터링하여 반환하며, 요약 필드도 해당 종목 기준으로 재계산합니다.\n미제공 시 전체 보유 종목을 반환합니다.\n",
             "example": "005930",
             "in": "query",
             "name": "symbol",
@@ -6368,7 +6378,7 @@
     },
     "/api/v1/market-indicators/{symbol}/candles": {
       "get": {
-        "description": "시장 지표(국내 지수·국채)의 캔들(OHLCV) 차트 데이터를 조회합니다. 최대 200개 봉을 반환합니다.\n\n지원 심볼은 그룹 상단 **Market Indicators** 설명의 심볼 카탈로그(8종)와 동일하며, 카탈로그에 없는 심볼은\n400 `unsupported-symbol` 로 응답합니다. 개별 종목의 캔들은 `GET /api/v1/candles` 를 사용하세요.\n\n분봉(`1m`)은 지수(`KOSPI`·`KOSDAQ`)만 지원합니다. 국채(`KR_BOND_*`)는 일봉(`1d`)만 지원하며, 분봉 요청 시\n400 `invalid-request` 로 응답합니다.\n\n**Rate Limits Group**: `MARKET_INDICATOR_CHART`\n",
+        "description": "시장 지표(국내 지수·국채)의 캔들(OHLCV) 차트 데이터를 조회합니다. 최대 200개 봉을 반환합니다.\n\n봉은 최신순(`timestamp` 내림차순)으로 정렬됩니다 — 배열의 첫 요소가 가장 최근 봉, 마지막 요소가 가장 오래된 봉입니다.\n\n지원 심볼은 그룹 상단 **Market Indicators** 설명의 심볼 카탈로그(8종)와 동일하며, 카탈로그에 없는 심볼은\n400 `unsupported-symbol` 로 응답합니다. 개별 종목의 캔들은 `GET /api/v1/candles` 를 사용하세요.\n\n분봉(`1m`)은 지수(`KOSPI`·`KOSDAQ`)만 지원합니다. 국채(`KR_BOND_*`)는 일봉(`1d`)만 지원하며, 분봉 요청 시\n400 `invalid-request` 로 응답합니다.\n\n**Rate Limits Group**: `MARKET_INDICATOR_CHART`\n",
         "operationId": "getMarketIndicatorCandles",
         "parameters": [
           {
@@ -6991,7 +7001,7 @@
     },
     "/api/v1/orders": {
       "get": {
-        "description": "주문 목록을 조회합니다.\nstatus 파라미터로 주문 상태를 필터링합니다.\n\n**지원하는 status 값:**\n- 진행 중 주문: `OPEN` -- PENDING, PARTIAL_FILLED, PENDING_CANCEL, PENDING_REPLACE 상태의 주문을 반환\n- 종료된 주문: `CLOSED` -- FILLED, CANCELED, REJECTED, REPLACED 등 종료 상태 주문을 반환합니다.\n\nsymbol을 지정하면 해당 종목의 주문만 필터링하여 반환합니다.\n\n**페이징 동작:**\n- `status=OPEN`: 모든 대기 중 주문을 전량 반환합니다. `limit`, `cursor` 는 무시되며, `from`/`to` 만 주문 생성일(`orderedAt`, KST 기준) 범위 필터로 적용됩니다 (미지정 시 전체 기간).\n- `status=CLOSED`: `limit` (기본 20, 최대 100), `cursor`, `from`/`to` 파라미터 모두 적용됩니다.\n\n**Rate Limits Group**: `ORDER_HISTORY`\n",
+        "description": "주문 목록을 조회합니다.\nstatus 파라미터로 주문 상태를 필터링합니다.\n\n**지원하는 status 값:**\n- 진행 중 주문: `OPEN` -- PENDING, PARTIAL_FILLED, PENDING_CANCEL, PENDING_REPLACE 상태의 주문을 반환\n- 종료된 주문: `CLOSED` -- FILLED, CANCELED, REJECTED, REPLACED 등 종료 상태 주문을 반환합니다.\n\nsymbol을 지정하면 해당 종목의 주문만 필터링하여 반환합니다.\n\n**조회 범위:**\nOpen API 가 지원하는 호가 유형(지정가 · 시장가 · 장마감지정가)으로 접수된 주문만 반환합니다.\n시간외단일가 · 장후시간외 종가 · 장전시간외 종가 등 Open API 로 주문할 수 없는 호가 유형의 주문은\n`OPEN`·`CLOSED` 목록과 주문 상세 조회 모두에서 조회되지 않습니다.\n\n**페이징 동작:**\n- `status=OPEN`: 모든 대기 중 주문을 전량 반환합니다. `limit`, `cursor` 는 무시되며, `from`/`to` 만 주문 생성일(`orderedAt`, KST 기준) 범위 필터로 적용됩니다 (미지정 시 전체 기간).\n- `status=CLOSED`: `limit` (기본 20, 최대 100), `cursor`, `from`/`to` 파라미터 모두 적용됩니다.\n\n**Rate Limits Group**: `ORDER_HISTORY`\n",
         "operationId": "getOrders",
         "parameters": [
           {
@@ -7012,7 +7022,7 @@
             }
           },
           {
-            "description": "종목 심볼. 지정 시 해당 종목의 주문만 조회.\nKRX: 6자리 숫자 (`005930`), US: 영문 티커 (`AAPL`).\n영문 대/소문자, 숫자, '.', '-' 만 허용한다.\n",
+            "description": "종목 심볼. 지정 시 해당 종목의 주문만 조회.\nKRX: 6자리 종목코드 (숫자 또는 영문·숫자 조합; 예: `005930`·`0101N0`), US: 영문 티커 (`AAPL`).\n영문 대/소문자, 숫자, '.', '-' 만 허용한다.\n",
             "examples": {
               "krStock": {
                 "summary": "국내주식 (삼성전자)",
