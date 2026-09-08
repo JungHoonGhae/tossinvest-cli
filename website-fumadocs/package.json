@@ -34,7 +34,7 @@
     "serve": "^14.2.6",
     "tailwindcss": "^4.3.3",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "pnpm": {
     "overrides": {
