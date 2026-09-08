@@ -2,6 +2,9 @@
   "name": "tossinvest-cli-docs",
   "version": "0.0.0",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "packageManager": "pnpm@10.27.0",
   "scripts": {
     "build": "node scripts/sync-changelog.mjs && next build",
@@ -27,7 +30,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "@types/mdx": "^2.0.14",
-    "@types/node": "^25.3.3",
+    "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "postcss": "^8.5.28",

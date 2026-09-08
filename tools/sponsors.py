@@ -4,7 +4,7 @@
 Fetches the maintainer's sponsors (including one-time and private) via the
 GitHub GraphQL API and rewrites the region between the
 `<!-- sponsors:start -->` / `<!-- sponsors:end -->` markers in each target
-file. Run on a schedule by .github/workflows/sponsors.yml so new sponsors
+file. Run on a schedule by .github/workflows/repository-metadata.yml so new sponsors
 appear automatically.
 
 Privacy: PUBLIC sponsors are always shown (avatar + profile link). PRIVATE

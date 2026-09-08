@@ -9,7 +9,7 @@ Usage:
     python3 tools/gen_star_history.py            # gh CLI 로 스타 수집 후 생성
     STARS_FILE=stars.txt python3 tools/...        # 미리 뽑은 타임스탬프 파일 사용
 
-주간 워크플로(.github/workflows/star-history.yml)에서 자동 갱신된다.
+일일 통합 워크플로(.github/workflows/repository-metadata.yml)에서 자동 갱신된다.
 """
 import os
 import time

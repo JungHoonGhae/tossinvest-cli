@@ -1,0 +1,59 @@
+name: Repository Metadata
+
+# One daily PR for statistics, charts, and sponsor attribution.
+# Downloads remain sampled daily; pending PRs retain previous observations.
+on:
+  schedule:
+    - cron: '17 23 * * *' # 08:17 KST
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: automation-repository-metadata
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Reuse pending maintenance PR before generating
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash tools/open_automation_pr.sh --prepare automation/repository-metadata
+      - name: Update daily statistics and star charts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 tools/update_stats.py
+          python3 tools/gen_star_history.py
+      - name: Refresh sponsor attribution when configured
+        env:
+          GH_TOKEN: ${{ secrets.SPONSORS_TOKEN }}
+        run: |
+          if [ -n "$GH_TOKEN" ]; then
+            python3 tools/sponsors.py
+          else
+            echo "SPONSORS_TOKEN not configured; preserving existing attribution."
+          fi
+      - name: Publish one protected maintenance PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git add STATS.md docs/.stats-downloads.json docs/assets/star-history README.md README.en.md
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(metadata): 통계·스타 차트·후원자 갱신"
+          fi
+          bash tools/open_automation_pr.sh automation/repository-metadata \
+            "chore(metadata): 통계·스타 차트·후원자 갱신"

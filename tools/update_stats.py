@@ -3,8 +3,9 @@
 release downloads, and an integrated Total.
 
 Stars and forks are recomputed every run from each stargazer's `starredAt`
-and each fork's `createdAt`, so those series are always accurate back to
-launch. GitHub only exposes *cumulative* release download totals (no historical
+and each fork's `createdAt`. These are reconstructions from currently remaining
+stars/forks, not historical daily observations; removals can revise old rows.
+GitHub only exposes *cumulative* release download totals (no historical
 dailies), so downloads are logged forward from the day this script first runs,
 persisted in docs/.stats-downloads.json. Total = stars + forks + downloads.
 
@@ -162,7 +163,8 @@ def main() -> None:
     header = f"""# Stats
 
 > Auto-updated daily. **Stars** and **forks** are backfilled from launch via each
-> stargazer's `starredAt` / each fork's `createdAt`. **Release downloads** are
+> remaining stargazer's `starredAt` / each fork's `createdAt`. Removed stars/forks
+> can revise old rows; this is not a historical daily snapshot. **Release downloads** are
 > GitHub's cumulative asset totals — GitHub exposes no historical dailies, so the
 > download count is tracked forward from the day measurement started; rows before
 > that show `n/a`, and days without a fresh sample carry the last known value

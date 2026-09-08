@@ -8,8 +8,12 @@ updates:
       day: tuesday
       time: "09:00"
       timezone: Asia/Seoul
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
     groups:
+      go-major:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [major]
       go-minor-patch:
         applies-to: version-updates
         patterns:
@@ -29,8 +33,17 @@ updates:
       day: tuesday
       time: "09:10"
       timezone: Asia/Seoul
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
+    # Node typings follow the deployed Node 24 runtime, not newest Node Current.
+    # This type-only constraint does not suppress runtime security updates.
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
+      website-major:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [major]
       website-minor-patch:
         applies-to: version-updates
         patterns:
@@ -50,8 +63,12 @@ updates:
       day: tuesday
       time: "09:20"
       timezone: Asia/Seoul
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 2
     groups:
+      actions-major:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [major]
       actions-minor-patch:
         applies-to: version-updates
         patterns:
