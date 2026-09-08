@@ -80,6 +80,8 @@ type OrdersFilter struct {
 }
 
 // Orders fetches a page of order history for the authenticated account.
+// Only Open API-supported order types are visible. Unsupported after-hours
+// orders are excluded from both lists and OrderByID, even after all pages.
 // filter may be a zero-value OrdersFilter to use API defaults.
 // Requires the X-Tossinvest-Account header; configure via WithAccountSeq.
 //

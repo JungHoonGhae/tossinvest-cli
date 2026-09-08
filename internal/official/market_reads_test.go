@@ -445,6 +445,7 @@ func TestAdaptMarketIndicatorCandlesUnit(t *testing.T) {
 	raw := apiMarketIndicatorCandlePage{
 		Candles: []apiMarketIndicatorCandle{
 			{Timestamp: "2026-06-11T09:00:00+09:00", OpenPrice: "2798.32", HighPrice: "2820.15", LowPrice: "2790.1", ClosePrice: "2812.45", Volume: "123456"},
+			{Timestamp: "2026-06-10T09:00:00+09:00", ClosePrice: "2790"},
 		},
 		NextBefore: "2026-06-10T09:00:00+09:00",
 	}
@@ -455,8 +456,11 @@ func TestAdaptMarketIndicatorCandlesUnit(t *testing.T) {
 	if got.NextBefore != "2026-06-10T09:00:00+09:00" {
 		t.Fatalf("NextBefore: %q", got.NextBefore)
 	}
-	if len(got.Candles) != 1 {
+	if len(got.Candles) != 2 {
 		t.Fatalf("len: %d", len(got.Candles))
+	}
+	if got.Candles[0].Timestamp != raw.Candles[0].Timestamp || got.Candles[1].Close != 2790 {
+		t.Fatalf("newest-first page changed: %+v", got.Candles)
 	}
 	c0 := got.Candles[0]
 	if c0.Open != 2798.32 || c0.High != 2820.15 || c0.Low != 2790.1 || c0.Close != 2812.45 || c0.Volume != 123456 {

@@ -2,11 +2,54 @@ package official
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
 )
+
+func TestRevokedTokenRefreshesOnlyOnce(t *testing.T) {
+	for _, stillRevoked := range []bool{false, true} {
+		t.Run(fmt.Sprint(stillRevoked), func(t *testing.T) {
+			tokens, calls := 0, 0
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/oauth2/token" {
+					tokens++
+					fmt.Fprintf(w, `{"access_token":"AT%d","expires_in":3600,"token_type":"Bearer"}`, tokens)
+					return
+				}
+				calls++
+				if r.Header.Get("Authorization") != fmt.Sprintf("Bearer AT%d", calls) {
+					t.Errorf("stale authorization: %q", r.Header.Get("Authorization"))
+				}
+				if calls == 1 || stillRevoked {
+					w.WriteHeader(http.StatusUnauthorized)
+					fmt.Fprint(w, `{"error":{"code":"token-revoked","message":"새로 발급된 토큰으로 대체되어 더 이상 유효하지 않은 토큰입니다.","requestId":"test"}}`)
+					return
+				}
+				fmt.Fprint(w, `{"result":{"ok":true}}`)
+			}))
+			defer srv.Close()
+			c := New(Credentials{APIKey: "k", SecretKey: "s"}, filepath.Join(t.TempDir(), "token.json"), WithBaseURL(srv.URL), WithHTTPClient(srv.Client()))
+			var result struct {
+				OK bool `json:"ok"`
+			}
+			err := c.get(context.Background(), "/api/v1/ping", nil, &result)
+			if stillRevoked {
+				if !errors.Is(err, ErrAuth) {
+					t.Fatalf("want ErrAuth, got %v", err)
+				}
+			} else if err != nil || !result.OK {
+				t.Fatalf("refresh failed: %+v %v", result, err)
+			}
+			if calls != 2 || tokens != 2 {
+				t.Fatalf("unbounded retry: requests=%d tokens=%d", calls, tokens)
+			}
+		})
+	}
+}
 
 func TestGetUnwrapsEnvelopeAndRetriesOn401(t *testing.T) {
 	var calls int

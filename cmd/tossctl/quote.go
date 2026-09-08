@@ -166,6 +166,7 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 	chartCmd := &cobra.Command{
 		Use:         "chart <symbol or name>",
 		Short:       i18n.T("quote.chart.short"),
+		Long:        i18n.T("quote.chart.long"),
 		Args:        cobra.MinimumNArgs(1),
 		Annotations: map[string]string{"source": "both"},
 		RunE: func(cmd *cobra.Command, args []string) error {

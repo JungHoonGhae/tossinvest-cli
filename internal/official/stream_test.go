@@ -113,13 +113,13 @@ func TestStreamRequiresSubscriptions(t *testing.T) {
 }
 
 // TestStreamSubscriptionsGroupsByMarket pins the symbol → market rule: KRX codes
-// are 6 digits, everything else is treated as US.
+// are numeric-leading alphanumeric codes, other symbols are treated as US.
 func TestStreamSubscriptionsGroupsByMarket(t *testing.T) {
-	subs := StreamSubscriptions([]string{"005930", "aapl", " "}, []string{"035420"}, []string{"3"})
+	subs := StreamSubscriptions([]string{"005930", "aapl", " ", " 0101n0 ", "ABCDEF"}, []string{"035420", "00680K"}, []string{"3"})
 	want := []Subscription{
-		{Type: "trade:kr", Codes: []string{"005930"}},
-		{Type: "trade:us", Codes: []string{"AAPL"}},
-		{Type: "orderbook:kr", Codes: []string{"035420"}},
+		{Type: "trade:kr", Codes: []string{"005930", "0101N0"}},
+		{Type: "trade:us", Codes: []string{"AAPL", "ABCDEF"}},
+		{Type: "orderbook:kr", Codes: []string{"035420", "00680K"}},
 		{Type: "personal:order", Codes: []string{"3"}},
 	}
 	if len(subs) != len(want) {

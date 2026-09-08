@@ -125,7 +125,8 @@ func readOperations() []Operation {
 			Category: "order",
 			Summary: "List orders with optional filters. Returns one PAGE: check has_next, " +
 				"and pass next_cursor back as cursor to get the rest — the first call is not " +
-				"necessarily the whole history.",
+				"necessarily the whole history. Only LIMIT, MARKET and market-on-close orders supported by Open API are visible; " +
+				"unsupported after-hours order types are excluded from both OPEN/CLOSED lists and detail. An empty result does not prove no orders exist.",
 			Params: []Param{
 				{Name: "status", Type: "string", Desc: `"OPEN" or "CLOSED"`},
 				{Name: "symbol", Type: "string"},
@@ -160,7 +161,7 @@ func readOperations() []Operation {
 		},
 		{
 			ID: "order", Method: "GET", Path: "/api/v1/orders/{orderId}",
-			Category: "order", Summary: "Fetch a single order by id.",
+			Category: "order", Summary: "Fetch a single Open API-supported order by id. Unsupported after-hours order types are excluded, just as in the orders list.",
 			Params: []Param{{Name: "order_id", Type: "string", Required: true}},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				orderID, err := argString(args, "order_id")
@@ -283,7 +284,7 @@ func readOperations() []Operation {
 		},
 		{
 			ID: "candles", Method: "GET", Path: "/api/v1/candles",
-			Category: "market", Summary: "OHLC candles for a symbol.",
+			Category: "market", Summary: "OHLC candles for a symbol, normalized to oldest-first chronological order (latest close last), unlike the newest-first official response.",
 			Params: []Param{
 				{Name: "symbol", Type: "string", Required: true},
 				{Name: "interval", Type: "string", Required: true, Desc: "e.g. 1d, 1w, 1m"},
