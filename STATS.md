@@ -1,7 +1,8 @@
 # Stats
 
 > Auto-updated daily. **Stars** and **forks** are backfilled from launch via each
-> stargazer's `starredAt` / each fork's `createdAt`. **Release downloads** are
+> remaining stargazer's `starredAt` / each fork's `createdAt`. Removed stars/forks
+> can revise old rows; this is not a historical daily snapshot. **Release downloads** are
 > GitHub's cumulative asset totals — GitHub exposes no historical dailies, so the
 > download count is tracked forward from the day measurement started; rows before
 > that show `n/a`, and days without a fresh sample carry the last known value

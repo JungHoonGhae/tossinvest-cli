@@ -15,14 +15,23 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: wts-monitor
+  group: automation-wts-monitor
   cancel-in-progress: false
 
 jobs:
   monitor:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Reuse pending catalog PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash tools/open_automation_pr.sh --prepare automation/wts-monitor
 
       - name: Extract + classify WTS endpoints
         id: scan
@@ -123,8 +132,9 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/reverse-engineering/wts-endpoints.json docs/reverse-engineering/android-app.json
-          git diff --cached --quiet && { echo "변동 없음 — commit skip"; exit 0; }
-          git commit -m "chore(wts-monitor): WTS API 카탈로그 갱신 [skip ci]"
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(wts-monitor): WTS API 카탈로그 갱신"
+          fi
           bash tools/open_automation_pr.sh \
             automation/wts-monitor \
             "chore(wts-monitor): WTS API 카탈로그 갱신"

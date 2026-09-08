@@ -51,7 +51,7 @@ class AutomationIdentityTests(unittest.TestCase):
         )
 
     def test_automation_prs_authorize_the_attached_ci_run(self):
-        source = AUTOMATION_PR_HELPER.read_text(encoding="utf-8")
+        source = (ROOT / "tools/approve_automation_ci.sh").read_text(encoding="utf-8")
         self.assertIn("--event pull_request", source)
         self.assertIn("actions/runs/$run_id/approve", source)
         self.assertNotIn(
@@ -59,6 +59,28 @@ class AutomationIdentityTests(unittest.TestCase):
             source,
             "workflow_dispatch checks are not attached to the pull request",
         )
+
+    def test_no_automation_workflow_skips_required_ci(self):
+        for workflow in WORKFLOWS.glob("*.yml"):
+            self.assertNotRegex(workflow.read_text(), r"(?i)\[(?:skip ci|ci skip|no ci|skip actions|actions skip)\]")
+
+    def test_metadata_has_one_schedule_and_shared_refresh_concurrency(self):
+        self.assertFalse((WORKFLOWS / "stats.yml").exists())
+        self.assertFalse((WORKFLOWS / "star-history.yml").exists())
+        self.assertFalse((WORKFLOWS / "sponsors.yml").exists())
+        source = (WORKFLOWS / "repository-metadata.yml").read_text()
+        for script in ["update_stats.py", "gen_star_history.py", "sponsors.py"]:
+            self.assertIn(script, source)
+        for family in ["repository-metadata", "wts-monitor", "daily-monitor"]:
+            source = (WORKFLOWS / f"{family}.yml").read_text()
+            self.assertIn(f"group: automation-{family}", source)
+            self.assertLess(source.index("--prepare"), source.index("python3 tools/"))
+            self.assertIn("fetch-depth: 0", source)
+
+    def test_automation_does_not_duplicate_push_and_pr_ci(self):
+        source = (WORKFLOWS / "ci.yml").read_text()
+        self.assertNotIn('"automation/**"', source)
+        self.assertIn("pull_request:", source)
 
 
 if __name__ == "__main__":

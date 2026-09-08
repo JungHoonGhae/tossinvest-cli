@@ -11,14 +11,23 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: daily-monitor
+  group: automation-daily-monitor
   cancel-in-progress: false
 
 jobs:
   monitor:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Reuse pending spec PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash tools/open_automation_pr.sh --prepare automation/daily-monitor
 
       - name: PR list (24h)
         id: pr
@@ -251,7 +260,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add website-fumadocs/content/docs/reference/support-scope.mdx website-fumadocs/content/docs/reference/support-scope.en.mdx
           git diff --cached --quiet && { echo "🆕 마커 최신"; exit 0; }
-          git commit -m "docs(scope): 🆕 마커 자동 갱신 (최근 한 달 윈도우) [skip ci]"
+          git commit -m "docs(scope): 🆕 마커 자동 갱신 (최근 한 달 윈도우)"
 
       - name: Open protected automation PR
         env:

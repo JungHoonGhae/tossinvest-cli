@@ -5,7 +5,6 @@ on:
     branches:
       - main
       - "analysis/**"
-      - "automation/**"
   pull_request:
   workflow_dispatch:
 
@@ -60,6 +59,7 @@ jobs:
           go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
           actionlint
           bash -n tools/open_automation_pr.sh
+          bash -n tools/approve_automation_ci.sh
           bash -n tools/codex_api_analysis.sh
 
       - name: Build CLI

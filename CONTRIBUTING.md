@@ -38,6 +38,8 @@ python3 -m pip install -e .
 4. `main`은 ruleset으로 보호됩니다. 사람과 정기 자동화 모두 PR을 거쳐야 하고 필수
    `test-and-build` 체크가 최신 `main` 기준으로 통과해야 합니다. 정기 카탈로그·통계 갱신은
    `automation/*` 브랜치에 PR을 만든 뒤 CI가 통과해야 자동 병합됩니다.
+   같은 종류의 자동 갱신은 기존 PR을 재사용합니다. 일정·병합 대기 처리·의존성 그룹은
+   [자동 PR 운영](docs/operations.md#자동-pr-운영)을 참고하세요.
 
 ### 기여자 크레딧과 멘션
 
