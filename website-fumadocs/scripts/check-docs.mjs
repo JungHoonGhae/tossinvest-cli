@@ -10,10 +10,18 @@ const fetchText = async (path) => {
   assert.equal(response.status, 200, `${path}: HTTP ${response.status}`);
   return response.text();
 };
+const checkGithubIcon = (html, path) => {
+  const links = html.match(/<a\b[^>]*href="https:\/\/github\.com\/JungHoonGhae\/tossinvest-cli"[^>]*>[\s\S]*?<\/a>/g) ?? [];
+  assert.ok(links.length > 0, `${path}: GitHub repository link`);
+  for (const link of links) {
+    assert.match(link, /<svg\b[^>]*viewBox="0 0 24 24"[^>]*aria-hidden="true"/, `${path}: decorative GitHub icon`);
+    assert.ok(link.includes('M9 18c-4.51 2-5-2-7-2'), `${path}: preserved GitHub icon path`);
+  }
+};
 const fullText = await fetchText('/llms-full.txt');
 const sitemap = await fetchText('/sitemap.xml');
 await fetchText('/llms.txt');
-for (const path of ['/', '/en']) await fetchText(path);
+for (const path of ['/', '/en']) checkGithubIcon(await fetchText(path), path);
 
 for (const file of pages) {
   const english = file.endsWith('.en.mdx');
@@ -25,6 +33,7 @@ for (const file of pages) {
   const imagePath = `/og/docs/${resource}image.png`;
   const title = readFileSync(new URL(file, docsRoot), 'utf8').match(/^title: (.+)$/m)[1];
   const html = await fetchText(path);
+  checkGithubIcon(html, path);
   assert.ok(html.includes(`<html lang="${locale}"`), `${path}: document language`);
   assert.ok(html.includes(markdownPath), `${path}: localized Markdown link`);
   assert.ok(html.includes(`website-fumadocs/content/docs/${file}`), `${path}: GitHub source link`);
