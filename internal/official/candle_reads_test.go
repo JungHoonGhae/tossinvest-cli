@@ -1,13 +1,77 @@
 package official
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 )
+
+func TestNewestFirstCandlesRenderChronologically(t *testing.T) {
+	raw := apiCandlePage{Candles: []apiCandle{
+		{Timestamp: "2026-09-08T09:01:00+09:00", OpenPrice: "72000", HighPrice: "73000", LowPrice: "71000", ClosePrice: "73000"},
+		{Timestamp: "2026-09-08T09:00:00+09:00", OpenPrice: "71000", HighPrice: "72000", LowPrice: "70000", ClosePrice: "71000"},
+	}}
+	chart := adaptCandles("005930", "1m", raw)
+	if !chart.Candles[0].Time.Before(chart.Candles[1].Time) || chart.Candles[1].Close != 73000 {
+		t.Fatalf("not oldest first: %+v", chart.Candles)
+	}
+	if raw.Candles[0].ClosePrice != "73000" {
+		t.Fatal("adapter mutated input")
+	}
+	for _, format := range []output.Format{output.FormatTable, output.FormatJSON, output.FormatCSV} {
+		t.Run(string(format), func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := output.WriteChart(&buf, format, chart); err != nil {
+				t.Fatal(err)
+			}
+			switch format {
+			case output.FormatTable:
+				if !strings.Contains(strings.SplitN(buf.String(), "\n", 2)[0], "73,000") {
+					t.Fatalf("wrong headline: %s", buf.String())
+				}
+				lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+				axis := lines[len(lines)-1]
+				older := strings.Index(axis, chart.Candles[0].Time.Local().Format("15:04"))
+				newer := strings.Index(axis, chart.Candles[1].Time.Local().Format("15:04"))
+				if older < 0 || newer <= older {
+					t.Fatalf("reversed or missing time axis: %q", axis)
+				}
+			case output.FormatJSON:
+				var decoded domain.Chart
+				if err := json.Unmarshal(buf.Bytes(), &decoded); err != nil {
+					t.Fatal(err)
+				}
+				if decoded.Candles[0].Close != 71000 || decoded.Candles[1].Close != 73000 {
+					t.Fatal("JSON order changed")
+				}
+				if !decoded.Candles[0].Time.Equal(chart.Candles[0].Time) || !decoded.Candles[1].Time.Equal(chart.Candles[1].Time) {
+					t.Fatal("JSON timestamps changed")
+				}
+			case output.FormatCSV:
+				rows, err := csv.NewReader(&buf).ReadAll()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if len(rows) != 3 || rows[1][4] != "71000" || rows[2][4] != "73000" {
+					t.Fatalf("CSV order: %v", rows)
+				}
+				if rows[1][0] != raw.Candles[1].Timestamp || rows[2][0] != raw.Candles[0].Timestamp {
+					t.Fatalf("CSV timestamps: %v", rows)
+				}
+			}
+		})
+	}
+}
 
 // TestAdaptCandlesUnit verifies the pure adapter for Candles.
 func TestAdaptCandlesUnit(t *testing.T) {

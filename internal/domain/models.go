@@ -611,6 +611,7 @@ type Candle struct {
 	Volume float64   `json:"volume,omitempty"`
 }
 
+// Chart candles are chronological (oldest first) in every output format.
 type Chart struct {
 	ProductCode string    `json:"product_code"`
 	Symbol      string    `json:"symbol,omitempty"`
@@ -1216,7 +1217,8 @@ type MarketIndicatorCandle struct {
 	Volume    float64 `json:"volume"`
 }
 
-// MarketIndicatorCandles is a page of candles for one indicator symbol.
+// MarketIndicatorCandles is a newest-first page for one indicator symbol.
+// NextBefore addresses an older page; unlike Chart, API page order is preserved.
 // Source: GET /api/v1/market-indicators/{symbol}/candles (official Open API, key required).
 type MarketIndicatorCandles struct {
 	Symbol     string                  `json:"symbol"`

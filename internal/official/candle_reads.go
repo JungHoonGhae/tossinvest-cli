@@ -3,6 +3,7 @@ package official
 import (
 	"context"
 	"net/url"
+	"slices"
 	"strconv"
 	"time"
 
@@ -101,6 +102,9 @@ func adaptCandles(symbol, interval string, raw apiCandlePage) domain.Chart {
 			Volume: parseDecimal(c.Volume),
 		})
 	}
+	// The API returns newest first. Chart consumers (including WTS charts)
+	// use chronological order, with the latest close at the end.
+	slices.Reverse(candles)
 	return domain.Chart{
 		Symbol:    symbol,
 		Interval:  interval,

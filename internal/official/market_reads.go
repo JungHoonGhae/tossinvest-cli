@@ -455,7 +455,8 @@ func (c *Client) MarketIndicatorCandles(ctx context.Context, symbol, interval st
 	return adaptMarketIndicatorCandles(symbol, interval, raw), nil
 }
 
-// adaptMarketIndicatorCandles converts the official candle page to domain.
+// adaptMarketIndicatorCandles preserves the newest-first page and its older-page
+// cursor. Unlike Chart, this is a paginated market-indicator response.
 func adaptMarketIndicatorCandles(symbol, interval string, raw apiMarketIndicatorCandlePage) domain.MarketIndicatorCandles {
 	candles := make([]domain.MarketIndicatorCandle, 0, len(raw.Candles))
 	for _, cd := range raw.Candles {

@@ -185,7 +185,8 @@ func (c *Client) streamURLOrDefault() string {
 }
 
 // StreamSubscriptions builds the declaration array from per-channel symbol
-// lists. 시장 구분(kr/us)은 심볼 모양으로 정한다 — KRX 는 6자리 숫자, US 는 티커.
+// lists. Numeric-leading six-character alphanumeric codes are inferred as KR;
+// other symbols are treated as US tickers. Server subscription support may vary.
 func StreamSubscriptions(trade, orderbook []string, accountSeqs []string) []Subscription {
 	var subs []Subscription
 	for _, ch := range []struct {
@@ -212,13 +213,14 @@ func StreamSubscriptions(trade, orderbook []string, accountSeqs []string) []Subs
 	return subs
 }
 
-// marketOf classifies a symbol: KRX codes are 6 digits, everything else is US.
+// marketOf uses the same numeric-leading convention as WTS symbol resolution.
+// This includes codes such as 0101N0 without mistaking six-letter US tickers for KR.
 func marketOf(symbol string) string {
-	if len(symbol) != 6 {
+	if len(symbol) != 6 || symbol[0] < '0' || symbol[0] > '9' {
 		return "us"
 	}
 	for _, r := range symbol {
-		if r < '0' || r > '9' {
+		if !((r >= '0' && r <= '9') || (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z')) {
 			return "us"
 		}
 	}
