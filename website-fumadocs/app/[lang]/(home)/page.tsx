@@ -1,11 +1,11 @@
 import Link from 'fumadocs-core/link';
 import { TossctlIcon } from '@/app/layout.client';
+import { GithubIcon } from '@/components/icons/github';
 import {
   Bot,
   ChartCandlestick,
   Check,
   ChevronDown,
-  Github,
   Radio,
   ShieldCheck,
   Sparkles,
@@ -492,7 +492,7 @@ export default async function HomePage(props: PageProps<'/[lang]'>) {
                 href="https://github.com/JungHoonGhae/tossinvest-cli"
                 className="inline-flex items-center gap-2 rounded-md border border-white/15 px-5 py-2.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/5"
               >
-                <Github className="size-4" />
+                <GithubIcon className="size-4" />
                 GitHub
               </Link>
             </div>
@@ -750,7 +750,7 @@ $ tossctl order preview --symbol TSLA --side buy --qty 1 --price 250`}</code>
       <footer className="border-t border-white/10">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-4 py-7 font-mono text-xs sm:flex-row">
           <span className="inline-flex items-center gap-2 text-white/45">
-            <Github className="size-3.5" />
+            <GithubIcon className="size-3.5" />
             JungHoonGhae/tossinvest-cli
           </span>
           <span className="inline-flex items-center gap-2">

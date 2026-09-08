@@ -1,5 +1,6 @@
 import type { BaseLayoutProps, LinkItemType } from 'fumadocs-ui/layouts/shared';
-import { Bot, Github, History, Rocket, ShieldCheck, Star, TerminalSquare } from 'lucide-react';
+import { Bot, History, Rocket, ShieldCheck, Star, TerminalSquare } from 'lucide-react';
+import { GithubIcon } from '@/components/icons/github';
 import {
   NavbarMenu,
   NavbarMenuContent,
@@ -64,7 +65,7 @@ async function GithubBadge({ className }: { className?: string }) {
         (className ?? '')
       }
     >
-      <Github className="size-4 shrink-0" />
+      <GithubIcon className="size-4 shrink-0" />
       {stars !== null && (
         <span className="flex items-center gap-0.5 text-xs tabular-nums">
           <Star className="size-3" />
