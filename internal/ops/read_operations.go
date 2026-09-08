@@ -125,7 +125,7 @@ func readOperations() []Operation {
 			Category: "order",
 			Summary: "List orders with optional filters. Returns one PAGE: check has_next, " +
 				"and pass next_cursor back as cursor to get the rest — the first call is not " +
-				"necessarily the whole history. Only LIMIT, MARKET and market-on-close orders supported by Open API are visible; " +
+				"necessarily the whole history. Only LIMIT, MARKET and limit-on-close orders supported by Open API are visible; " +
 				"unsupported after-hours order types are excluded from both OPEN/CLOSED lists and detail. An empty result does not prove no orders exist.",
 			Params: []Param{
 				{Name: "status", Type: "string", Desc: `"OPEN" or "CLOSED"`},

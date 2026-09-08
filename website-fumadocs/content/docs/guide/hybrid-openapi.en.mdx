@@ -239,7 +239,7 @@ tossctl account summary --backend auto       # default: auto-routing
 
 - `quote chart` and ops/MCP `candles` return **oldest first**, consistently across table, JSON and CSV. Official newest-first responses are normalized to the WTS chart convention; the last candle is the latest.
 - `market indicator-candles` preserves the official **newest-first** page. `next_before` addresses an older page.
-- Official ops/MCP `orders` and `order` only expose supported order types, including limit, market and market-on-close. Unsupported after-hours auction and pre/post-market closing-price orders are excluded from both lists and detail. Reading every page or receiving an empty list **does not establish the full order history**. WTS queries have a different scope; these omissions are not HTTP errors and do not trigger automatic fallback.
+- Official ops/MCP `orders` and `order` only expose supported order types, including limit, market and limit-on-close. Unsupported after-hours auction and pre/post-market closing-price orders are excluded from both lists and detail. Reading every page or receiving an empty list **does not establish the full order history**. WTS queries have a different scope; these omissions are not HTTP errors and do not trigger automatic fallback.
 - `stream` infers numeric-leading six-character alphanumeric codes (`005930`, `0101N0`) as KR. This is client classification, not a guarantee that the server supports subscriptions for each symbol.
 
 ## Fallback and source display
