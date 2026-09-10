@@ -538,6 +538,12 @@ REAL_SHADOWS = {
 # Keeping these in the generated inventory lets the weekly monitor retain and
 # diff every endpoint tossctl actually calls, including safe write surfaces.
 CURATED_CONTRACTS = {
+    "/api/v3/my-assets/transactions/markets/{market}": {
+        "method": "GET",
+        "host": "wts-api",
+        "evidence": "partial",
+        "note": "Existing internal/client/transactions.go call contract and HTTP fixtures: kr|us; size, filters, range.from, range.to, optional number. Reused by local history and runtime probes. Live validation on 2026-09-11 was unavailable because the WTS session returned 401.",
+    },
     "/api/v1/trade-purpose-verification/my-data/account/exists": {
         "method": "GET",
         "host": "wts-api",
@@ -1171,6 +1177,11 @@ def _probe_inventory_path(path):
         count=1,
     )
     path = re.sub(r"(^/api/v4/calendar/monthly/)[^/]+$", r"\1{month}", path)
+    path = re.sub(
+        r"(^/api/v3/my-assets/transactions/markets/)(?:kr|us)$",
+        r"\1{market}",
+        path,
+    )
     return path
 
 

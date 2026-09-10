@@ -927,6 +927,19 @@ class TestClassify(unittest.TestCase):
             "/api/v4/calendar/monthly/{month}",
         )
 
+    def test_transaction_probes_share_the_existing_client_contract(self):
+        path = "/api/v3/my-assets/transactions/markets/{market}"
+        contract = W.CURATED_CONTRACTS[path]
+        probes = []
+        for market in ("kr", "us"):
+            concrete = f"/api/v3/my-assets/transactions/markets/{market}"
+            self.assertEqual(W._probe_inventory_path(concrete), path)
+            probes.append({"name": market, "path": concrete, "method": "GET", "host": "wts-api"})
+        self.assertEqual(W.probe_inventory_mismatches(probes, {path: contract}), [])
+        overview = "/api/v3/my-assets/transactions/markets/kr/overview"
+        self.assertEqual(W._probe_inventory_path(overview), overview)
+        self.assertIsNone(W.find_inventory_entry({path: contract}, overview))
+
     def test_known_host_aliases_are_exact_and_path_scoped(self):
         path = "/api/v1/earning-call/home"
         self.assertTrue(W.hosts_compatible(path, "wts-cert-api", "wts-info-api"))

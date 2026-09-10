@@ -5,13 +5,13 @@
     "7r39ou7dRVa7AiAbxAXNF"
   ],
   "chunk_count": 77,
-  "total": 1147,
+  "total": 1148,
   "counts": {
-    "implemented": 166,
+    "implemented": 167,
     "candidate": 321,
     "excluded": 660,
     "candidate_next": 0,
-    "meaningful": 487
+    "meaningful": 488
   },
   "overrides": {
     "/api/v1/openapi/client/allowed-ips": {
@@ -10278,6 +10278,14 @@
         "body": [],
         "at": "2026-09-03"
       }
+    },
+    "/api/v3/my-assets/transactions/markets/{market}": {
+      "status": "implemented",
+      "method": "GET",
+      "host": "wts-api",
+      "evidence": "partial",
+      "note": "Existing internal/client/transactions.go call contract and HTTP fixtures: kr|us; size, filters, range.from, range.to, optional number. Reused by local history and runtime probes. Live validation on 2026-09-11 was unavailable because the WTS session returned 401.",
+      "first_seen": "2026-09-11"
     },
     "/api/v3/my-assets/transactions/markets/{market}/lastest-etc-lend": {
       "status": "implemented",
