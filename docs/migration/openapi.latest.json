@@ -630,7 +630,7 @@
             "type": "string"
           },
           "timestamp": {
-            "description": "봉 시작 시각",
+            "description": "봉 기준 시각\n- `1m`: 봉 종료 시각. 해당 봉은 `[timestamp - 1분, timestamp)` 구간의 체결을 집계합니다.\n- `1d`: 해당 거래일 (시각은 현지 자정 고정)\n",
             "example": "2026-03-25T09:00:00+09:00",
             "format": "date-time",
             "type": "string"
@@ -4275,7 +4275,7 @@
                             "highPrice": "72300",
                             "lowPrice": "71500",
                             "openPrice": "71600",
-                            "timestamp": "2026-03-25T09:00:00+09:00",
+                            "timestamp": "2026-03-25T00:00:00+09:00",
                             "volume": "3521000"
                           },
                           {
@@ -4284,11 +4284,11 @@
                             "highPrice": "71800",
                             "lowPrice": "71000",
                             "openPrice": "71200",
-                            "timestamp": "2026-03-24T09:00:00+09:00",
+                            "timestamp": "2026-03-24T00:00:00+09:00",
                             "volume": "2984000"
                           }
                         ],
-                        "nextBefore": "2026-03-24T09:00:00+09:00"
+                        "nextBefore": "2026-03-24T00:00:00+09:00"
                       }
                     }
                   },
@@ -4303,7 +4303,7 @@
                             "highPrice": "71200",
                             "lowPrice": "70500",
                             "openPrice": "70800",
-                            "timestamp": "2026-03-20T09:00:00+09:00",
+                            "timestamp": "2026-03-20T00:00:00+09:00",
                             "volume": "2112000"
                           }
                         ],
@@ -7587,6 +7587,16 @@
             "content": {
               "application/json": {
                 "examples": {
+                  "oppositePendingOrderExists": {
+                    "summary": "반대 방향 미체결 주문 존재",
+                    "value": {
+                      "error": {
+                        "code": "opposite-pending-order-exists",
+                        "message": "동일 종목에 반대 방향의 체결 대기 주문이 있습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
                   "requestInProgress": {
                     "summary": "동일 주문 키에 대해 처리 중인 요청 있음",
                     "value": {
@@ -7713,16 +7723,6 @@
                           }
                         },
                         "message": "최대 주문가능금액을 초과하였습니다.",
-                        "requestId": "01HXYZABCDEFG123456789"
-                      }
-                    }
-                  },
-                  "oppositePendingOrderExists": {
-                    "summary": "반대 방향 미체결 주문 존재",
-                    "value": {
-                      "error": {
-                        "code": "opposite-pending-order-exists",
-                        "message": "동일 종목에 반대 방향의 체결 대기 주문이 있습니다.",
                         "requestId": "01HXYZABCDEFG123456789"
                       }
                     }
