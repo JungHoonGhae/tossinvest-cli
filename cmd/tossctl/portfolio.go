@@ -50,6 +50,7 @@ func newPortfolioCmd(opts *rootOptions) *cobra.Command {
 			},
 		},
 		newDividendsCmd(opts),
+		newPortfolioBriefingCmd(opts),
 		newPortfolioPerformanceCmd(opts),
 		newPortfolioSnapshotsCmd(opts),
 		newPortfolioSnapshotCmd(opts),

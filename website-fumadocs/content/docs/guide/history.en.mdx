@@ -1,0 +1,77 @@
+---
+title: Local history and holdings briefings
+description: Save observations for offline comparison and collect holdings-related information in one call
+---
+
+`history` saves explicit observations of WTS holdings and transactions in SQLite. Every collection has its own snapshot ID and can be queried without credentials or a network connection. `portfolio briefing` combines current holdings with related news, upcoming earnings calls, and pending orders.
+
+## Collect history
+
+Collection requires a WTS web session. `--market` selects transaction markets; holdings always include the current session's full position list. Preview the database, date range, markets, and previous snapshot before saving.
+
+```bash
+tossctl history sync --from 2026-09-01 --to 2026-09-11 --market all --output json
+```
+
+To save, repeat the same intent with the preview's `confirm_token`:
+
+```bash
+tossctl history sync --from 2026-09-01 --to 2026-09-11 --market all \
+  --execute --confirm <token-from-preview> --output json
+```
+
+Tokens bind the session, account set and primary account, database path, collection intent, and previous snapshot ID. They expire after five minutes. If another collection commits first, preview again. Execution changes only the local DB and never authorizes a live order.
+
+Dates default to today in Korea and 30 days earlier. Each range is limited to 200 inclusive days. Collection defaults to 20 pages per market; `--page-limit` accepts 1..200. A request failure, page limit, or stalled date cursor produces `complete: false` with `warnings`. Such a collection does not represent the complete transaction history.
+
+## Query, search, and compare offline
+
+```bash
+tossctl history list --output json
+tossctl history positions --snapshot 1 --output json
+tossctl history transactions --snapshot 1 --market kr --limit 50 --output json
+tossctl history search AAPL --snapshot 1 --output json
+tossctl history compare 1 2 --output json
+```
+
+- Omit `--snapshot` to read the latest collection. Collections are not merged, so collecting overlapping ranges does not duplicate query rows.
+- Search matches literal substrings in stock codes, names, transaction categories, and summaries. Date filters apply within the selected collection; they do not backfill data.
+- When `has_more` is true, repeat the same snapshot and filters with `--offset <next_offset>`.
+- Comparison returns added/removed positions and changes in quantity, valuation, and unrealized P&L. Value changes include trades and FX movements and are not investment returns. KRW and USD are never added together.
+- Existing `portfolio snapshots` and `portfolio snapshot <date>` read server-provided valuation history. `history` IDs identify observations you explicitly collected locally.
+
+The database is `history.sqlite` inside the config directory. On macOS and Linux, file mode is `0600` and new directories use `0700`; Windows uses the existing user directory's access permissions. Raw transaction JSON, account keys, and session tokens are not stored. Sync rejects a changed account scope; use a separate `--config-dir` for another scope. Back up by copying the file while the CLI is idle. To remove all local collections, manually delete it while idle.
+
+## Holdings briefing
+
+```bash
+tossctl portfolio briefing --news-limit 10 --output json
+```
+
+Returns current WTS positions, upcoming earnings calls and pending orders matched by product code or symbol, and the holdings news feed. News is bounded to the newest 1..50 articles; this does not enumerate all news or all earnings announcements. Failed optional reads produce `partial: true` and a section with `status: error`. Failure to read positions fails the command. Requests are independent, so the result is not an atomic account snapshot.
+
+## Select JSON fields
+
+```bash
+tossctl portfolio positions --fields symbol,quantity,market_value --compact
+tossctl portfolio briefing --fields collected_at,partial,sections,news.title,pending_orders.symbol --compact
+tossctl history positions --fields snapshot,positions.symbol,positions.quantity --compact
+```
+
+`--fields` accepts comma-separated JSON names and dotted paths such as `positions.symbol`. It preserves array shape and order and omits missing fields. Inspect full JSON to discover field names. `--compact` removes indentation only; it does not drop fields or reduce numeric precision. Both options imply JSON and reject explicit table/CSV output. They do not apply to `mcp`, `push`, or `stream` protocols.
+
+Selection happens after the API response: it does not reduce requests or stored data. The default output remains table.
+
+## MCP
+
+`history_list`, `history_positions`, `history_transactions`, and `history_compare` work without credentials. `history_sync` and `portfolio_briefing` require a WTS session. Sync uses the same preview/execute/confirm boundary as the CLI.
+
+Place `fields` alongside `params` in `call_operation`. Projection runs before result size limits.
+
+```json
+{
+  "operation": "portfolio_briefing",
+  "params": { "news_limit": 10 },
+  "fields": ["collected_at", "partial", "sections", "news.title"]
+}
+```

@@ -61,7 +61,17 @@ func writeCSV(w io.Writer, header []string, rows [][]string) error {
 }
 
 func writeJSON(w io.Writer, v any) error {
+	options := JSONOptions{}
+	if configured, ok := w.(*jsonWriter); ok {
+		options, w = configured.options, configured.Writer
+	}
+	var err error
+	if v, err = Project(v, options.Fields); err != nil {
+		return err
+	}
 	encoder := json.NewEncoder(w)
-	encoder.SetIndent("", "  ")
+	if !options.Compact {
+		encoder.SetIndent("", "  ")
+	}
 	return encoder.Encode(v)
 }

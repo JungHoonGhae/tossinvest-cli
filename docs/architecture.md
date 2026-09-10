@@ -322,6 +322,7 @@ sequenceDiagram
 |---|---|---|
 | `config.json` | 거래 기능 허용 여부 | `0o600` |
 | `session.json` | 브라우저에서 가져온 세션 (쿠키 + storage) | `0o600` |
+| `history.sqlite` | 명시적으로 수집한 WTS 보유·거래내역, 수집 범위·완전성, 오프라인 조회·비교 | `0o600` |
 | `trading-lineage.json` | amend/cancel 후 order ref 추적 | `0o600` |
 
 상태 디렉토리 (`~/Library/Application Support/tossctl/` 등)는 `0o700` 으로 생성되어 같은 호스트의 다른 사용자가 목록 조회 못함. 기존 v0.4.0 이전에 생성된 디렉토리는 `0o755`로 남아있을 수 있으므로 `tossctl doctor --report` 의 `file_modes` 항목에서 확인 + 필요 시 `chmod 0700` 수동 정리.
@@ -350,6 +351,8 @@ sequenceDiagram
 | `internal/monitor` | 레지스트리 파생 및 CLI 전용 read probe 실행 |
 | `internal/orderintent` | canonical input, confirm token |
 | `internal/session` | session.json 저장 |
+| `internal/history` | 확인 토큰·동시 쓰기 검증, SQLite 수집본 저장·검색·비교 |
+| `internal/briefing` | 보유 종목 관련 조회 집계·부분 실패 표시 |
 | `internal/output` | table/json/csv 렌더링 |
 | `docs/reverse-engineering` | read-only discovery 문서 |
 | `docs/trading` | trading discovery 문서 |

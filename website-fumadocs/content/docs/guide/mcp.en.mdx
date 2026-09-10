@@ -12,14 +12,13 @@ separate server or port.
 
 ## Quick start — 3 steps
 
-MCP is a mode of the `tossctl` binary, so **install the CLI first**, connect at least one auth
-(official key or web session), then register it with your host.
+MCP is a mode of the `tossctl` binary. **Install the CLI first** and register it with your host. Catalog discovery and local history work without credentials; remote operations require their official key or WTS session.
 
 ```bash
 # 1) Install tossctl
 curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.sh | sh
 
-# 2) Auth — one is enough to start (only operations for the missing auth are disabled)
+# 2) Connect auth for remote operations (optional for local history)
 tossctl openapi login    # Official Open API: official reads + orders
 tossctl auth login       # WTS web session: WTS-only reads (rankings, flows, AI signals, …)
 
@@ -38,7 +37,7 @@ For hosts supporting `mcpServers` JSON (such as Claude Desktop), see [JSON confi
 
 ## Why a catalog — load schemas when needed
 
-tossctl's default API surface is **111 operations**. Instead of listing every schema up front, agents discover the operation and schema they need. Tool-loading behavior varies by host, so no fixed token savings are guaranteed.
+tossctl's default API surface is **117 operations**. Instead of listing every schema up front, agents discover the operation and schema they need. Tool-loading behavior varies by host, so no fixed token savings are guaranteed.
 
 Following [KIS_MCP_Server](https://github.com/pineconedata/kis-mcp-server)'s catalog mode, tossctl
 exposes **just 3 fixed tools** up front and keeps every operation behind them, fetching a schema
@@ -103,7 +102,7 @@ and a write flag; inspect every write's full `mutation` policy through `describe
   `experimental=paper-trading`, use only WTS's isolated simulation ledger, and require
   `simulation_execute` (`execute:true`, no live confirmation). Observations from 2026-09-03 include initialization 500s and inconsistent education state. Track current observations and promotion criteria in `rolling_features` in the [WTS inventory](https://github.com/JungHoonGhae/tossinvest-cli/blob/main/docs/reverse-engineering/wts-endpoints.json).
 - **Separate auth** — official reads/orders use the official key (`openapi login`), WTS reads use the
-  web session (`auth login`). The server starts with **either one**, and each operation checks the
+  web session (`auth login`). The server starts **without credentials**, and each remote operation checks the
   auth it needs. Use the `auth_status` operation to see which backends are connected and when they
   expire.
 
@@ -147,7 +146,7 @@ just different ways to connect.
 | How it runs | Shell command | Structured MCP tools (JSON-RPC, no shell) |
 | Where | Anywhere there's a shell — terminal, scripts, cron, and shell-using agents | MCP-native hosts — operations as tools (3-tool catalog minimizes context) |
 | How the agent knows | Must be told via prompt / skill / `AGENTS.md`/`CLAUDE.md` | **Auto-surfaced in the tool list on registration** |
-| Auth | Web session for WTS features; official key for official-only commands (connect both for the full surface) | Official key for official reads/orders, web session for WTS reads — at least one |
+| Auth | Web session for WTS features; official key for official-only commands (connect both for the full surface) | Official key for official reads/orders, web session for WTS reads; local history needs neither |
 | Coverage | With both credentials: official + WTS reads, orders, live streaming, and watchlist writes | Reads/settings official+WTS, orders official-only. Target-price, hidden-holding, watchlist, and allowed-IP writes included; no live streaming |
 
 - **Scripts, cron, pipes, reproducible automation** fit the CLI (explicit inputs and structured output).
@@ -158,3 +157,7 @@ just different ways to connect.
 
 For the full command/operation list see the [Command reference](/en/docs/reference/commands); for
 official vs WTS routing see the [Auto-routing guide](/en/docs/guide/hybrid-openapi).
+
+## Local history and output fields
+
+`history_list`, `history_positions`, `history_transactions`, and `history_compare` are offline reads. `history_sync` saves WTS observations in a local DB through preview/confirm; `portfolio_briefing` combines holdings-related reads. `call_operation` accepts a `fields` array alongside `params` to project the result JSON. See [usage examples](/en/docs/guide/history).

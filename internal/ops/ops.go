@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hiddenholding"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/history"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/jsoninput"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
@@ -58,6 +59,7 @@ import (
 // internal/hybrid). With no official credentials the router degrades to a pure
 // WTS passthrough, which is exactly the pre-hybrid behaviour.
 type Deps struct {
+	History        *history.Service
 	Client         *official.Client
 	WTS            *hybrid.Client
 	Trading        *trading.Service
@@ -268,6 +270,7 @@ func NewCatalog(enabledExperiments ...string) *Catalog {
 	ops := append(readOperations(), writeOperations()...)
 	ops = append(ops, wtsOperations()...)
 	ops = append(ops, settingsOperations()...)
+	ops = append(ops, historyOperations()...)
 	ops = append(ops, paperOperations()...)
 	byID := make(map[string]Operation, len(ops))
 	for i := range ops {

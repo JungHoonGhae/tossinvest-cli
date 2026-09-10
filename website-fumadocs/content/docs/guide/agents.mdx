@@ -61,7 +61,7 @@ description: 에이전트가 안전·정확하게 쓰는 규칙
 ## 출력 계약
 
 - 성공 시 stdout 에 JSON, 실패 시 비정상 종료 코드 + stderr 메시지.
-- `tossctl monitor api`는 기본 82개 조회 endpoint를 점검한다. paper 옵트인 시 전용 4개가 추가된다. 모든 장애나 데이터 오류를 보장해서 탐지하지는 않는다.
+- `tossctl monitor api`는 기본 85개 조회 endpoint를 점검한다. paper 옵트인 시 전용 4개가 추가된다. 모든 장애나 데이터 오류를 보장해서 탐지하지는 않는다.
 
 ## 하지 말 것
 
@@ -75,3 +75,7 @@ description: 에이전트가 안전·정확하게 쓰는 규칙
 - [명령 레퍼런스](/docs/reference/commands) — 전체 명령 목록
 - [안전 모델](/docs/guide/safety) — 거래 보호 장치 상세
 - [지원 범위](/docs/reference/support-scope) — 공식 API 대비 커버리지
+
+## 로컬 이력과 작은 응답
+
+`--fields`로 JSON 키·중첩 경로를 선택하고 `--compact`로 들여쓰기를 제거할 수 있습니다. 예: `tossctl portfolio positions --fields symbol,quantity --compact`. 없는 필드는 생략되므로 먼저 전체 JSON을 확인하세요. 이력 조회 시 `snapshot.collected_at`, 수집 범위, `complete`·`warnings`를 확인하고, 브리핑에서는 `partial`·`sections`를 보존하세요. `history sync`는 로컬 쓰기이지만 현재 요청의 저장 승인을 받은 뒤 preview의 `confirm_token`으로만 실행합니다. [이력·브리핑 가이드](/docs/guide/history)

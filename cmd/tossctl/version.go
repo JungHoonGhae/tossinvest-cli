@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"runtime"
 	"time"
@@ -26,9 +25,7 @@ func newVersionCmd(opts *rootOptions) *cobra.Command {
 
 			switch output.Format(opts.outputFormat) {
 			case output.FormatJSON:
-				encoder := json.NewEncoder(cmd.OutOrStdout())
-				encoder.SetIndent("", "  ")
-				return encoder.Encode(map[string]any{
+				return output.WriteJSON(cmd.OutOrStdout(), map[string]any{
 					"version":          info.Version,
 					"commit":           info.Commit,
 					"date":             info.Date,

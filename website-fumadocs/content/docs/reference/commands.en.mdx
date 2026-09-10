@@ -5,6 +5,19 @@ description: Key CLI commands and complete surface discovery
 
 This is a curated command reference. Use `tossctl --help` and subcommand help for all CLI options; use `tossctl ops list` and `tossctl ops describe <id>` for the ops/MCP catalog. General reads support `--output table|json|csv`; charts and streams have command-specific output formats.
 
+## Local history
+
+| Command | Description |
+|---------|-------------|
+| `tossctl history sync [--from DATE --to DATE --market all]` | Preview SQLite collection; repeat with `--execute --confirm <token>` to save |
+| `tossctl history list` | Collection IDs, freshness, coverage, and completeness |
+| `tossctl history positions [--snapshot ID]` | Read stored holdings |
+| `tossctl history transactions [--snapshot ID] [--query TEXT]` | Filter, search, and page through stored transactions |
+| `tossctl history search <query> [--snapshot ID]` | Literal transaction search |
+| `tossctl history compare <before-id> <after-id>` | Compare quantity and valuation changes |
+
+All commands except sync work offline. See the [collection contract](/en/docs/guide/history).
+
 ## Auth
 
 | Command | Description |
@@ -21,6 +34,7 @@ This is a curated command reference. Use `tossctl --help` and subcommand help fo
 | `tossctl account buying-power` | Official buying power (official key required) |
 | `tossctl account summary` | Total assets, P&L, by market |
 | `tossctl portfolio positions` | Holdings (USD shown for US) |
+| `tossctl portfolio briefing [--news-limit N]` | Combine holdings, news, upcoming earnings calls, and pending orders |
 | `tossctl portfolio allocation` | Allocation |
 | `tossctl portfolio folders [--account <key>]` | User-defined folder holdings and fee-adjusted P/L (account and internal folder keys omitted) |
 | `tossctl portfolio performance [--account <key>]` | One-month daily principal, valuation, return, and range high/low (all Securities accounts by default) |

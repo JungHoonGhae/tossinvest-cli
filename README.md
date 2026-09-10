@@ -86,16 +86,18 @@ tossctl portfolio positions --output json
 
 # 실시간 체결 구독과 API 변경 감시
 tossctl stream --trade A005930
-tossctl monitor api           # 82개 endpoint schema probe; 통과 0, 실패 1
+tossctl monitor api           # 85개 endpoint schema probe; 통과 0, 실패 1
 ```
 
 관심종목 폴더·목표가 알림 관리, 조건검색, 거래 내역, 주문 미리보기도 제공합니다. 전체 사용법은 [명령 레퍼런스](https://tossinvest-cli.vercel.app/docs/reference/commands), 개별 옵션은 `tossctl <command> --help`에서 확인하세요.
+
+보유 종목과 거래내역을 로컬에 저장해 비교하려면 `tossctl history sync`로 수집을 미리 확인하세요. 저장 후 `history list`, `history search`, `history compare`는 오프라인으로 동작합니다. `portfolio briefing`은 보유 종목 뉴스·어닝콜·미체결 주문을 함께 조회합니다. `--fields symbol,quantity --compact`로 필요한 JSON만 받을 수 있습니다. [로컬 이력·브리핑 가이드](https://tossinvest-cli.vercel.app/docs/guide/history)
 
 ## CLI와 MCP
 
 터미널·스크립트에서는 CLI로, Claude Code·Codex·Cursor 같은 AI 에이전트에서는 MCP로 사용하세요. 별도 서버를 설치하지 않고 같은 바이너리에서 `tossctl mcp`를 실행합니다.
 
-MCP의 기본 API 표면은 **111개 오퍼레이션**입니다. 세 개의 카탈로그 도구가 필요한 기능과 스키마를 찾아 호출하므로, 모든 기능 설명을 한꺼번에 컨텍스트에 넣지 않습니다.
+MCP의 기본 API 표면은 **117개 오퍼레이션**입니다. 세 개의 카탈로그 도구가 필요한 기능과 스키마를 찾아 호출하므로, 모든 기능 설명을 한꺼번에 컨텍스트에 넣지 않습니다.
 
 ```bash
 # Claude Code

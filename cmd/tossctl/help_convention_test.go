@@ -120,6 +120,7 @@ func TestMutatingAnnotationOnTradeCommands(t *testing.T) {
 
 func TestStateChangingCommandsDeclareRiskAndReversibility(t *testing.T) {
 	want := map[string][2]string{
+		"tossctl history sync":                      {"preference", "reversible"},
 		"tossctl openapi ip replace-current":        {"preference", "compensating"},
 		"tossctl quote alert add":                   {"preference", "reversible"},
 		"tossctl quote alert remove":                {"preference", "reversible"},

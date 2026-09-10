@@ -26,6 +26,50 @@ const (
 // explicit without issuing the same health-check request more than once.
 func sharedWTSProbes() []ProbeSpec {
 	return []ProbeSpec{
+		{Name: "holdings-news", Method: "POST", URL: probeInfo + "/api/v1/dashboard/wts/news", Body: `{"type":"PERSONALIZE_HOLD","size":1}`, Check: statusAndPath("result.news", "array")},
+		{Name: "transactions-kr", Method: "GET", URL: probeAPI + "/api/v3/my-assets/transactions/markets/kr?size=1&filters=0&range.from=" + time.Now().In(tossclient.KoreaLocation).Format("2006-01-02") + "&range.to=" + time.Now().In(tossclient.KoreaLocation).Format("2006-01-02"), Check: statusAndPath("result.body", "array")},
+		{Name: "transactions-us", Method: "GET", URL: probeAPI + "/api/v3/my-assets/transactions/markets/us?size=1&filters=0&range.from=" + time.Now().In(tossclient.KoreaLocation).Format("2006-01-02") + "&range.to=" + time.Now().In(tossclient.KoreaLocation).Format("2006-01-02"), Check: statusAndPath("result.body", "array")},
+
+		{Name: "portfolio-positions", Method: "POST",
+			URL:  probeCert + "/api/v2/dashboard/asset/sections/all",
+			Body: `{"types":["SORTED_OVERVIEW"]}`,
+			Check: func(status int, body []byte) error {
+				if err := ExpectStatus(status, 200); err != nil {
+					return err
+				}
+				if err := ExpectPath(body, "result.sections", "array"); err != nil {
+					return err
+				}
+				var env struct {
+					Result struct {
+						Sections []struct {
+							Type string `json:"type"`
+							Data struct {
+								Products json.RawMessage `json:"products"`
+							} `json:"data"`
+						} `json:"sections"`
+					} `json:"result"`
+				}
+				if err := json.Unmarshal(body, &env); err != nil {
+					return fmt.Errorf("decode sections: %v", err)
+				}
+				if len(env.Result.Sections) == 0 {
+					return fmt.Errorf("result.sections is empty — likely body-contract regression (#29-class)")
+				}
+				if env.Result.Sections[0].Type != "SORTED_OVERVIEW" {
+					return fmt.Errorf("expected section[0].type=SORTED_OVERVIEW, got %q", env.Result.Sections[0].Type)
+				}
+				if !bytes.HasPrefix(bytes.TrimSpace(env.Result.Sections[0].Data.Products), []byte("[")) {
+					return fmt.Errorf("section[0].data.products is not an array")
+				}
+				return nil
+			}},
+		{Name: "pending-orders", Method: "GET",
+			URL:   probeCert + "/api/v1/trading/orders/histories/all/pending",
+			Check: statusAndPath("result", "array")},
+		{Name: "earning-call", Method: "GET",
+			URL:   probeInfo + "/api/v1/earning-call/upcoming",
+			Check: statusAndPath("result", "array")},
 		{
 			Name:   "account-list",
 			Method: "GET",
@@ -467,9 +511,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "earning_calls", Method: "GET", Path: "wts:market/earnings", Backend: "wts",
 			Category: "market", Summary: "Upcoming earnings-call schedule. WTS-only.",
-			Probe: &ProbeSpec{Name: "earning-call", Method: "GET",
-				URL:   probeInfo + "/api/v1/earning-call/upcoming",
-				Check: statusAndPath("result", "array")},
+			ProbeRefs: []string{"earning-call"},
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.GetEarningCalls(ctx)
 			},
@@ -956,6 +998,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "market_news", Method: "POST", Path: "wts:dashboard/wts/news", Backend: "wts",
 			Category: "market", Summary: "Market news with each article's RELATED STOCKS and how they are moving right now — the part a plain headline list lacks. Scopes: all (widest, general market news, no stock linkage), watchlist / holdings (news about the user's own stocks, with moves), soaring (stocks spiking), recommended, latest. Server caps at 50 items; there is no pagination and no keyword search. WTS-only.",
+			ProbeRefs: []string{"holdings-news"},
 			Params: []Param{
 				{Name: "scope", Type: "string", Desc: "all (default) | recommended | watchlist | holdings | latest | soaring; a raw server enum also works"},
 				{Name: "limit", Type: "integer", Desc: "max items, server caps at 50; 0 = server default"},
@@ -1615,40 +1658,7 @@ func wtsOperations() []Operation {
 			Category: "account", Summary: "Current holdings with valuation and unrealized P&L (works without an official key). WTS-only.",
 			// #29 재발 방지: 빈 `{}` body 는 빈 sections 를 돌려준다 — 진짜 sections
 			// 배열에 SORTED_OVERVIEW 항목과 products[] 가 있어야 정상.
-			Probe: &ProbeSpec{Name: "portfolio-positions", Method: "POST",
-				URL:  probeCert + "/api/v2/dashboard/asset/sections/all",
-				Body: `{"types":["SORTED_OVERVIEW"]}`,
-				Check: func(status int, body []byte) error {
-					if err := ExpectStatus(status, 200); err != nil {
-						return err
-					}
-					if err := ExpectPath(body, "result.sections", "array"); err != nil {
-						return err
-					}
-					var env struct {
-						Result struct {
-							Sections []struct {
-								Type string `json:"type"`
-								Data struct {
-									Products json.RawMessage `json:"products"`
-								} `json:"data"`
-							} `json:"sections"`
-						} `json:"result"`
-					}
-					if err := json.Unmarshal(body, &env); err != nil {
-						return fmt.Errorf("decode sections: %v", err)
-					}
-					if len(env.Result.Sections) == 0 {
-						return fmt.Errorf("result.sections is empty — likely body-contract regression (#29-class)")
-					}
-					if env.Result.Sections[0].Type != "SORTED_OVERVIEW" {
-						return fmt.Errorf("expected section[0].type=SORTED_OVERVIEW, got %q", env.Result.Sections[0].Type)
-					}
-					if !bytes.HasPrefix(bytes.TrimSpace(env.Result.Sections[0].Data.Products), []byte("[")) {
-						return fmt.Errorf("section[0].data.products is not an array")
-					}
-					return nil
-				}},
+			ProbeRefs: []string{"portfolio-positions"},
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.ListPositions(ctx)
 			},
@@ -1656,9 +1666,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "pending_orders", Method: "GET", Path: "wts:trading/orders/pending", Backend: "wts",
 			Category: "order", Summary: "Open (unfilled) pending orders (works without an official key). WTS-only.",
-			Probe: &ProbeSpec{Name: "pending-orders", Method: "GET",
-				URL:   probeCert + "/api/v1/trading/orders/histories/all/pending",
-				Check: statusAndPath("result", "array")},
+			ProbeRefs: []string{"pending-orders"},
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.ListPendingOrders(ctx)
 			},
@@ -1666,6 +1674,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "transactions", Method: "GET", Path: "wts:transactions/list", Backend: "wts",
 			Category: "account", Summary: "Detailed transaction list (deposits/withdrawals/trades) aggregated across pages over a date range. WTS-only.",
+			ProbeRefs: []string{"transactions-kr", "transactions-us"},
 			Params: []Param{
 				{Name: "market", Type: "string", Desc: `"kr", "us", or "all" (default all)`},
 				{Name: "from", Type: "string", Desc: "start date YYYY-MM-DD (default: 1 year ago)"},

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-
 	"github.com/JungHoonGhae/tossinvest-cli/internal/doctor"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
@@ -41,9 +39,7 @@ func newDoctorCmd(opts *rootOptions) *cobra.Command {
 				}
 				// Graceful Open API summary — never fails doctor.
 				report.OpenAPISummary = computeDoctorOpenAPISummary(cmd.Context(), opts, app)
-				enc := json.NewEncoder(cmd.OutOrStdout())
-				enc.SetIndent("", "  ")
-				return enc.Encode(report)
+				return output.WriteJSON(cmd.OutOrStdout(), report)
 			}
 
 			report, err := svc.Run(cmd.Context())

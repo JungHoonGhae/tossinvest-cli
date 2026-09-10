@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -127,9 +126,7 @@ func newUpdateCmd(opts *rootOptions) *cobra.Command {
 
 func writeUpdateCheckResult(out io.Writer, format output.Format, current, latest string, available bool, method selfupdate.InstallMethod) error {
 	if format == output.FormatJSON {
-		encoder := json.NewEncoder(out)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(map[string]any{
+		return output.WriteJSON(out, map[string]any{
 			"current":          current,
 			"latest":           latest,
 			"update_available": available,

@@ -10,6 +10,7 @@ import (
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/config"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hiddenholding"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/history"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/mcp"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
@@ -56,7 +57,7 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 			"only the isolated paper environment. Every write publishes its risk, reversibility, " +
 			"approval, and verification policy. Live order mutations follow the same config " +
 			"gate and execute/confirm flow as `tossctl order` and use the official " +
-			"API only (no WTS). Needs at least one credential: `tossctl openapi login` " +
+			"API only (no WTS). Local history and catalog discovery work without credentials. Remote operations need `tossctl openapi login` " +
 			"(official) and/or `tossctl auth login` (WTS web session).",
 		Annotations:  map[string]string{"source": "both"},
 		Args:         cobra.NoArgs,
@@ -99,10 +100,6 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 				wtsClient = tossclient.New(tossclient.Config{Session: sess, TradingPolicy: cfg.Trading})
 			}
 
-			if officialClient == nil && wtsClient == nil {
-				return fmt.Errorf("no credentials found; run `tossctl openapi login` (official API) and/or `tossctl auth login` (WTS web session) first")
-			}
-
 			// Hybrid router — the same official→WTS fallback the CLI applies, so
 			// agents and humans resolve a read the same way. hybrid embeds the WTS
 			// client, so it needs a non-nil one even when no session exists; the
@@ -122,7 +119,12 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 			if sess != nil {
 				ipManager = openapiip.NewService(routed, openapiip.NewHTTPResolver(nil, ""))
 			}
+			historyFile, err := historyPath(opts)
+			if err != nil {
+				return err
+			}
 			server := mcp.NewServer(officialClient, routed, mcp.Services{
+				History:        history.New(historyFile, routedWTS),
 				Trading:        tradingSvc,
 				OpenAPIIP:      ipManager,
 				PriceAlerts:    pricealert.NewService(routed),
@@ -139,7 +141,7 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 			// MCP-only users never see the CLI's stderr update notices, so surface
 			// "update available" through the initialize `instructions` (the agent can
 			// relay it). Bounded + cached; a network failure is silent.
-			if cachePath, perr := resolveUpdateCachePath(opts); perr == nil {
+			if cachePath, perr := resolveUpdateCachePath(opts); perr == nil && (officialClient != nil || sess != nil) {
 				checkCtx, cancel := context.WithTimeout(cmd.Context(), 2*time.Second)
 				latest := updatecheck.New(cachePath).LatestStable(checkCtx)
 				cancel()

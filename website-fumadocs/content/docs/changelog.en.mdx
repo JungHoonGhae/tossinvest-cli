@@ -9,6 +9,17 @@ Version history below (source: the Korean-language [CHANGELOG.md](https://github
 
 ## [Unreleased]
 
+## [0.51.0] - 2026-09-11
+
+### 새 기능
+- **로컬 이력 저장·검색·비교** — `history sync`로 보유 종목과 기간별 거래내역을 SQLite에 저장하고, `history list`·`positions`·`transactions`·`search`·`compare`로 로그인 없이 조회할 수 있습니다. 저장은 기본 preview 후 확인 토큰으로 실행하며, 수집 시각·범위·부분 실패를 결과에 남깁니다.
+- **보유 종목 브리핑** — `portfolio briefing`이 현재 보유 종목에 연결된 뉴스·예정 어닝콜·미체결 주문을 함께 조회합니다. 일부 조회가 실패하면 해당 항목의 상태와 `partial`을 표시합니다.
+- **필요한 JSON 필드만 출력** — `--fields`로 중첩 필드를 선택하고 `--compact`로 들여쓰기를 제거할 수 있습니다. MCP의 `call_operation.fields`도 결과 크기 제한 전에 같은 필드 선택을 적용합니다.
+
+### 변경
+- MCP는 자격증명 없이도 시작해 로컬 이력을 조회할 수 있습니다. 안정 오퍼레이션은 117개이며, 웹 조회와 이력 수집에는 WTS 세션이 필요합니다.
+- 보유 뉴스와 국내·미국 거래내역 계약을 공용 probe로 추가해 안정 API 감시를 85개로 확대했습니다. 한·영 문서에 로컬 이력·브리핑 가이드를 추가했습니다.
+
 ## [0.50.3] - 2026-09-09
 
 ### 버그 수정

@@ -1,0 +1,77 @@
+---
+title: 로컬 이력과 보유 종목 브리핑
+description: 이력을 저장해 오프라인으로 비교하고, 보유 종목 정보를 한 번에 조회하기
+---
+
+`history`는 직접 수집한 보유 종목과 거래내역을 SQLite에 저장합니다. 수집 시점마다 별도 ID가 생기며, 저장된 결과는 로그인이나 네트워크 없이 조회할 수 있습니다. `portfolio briefing`은 현재 보유 종목에 연결된 뉴스·어닝콜·미체결 주문을 한 번에 조회합니다.
+
+## 이력 수집
+
+WTS 웹 세션으로 수집합니다. `--market`은 거래내역의 시장을 선택하며, 보유 종목은 항상 현재 세션의 전체 목록을 저장합니다. 먼저 preview에서 저장 파일, 날짜, 시장, 기존 snapshot ID를 확인하세요.
+
+```bash
+tossctl history sync --from 2026-09-01 --to 2026-09-11 --market all --output json
+```
+
+저장을 결정하면 같은 인자와 preview의 `confirm_token`으로 실행합니다.
+
+```bash
+tossctl history sync --from 2026-09-01 --to 2026-09-11 --market all \
+  --execute --confirm <token-from-preview> --output json
+```
+
+확인 토큰은 세션·계좌 목록·기본 계좌·저장 파일·수집 조건·직전 snapshot ID에 연결되며 5분 후 만료됩니다. 다른 동기화가 먼저 저장되면 다시 preview해야 합니다. 로컬 DB만 변경하며 실주문 승인을 대신하지 않습니다.
+
+기본 날짜는 한국 시간 오늘부터 과거 30일이며, 한 번의 조회 범위는 양끝을 포함해 최대 200일입니다. 각 시장당 최대 20페이지를 수집하고 `--page-limit 1..200`으로 조절합니다. 서버가 날짜 커서를 더 진행하지 못하거나 페이지 한도·요청 실패에 도달하면 수집 결과에 `complete: false`와 `warnings`가 남습니다. 이런 결과를 전체 거래내역으로 취급하지 마세요.
+
+## 오프라인 조회·검색·비교
+
+```bash
+tossctl history list --output json
+tossctl history positions --snapshot 1 --output json
+tossctl history transactions --snapshot 1 --market kr --limit 50 --output json
+tossctl history search 삼성 --snapshot 1 --output json
+tossctl history compare 1 2 --output json
+```
+
+- `--snapshot`을 생략하면 최신 수집본을 읽습니다. 수집본끼리 거래내역을 합치지 않으므로 겹치는 날짜를 다시 수집해도 조회 행이 중복되지 않습니다.
+- 검색은 종목 코드·이름·거래 분류·요약의 문자열을 찾습니다. `--from`과 `--to`는 선택한 수집본 안에서 필터링하며, 과거 데이터를 추가로 가져오지 않습니다.
+- `has_more: true`이면 같은 수집본과 필터에 `--offset <next_offset>`을 넣어 다음 행을 읽습니다.
+- 비교는 새로 생기거나 사라진 보유 종목, 수량·평가액·미실현손익 변화를 반환합니다. 평가액 변화에는 매매와 환율 변화가 포함되므로 투자 수익률과 다릅니다. KRW와 USD를 합산하지 않습니다.
+- 기존 `portfolio snapshots`와 `portfolio snapshot <date>`는 서버가 제공하는 평가 이력을 조회합니다. `history`의 ID는 사용자가 직접 수집한 로컬 관측을 가리킵니다.
+
+DB는 config 디렉터리의 `history.sqlite`에 저장됩니다. macOS·Linux에서는 파일 권한을 `0600`, 새 디렉터리 권한을 `0700`으로 설정하며, Windows에서는 기존 사용자 디렉터리의 접근 권한을 따릅니다. 거래의 원본 JSON, 계좌 키, 세션 토큰은 저장하지 않습니다. 한 DB의 계좌 구성이 바뀌면 동기화를 거부하므로 다른 계좌 구성은 별도의 `--config-dir`을 사용하세요. 백업은 CLI가 사용 중이지 않을 때 파일을 복사하고, 모든 로컬 이력을 지우려면 같은 조건에서 해당 파일을 직접 삭제합니다.
+
+## 보유 종목 브리핑
+
+```bash
+tossctl portfolio briefing --news-limit 10 --output json
+```
+
+현재 WTS 보유 종목, 종목 코드로 매칭한 예정 어닝콜과 미체결 주문, 보유 종목 뉴스 피드를 반환합니다. 뉴스는 최신 1~50개이며 전체 뉴스 검색이나 모든 실적 발표 일정을 보장하지 않습니다. 일부 조회가 실패하면 `partial: true`와 해당 `sections`의 `status: error`를 반환합니다. 보유 종목 조회 자체가 실패하면 명령이 실패합니다. 서로 다른 요청을 합친 결과이므로 한 시점에 원자적으로 조회한 계좌 상태가 아닙니다.
+
+## 필요한 JSON 필드만 받기
+
+```bash
+tossctl portfolio positions --fields symbol,quantity,market_value --compact
+tossctl portfolio briefing --fields collected_at,partial,sections,news.title,pending_orders.symbol --compact
+tossctl history positions --fields snapshot,positions.symbol,positions.quantity --compact
+```
+
+`--fields`는 JSON 키를 쉼표로 구분하며 `positions.symbol`처럼 중첩 경로를 지원합니다. 배열의 구조와 순서를 유지하고 없는 필드는 생략합니다. 필드 이름은 `--output json` 결과에서 확인하세요. `--compact`는 들여쓰기만 제거하며 필드나 숫자 정밀도를 줄이지 않습니다. 두 옵션 모두 JSON 출력을 선택하고, 명시적인 table·CSV 출력과는 함께 쓸 수 없습니다. `mcp`, `push`, `stream`의 프로토콜·스트림에는 적용하지 않습니다.
+
+이 옵션은 API 응답을 받은 뒤 출력에 적용됩니다. 호출 횟수나 수집 데이터가 줄어들지는 않습니다. 기본 출력 형식은 기존처럼 table입니다.
+
+## MCP
+
+`history_list`, `history_positions`, `history_transactions`, `history_compare`는 자격증명 없이 동작합니다. `history_sync`와 `portfolio_briefing`에는 WTS 세션이 필요합니다. `history_sync`의 `execute`·`confirm` 경계는 CLI와 같습니다.
+
+`call_operation`의 `fields`는 `params`와 같은 단계에 둡니다. 결과 크기 제한 전에 적용됩니다.
+
+```json
+{
+  "operation": "portfolio_briefing",
+  "params": { "news_limit": 10 },
+  "fields": ["collected_at", "partial", "sections", "news.title"]
+}
+```
