@@ -63,7 +63,7 @@ long-running agents. WTS features work with a web session, but official-only rea
 ## Output contract
 
 - On success, JSON on stdout; on failure, a non-zero exit code + stderr message.
-- `tossctl monitor api` checks 82 read endpoints by default, plus four paper probes after opt-in. It does not guarantee detection of every outage or data error.
+- `tossctl monitor api` checks 85 read endpoints by default, plus four paper probes after opt-in. It does not guarantee detection of every outage or data error.
 
 ## Don't
 
@@ -77,3 +77,7 @@ long-running agents. WTS features work with a web session, but official-only rea
 - [Command Reference](/en/docs/reference/commands)
 - [Safety Model](/en/docs/guide/safety)
 - [Support Scope](/en/docs/reference/support-scope)
+
+## Local history and smaller responses
+
+Use `--fields` to select JSON paths and `--compact` to remove indentation: `tossctl portfolio positions --fields symbol,quantity --compact`. Missing fields are omitted; inspect full JSON first. Preserve snapshot freshness, range, `complete`, and `warnings` when reading history, and `partial`/`sections` for briefings. `history sync` is a local write: execute only when the current request authorizes saving, using its preview confirmation token. See the [history guide](/en/docs/guide/history).

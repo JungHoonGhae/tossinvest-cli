@@ -11,14 +11,13 @@ Desktop·Codex 등 MCP 호스트에 등록하면, 에이전트가 자연어로 �
 
 ## 빠른 시작 — 3단계
 
-MCP 는 `tossctl` 바이너리의 한 모드라 **CLI 를 먼저 설치**한 뒤 인증(공식 키·웹 세션 중 최소
-하나)을 연결하고 호스트에 등록하면 됩니다.
+MCP는 `tossctl` 바이너리의 한 모드입니다. **CLI를 먼저 설치**하고 호스트에 등록하세요. 카탈로그 탐색과 로컬 이력은 인증 없이 사용할 수 있으며, 원격 조회·주문에는 해당 공식 키 또는 웹 세션이 필요합니다.
 
 ```bash
 # 1) tossctl 설치
 curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.sh | sh
 
-# 2) 인증 — 하나만 있어도 시작됩니다 (없는 인증의 오퍼레이션만 비활성)
+# 2) 원격 기능에 필요한 인증 연결 (로컬 이력은 생략 가능)
 tossctl openapi login    # 공식 Open API: 공식 조회 + 주문
 tossctl auth login       # WTS 웹 세션: WTS 전용 조회(인기순위·수급·AI시그널 등)
 
@@ -37,7 +36,7 @@ Claude Desktop 등 `mcpServers` 형식을 지원하는 호스트는 아래 [JSON
 
 ## 왜 catalog 방식인가 — 필요한 스키마만 조회
 
-tossctl의 기본 API 표면은 **111개 오퍼레이션**입니다. 모든 설명을 처음부터 나열하는 대신 필요한 기능과 스키마를 조회합니다. 호스트마다 도구 로딩 방식이 다르므로 고정된 토큰 절감량을 보장하지는 않습니다.
+tossctl의 기본 API 표면은 **117개 오퍼레이션**입니다. 모든 설명을 처음부터 나열하는 대신 필요한 기능과 스키마를 조회합니다. 호스트마다 도구 로딩 방식이 다르므로 고정된 토큰 절감량을 보장하지는 않습니다.
 
 tossctl 은 [KIS_MCP_Server](https://github.com/pineconedata/kis-mcp-server) 의 catalog 모드를
 참조해, 앞단에 **고정 3개 툴만** 노출하고 나머지 오퍼레이션 전부는 **필요할 때만 스키마를 꺼내오는**
@@ -98,8 +97,8 @@ MCP 는 **조회와 검증된 설정 변경을 공식 Open API + WTS에 걸쳐**
   `environment=paper`, `experimental=paper-trading`으로 표시되며 WTS의 격리된 모의 원장만
   사용합니다. 모의 쓰기는 `simulation_execute`라 `execute:true`만 요구하고 실계좌 confirm이나
   권한으로 승격되지 않습니다. 2026-09-03 관측에서는 초기화 500과 교육 상태 불일치가 남았습니다. 현재 상태·승격 기준은 [WTS 관측 기록](https://github.com/JungHoonGhae/tossinvest-cli/blob/main/docs/reverse-engineering/wts-endpoints.json)의 `rolling_features`에서 추적합니다.
-- **인증 분리** — 공식 조회·주문은 공식 키(`openapi login`), WTS 조회는 웹 세션(`auth login`). 둘 중
-  **하나만 있어도 MCP 서버는 뜨고**, 각 오퍼레이션이 자기에게 필요한 인증을 확인합니다.
+- **인증 분리** — 공식 조회·주문은 공식 키(`openapi login`), WTS 조회는 웹 세션(`auth login`).
+  **MCP 서버는 인증 없이도 시작되며**, 각 원격 오퍼레이션이 자기에게 필요한 인증을 확인합니다.
   `auth_status` 오퍼레이션으로 어떤 백엔드가 연결됐는지·언제 만료되는지 진단할 수 있습니다.
 
 ## 주문 안전 게이트
@@ -142,7 +141,7 @@ Desktop 등 `mcpServers` JSON 형식을 지원하는 호스트는 다음을 설�
 | 실행 방식 | 셸 명령 | 구조화된 MCP 툴 (JSON-RPC, 셸 불필요) |
 | 어디서 | 셸이 있는 어디서든 — 터미널·스크립트·cron, 그리고 셸을 쓰는 AI 에이전트 | MCP 네이티브 호스트 — 오퍼레이션을 툴로 호출 (catalog 3툴로 컨텍스트 최소화) |
 | 에이전트가 아는 법 | 프롬프트·스킬·`AGENTS.md`/`CLAUDE.md` 로 알려줘야 함 | **등록 시 툴 목록에 자동 노출** |
-| 인증 | WTS 기능은 웹 세션, official-only 기능은 공식 키(둘 다 연결하면 전체 범위) | 공식 조회·주문엔 공식 키, WTS 조회엔 웹 세션 — 최소 하나 |
+| 인증 | WTS 기능은 웹 세션, official-only 기능은 공식 키(둘 다 연결하면 전체 범위) | 공식 조회·주문엔 공식 키, WTS 조회엔 웹 세션; 로컬 이력은 인증 불필요 |
 | 커버 범위 | 두 인증을 연결하면 공식 + WTS 조회·주문·실시간 스트리밍·관심종목 쓰기 | 조회·설정은 공식+WTS, 주문은 official-only. 목표가·숨김·관심종목·허용 IP 쓰기 포함; 실시간 스트리밍은 미포함 |
 
 - **스크립트·cron·파이프·재현 가능한 자동화**는 CLI 가 자연스럽습니다(명시적인 입력과 구조화된 출력).
@@ -153,3 +152,7 @@ Desktop 등 `mcpServers` JSON 형식을 지원하는 호스트는 다음을 설�
 
 전체 명령·오퍼레이션은 [명령 레퍼런스](/docs/reference/commands), 공식 vs WTS 경로 차이는
 [자동 라우팅 가이드](/docs/guide/hybrid-openapi)를 참고하세요.
+
+## 로컬 이력과 출력 필드
+
+`history_list`, `history_positions`, `history_transactions`, `history_compare`는 오프라인 조회입니다. `history_sync`는 WTS 데이터를 로컬 DB에 저장하는 preview/confirm 작업이며, `portfolio_briefing`은 보유 종목 관련 조회를 합칩니다. `call_operation`은 `params`와 별도로 `fields` 배열을 받아 반환 JSON을 선택합니다. [사용 예시](/docs/guide/history)를 참고하세요.

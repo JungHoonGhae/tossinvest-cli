@@ -82,7 +82,7 @@ GitHub 모니터의 07:00·19:00 KST 수집 뒤 20분 여유를 둔 값입니다
 - [#15 / #17](https://github.com/JungHoonGhae/tossinvest-cli/issues/15) — User-Agent 핑거프린팅 차단 (v0.3.6 fix)
 - [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) — `/sections/all` body 계약 변경 (v0.4.8 fix)
 
-`monitor api` 명령은 82개 read-only endpoint 를 schema-invariant probe 로 호출해 이런 변경을 사용자보다 먼저 감지합니다.
+`monitor api` 명령은 85개 read-only endpoint 를 schema-invariant probe 로 호출해 이런 변경을 사용자보다 먼저 감지합니다.
 
 `experimental.paper_trading=true`로 옵트인한 경우에는 모의 잔고·교육 요약·대기 주문·완료
 주문 4개를 추가해 총 86개를 검사합니다. 옵트인하지 않은 사용자의 일반 회귀 신호와 아직
@@ -104,16 +104,16 @@ GitHub 모니터의 07:00·19:00 KST 수집 뒤 20분 여유를 둔 값입니다
 
 ### Probe 목록
 
-런타임 목록인 `internal/monitor.Probes()` 가 단일 진실 소스입니다. 77개는
+런타임 목록인 `internal/monitor.Probes()` 가 단일 진실 소스입니다. 80개는
 `internal/ops` 레지스트리의 오퍼레이션 옆 `ProbeSpec` 또는 공용 probe에서 파생되고,
 카탈로그 오퍼레이션이 없는 CLI 전용 5개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
 
 | 보호 영역 | Probe (개수) |
 | --- | --- |
 | 계좌·포트폴리오 | `account-list`, `account-summary-overview`, `account-all-overview`, `account-receivable`, `account-interest-years`, `account-commission-info`, `account-last-login`, `account-margin-frozen`, `account-accident-count`, `portfolio-positions`, `portfolio-folders`, `hidden-holdings`, `trading-simple-trade`, `trading-exchange-choice`, `trading-ats-notification`, `option-real-time-tick`, `securities-transfer-my-accounts`, `securities-transfer-recent-accounts`, `asset-performance-all`, `asset-performance-account`, `asset-snapshots-all`, `asset-snapshots-account`, `asset-snapshot-detail-all`, `asset-snapshot-detail-account` (24) |
-| 주문·자금 | `pending-orders`, `order-funding`, `auto-trades` (3) |
+| 주문·자금 | `pending-orders`, `order-funding`, `auto-trades`, `transactions-kr`, `transactions-us` (5) |
 | 시세·종목 | `quote-stock-infos`, `quote-trades`, `quote-orderbook`, `quote-price-limits`, `quote-charts`, `quote-reasons`, `quote-crypto`, `quote-stock-signals`, `stock-search`, `trading-flows`, `option-expiries` (11) |
-| 시장·리서치 | `market-index`, `index-prices`, `index-info`, `stock-ranking`, `investor-rankings`, `theme-rankings`, `sectors-tics`, `sector-detail-simple`, `sector-detail-overview`, `sector-detail-stocks`, `sector-detail-etfs`, `sector-detail-news`, `ai-signals`, `ai-signal-detail`, `screener-presets`, `screener-filter-range`, `earning-call`, `earning-call-home`, `earning-call-detail`, `news-briefing`, `market-news-briefing`, `market-issues`, `market-calendar`, `market-key-events`, `market-halt`, `market-trading-hours` (26) |
+| 시장·리서치 | `market-index`, `index-prices`, `index-info`, `stock-ranking`, `investor-rankings`, `theme-rankings`, `sectors-tics`, `sector-detail-simple`, `sector-detail-overview`, `sector-detail-stocks`, `sector-detail-etfs`, `sector-detail-news`, `ai-signals`, `ai-signal-detail`, `screener-presets`, `screener-filter-range`, `earning-call`, `earning-call-home`, `earning-call-detail`, `news-briefing`, `market-news-briefing`, `holdings-news`, `market-issues`, `market-calendar`, `market-key-events`, `market-halt`, `market-trading-hours` (27) |
 | 개인화·계좌 부가기능 | `community-rankings`, `lending-expected`, `lending-top-revenue`, `accumulation-plans`, `profit-overview`, `ria-report`, `open-banking-status`, `open-banking-creatable`, `open-banking-registration`, `auto-trading-open-banking`, `notification-settings`, `notification-inbox-unread`, `notification-reasoning-agreement`, `notification-reasoning-news-count`, `price-alerts`, `watchlist`, `watchlist-groups`, `watchlist-group` (18) |
 | 모의투자(옵트인) | `paper-cash-balance`, `paper-education-summary`, `paper-pending-orders`, `paper-completed-orders` (4) |
 
@@ -122,10 +122,10 @@ GitHub 모니터의 07:00·19:00 KST 수집 뒤 20분 여유를 둔 값입니다
 
 ```bash
 go run ./tools/wtsinventory -mode probes -root "$(pwd)" | jq 'length'
-# 82
+# 85
 ```
 
-위 inventory 명령은 사용자 설정과 무관한 안정 표면 82개를 출력합니다. 실제
+위 inventory 명령은 사용자 설정과 무관한 안정 표면 85개를 출력합니다. 실제
 `tossctl monitor api`는 옵트인 설정을 읽어 paper probe 4개를 더 실행합니다. WTS 주간 정적 모니터는 별도로
 `rolling_features.paper-trading-us-options`의 UI flag·활성 build·critical endpoint와 stable
 승격 기준 변경을 감시합니다. 현재 `/paper/init`의 불투명한 500이 해결되지 않아 승격 심사는
@@ -162,7 +162,7 @@ Discord 외 Slack · ntfy · macOS notification · 이메일 등 다른 채널 �
   ✓ index-prices — status=200 (53ms)
   … remaining probes …
 
-82 passed, 0 failed, 0 skipped
+85 passed, 0 failed, 0 skipped
 ```
 
 계정에 관심종목 폴더가 하나도 없으면 `watchlist-group` 상세 probe는 적용할 대상이 없어
@@ -181,7 +181,7 @@ webhook 페이로드:
 
 ```
 🚨 tossctl API regression detected (0.4.9)
-2026-05-13 10:00 UTC — 1/82 probes failed
+2026-05-13 10:00 UTC — 1/85 probes failed
 
 ❌ portfolio-positions — POST wts-cert-api.tossinvest.com/api/v2/dashboard/asset/sections/all
     status=200, result.sections is empty — likely body-contract regression (#29-class)

@@ -10,10 +10,12 @@ import (
 	"strconv"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hiddenholding"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/history"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hybrid"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/jsoninput"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/openapiip"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/papertrading"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/pricealert"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
@@ -43,6 +45,7 @@ type Server struct {
 // Keeping construction outside the transport makes network policy and test
 // doubles explicit instead of hiding them in NewServer.
 type Services struct {
+	History        *history.Service
 	Trading        *trading.Service
 	OpenAPIIP      *openapiip.Service
 	PriceAlerts    *pricealert.Service
@@ -58,7 +61,8 @@ const baseInstructions = "Toss Securities via a 3-tool catalog. Call list_operat
 	"(optionally with a query) to find an operation id, then describe_operation for its parameter " +
 	"schema, then call_operation to run it. Operations with backend \"wts\" need a Toss web session " +
 	"(`tossctl auth login`); those with backend \"auto\" work with either credential (official first, " +
-	"web-session fallback); the rest need official Open API credentials (`tossctl openapi login`). " +
+	"web-session fallback); backend \"none\" is local and needs no credentials; the rest need official Open API credentials (`tossctl openapi login`). " +
+	"Use portfolio_briefing to combine holdings-related reads, or history_list/history_positions/history_transactions/history_compare for offline observations. history_sync previews an explicit local append and requires fresh execute/confirm to save. call_operation accepts optional fields to select result JSON paths before size limits. " +
 	"Every write returns a preview. Live and preference writes require execute + confirm token. Inspect mutation policy before execution: it declares risk, " +
 	"reversibility, opt-in, irreversible-acknowledgement, and verification requirements. Order writes additionally require trading config opt-in; " +
 	"non-trading settings writes use the same two-step confirmation boundary, and destructive writes may require acknowledge_irreversible=true. " +
@@ -84,7 +88,8 @@ func NewServer(official *official.Client, routed *hybrid.Client, services Servic
 	return &Server{
 		catalog: NewCatalog(services.Experiments...),
 		deps: &Deps{
-			Client: official, WTS: routed, Trading: services.Trading,
+			History: services.History,
+			Client:  official, WTS: routed, Trading: services.Trading,
 			OpenAPIIP: services.OpenAPIIP, PriceAlerts: services.PriceAlerts,
 			HiddenHoldings: services.HiddenHoldings,
 			Watchlists:     services.Watchlists,
@@ -262,6 +267,7 @@ func (s *Server) handleToolsList() any {
 			InputSchema: obj(map[string]any{
 				"operation": map[string]any{"type": "string", "description": "operation id"},
 				"params":    map[string]any{"type": "object", "description": "operation parameters (see describe_operation)"},
+				"fields":    map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Optional output JSON field paths, e.g. positions.symbol; arrays keep their shape. Missing fields are omitted. Applied before result size limits; does not change the API request."},
 			}, "operation"),
 		},
 	}
@@ -447,6 +453,7 @@ func (s *Server) handleToolsCall(ctx context.Context, params json.RawMessage) (a
 			Limit     json.RawMessage `json:"limit"`
 			Operation string          `json:"operation"`
 			Params    json.RawMessage `json:"params"`
+			Fields    []string        `json:"fields"`
 		} `json:"arguments"`
 	}
 	if len(params) > 0 {
@@ -496,6 +503,9 @@ func (s *Server) handleToolsCall(ctx context.Context, params json.RawMessage) (a
 		}
 		return toolResult(op, false)
 	case "call_operation":
+		if err := (output.JSONOptions{Fields: call.Arguments.Fields}).Validate(); err != nil {
+			return toolError("%s", err)
+		}
 		id := call.Arguments.Operation
 		if id == "" {
 			return toolError("call_operation requires the 'operation' parameter")
@@ -512,6 +522,10 @@ func (s *Server) handleToolsCall(ctx context.Context, params json.RawMessage) (a
 		result, err := s.catalog.Call(ctx, s.deps, id, opArgs)
 		if err != nil {
 			return toolError("%s", err.Error())
+		}
+		result, err = output.Project(result, call.Arguments.Fields)
+		if err != nil {
+			return toolError("%s", err)
 		}
 		return toolResult(result, false)
 	default:

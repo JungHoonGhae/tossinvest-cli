@@ -95,6 +95,9 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"option-real-time-tick":               true,
 		"securities-transfer-my-accounts":     true,
 		"securities-transfer-recent-accounts": true,
+		"holdings-news":                       true,
+		"transactions-kr":                     true,
+		"transactions-us":                     true,
 	}
 	got := map[string]bool{}
 	for _, p := range Probes() {

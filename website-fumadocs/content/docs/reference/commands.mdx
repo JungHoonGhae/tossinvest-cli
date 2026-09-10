@@ -5,6 +5,19 @@ description: 주요 CLI 명령과 전체 기능 탐색 방법
 
 주요 명령을 기능별로 정리합니다. 전체 CLI 옵션은 `tossctl --help`와 각 하위 명령의 `--help`, ops/MCP 카탈로그는 `tossctl ops list`·`tossctl ops describe <id>`가 기준입니다. 일반 조회는 `--output table|json|csv`를 지원하며 차트·스트림은 명령별 출력 형식을 확인하세요.
 
+## 로컬 이력 (history)
+
+| 명령 | 설명 |
+|------|------|
+| `tossctl history sync [--from DATE --to DATE --market all]` | 로컬 SQLite 수집 preview; 저장은 같은 인자에 `--execute --confirm <token>` |
+| `tossctl history list` | 수집본 ID·수집 시각·범위·완전성 |
+| `tossctl history positions [--snapshot ID]` | 저장된 보유 종목 조회 |
+| `tossctl history transactions [--snapshot ID] [--query TEXT]` | 저장된 거래내역 필터·검색·페이지 조회 |
+| `tossctl history search <query> [--snapshot ID]` | 거래내역 문자열 검색 |
+| `tossctl history compare <before-id> <after-id>` | 수량·평가액 변화 비교 |
+
+수집 외에는 오프라인으로 동작합니다. [수집·조회 계약](/docs/guide/history)을 참고하세요.
+
 ## 인증 (auth)
 
 | 명령 | 설명 |
@@ -21,6 +34,7 @@ description: 주요 CLI 명령과 전체 기능 탐색 방법
 | `tossctl account buying-power` | 공식 매수가능금액(공식 키 필요) |
 | `tossctl account summary` | 총자산·평가손익·시장별 |
 | `tossctl portfolio positions` | 보유 종목 (미국은 USD 병기) |
+| `tossctl portfolio briefing [--news-limit N]` | 보유 종목·연관 뉴스·예정 어닝콜·미체결 주문 집계 |
 | `tossctl portfolio allocation` | 자산 배분 |
 | `tossctl portfolio folders [--account <key>]` | 사용자 정의 폴더별 보유종목·수수료 반영 평가손익(계좌·폴더 내부 키 비노출) |
 | `tossctl portfolio performance [--account <key>]` | 최근 1개월 일별 원금·평가액·수익률·기간 고저(기본: 모든 증권 계좌 합산) |

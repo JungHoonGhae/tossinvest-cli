@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -193,9 +192,7 @@ func newAuthCmd(opts *rootOptions) *cobra.Command {
 func writeAuthStatus(w io.Writer, format output.Format, status auth.Status) error {
 	switch format {
 	case output.FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(status)
+		return output.WriteJSON(w, status)
 	case output.FormatCSV:
 		return fmt.Errorf("csv output is not supported for auth status")
 	case output.FormatTable:
@@ -268,9 +265,7 @@ func writeImportResult(w io.Writer, format output.Format, sessionFile string, se
 
 	switch format {
 	case output.FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(payload)
+		return output.WriteJSON(w, payload)
 	case output.FormatCSV:
 		return fmt.Errorf("csv output is not supported for auth import")
 	case output.FormatTable:
@@ -301,9 +296,7 @@ func writeLogoutResult(w io.Writer, format output.Format, sessionFile string, cl
 
 	switch format {
 	case output.FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(payload)
+		return output.WriteJSON(w, payload)
 	case output.FormatCSV:
 		return fmt.Errorf("csv output is not supported for auth logout")
 	case output.FormatTable:

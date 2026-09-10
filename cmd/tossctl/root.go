@@ -33,6 +33,8 @@ import (
 
 type rootOptions struct {
 	outputFormat string
+	fields       []string
+	compact      bool
 	configDir    string
 	sessionFile  string
 	backend      string // --backend flag: overrides cfg.OpenAPI.Prefer for this run
@@ -61,9 +63,33 @@ func newRootCmd() *cobra.Command {
 		Long:         i18n.T("root.long"),
 		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if len(opts.fields) > 0 || opts.compact {
+				for current := cmd; current != nil; current = current.Parent() {
+					if current.Name() == "mcp" || current.Name() == "push" || current.Name() == "stream" {
+						return fmt.Errorf("--fields and --compact apply to one-shot JSON output, not %s", current.Name())
+					}
+				}
+				settings := output.JSONOptions{Fields: opts.fields, Compact: opts.compact}
+				if err := settings.Validate(); err != nil {
+					return err
+				}
+				selectedFormat, parseErr := output.ParseFormat(opts.outputFormat)
+				if parseErr != nil {
+					return parseErr
+				}
+				if cmd.Flags().Changed("output") && selectedFormat != output.FormatJSON {
+					return fmt.Errorf("--fields and --compact require --output json")
+				}
+				opts.outputFormat = "json"
+				cmd.SetOut(output.WithJSONOptions(cmd.OutOrStdout(), settings))
+			}
 			format, err := output.ParseFormat(opts.outputFormat)
 			if err != nil {
 				return err
+			}
+			if cmd.Parent() != nil && cmd.Parent().Name() == "history" && cmd.Name() != "sync" {
+				opts.outputFormat = string(format)
+				return nil
 			}
 			if feature := commandExperiment(cmd); feature != "" {
 				enabled, err := experimentEnabled(opts, feature)
@@ -113,6 +139,9 @@ func newRootCmd() *cobra.Command {
 			return nil
 		},
 		PersistentPostRun: func(cmd *cobra.Command, _ []string) {
+			if cmd.Parent() != nil && cmd.Parent().Name() == "history" && cmd.Name() != "sync" {
+				return
+			}
 			writeUpdateNoticeIfNeeded(cmd.Context(), cmd.ErrOrStderr(), opts)
 		},
 	}
@@ -142,6 +171,8 @@ func newRootCmd() *cobra.Command {
 		"Override routing backend for this run: auto|wts|openapi",
 	)
 	cmd.PersistentFlags().String("lang", "", "UI language for help, prompts, and table output: en|ko (also TOSSCTL_LANG / LANG)")
+	cmd.PersistentFlags().StringSliceVar(&opts.fields, "fields", nil, "Select JSON fields (comma-separated dotted paths; arrays keep their shape; implies JSON)")
+	cmd.PersistentFlags().BoolVar(&opts.compact, "compact", false, "Emit JSON without indentation, preserving all selected fields (implies JSON)")
 
 	paperCmd := newPaperCmd(opts)
 	cmd.AddCommand(
@@ -154,6 +185,7 @@ func newRootCmd() *cobra.Command {
 		newOpenAPICmd(opts),
 		newAccountCmd(opts),
 		newPortfolioCmd(opts),
+		newHistoryCmd(opts),
 		newBankingCmd(opts),
 		newLendingCmd(opts),
 		newAccumulateCmd(opts),

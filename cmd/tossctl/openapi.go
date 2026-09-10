@@ -251,9 +251,7 @@ func buildStatusReport(in statusInputs) statusReport {
 // renderStatusReport writes the dashboard to w in the requested format.
 func renderStatusReport(w io.Writer, format output.Format, r statusReport) error {
 	if format == output.FormatJSON {
-		enc := json.NewEncoder(w)
-		enc.SetIndent("", "  ")
-		return enc.Encode(r)
+		return output.WriteJSON(w, r)
 	}
 
 	// Table format — section-by-section.
@@ -522,9 +520,7 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 func writeProbeResult(w io.Writer, format output.Format, result probeResult) error {
 	switch format {
 	case output.FormatJSON:
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "  ")
-		return encoder.Encode(result)
+		return output.WriteJSON(w, result)
 	default:
 		if result.OK {
 			_, err := fmt.Fprintf(w, "✓ %s\n", result.Message)

@@ -38,6 +38,7 @@ write contract, so callers must not execute the same preview concurrently.
 
 | Operation | Domain | Risk / reversibility | Execution boundary |
 |---|---|---|---|
+| `history_sync` | Securities (local history) | preference / reversible | preview + 5-minute session/account/intent/database-revision confirmation; appends an atomic SQLite collection, with no remote writes; incomplete reads are labeled |
 | `place_order` | Securities | financial / irreversible | official API config opt-in + preview + reusable exact-intent confirmation; response-only, so inspect pending/completed state before retry after a transport error |
 | `cancel_order` | Securities | financial / irreversible | official API config opt-in + preview + reusable exact-intent confirmation; response-only, so inspect pending/completed state before retry after a transport error |
 | `modify_order` | Securities | financial / irreversible | official API config opt-in + preview + reusable exact-intent confirmation; response-only, so inspect pending/completed state before retry after a transport error |

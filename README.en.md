@@ -86,16 +86,18 @@ tossctl portfolio positions --output json
 
 # Stream trades and watch for API changes
 tossctl stream --trade A005930
-tossctl monitor api           # schema-probe 82 endpoints; exit 0 pass, 1 fail
+tossctl monitor api           # schema-probe 85 endpoints; exit 0 pass, 1 fail
 ```
 
 You can also manage watchlist folders and price alerts, screen stocks, review transactions, and preview orders. See the [command reference](https://tossinvest-cli.vercel.app/en/docs/reference/commands) or run `tossctl <command> --help` for options.
+
+Use `tossctl history sync` to preview a local collection of holdings and transactions. After saving, `history list`, `history search`, and `history compare` work offline. `portfolio briefing` combines holdings news, earnings calls, and pending orders. Use `--fields symbol,quantity --compact` to select JSON output. [History and briefing guide](https://tossinvest-cli.vercel.app/en/docs/guide/history)
 
 ## CLI and MCP
 
 Use the CLI from your terminal or scripts, and MCP with agents such as Claude Code, Codex, and Cursor. Run `tossctl mcp` from the same binary — no separate server package to install.
 
-The default MCP surface is **111 operations**. Three catalog tools discover the right operation, load its schema, and call it, without loading every operation's description into context at once.
+The default MCP surface is **117 operations**. Three catalog tools discover the right operation, load its schema, and call it, without loading every operation's description into context at once.
 
 ```bash
 # Claude Code

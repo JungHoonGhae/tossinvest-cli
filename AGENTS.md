@@ -95,7 +95,7 @@ Rules for agents:
 
 ## Probe 목록
 
-현재 `monitor api` 는 82개 read-only endpoint 를 감시합니다. 단일 진실 소스는
+현재 `monitor api` 는 85개 read-only endpoint 를 감시합니다. 단일 진실 소스는
 `internal/monitor.Probes()` 런타임 결과입니다. 대부분은 `internal/ops`
 레지스트리의 오퍼레이션 옆 `ProbeSpec`과 공용 `ProbeRefs`에서 파생되고, 카탈로그
 오퍼레이션이 없는 CLI 전용 5개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
@@ -127,6 +127,9 @@ Rules for agents:
 - `trading-flows` — `GET /api/v1/stock-infos/trade/trend/trading-trend`
 - `earning-call` — `GET /api/v1/earning-call/upcoming`
 - `earning-call-detail` — `GET /api/v1/earning-call/events/228692/info`
+- `holdings-news` — `POST /api/v1/dashboard/wts/news` (`PERSONALIZE_HOLD`)
+- `transactions-kr` — `GET /api/v3/my-assets/transactions/markets/kr` (today, `size=1`)
+- `transactions-us` — `GET /api/v3/my-assets/transactions/markets/us` (today, `size=1`)
 - `news-briefing` — `GET /api/v2/reasoning/personalized`
 - `market-news-briefing` — `GET /api/v1/dashboard/wts/overview/ai-signals/latest?nationCode=KOR`
 - `community-rankings` — `GET /api/v1/community/top-rankings/INFLUENCER`

@@ -5,6 +5,7 @@ import (
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/featuregate"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hiddenholding"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/history"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/jsoninput"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/openapiip"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/ops"
@@ -163,6 +164,10 @@ func newOpsCallCmd(opts *rootOptions) *cobra.Command {
 				return fmt.Errorf("unknown operation %q; run `tossctl ops list` to see the available ids", args[0])
 			}
 			officialClient := app.client.Official()
+			historyFile, err := historyPath(opts)
+			if err != nil {
+				return err
+			}
 			// The operation catalog declares regular and conditional orders as
 			// official-only. Keep this machine surface identical to MCP even though
 			// the human-oriented `order` command retains its legacy hybrid broker.
@@ -170,6 +175,7 @@ func newOpsCallCmd(opts *rootOptions) *cobra.Command {
 				WithConditionalBroker(app.client).
 				WithLineage(app.lineageService)
 			deps := &ops.Deps{
+				History:        history.New(historyFile, app.client.Client),
 				Client:         officialClient,
 				WTS:            app.client,
 				Trading:        officialTrading,

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
@@ -50,9 +49,7 @@ func newConfigCmd(opts *rootOptions) *cobra.Command {
 				}
 
 				if app.format == output.FormatJSON {
-					encoder := json.NewEncoder(cmd.OutOrStdout())
-					encoder.SetIndent("", "  ")
-					return encoder.Encode(result)
+					return output.WriteJSON(cmd.OutOrStdout(), result)
 				}
 				if app.format == output.FormatCSV {
 					return fmt.Errorf("csv output is not supported for config init")
