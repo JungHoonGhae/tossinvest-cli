@@ -8,7 +8,7 @@
 
 <p align="center">
   <strong>공식 API에서 빠진 투자 정보까지, 내 AI에게.</strong>
-  <br />수급·토스 AI 시그널·배당·관심종목을 터미널과 AI 앱에 연결하는 <code>tossctl</code>.
+  <br />종목 탐색부터 자산·손익·세금·관심종목 관리까지, <code>tossctl</code> 하나로.
 </p>
 
 <p align="center">
@@ -30,16 +30,17 @@
 
 ## 공식 API만으로는 빠지는 것들
 
-계좌·보유 종목·주문은 공식 API로도 연결할 수 있습니다. **tossctl은 거기서 빠지는 정보와 관리 기능까지 내 AI와 자동화에 연결합니다.**
+**AI 시그널·배당·관심종목은 일부입니다.** tossctl은 [공식 API에 없는 **30가지 이상의 기능**](https://tossinvest-cli.vercel.app/docs/reference/support-scope)을 내 AI와 자동화에 연결합니다. 종목을 찾는 일부터 내 자산의 변화와 세금 자료를 확인하는 일까지 한곳에서 다루세요.
 
-| 하고 싶은 일 | 공식 Open API | tossctl |
+| 더 할 수 있는 일 | 공식 Open API | tossctl에서 연결하는 기능 |
 |---|:---:|---|
-| 누가 사고파는지 수급 확인 | 미지원 | 투자자별 순매수 조회 |
-| 토스 AI 시그널 함께 보기 | 미지원 | 시장·종목별 시그널 조회 |
-| 내 배당 내역 모아 보기 | 미지원 | 배당 내역 조회 |
-| 관심종목·목표가 알림 관리 | 미지원 | 목록 조회와 변경 |
+| 종목 발굴·분석 | 미지원 | 토스 AI 시그널·등락 이유·조건검색·업종별 분석 |
+| 뉴스·투자 일정 확인 | 미지원 | 보유·관심종목 뉴스·어닝콜·주요 경제지표 일정 |
+| 내 자산·성과 모아 보기 | 미지원 | 전체 계좌 합산·평가 이력·배당·기간별 실현손익 |
+| 세금·추가 수익 확인 | 미지원 | 해외 양도소득·예탁금 이자·주식대여 예상 수익 |
+| 내 투자 관리 | 미지원 | 관심종목 폴더·목표가 알림·숨긴 종목·주식모으기 조회 |
 
-**“잔고가 얼마야?”에서 “수급과 토스 AI 시그널도 함께 보여줘”로.** 앱에서 따로 확인하던 정보를 이제 내 AI에게 요청하세요.
+**“잔고가 얼마야?”에서 “내 자산 변화와 받은 배당, 보유 종목 뉴스까지 정리해 줘”로.** 앱에서 따로 확인하던 정보를 이제 내 AI에게 요청하세요.
 
 <p align="center">
   <img src="diagrams/readme-workflow.png" alt="휴대폰으로 로그인하고 시세·수급·계좌·배당을 선택해 CLI나 MCP로 조회합니다. 결과는 터미널·JSON·AI 답변으로 활용하며, 실주문은 별도 미리보기와 사람의 승인이 필요합니다." width="100%" />
@@ -102,7 +103,7 @@ tossctl portfolio dividends
 tossctl portfolio positions --output json
 ```
 
-수급·AI 시그널·배당은 WTS 전용 기능입니다. 관심종목·목표가 알림·조건검색 등은 [명령 레퍼런스](https://tossinvest-cli.vercel.app/docs/reference/commands)에서 확인하세요.
+위 수급 명령은 WTS를 사용하며, 공식 API의 투자자별 매매동향 조회도 별도로 지원합니다. AI 시그널·배당 등 추가 기능의 사용법은 [명령 레퍼런스](https://tossinvest-cli.vercel.app/docs/reference/commands)에서 확인하세요.
 
 <details>
 <summary>실시간 구독 · API 감시 · 로컬 이력</summary>
@@ -139,7 +140,7 @@ claude mcp add tossctl tossctl mcp
 
 연결한 에이전트에 이렇게 요청하세요.
 
-> 삼성전자 투자자별 수급과 토스 AI 시그널을 함께 정리해 줘.
+> 내 자산 변화와 받은 배당을 정리하고, 보유 종목 뉴스도 함께 보여줘.
 
 Codex·Cursor 등 앱별 등록 방법은 [MCP 가이드](https://tossinvest-cli.vercel.app/docs/guide/mcp)를 참고하세요.
 
