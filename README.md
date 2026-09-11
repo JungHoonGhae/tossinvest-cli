@@ -7,7 +7,7 @@
 <h1 align="center">tossinvest-cli</h1>
 
 <p align="center">
-  <strong>공식 API에서 빠진 투자 정보까지, 내 AI에게.</strong>
+  <strong>공식 API에 없는 투자 정보까지, 내 AI에게.</strong>
   <br />종목 탐색부터 자산·손익·세금·관심종목 관리까지, <code>tossctl</code> 하나로.
 </p>
 
@@ -19,7 +19,7 @@
 
 <p align="center">
   <a href="#빠른-시작"><strong>빠른 시작</strong></a> ·
-  <a href="#공식-api만으로는-빠지는-것들"><strong>더 쓸 수 있는 기능</strong></a> ·
+  <a href="#공식-api에-없는-기능"><strong>더 쓸 수 있는 기능</strong></a> ·
   <a href="#ai와-함께-사용하기"><strong>AI 연결</strong></a> ·
   <a href="#주문-전-확인하세요"><strong>주문 전 확인</strong></a> ·
   <a href="https://tossinvest-cli.vercel.app/docs"><strong>문서</strong></a>
@@ -28,9 +28,9 @@
 > [!WARNING]
 > 이 프로젝트는 토스증권 공식 제품이 아닙니다. 공식 Open API 외 기능은 토스증권 웹 내부 API를 비공식적으로 사용하며, 이용약관 위반에 해당할 수 있고 예고 없이 변경될 수 있습니다. 계좌 제한·손실 등 사용 결과는 사용자 본인의 책임입니다.
 
-## 공식 API만으로는 빠지는 것들
+## 공식 API에 없는 기능
 
-**AI 시그널·배당·관심종목은 일부입니다.** tossctl은 [공식 API에 없는 **30가지 이상의 기능**](https://tossinvest-cli.vercel.app/docs/reference/support-scope)을 내 AI와 자동화에 연결합니다. 종목을 찾는 일부터 내 자산의 변화와 세금 자료를 확인하는 일까지 한곳에서 다루세요.
+tossctl은 [공식 API에 없는 **30가지 이상의 기능**](https://tossinvest-cli.vercel.app/docs/reference/support-scope)을 내 AI와 자동화에 연결합니다. 종목을 찾는 일부터 내 자산의 변화와 세금 자료를 확인하는 일까지 한곳에서 다루세요.
 
 | 더 할 수 있는 일 | 공식 Open API | tossctl에서 연결하는 기능 |
 |---|:---:|---|
