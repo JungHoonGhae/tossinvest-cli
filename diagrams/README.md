@@ -99,6 +99,13 @@ authentication helpers, and local history are omitted. MCP, ops, and conditional
 orders use the official API only. The README keeps the user-facing order checks;
 full execution requirements live in the safety guide and configuration docs.
 
+The `30+` label counts supported, official-API-absent capability rows in the
+[support matrix](../website-fumadocs/content/docs/reference/support-scope.mdx),
+excluding local CSV export, order preview, and experimental paper trading.
+It describes user capabilities, not a count of distinct HTTP endpoints or a
+claim that no other project offers them. Recheck the matrix against the current
+official contract when updating this label.
+
 ## Validation
 
 When Diagram Design is installed, run its `scripts/self_check.py` on each HTML

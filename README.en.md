@@ -8,7 +8,7 @@
 
 <p align="center">
   <strong>Give your AI the investment data the official API leaves out.</strong>
-  <br />Investor flows, Toss AI signals, dividends, and watchlists — in your terminal and AI apps with <code>tossctl</code>.
+  <br />From stock discovery to assets, profit, taxes, and watchlists — one <code>tossctl</code>.
 </p>
 
 <p align="center">
@@ -30,16 +30,17 @@
 
 ## What the Official API Leaves Out
 
-The official API already connects accounts, holdings, and orders. **tossctl brings the missing data and management tools into your AI and automation too.**
+**AI signals, dividends, and watchlists are only part of it.** tossctl brings [**30+ capabilities beyond the official API**](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope) into your AI and automation. Discover stocks, track changes in your assets, and review tax records in one place.
 
-| What you want to do | Official Open API | tossctl |
+| What else you can do | Official Open API | What tossctl connects |
 |---|:---:|---|
-| See who is buying and selling | Not supported | Net buying by investor type |
-| Bring in Toss AI signals | Not supported | Market and stock signals |
-| Review your dividend history | Not supported | Dividend records |
-| Manage watchlists and price alerts | Not supported | Read and update your lists |
+| Discover and research stocks | Not supported | Toss AI signals, reasons for price moves, screening, sector analysis |
+| Follow news and investment events | Not supported | Holdings and watchlist news, earnings calls, key economic releases |
+| Review assets and performance | Not supported | All-account totals, valuation history, dividends, realized profit by period |
+| Check taxes and other income | Not supported | Overseas capital gains, deposit interest, expected stock-lending income |
+| Manage your investing setup | Not supported | Watchlist folders, price alerts, hidden holdings, accumulation-plan lookup |
 
-**Go from “What's my balance?” to “Show me investor flows and Toss AI signals too.”** Ask your AI for the information you used to check separately in the app.
+**Go from “What's my balance?” to “Summarize my asset changes, dividends received, and holdings news.”** Ask your AI for the information you used to check separately in the app.
 
 <p align="center">
   <img src="diagrams/readme-workflow.en.png" alt="Sign in on your phone, select quotes, flows, accounts, or dividends, and query through the CLI or MCP. Use results in a terminal, JSON, or an AI answer. Live orders require a separate preview and human approval." width="100%" />
@@ -102,7 +103,7 @@ tossctl portfolio dividends
 tossctl portfolio positions --output json
 ```
 
-Investor flows, AI signals, and dividends are WTS-only features. See the [command reference](https://tossinvest-cli.vercel.app/en/docs/reference/commands) for watchlists, price alerts, stock screening, and more.
+The flows command above uses WTS; the official API's investor-trading query is also supported separately. See the [command reference](https://tossinvest-cli.vercel.app/en/docs/reference/commands) for AI signals, dividends, and more.
 
 <details>
 <summary>Live streams · API monitoring · Local history</summary>
@@ -139,7 +140,7 @@ claude mcp add tossctl tossctl mcp
 
 Ask your connected agent:
 
-> Summarize investor flows and Toss AI signals for Samsung Electronics.
+> Summarize my asset changes and dividends received, and show news about my holdings.
 
 See the [MCP guide](https://tossinvest-cli.vercel.app/en/docs/guide/mcp) for Codex, Cursor, and other apps.
 

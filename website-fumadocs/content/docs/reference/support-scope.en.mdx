@@ -9,6 +9,17 @@ description: Coverage vs the official Open API
 - The `Official API` column describes the public contract. Actual routing follows each command's policy and configuration.
 - Official ❌ rows are WTS additions or local features; CSV output and preview are not themselves WTS endpoints.
 
+The README's **30+ extra capabilities** count rows below where the official API
+is ❌ and tossctl is ✅, excluding local CSV export, order preview, and experimental
+paper trading. A capability can combine several calls, so this is not a distinct
+endpoint count.
+
+Compared against the [official Open API specification](https://openapi.tossinvest.com/openapi-docs/latest/openapi.json)
+**1.2.15** on 2026-09-12. The official API also
+provides Korean investor-trading data, volume/value/price-change rankings, selected
+market indicators, and batch quotes. These overlap with WTS but differ in scope
+or fields; they are marked partial below and excluded from the extra-capability count.
+
 ## Product domain ≠ access channel
 
 Securities, Banking, and MyData are product domains. Official Open API, WTS,
@@ -63,24 +74,30 @@ Some rows include both reads and changes. `add/remove`, `hide/show`, and watchli
 | Price limits / buy cautions | `quote limits`, `quote warnings` | ✅ | ✅ |
 | Sellable qty / commission | `quote sellable`, `quote commission` | ✅ | ✅ |
 | Quote / candles | `quote get`, `quote chart` | 🔸 | ✅ |
-| Multi-quote / live refresh | `quote batch --live` | ❌ | ✅ |
-| Investor flows | `quote flows` | ❌ | ✅ |
-| Market indices / index detail | `market index [<code\|name>]` (detail includes price feed and trading session) | ❌ | ✅ |
-| Live popularity ranking | `market ranking` | ❌ | ✅ |
+| Multi-quote / live refresh | `quote batch --live` | 🔸 (batch quotes for up to 200 stocks) | ✅ |
+| Investor flows | `quote flows` (WTS), `quote supply` (official) | 🔸 (Korean daily trading volumes) | ✅ |
+| Market indices / index detail | `market index [<code\|name>]` (WTS), `market indicator` (official) | 🔸 (8 Korean index/bond indicators) | ✅ |
+| Live popularity ranking | `market ranking` (WTS), `market rankings` (official) | 🔸 (volume/value/price-change rankings) | ✅ |
 | Net-buy by investor | `market investors` | ❌ | ✅ |
 | Sector movements & detail | `market sectors`, `market sector <id>` | ❌ | ✅ |
 | Earnings calendar & detail | `market earnings [event-id]` (`--major`: major companies) | ❌ | ✅ |
 | Personalized news briefing | `market briefing` (asset, return, reasoning, news) | ❌ | ✅ |
+| Market, holdings, and watchlist news | `market news --type <scope>` | ❌ | ✅ |
 | 🆕 Key earnings & economic releases | `market key-events` | ❌ | ✅ |
 | 🆕 Securities stock-accumulation funding status | `accumulate funding-status [--full]` (`banking status` is a deprecated alias; not general Banking/MyData; internal ID omitted) | ❌ | ✅ |
 | 🆕 Notification preferences and status | `notifications list`, `notifications status` (canonical preferences, inbox unread state, and AI-analysis agreement; no mutation) | ❌ | ✅ |
 | Target-price alert read & management | `quote alert list/add/remove` | ❌ | ✅ |
 | Hidden-holding read & management | `portfolio hidden list/hide/show` | ❌ | ✅ |
 | Toss AI signals | `market signals`, `market signal <symbol>` | ❌ | ✅ |
+| Stock-move explanations and signal cards | `quote reasoning`, `quote reasons`, `quote signals` | ❌ | ✅ |
 | Screener | `market screener` | ❌ | ✅ |
+| US-options expiries and chains | `quote options <symbol> [--expiry <date>]` (no prices; read-only) | ❌ | ✅ |
 | Dividend report | `portfolio dividends` | ❌ | ✅ |
+| Deposit-interest payment history | `account interest --year N` | ❌ | ✅ |
+| Expected stock-lending income and rankings | `lending expected`, `lending top` (read-only) | ❌ | ✅ |
 | Cumulative realized profit | `profit` | ❌ | ✅ |
 | Overseas transfer income (tax) | `tax overseas --year N` | ❌ | ✅ |
+| RIA tax-saving report | `tax ria` | ❌ | ✅ |
 | Stock accumulation 📱 | `accumulate list/status` | ❌ *(no web UI; found in Securities mobile UI, then WTS-verified)* | ✅ |
 | Community rankings | `community rankings` | ❌ | ✅ |
 | Watchlist read & management | `watchlist ...` | ❌ | ✅ |
