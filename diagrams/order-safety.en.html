@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview first. Human approval next. — tossctl</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px 16px; background: #f5f5f5; color: #2d3142; font-family: 'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
+    main { max-width: 960px; margin: 0 auto; }
+    h1 { position: absolute; width: 4px; height: 4px; margin: -4px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; font: 400 28px/1.4 'Instrument Serif', 'Noto Serif KR', serif; }
+    figure { margin: 0; overflow-x: auto; }
+    svg { display: block; width: 960px; height: 600px; }
+    .note { margin: 24px 0 0; font-size: 16px; line-height: 1.6; color: #4f5d75; }
+    @media print { body { padding: 0; } svg { width: 100%; height: auto; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Preview first. Human approval next.</h1>
+  <figure>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" height="600" role="img" aria-labelledby="order-safety.en-title order-safety.en-desc">
+<title id="order-safety.en-title">Preview first. Human approval next.</title>
+<desc id="order-safety.en-desc">A regular CLI live order goes from preview to human review and execution, then requires configuration, execute, and token checks before submission through one API route; a failed check blocks submission.</desc>
+<defs>
+  <marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M 0 0 L 8 4 L 0 8 Z" fill="#4f5d75"/></marker>
+  <marker id="arrow-accent" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M 0 0 L 8 4 L 0 8 Z" fill="#eb6c36"/></marker>
+  <marker id="arrow-link" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M 0 0 L 8 4 L 0 8 Z" fill="#2e5aa8"/></marker>
+</defs>
+<rect width="960" height="600" fill="#f5f5f5"/>
+<text x="40" y="40" fill="#4f5d75" font-family="'Geist Mono', ui-monospace, monospace" font-size="12" font-weight="400" text-anchor="start">03 / FLOWCHART</text>
+<text x="40" y="84" fill="#2d3142" font-family="'Instrument Serif', 'Noto Serif KR', serif" font-size="32" font-weight="400" text-anchor="start">Preview first. Human approval next.</text>
+<path d="M 480 176 V 208" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 480 272 V 296" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 624 352 H 704" fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+<path d="M 480 408 V 456" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect x="640" y="320" width="48" height="24" rx="4" fill="#f5f5f5" stroke="none" stroke-width="1" />
+<text x="664" y="336" fill="#4f5d75" font-family="'Geist Mono', ui-monospace, monospace" font-size="12" font-weight="400" text-anchor="middle">YES</text>
+<rect x="488" y="416" width="40" height="24" rx="4" fill="#f5f5f5" stroke="none" stroke-width="1" />
+<text x="508" y="432" fill="#4f5d75" font-family="'Geist Mono', ui-monospace, monospace" font-size="12" font-weight="400" text-anchor="middle">NO</text>
+<rect x="328" y="112" width="304" height="64" rx="8" fill="#f5f5f5" stroke="none" stroke-width="1" />
+<rect x="328" y="112" width="304" height="64" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1" />
+<text x="480" y="140" fill="#2d3142" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="20" font-weight="600" text-anchor="middle">Preview the order</text>
+<text x="480" y="164" fill="#4f5d75" font-family="'Geist Mono', ui-monospace, monospace" font-size="12" font-weight="400" text-anchor="middle">tossctl order preview</text>
+<rect x="328" y="208" width="304" height="64" rx="8" fill="#f5f5f5" stroke="none" stroke-width="1" />
+<rect x="328" y="208" width="304" height="64" rx="8" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1" />
+<text x="480" y="236" fill="#2d3142" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="20" font-weight="600" text-anchor="middle">Human reviews and executes</text>
+<text x="480" y="260" fill="#4f5d75" font-family="'Geist Mono', ui-monospace, monospace" font-size="12" font-weight="400" text-anchor="middle">--execute --confirm &lt;token&gt;</text>
+<polygon points="480,296 624,352 480,408 336,352" fill="#f5f5f5"/>
+<polygon points="480,296 624,352 480,408 336,352" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1.2"/>
+<text x="480" y="344" fill="#2d3142" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="20" font-weight="600" text-anchor="middle">All checks pass?</text>
+<text x="480" y="368" fill="#4f5d75" font-family="'Geist Mono', ui-monospace, monospace" font-size="12" font-weight="400" text-anchor="middle">CONFIG + EXECUTE + TOKEN</text>
+<rect x="704" y="312" width="216" height="80" rx="8" fill="#f5f5f5" stroke="none" stroke-width="1" />
+<rect x="704" y="312" width="216" height="80" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1" />
+<text x="812" y="344" fill="#2d3142" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="16" font-weight="600" text-anchor="middle">One submission route</text>
+<text x="812" y="372" fill="#4f5d75" font-family="'Geist Mono', ui-monospace, monospace" font-size="12" font-weight="400" text-anchor="middle">Official API / WTS</text>
+<rect x="360" y="456" width="240" height="56" rx="28" fill="rgba(45,49,66,0.05)" stroke="#4f5d75" stroke-width="1" />
+<text x="480" y="492" fill="#2d3142" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="20" font-weight="600" text-anchor="middle">Submission blocked</text>
+<text x="40" y="324" fill="#2d3142" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="16" font-weight="600" text-anchor="start">Default: live trading off</text>
+<text x="40" y="352" fill="#4f5d75" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="12" font-weight="400" text-anchor="start">Action and live-trading opt-ins,</text>
+<text x="40" y="376" fill="#4f5d75" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="12" font-weight="400" text-anchor="start">execution intent, and token checked.</text>
+<line x1="40" y1="544" x2="920" y2="544" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+<path d="M 40 568 H 72" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<text x="84" y="572" fill="#4f5d75" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="12" font-weight="400" text-anchor="start">Review &amp; checks</text>
+<path d="M 328 568 H 360" fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+<text x="372" y="572" fill="#4f5d75" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="12" font-weight="400" text-anchor="start">Permitted API request</text>
+</svg>
+  </figure>
+  <p class="note">This summarizes regular CLI live-order approval. Human approval is an agent operating rule; code checks configuration, execute, and token. Product, sell, and fractional eligibility and API responses are omitted. MCP, ops, and conditional orders use only the official API. If transport leaves the outcome unclear, check status before retrying.</p>
+</main>
+</body>
+</html>

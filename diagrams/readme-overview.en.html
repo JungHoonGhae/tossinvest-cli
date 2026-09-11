@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Official API first, extended through WTS — tossctl</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;family=Noto+Sans+KR:wght@400;500;600&amp;family=Noto+Serif+KR:wght@400&amp;display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px 16px; background: #f5f5f5; color: #2d3142; font-family: 'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
+    main { max-width: 960px; margin: 0 auto; }
+    h1 { position: absolute; width: 4px; height: 4px; margin: -4px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; font: 400 28px/1.4 'Instrument Serif', 'Noto Serif KR', serif; }
+    figure { margin: 0; overflow-x: auto; }
+    svg { display: block; width: 960px; height: 600px; }
+    .note { margin: 24px 0 0; font-size: 16px; line-height: 1.6; color: #4f5d75; }
+    @media print { body { padding: 0; } svg { width: 100%; height: auto; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Official API first, extended through WTS</h1>
+  <figure>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" height="600" role="img" aria-labelledby="readme-overview.en-title readme-overview.en-desc">
+<title id="readme-overview.en-title">Official API first, extended through WTS</title>
+<desc id="readme-overview.en-desc">Terminals and AI agents use tossctl to access the official API and WTS, with supported reads preferring the official API by default.</desc>
+<defs>
+  <marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M 0 0 L 8 4 L 0 8 Z" fill="#4f5d75"/></marker>
+  <marker id="arrow-accent" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M 0 0 L 8 4 L 0 8 Z" fill="#eb6c36"/></marker>
+  <marker id="arrow-link" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M 0 0 L 8 4 L 0 8 Z" fill="#2e5aa8"/></marker>
+</defs>
+<rect width="960" height="600" fill="#f5f5f5"/>
+<text x="40" y="40" fill="#4f5d75" font-family="'Geist Mono', ui-monospace, monospace" font-size="12" font-weight="400" text-anchor="start">01 / ARCHITECTURE</text>
+<text x="40" y="84" fill="#2d3142" font-family="'Instrument Serif', 'Noto Serif KR', serif" font-size="32" font-weight="400" text-anchor="start">Official API first, extended through WTS</text>
+<path d="M 240 216 H 288 Q 296 216 296 224 V 276 Q 296 284 304 284 H 352" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 240 400 H 288 Q 296 400 296 392 V 372 Q 296 364 304 364 H 352" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<path d="M 576 284 H 616 Q 624 284 624 276 V 220 Q 624 212 632 212 H 688" fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+<path d="M 576 364 H 640 Q 648 364 648 372 V 416 Q 648 424 656 424 H 688" fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+<rect x="252" y="184" width="40" height="24" rx="4" fill="#f5f5f5" stroke="none" stroke-width="1" />
+<text x="272" y="200" fill="#4f5d75" font-family="'Geist Mono', ui-monospace, monospace" font-size="12" font-weight="400" text-anchor="middle">CLI</text>
+<rect x="252" y="368" width="40" height="24" rx="4" fill="#f5f5f5" stroke="none" stroke-width="1" />
+<text x="272" y="384" fill="#4f5d75" font-family="'Geist Mono', ui-monospace, monospace" font-size="12" font-weight="400" text-anchor="middle">MCP</text>
+<rect x="40" y="176" width="200" height="80" rx="8" fill="#f5f5f5" stroke="none" stroke-width="1" />
+<rect x="40" y="176" width="200" height="80" rx="8" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1" />
+<text x="56" y="208" fill="#2d3142" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="16" font-weight="600" text-anchor="start">Terminal &amp; scripts</text>
+<text x="56" y="236" fill="#4f5d75" font-family="'Geist Mono', ui-monospace, monospace" font-size="12" font-weight="400" text-anchor="start">--output json</text>
+<rect x="40" y="360" width="200" height="80" rx="8" fill="#f5f5f5" stroke="none" stroke-width="1" />
+<rect x="40" y="360" width="200" height="80" rx="8" fill="rgba(79,93,117,0.10)" stroke="#7a8399" stroke-width="1" />
+<text x="56" y="392" fill="#2d3142" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="16" font-weight="600" text-anchor="start">AI agents</text>
+<text x="56" y="420" fill="#4f5d75" font-family="'Geist Mono', ui-monospace, monospace" font-size="12" font-weight="400" text-anchor="start">CLI / MCP</text>
+<rect x="352" y="244" width="224" height="160" rx="8" fill="#f5f5f5" stroke="none" stroke-width="1" />
+<rect x="352" y="244" width="224" height="160" rx="8" fill="rgba(235,108,54,0.08)" stroke="#eb6c36" stroke-width="1" />
+<text x="376" y="276" fill="#4f5d75" font-family="'Geist Mono', ui-monospace, monospace" font-size="12" font-weight="400" text-anchor="start">ONE BINARY</text>
+<text x="376" y="328" fill="#2d3142" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="32" font-weight="600" text-anchor="start">tossctl</text>
+<text x="376" y="364" fill="#2d3142" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="16" font-weight="400" text-anchor="start">Reads, output &amp; policy</text>
+<rect x="688" y="152" width="232" height="120" rx="8" fill="#f5f5f5" stroke="none" stroke-width="1" />
+<rect x="688" y="152" width="232" height="120" rx="8" fill="#ffffff" stroke="#2d3142" stroke-width="1" />
+<text x="708" y="188" fill="#2d3142" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="20" font-weight="600" text-anchor="start">Official Open API</text>
+<text x="708" y="220" fill="#4f5d75" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="16" font-weight="400" text-anchor="start">Accounts, quotes, orders</text>
+<text x="708" y="252" fill="#4f5d75" font-family="'Geist Mono', ui-monospace, monospace" font-size="12" font-weight="400" text-anchor="start">tossctl openapi login</text>
+<rect x="688" y="352" width="232" height="144" rx="8" fill="#f5f5f5" stroke="none" stroke-width="1" />
+<rect x="688" y="352" width="232" height="144" rx="8" fill="rgba(45,49,66,0.03)" stroke="rgba(45,49,66,0.30)" stroke-width="1" />
+<text x="708" y="388" fill="#2d3142" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="20" font-weight="600" text-anchor="start">WTS web session</text>
+<text x="708" y="420" fill="#4f5d75" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="16" font-weight="400" text-anchor="start">Flows, AI signals, dividends</text>
+<text x="708" y="448" fill="#4f5d75" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="16" font-weight="400" text-anchor="start">Watchlists &amp; alerts</text>
+<text x="708" y="480" fill="#4f5d75" font-family="'Geist Mono', ui-monospace, monospace" font-size="12" font-weight="400" text-anchor="start">tossctl auth login</text>
+<text x="40" y="504" fill="#4f5d75" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="16" font-weight="400" text-anchor="start">Supported reads prefer an official key by default. WTS-only features use a web session.</text>
+<line x1="40" y1="544" x2="920" y2="544" stroke="rgba(45,49,66,0.12)" stroke-width="1"/>
+<path d="M 40 568 H 72" fill="none" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<text x="84" y="572" fill="#4f5d75" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="12" font-weight="400" text-anchor="start">CLI / MCP call</text>
+<path d="M 284 568 H 316" fill="none" stroke="#2e5aa8" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+<text x="328" y="572" fill="#4f5d75" font-family="'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif" font-size="12" font-weight="400" text-anchor="start">API request</text>
+</svg>
+  </figure>
+  <p class="note">This overview shows default read routing and representative capabilities. Agents can also use the CLI; orders and settings have separate approval requirements. Auth helpers, local history storage, and individual endpoints are omitted.</p>
+</main>
+</body>
+</html>

@@ -33,7 +33,7 @@
 **계좌와 주문을 넘어, 토스증권에서 보던 정보를 자동화에 연결합니다.** 공식 Open API에 없는 투자자 수급, AI 시그널, 배당 내역, 관심종목 관리까지 WTS(토스증권 웹 트레이딩 시스템) API로 제공합니다.
 
 <p align="center">
-  <img src="diagrams/official-vs-wts-v2.svg" alt="tossctl에서 공식 Open API와 WTS 전용 기능으로 이어지는 경로" width="100%" />
+  <img src="diagrams/readme-overview.png" alt="터미널과 AI 에이전트가 하나의 tossctl로 공식 API와 WTS에 연결합니다. 지원 조회는 기본적으로 공식 API를 우선 사용하고, WTS 전용 기능은 웹 세션을 사용합니다." width="100%" />
 </p>
 
 공식 키가 있으면 지원되는 조회는 기본적으로 공식 API를 우선 사용합니다. WTS 기능은 웹 세션으로 연결합니다. 현재 지원 대상은 **토스증권**이며, 일반 토스뱅킹·카드 소비 내역은 지원하지 않습니다. [전체 기능 비교 →](https://tossinvest-cli.vercel.app/docs/reference/support-scope)
@@ -97,7 +97,11 @@ tossctl monitor api           # 85개 endpoint schema probe; 통과 0, 실패 1
 
 터미널·스크립트에서는 CLI로, Claude Code·Codex·Cursor 같은 AI 에이전트에서는 MCP로 사용하세요. 별도 서버를 설치하지 않고 같은 바이너리에서 `tossctl mcp`를 실행합니다.
 
-MCP의 기본 API 표면은 **117개 오퍼레이션**입니다. 세 개의 카탈로그 도구가 필요한 기능과 스키마를 찾아 호출하므로, 모든 기능 설명을 한꺼번에 컨텍스트에 넣지 않습니다.
+MCP의 기본 API 표면은 **117개 오퍼레이션**입니다. 에이전트는 `list_operations`로 기능을 찾고, `describe_operation`으로 입력 스키마와 변경 정책을 확인한 뒤, `call_operation`으로 호출합니다. 필요한 기능의 설명만 단계적으로 읽습니다.
+
+<p align="center">
+  <img src="diagrams/mcp-discovery.png" alt="배당 조회 예시: list_operations로 기능을 찾고, describe_operation으로 스키마와 변경 정책을 확인한 뒤, call_operation으로 JSON 결과를 받습니다." width="100%" />
+</p>
 
 ```bash
 # Claude Code
@@ -151,14 +155,22 @@ tossctl ops describe dividends
 > [!IMPORTANT]
 > 실거래는 설치 직후 모두 꺼져 있습니다. 설정에서 해당 액션을 허용하더라도 실제 제출 전마다 미리보기와 확인 토큰이 필요합니다.
 
+<p align="center">
+  <img src="diagrams/order-safety.png" alt="일반 CLI 실주문은 미리보기와 사람의 검토 후 설정·실행 플래그·확인 토큰 검사를 통과해야 한 API 경로로 제출됩니다. 검사에 실패하면 제출이 차단됩니다." width="100%" />
+</p>
+
 ```bash
 tossctl order preview --symbol AAPL --side buy --qty 1 --price 200
 # 미리보기만 실행합니다. 실제 주문은 사람이 결과와 확인 토큰을 검토한 뒤 진행하세요.
 ```
 
-- **실주문:** CLI 일반 주문은 공식 API 또는 WTS 중 한 경로로 제출하며, 실패해도 다른 경로로 재주문하지 않습니다. MCP·`ops` 주문과 조건주문은 공식 API 전용입니다.
-- **설정 변경:** 관심종목·목표가 알림 등도 미리보기 후 현재 상태에 묶인 확인 토큰으로 실행합니다. 되돌릴 수 없는 작업은 추가 확인이 필요합니다.
-- **모의투자:** 별도 활성화·승인을 사용하며, 모의투자 승인이 실거래 승인으로 이어지지 않습니다.
+| 변경 종류 | 실행에 필요한 조건 | 실행 경계 |
+|---|---|---|
+| **실주문** | 사람이 주문별 승인 · 거래 설정 허용 · `--execute` · 미리보기의 `--confirm` 토큰 | CLI 일반 주문은 공식 API 또는 WTS 한 경로로 제출. MCP·`ops` 주문과 조건주문은 공식 API 전용 |
+| **설정 변경** | 해당 변경 승인 · `--execute` · 현재 상태와 변경 내용에 묶인 `--confirm` 토큰 | 관심종목·목표가 알림 등. 되돌릴 수 없는 작업은 추가 확인 필요 |
+| **모의투자** | 실험 기능 활성화 · 모의 원장 변경 승인 · `--execute` | 별도 모의 원장 사용. 실거래 승인으로 재사용 불가 |
+
+주문 전송 결과가 불명확하면 주문 상태를 먼저 확인하세요. 실패한 주문을 다른 API 경로로 자동 재제출하지 않습니다.
 
 전체 정책과 설정 예시는 [안전 가이드](https://tossinvest-cli.vercel.app/docs/guide/safety)와 [`docs/configuration.md`](docs/configuration.md)를 참고하세요.
 
@@ -189,6 +201,7 @@ tossctl order preview --symbol AAPL --side buy --qty 1 --price 200
 | [설정](docs/configuration.md) | config 필드와 로컬 상태 |
 | [운영](docs/operations.md) | 세션 갱신, API 변경 감시, 예약 실행과 알림 |
 | [아키텍처](docs/architecture.md) | 라우팅·모듈·안전 경계 |
+| [다이어그램 원본](diagrams/README.md) | README 그림의 HTML 원본과 이미지 재생성 방법 |
 | [변경 내역](CHANGELOG.md) | 버전별 변경 사항과 기여자 크레딧 |
 
 ## 개발과 기여
