@@ -7,8 +7,8 @@
 <h1 align="center">tossinvest-cli</h1>
 
 <p align="center">
-  <strong>Toss Securities from your terminal and AI agents.</strong>
-  <br />Quotes, accounts, and orders — plus flows, AI signals, and dividends. One <code>tossctl</code>.
+  <strong>Give your AI the investment data the official API leaves out.</strong>
+  <br />Investor flows, Toss AI signals, dividends, and watchlists — in your terminal and AI apps with <code>tossctl</code>.
 </p>
 
 <p align="center">
@@ -19,7 +19,7 @@
 
 <p align="center">
   <a href="#quick-start"><strong>Quick Start</strong></a> ·
-  <a href="#why-tossctl"><strong>Why tossctl</strong></a> ·
+  <a href="#what-the-official-api-leaves-out"><strong>Go Beyond the API</strong></a> ·
   <a href="#use-it-with-ai"><strong>Connect AI</strong></a> ·
   <a href="#before-you-place-an-order"><strong>Before Trading</strong></a> ·
   <a href="https://tossinvest-cli.vercel.app/en/docs"><strong>Docs</strong></a>
@@ -28,15 +28,24 @@
 > [!WARNING]
 > This is not an official Toss Securities product. Features outside the official Open API use Toss Securities' internal web API unofficially, may violate its Terms of Service, and can change without notice. You are responsible for account restrictions, losses, and other consequences of use.
 
-## Why tossctl?
+## What the Official API Leaves Out
+
+The official API already connects accounts, holdings, and orders. **tossctl brings the missing data and management tools into your AI and automation too.**
+
+| What you want to do | Official Open API | tossctl |
+|---|:---:|---|
+| See who is buying and selling | Not supported | Net buying by investor type |
+| Bring in Toss AI signals | Not supported | Market and stock signals |
+| Review your dividend history | Not supported | Dividend records |
+| Manage watchlists and price alerts | Not supported | Read and update your lists |
+
+**Go from “What's my balance?” to “Show me investor flows and Toss AI signals too.”** Ask your AI for the information you used to check separately in the app.
 
 <p align="center">
   <img src="diagrams/readme-workflow.en.png" alt="Sign in on your phone, select quotes, flows, accounts, or dividends, and query through the CLI or MCP. Use results in a terminal, JSON, or an AI answer. Live orders require a separate preview and human approval." width="100%" />
 </p>
 
-Access **investor flows, AI signals, dividend history, and watchlist management** beyond the official Open API through WTS, Toss Securities' internal web API. Read results in your terminal or pass JSON to scripts and AI agents.
-
-The scope is **Toss Securities**. General Toss banking and card spending are not supported. [Compare all supported features →](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope)
+These extra features use WTS, Toss Securities' internal web API. The scope is **Toss Securities**, excluding general Toss banking and card spending. [Compare all supported features →](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope)
 
 ## Quick Start
 
@@ -130,7 +139,7 @@ claude mcp add tossctl tossctl mcp
 
 Ask your connected agent:
 
-> Summarize my holdings and dividend history.
+> Summarize investor flows and Toss AI signals for Samsung Electronics.
 
 See the [MCP guide](https://tossinvest-cli.vercel.app/en/docs/guide/mcp) for Codex, Cursor, and other apps.
 

@@ -1,7 +1,7 @@
 {
   "ko": {
     "workflow": {
-      "title": "토스증권 데이터를, 내 작업으로.",
+      "title": "앱에서 보던 정보, 내 AI에서도.",
       "description": "휴대폰으로 로그인한 뒤 tossctl의 CLI나 MCP에서 시세·수급·계좌·배당을 조회하고, 터미널·JSON·AI 답변으로 활용합니다. 실주문은 별도 미리보기와 승인이 필요합니다.",
       "note": "웹 세션을 사용하는 대표적인 조회 흐름입니다. 공식 키 인증, 세션 갱신, 개별 명령 옵션과 주문 실행 단계는 생략했습니다. AI 답변은 연결한 에이전트가 작성합니다.",
       "eyebrow": "사용 흐름",
@@ -37,7 +37,7 @@
   },
   "en": {
     "workflow": {
-      "title": "Toss Securities data, ready for your work.",
+      "title": "From Toss Securities to your AI.",
       "description": "Sign in on your phone, select and query quotes, flows, accounts, or dividends through the CLI or MCP, then use the results in a terminal, JSON, or an AI answer. Live orders require a separate preview and approval.",
       "note": "A representative read workflow using a web session. Official-key setup, session renewal, command options, and order execution are omitted. The connected agent writes the AI answer.",
       "eyebrow": "READ WORKFLOW",

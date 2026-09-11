@@ -7,8 +7,8 @@
 <h1 align="center">tossinvest-cli</h1>
 
 <p align="center">
-  <strong>토스증권을 터미널과 AI 에이전트에서.</strong>
-  <br />시세·계좌·주문부터 수급·AI 시그널·배당까지, <code>tossctl</code> 하나로.
+  <strong>공식 API에서 빠진 투자 정보까지, 내 AI에게.</strong>
+  <br />수급·토스 AI 시그널·배당·관심종목을 터미널과 AI 앱에 연결하는 <code>tossctl</code>.
 </p>
 
 <p align="center">
@@ -19,7 +19,7 @@
 
 <p align="center">
   <a href="#빠른-시작"><strong>빠른 시작</strong></a> ·
-  <a href="#왜-tossctl인가"><strong>왜 tossctl인가</strong></a> ·
+  <a href="#공식-api만으로는-빠지는-것들"><strong>더 쓸 수 있는 기능</strong></a> ·
   <a href="#ai와-함께-사용하기"><strong>AI 연결</strong></a> ·
   <a href="#주문-전-확인하세요"><strong>주문 전 확인</strong></a> ·
   <a href="https://tossinvest-cli.vercel.app/docs"><strong>문서</strong></a>
@@ -28,15 +28,24 @@
 > [!WARNING]
 > 이 프로젝트는 토스증권 공식 제품이 아닙니다. 공식 Open API 외 기능은 토스증권 웹 내부 API를 비공식적으로 사용하며, 이용약관 위반에 해당할 수 있고 예고 없이 변경될 수 있습니다. 계좌 제한·손실 등 사용 결과는 사용자 본인의 책임입니다.
 
-## 왜 tossctl인가?
+## 공식 API만으로는 빠지는 것들
+
+계좌·보유 종목·주문은 공식 API로도 연결할 수 있습니다. **tossctl은 거기서 빠지는 정보와 관리 기능까지 내 AI와 자동화에 연결합니다.**
+
+| 하고 싶은 일 | 공식 Open API | tossctl |
+|---|:---:|---|
+| 누가 사고파는지 수급 확인 | 미지원 | 투자자별 순매수 조회 |
+| 토스 AI 시그널 함께 보기 | 미지원 | 시장·종목별 시그널 조회 |
+| 내 배당 내역 모아 보기 | 미지원 | 배당 내역 조회 |
+| 관심종목·목표가 알림 관리 | 미지원 | 목록 조회와 변경 |
+
+**“잔고가 얼마야?”에서 “수급과 토스 AI 시그널도 함께 보여줘”로.** 앱에서 따로 확인하던 정보를 이제 내 AI에게 요청하세요.
 
 <p align="center">
   <img src="diagrams/readme-workflow.png" alt="휴대폰으로 로그인하고 시세·수급·계좌·배당을 선택해 CLI나 MCP로 조회합니다. 결과는 터미널·JSON·AI 답변으로 활용하며, 실주문은 별도 미리보기와 사람의 승인이 필요합니다." width="100%" />
 </p>
 
-공식 Open API에 없는 **투자자 수급·AI 시그널·배당 내역·관심종목 관리**까지 WTS(토스증권 웹 내부 API)로 연결합니다. 조회 결과는 화면에서 읽거나 JSON으로 받아 스크립트와 AI 에이전트에 넘길 수 있습니다.
-
-지원 대상은 **토스증권**입니다. 일반 토스뱅킹·카드 소비 내역은 지원하지 않습니다. [전체 기능 비교 →](https://tossinvest-cli.vercel.app/docs/reference/support-scope)
+위 추가 기능은 WTS(토스증권 웹 내부 API)를 사용합니다. 지원 대상은 **토스증권**이며, 일반 토스뱅킹·카드 소비 내역은 포함하지 않습니다. [전체 기능 비교 →](https://tossinvest-cli.vercel.app/docs/reference/support-scope)
 
 ## 빠른 시작
 
@@ -130,7 +139,7 @@ claude mcp add tossctl tossctl mcp
 
 연결한 에이전트에 이렇게 요청하세요.
 
-> 내 보유 종목과 배당 내역을 정리해 줘.
+> 삼성전자 투자자별 수급과 토스 AI 시그널을 함께 정리해 줘.
 
 Codex·Cursor 등 앱별 등록 방법은 [MCP 가이드](https://tossinvest-cli.vercel.app/docs/guide/mcp)를 참고하세요.
 
