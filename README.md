@@ -32,6 +32,13 @@
 
 tossctl은 [공식 API에 없는 **30가지 이상의 기능**](https://tossinvest-cli.vercel.app/docs/reference/support-scope)을 내 AI와 자동화에 연결합니다. 종목을 찾는 일부터 내 자산의 변화와 세금 자료를 확인하는 일까지 한곳에서 다루세요.
 
+<p align="center">
+  <img src="diagrams/readme-features.png" alt="공식 API의 시세·계좌·보유종목 조회에 더해, tossctl이 공식 API에 없는 30+ 기능을 터미널과 AI 앱에 연결합니다. 종목 분석, 뉴스·일정, 자산·성과, 세금·수익, 투자 관리의 다섯 영역을 함께 활용합니다." width="100%" />
+</p>
+
+<details>
+<summary>기능별 비교 보기</summary>
+
 | 더 할 수 있는 일 | 공식 Open API | tossctl에서 연결하는 기능 |
 |---|:---:|---|
 | 종목 발굴·분석 | 미지원 | 토스 AI 시그널·등락 이유·조건검색·업종별 분석 |
@@ -40,11 +47,9 @@ tossctl은 [공식 API에 없는 **30가지 이상의 기능**](https://tossinve
 | 세금·추가 수익 확인 | 미지원 | 해외 양도소득·예탁금 이자·주식대여 예상 수익 |
 | 내 투자 관리 | 미지원 | 관심종목 폴더·목표가 알림·숨긴 종목·주식모으기 조회 |
 
-**“잔고가 얼마야?”에서 “내 자산 변화와 받은 배당, 보유 종목 뉴스까지 정리해 줘”로.** 앱에서 따로 확인하던 정보를 이제 내 AI에게 요청하세요.
+</details>
 
-<p align="center">
-  <img src="diagrams/readme-workflow.png" alt="휴대폰으로 로그인하고 시세·수급·계좌·배당을 선택해 CLI나 MCP로 조회합니다. 결과는 터미널·JSON·AI 답변으로 활용하며, 실주문은 별도 미리보기와 사람의 승인이 필요합니다." width="100%" />
-</p>
+**“잔고가 얼마야?”에서 “내 자산 변화와 받은 배당, 보유 종목 뉴스까지 정리해 줘”로.** 앱에서 따로 확인하던 정보를 이제 내 AI에게 요청하세요.
 
 위 추가 기능은 WTS(토스증권 웹 내부 API)를 사용합니다. 지원 대상은 **토스증권**이며, 일반 토스뱅킹·카드 소비 내역은 포함하지 않습니다. [전체 기능 비교 →](https://tossinvest-cli.vercel.app/docs/reference/support-scope)
 
@@ -57,6 +62,10 @@ curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/in
 tossctl auth login
 tossctl account summary --output json
 ```
+
+<p align="center">
+  <img src="diagrams/readme-workflow.png" alt="휴대폰으로 로그인하고 시세·수급·계좌·배당을 선택해 CLI나 MCP로 조회합니다. 결과는 터미널·JSON·AI 답변으로 활용하며, 실주문은 별도 미리보기와 사람의 승인이 필요합니다." width="100%" />
+</p>
 
 휴대폰 인증 후 **이 기기 로그인 유지**까지 승인하세요. QR 대신 링크를 쓰려면 `tossctl auth login --link`로 로그인합니다.
 
