@@ -153,17 +153,11 @@ func TestDocumentedSurfaceCountsMatchRuntime(t *testing.T) {
 	probeCount := len(Probes())
 	directProbeCount := probeCount - registryProbeCount
 
+	// End-user READMEs omit implementation counts. Keep the runtime-derived
+	// assertions in the agent, operations, and bilingual MCP guides.
 	claims := map[string][]string{
 		"AGENTS.md": {
 			fmt.Sprintf("현재 `monitor api` 는 %d개 read-only endpoint", probeCount),
-		},
-		"README.md": {
-			fmt.Sprintf("API 표면은 **%d개 오퍼레이션**", operationCount),
-			fmt.Sprintf("monitor api           # %d개 endpoint", probeCount),
-		},
-		"README.en.md": {
-			fmt.Sprintf("surface is **%d operations**", operationCount),
-			fmt.Sprintf("schema-probe %d endpoints", probeCount),
 		},
 		"docs/operations.md": {
 			fmt.Sprintf("`monitor api` 명령은 %d개 read-only endpoint", probeCount),

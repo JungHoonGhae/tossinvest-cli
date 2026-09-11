@@ -12,7 +12,7 @@ from playwright.sync_api import sync_playwright
 
 
 ROOT = Path(__file__).resolve().parents[1]
-STEMS = ("readme-overview", "mcp-discovery", "order-safety")
+STEMS = ("readme-workflow", "readme-overview")
 
 
 def main():
@@ -29,8 +29,10 @@ def main():
                     fonts = page.evaluate("""async () => {
                         await document.fonts.ready;
                         const expected = document.documentElement.lang === 'ko'
-                            ? ['Pretendard Variable', 'Geist Mono']
-                            : ['Geist', 'Geist Mono', 'Instrument Serif'];
+                            ? ['Pretendard Variable'] : ['Geist', 'Instrument Serif'];
+                        if (document.querySelector('svg .mono')) {
+                            expected.push('Geist Mono');
+                        }
                         const loaded = new Set([...document.fonts]
                             .filter(font => font.status === 'loaded')
                             .map(font => font.family.replaceAll('"', '')));
@@ -43,7 +45,11 @@ def main():
                         raise RuntimeError(f"{source.name}: expected one accessible SVG")
                     target = source.with_suffix(".png")
                     diagram.screenshot(path=str(target), omit_background=True)
-                    print(f"Rendered {target.relative_to(ROOT)} (1920×1200)")
+                    size = diagram.bounding_box()
+                    print(
+                        f"Rendered {target.relative_to(ROOT)} "
+                        f"({round(size['width'] * 2)}×{round(size['height'] * 2)})"
+                    )
         finally:
             browser.close()
 

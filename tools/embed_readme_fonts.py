@@ -17,7 +17,7 @@ from urllib.parse import urljoin
 ROOT = Path(__file__).resolve().parents[1]
 BASE = "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/"
 CSS_URL = BASE + "dist/web/variable/pretendardvariable-dynamic-subset.css"
-STEMS = ("readme-overview", "mcp-discovery", "order-safety")
+STEMS = ("readme-workflow", "readme-overview")
 START = "<!-- pretendard-embed:start -->"
 END = "<!-- pretendard-embed:end -->"
 
