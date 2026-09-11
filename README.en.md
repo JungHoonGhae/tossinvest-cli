@@ -19,7 +19,7 @@
 
 <p align="center">
   <a href="#quick-start"><strong>Quick Start</strong></a> ·
-  <a href="#beyond-the-official-api"><strong>Go Beyond the API</strong></a> ·
+  <a href="#do-more-with-tossctl"><strong>Do More</strong></a> ·
   <a href="#use-it-with-ai"><strong>Connect AI</strong></a> ·
   <a href="#before-you-place-an-order"><strong>Before Trading</strong></a> ·
   <a href="https://tossinvest-cli.vercel.app/en/docs"><strong>Docs</strong></a>
@@ -28,7 +28,7 @@
 > [!WARNING]
 > This is not an official Toss Securities product. Features outside the official Open API use Toss Securities' internal web API unofficially, may violate its Terms of Service, and can change without notice. You are responsible for account restrictions, losses, and other consequences of use.
 
-## Beyond the Official API
+## Do More with tossctl
 
 tossctl brings [**30+ capabilities beyond the official API**](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope) into your AI and automation. Discover stocks, track changes in your assets, and review tax records in one place.
 
