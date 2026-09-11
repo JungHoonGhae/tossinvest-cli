@@ -1,12 +1,41 @@
 import pathlib
+import contextlib
+import io
+import json
 import re
+import tempfile
 import unittest
+from unittest import mock
+import xml.etree.ElementTree as ET
+
+from tools import build_readme_diagrams
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 class TestReadmeVisuals(unittest.TestCase):
+    def test_bilingual_copy_edits_rebuild_portable_html(self):
+        copy = json.loads((ROOT / "diagrams/readme-content.json").read_text())
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            (root / "diagrams").mkdir()
+            for locale in ("ko", "en"):
+                for figure in ("workflow", "overview"):
+                    copy[locale][figure]["title"] = f'{locale} {figure}: <수정> & "edit"'
+            (root / "diagrams/readme-content.json").write_text(
+                json.dumps(copy, ensure_ascii=False), encoding="utf-8"
+            )
+            with mock.patch.object(build_readme_diagrams, "ROOT", root):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    build_readme_diagrams.main()
+            for locale, suffix in (("ko", ""), ("en", ".en")):
+                for figure in ("workflow", "overview"):
+                    html = (root / f"diagrams/readme-{figure}{suffix}.html").read_text()
+                    svg = ET.fromstring(re.search(r"<svg.*?</svg>", html, re.S).group())
+                    self.assertEqual(svg[0].text, copy[locale][figure]["title"])
+                    self.assertEqual(svg.attrib["aria-labelledby"].split()[0], svg[0].attrib["id"])
+
     def test_readmes_preserve_visuals_and_automation_markers(self):
         for name in ("README.md", "README.en.md"):
             with self.subTest(readme=name):
@@ -46,14 +75,13 @@ class TestReadmeVisuals(unittest.TestCase):
     def test_readmes_link_localized_diagrams_and_editable_sources(self):
         for readme_name, suffix in (("README.md", ""), ("README.en.md", ".en")):
             readme = (ROOT / readme_name).read_text(encoding="utf-8")
-            for stem in ("readme-overview", "mcp-discovery", "order-safety"):
+            for stem in ("readme-workflow", "readme-overview"):
                 asset = f"diagrams/{stem}{suffix}.png"
                 with self.subTest(readme=readme_name, asset=asset):
                     self.assertIn(asset, readme)
                     self.assertTrue((ROOT / asset).is_file(), asset)
                     self.assertTrue((ROOT / asset).with_suffix(".html").is_file())
             self.assertIn('width="100%"', readme)
-            self.assertIn("diagrams/README.md", readme)
 
 
 if __name__ == "__main__":

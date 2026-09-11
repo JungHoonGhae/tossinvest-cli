@@ -1,0 +1,74 @@
+{
+  "ko": {
+    "workflow": {
+      "title": "토스증권 데이터를, 내 작업으로.",
+      "description": "휴대폰으로 로그인한 뒤 tossctl의 CLI나 MCP에서 시세·수급·계좌·배당을 조회하고, 터미널·JSON·AI 답변으로 활용합니다. 실주문은 별도 미리보기와 승인이 필요합니다.",
+      "note": "웹 세션을 사용하는 대표적인 조회 흐름입니다. 공식 키 인증, 세션 갱신, 개별 명령 옵션과 주문 실행 단계는 생략했습니다. AI 답변은 연결한 에이전트가 작성합니다.",
+      "eyebrow": "사용 흐름",
+      "group": "tossctl로 조회",
+      "login": "로그인",
+      "login_hint": "QR·휴대폰 인증",
+      "select": "데이터 선택",
+      "select_hint": "시세·수급·계좌·배당",
+      "query": "조회",
+      "query_hint": "CLI 명령 · MCP 요청",
+      "result": "결과 활용",
+      "result_hint": "터미널·JSON·AI 답변",
+      "footer": "실거래는 기본 꺼짐 · 주문은 미리보기와 사람의 승인 후 진행"
+    },
+    "overview": {
+      "title": "터미널에서도, AI와도.",
+      "description": "터미널·스크립트의 CLI와 AI 에이전트의 MCP가 하나의 tossctl 바이너리로 공식 Open API와 WTS 내부 API에 연결됩니다. 공식 키가 있으면 지원 조회는 기본적으로 공식 API를 우선 사용하고, WTS 전용 기능은 웹 세션을 사용합니다.",
+      "note": "조회 연결을 요약한 구조입니다. 에이전트는 CLI도 사용할 수 있습니다. 명령별 라우팅, 인증 도우미, 로컬 이력과 주문 승인 단계는 생략했습니다. MCP·ops 주문과 조건주문은 공식 API 전용입니다.",
+      "eyebrow": "사용 환경",
+      "cli_label": "터미널",
+      "cli_hint": "명령어로 실행",
+      "mcp_label": "AI 앱",
+      "mcp_hint": "말로 요청",
+      "binary": "시세부터 내 계좌까지",
+      "features_top": "수급 · AI 시그널",
+      "features_bottom": "배당 · 관심종목",
+      "official": "공식 Open API",
+      "official_hint": "공식 키 · 지원 조회 우선",
+      "wts": "WTS 내부 API",
+      "wts_hint": "웹 세션 · 확장 기능",
+      "footer": "조회 기본값: 공식 키가 있으면 지원 조회는 공식 API 우선 · WTS 전용 기능은 웹 세션 사용"
+    }
+  },
+  "en": {
+    "workflow": {
+      "title": "Toss Securities data, ready for your work.",
+      "description": "Sign in on your phone, select and query quotes, flows, accounts, or dividends through the CLI or MCP, then use the results in a terminal, JSON, or an AI answer. Live orders require a separate preview and approval.",
+      "note": "A representative read workflow using a web session. Official-key setup, session renewal, command options, and order execution are omitted. The connected agent writes the AI answer.",
+      "eyebrow": "READ WORKFLOW",
+      "group": "Query with tossctl",
+      "login": "Sign in",
+      "login_hint": "QR · phone approval",
+      "select": "Choose data",
+      "select_hint": "Quotes · flows · assets",
+      "query": "Run a query",
+      "query_hint": "CLI command · MCP",
+      "result": "Use results",
+      "result_hint": "Terminal · JSON · AI",
+      "footer": "Live trading starts disabled. Preview and human approval come before every order."
+    },
+    "overview": {
+      "title": "In your terminal. With your AI.",
+      "description": "The terminal CLI and agent MCP share one tossctl binary connected to the official Open API and internal WTS API. Supported reads prefer the official API when a key is configured; WTS-only features use a web session.",
+      "note": "A summary of read connections. Agents can also use the CLI. Per-command routing, auth helpers, local history, and order-approval steps are omitted. MCP, ops, and conditional orders use the official API only.",
+      "eyebrow": "USE IT YOUR WAY",
+      "cli_label": "Terminal",
+      "cli_hint": "Run commands",
+      "mcp_label": "AI app",
+      "mcp_hint": "Ask in plain language",
+      "binary": "Quotes and your accounts",
+      "features_top": "Flows · AI signals",
+      "features_bottom": "Dividends · watchlists",
+      "official": "Official Open API",
+      "official_hint": "API key · preferred reads",
+      "wts": "Internal WTS API",
+      "wts_hint": "Web session · extra features",
+      "footer": "Default reads: prefer the official API with a key; use a web session for WTS-only features."
+    }
+  }
+}

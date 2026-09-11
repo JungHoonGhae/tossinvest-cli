@@ -7,8 +7,8 @@
 <h1 align="center">tossinvest-cli</h1>
 
 <p align="center">
-  <strong>Toss Securities beyond the official API, through CLI and MCP.</strong>
-  <br />Accounts, quotes, and orders — plus investor flows, AI signals, dividends, and watchlists.<br />One <code>tossctl</code> for your terminal, scripts, and AI agents.
+  <strong>Toss Securities from your terminal and AI agents.</strong>
+  <br />Quotes, accounts, and orders — plus flows, AI signals, and dividends. One <code>tossctl</code>.
 </p>
 
 <p align="center">
@@ -20,8 +20,8 @@
 <p align="center">
   <a href="#quick-start"><strong>Quick Start</strong></a> ·
   <a href="#why-tossctl"><strong>Why tossctl</strong></a> ·
-  <a href="#cli-and-mcp"><strong>CLI and MCP</strong></a> ·
-  <a href="#safety-model"><strong>Safety</strong></a> ·
+  <a href="#use-it-with-ai"><strong>Connect AI</strong></a> ·
+  <a href="#before-you-place-an-order"><strong>Before Trading</strong></a> ·
   <a href="https://tossinvest-cli.vercel.app/en/docs"><strong>Docs</strong></a>
 </p>
 
@@ -30,13 +30,13 @@
 
 ## Why tossctl?
 
-**Bring more of Toss Securities into your automation, beyond accounts and orders.** Investor flows, AI signals, dividend history, and watchlist management are not exposed by the official Open API. tossctl provides them through WTS, Toss Securities' Web Trading System API.
-
 <p align="center">
-  <img src="diagrams/readme-overview.en.png" alt="Terminals and AI agents use one tossctl binary to reach the official API and WTS. Supported reads prefer the official API by default; WTS-only features use a web session." width="100%" />
+  <img src="diagrams/readme-workflow.en.png" alt="Sign in on your phone, select quotes, flows, accounts, or dividends, and query through the CLI or MCP. Use results in a terminal, JSON, or an AI answer. Live orders require a separate preview and human approval." width="100%" />
 </p>
 
-With an official key, supported reads prefer the official API by default. A web session connects WTS features. The current scope is **Toss Securities**, not general Toss banking or card spending. [Compare all supported features →](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope)
+Access **investor flows, AI signals, dividend history, and watchlist management** beyond the official Open API through WTS, Toss Securities' internal web API. Read results in your terminal or pass JSON to scripts and AI agents.
+
+The scope is **Toss Securities**. General Toss banking and card spending are not supported. [Compare all supported features →](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope)
 
 ## Quick Start
 
@@ -48,7 +48,7 @@ tossctl auth login
 tossctl account summary --output json
 ```
 
-Complete phone authentication and approve **Keep this device signed in**. To use a phone link instead of a QR code, sign in with `tossctl auth login --link`.
+Complete phone authentication and approve **Keep this device signed in**. To use a link instead of a QR code, sign in with `tossctl auth login --link`.
 
 <details>
 <summary>Windows · Homebrew · Official API setup</summary>
@@ -70,48 +70,74 @@ See the [installation guide](https://tossinvest-cli.vercel.app/en/docs/getting-s
 
 </details>
 
+<details>
+<summary>Demo — installation through the first query</summary>
+
+<p align="center">
+  <img src="docs/assets/demo/install.gif" alt="Install and sign in to tossctl, then run the first account query" width="760" />
+</p>
+
+</details>
+
 ## Put It to Work
 
 ```bash
-# Explore investor flows and AI signals — WTS-only
+# Explore the market
 tossctl quote flows A005930
 tossctl market signals
 
-# Review dividends and assets across accounts — WTS-only
+# Review your dividends
 tossctl portfolio dividends
-tossctl account overview
 
 # Pass holdings to your scripts
 tossctl portfolio positions --output json
+```
+
+Investor flows, AI signals, and dividends are WTS-only features. See the [command reference](https://tossinvest-cli.vercel.app/en/docs/reference/commands) for watchlists, price alerts, stock screening, and more.
+
+<details>
+<summary>Live streams · API monitoring · Local history</summary>
+
+```bash
+# Assets across accounts and a holdings briefing
+tossctl account overview
+tossctl portfolio briefing
 
 # Stream trades and watch for API changes
 tossctl stream --trade A005930
-tossctl monitor api           # schema-probe 85 endpoints; exit 0 pass, 1 fail
+tossctl monitor api           # read-only checks; exit 0 pass, 1 fail
 ```
 
-You can also manage watchlist folders and price alerts, screen stocks, review transactions, and preview orders. See the [command reference](https://tossinvest-cli.vercel.app/en/docs/reference/commands) or run `tossctl <command> --help` for options.
+Use `tossctl history sync` to preview a collection of holdings and transactions. After saving, `history list`, `history search`, and `history compare` work offline.
 
-Use `tossctl history sync` to preview a local collection of holdings and transactions. After saving, `history list`, `history search`, and `history compare` work offline. `portfolio briefing` combines holdings news, earnings calls, and pending orders. Use `--fields symbol,quantity --compact` to select JSON output. [History and briefing guide](https://tossinvest-cli.vercel.app/en/docs/guide/history)
+Select only the JSON fields you need with `--fields symbol,quantity --compact`. [History and briefing guide →](https://tossinvest-cli.vercel.app/en/docs/guide/history)
 
-## CLI and MCP
+</details>
 
-Use the CLI from your terminal or scripts, and MCP with agents such as Claude Code, Codex, and Cursor. Run `tossctl mcp` from the same binary — no separate server package to install.
-
-The default MCP surface is **117 operations**. Agents use `list_operations` to find a capability, `describe_operation` to inspect its input schema and mutation policy, and `call_operation` to invoke it. Only the relevant descriptions enter context, one step at a time.
+## Use It with AI
 
 <p align="center">
-  <img src="diagrams/mcp-discovery.en.png" alt="Dividends example: list_operations finds the capability, describe_operation returns its schema and mutation policy, and call_operation returns the JSON result." width="100%" />
+  <img src="diagrams/readme-overview.en.png" alt="The terminal CLI and agent MCP share one tossctl binary connected to the official Open API and internal WTS API. Supported reads prefer the official API by default when a key is configured; WTS-only features use a web session." width="100%" />
 </p>
 
+**Connect your installed tossctl to an AI app and ask in plain language.** Claude Code, Codex, and Cursor support MCP connections.
+
+Register MCP with Claude Code:
+
 ```bash
-# Claude Code
 claude mcp add tossctl tossctl mcp
 ```
 
-<details>
-<summary>Other MCP hosts · Discover operations from the CLI</summary>
+Ask your connected agent:
 
-Add this configuration if your host supports this format. See the [MCP guide](https://tossinvest-cli.vercel.app/en/docs/guide/mcp) for host-specific setup.
+> Summarize my holdings and dividend history.
+
+See the [MCP guide](https://tossinvest-cli.vercel.app/en/docs/guide/mcp) for Codex, Cursor, and other apps.
+
+<details>
+<summary>Connect another AI app — MCP settings</summary>
+
+Add this configuration if your AI app supports this MCP format:
 
 ```json
 {
@@ -120,24 +146,6 @@ Add this configuration if your host supports this format. See the [MCP guide](ht
   }
 }
 ```
-
-Shell-capable agents can explore the same catalog:
-
-```bash
-tossctl ops list --query dividend
-tossctl ops describe dividends
-```
-
-</details>
-
-See the [AI agent guide](https://tossinvest-cli.vercel.app/en/docs/guide/agents) and [MCP guide](https://tossinvest-cli.vercel.app/en/docs/guide/mcp) for details.
-
-<details>
-<summary>Demo — installation through the first query</summary>
-
-<p align="center">
-  <img src="docs/assets/demo/install.gif" alt="Install and sign in to tossctl, then run the first account query" width="760" />
-</p>
 
 </details>
 
@@ -150,46 +158,28 @@ See the [AI agent guide](https://tossinvest-cli.vercel.app/en/docs/guide/agents)
 
 </details>
 
-## Safety Model
+## Before You Place an Order
 
 > [!IMPORTANT]
-> Live trading is disabled after installation. Even after an action is enabled in config, every real submission requires a preview and confirmation token.
-
-<p align="center">
-  <img src="diagrams/order-safety.en.png" alt="A regular CLI live order requires preview, human review, and configuration, execute, and confirmation-token checks before submission through one API route. A failed check blocks submission." width="100%" />
-</p>
+> **Live trading is disabled by default.** Agents preview orders. A human must review, approve, and submit each live order.
 
 ```bash
 tossctl order preview --symbol AAPL --side buy --qty 1 --price 200
 # Preview only. A human must review the result and confirmation token before placing an order.
 ```
 
-| Change | Required to execute | Execution boundary |
-|---|---|---|
-| **Live order** | Human approval for each order · trading config enabled · `--execute` · preview's `--confirm` token | Regular CLI orders use one official API or WTS backend. MCP and `ops` orders, and all conditional orders, use the official API only |
-| **Settings** | Approval for that change · `--execute` · `--confirm` token bound to current state and intent | Watchlists, price alerts, and similar changes. Irreversible actions require an additional acknowledgement |
-| **Paper trade** | Experimental opt-in · approval to change the paper ledger · `--execute` | Separate paper ledger. Approval cannot be reused for live trading |
-
-If an order's transport result is unclear, check its status first. Failed orders are never automatically resubmitted through another API backend.
-
-See the [safety guide](https://tossinvest-cli.vercel.app/en/docs/guide/safety) and [`docs/configuration.md`](docs/configuration.md) for the full policy.
+- **Check the order:** review the symbol, quantity, and price in the preview, then approve and submit it yourself.
+- **Watchlist and alert changes:** check what will change before approving.
+- **Unclear submission results:** check order status before trying again.
 
 <details>
-<summary>Experimental — US-options paper trading</summary>
+<summary>US-options paper trading — experimental</summary>
 
-This feature is still stabilizing and hidden by default. Add the following to `config.json` to expose its commands and MCP operations. Enabling it does not bypass server-side eligibility requirements.
-
-```json
-{
-  "experimental": {
-    "paper_trading": true
-  }
-}
-```
-
-Experimental APIs may change and never promote themselves to live-trading authorization. Their current status and limits are tracked in the [support scope](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope).
+This feature is still stabilizing and hidden by default. You must also meet Toss Securities' eligibility requirements. Paper balances and orders stay separate from live trading, and paper approval never authorizes a live order. See [support scope](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope) for setup and limits.
 
 </details>
+
+See the [safety guide](https://tossinvest-cli.vercel.app/en/docs/guide/safety) for enabling trading and confirming orders.
 
 ## Documentation
 
@@ -198,17 +188,10 @@ Experimental APIs may change and never promote themselves to live-trading author
 | [Quick start](https://tossinvest-cli.vercel.app/en/docs/getting-started/quickstart) | Install through first query |
 | [Command reference](https://tossinvest-cli.vercel.app/en/docs/reference/commands) | All CLI commands and examples |
 | [Support scope](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope) | Official API and WTS feature matrix |
-| [Configuration](docs/configuration.md) | Config fields and local state |
-| [Operations](docs/operations.md) | Session renewal, API monitoring, scheduled checks and alerts |
-| [Architecture](docs/architecture.md) | Routing, modules, and safety boundaries |
-| [Diagram sources](diagrams/README.md) | README diagram HTML and image rendering instructions |
-| [Changelog](CHANGELOG.md) | Release changes and contributor credits |
+| [Connect an AI app](https://tossinvest-cli.vercel.app/en/docs/guide/mcp) | Claude Code, Codex, and Cursor setup |
+| [Safety guide](https://tossinvest-cli.vercel.app/en/docs/guide/safety) | Settings and checks before live orders |
 
-## Development and Contributing
-
-Build locally with `make build` and run tests with `make test`.
-
-Use [Issues](https://github.com/JungHoonGhae/tossinvest-cli/issues) for bugs and proposals, and Pull Requests for changes. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for project conventions and [`SECURITY.md`](SECURITY.md) for security reports.
+Report problems or suggestions in [Issues](https://github.com/JungHoonGhae/tossinvest-cli/issues). For security reports, see [`SECURITY.md`](SECURITY.md).
 
 ## Sponsors
 

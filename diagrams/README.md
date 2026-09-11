@@ -1,27 +1,84 @@
 # README diagrams
 
-README의 세 그림은 Diagram Design의 **minimal light** 스타일로 작성했습니다.
-한국어와 영어는 같은 구조를 사용합니다. HTML이 편집 원본이고, README에는
-글꼴이 고정된 PNG를 넣습니다.
+README에는 **사용 흐름과 연결 구조 두 장**을 표시합니다. 문구·레이아웃·생성 도구를
+모두 저장소에서 관리하므로, 수정 후 한 명령으로 HTML과 PNG를 다시 만들 수 있습니다.
 
-The three README figures use Diagram Design's **minimal light** style. Korean
-and English share the same layout. Edit the standalone HTML sources; the
-READMEs embed PNGs to preserve typography across viewers.
+The README shows **two figures: the read workflow and the connections**. Copy,
+layout, and build tools live in the repository. One command rebuilds the
+standalone HTML and PNG exports after an edit.
+
+## 수정하고 다시 만들기 / Edit and rebuild
+
+1. 문구는 [`readme-content.json`](readme-content.json)의 `ko` / `en`에서 수정합니다.
+   각 언어의 `workflow`는 사용 흐름, `overview`는 연결 구조입니다.
+   Edit the bilingual copy in this JSON; the same keys exist in both languages.
+2. 배치·색상·아이콘은 [`build_readme_diagrams.py`](../tools/build_readme_diagrams.py)에서
+   수정합니다. `text`, `rect`, `icon`, `arrow`는 다른 그림에도 재사용할 수 있는 SVG
+   구성 요소입니다. Edit the builder for layout, palette, or reusable SVG primitives.
+3. 저장소 루트에서 실행합니다. From the repository root, run:
+
+   ```bash
+   make readme-diagrams
+   ```
+
+   한·영 HTML 생성 → 한국어 폰트 포함 → 2× PNG 내보내기를 순서대로 실행합니다.
+   It builds both languages, embeds Korean fonts, and exports the four PNGs.
+4. README 폭에서 이미지를 확인하고 문구·원본·이미지를 함께 커밋합니다.
+   Review at README width and commit the copy, builder changes, and outputs together.
+
+<details>
+<summary>최초 환경 설정 · 개별 실행 / First-time setup and individual steps</summary>
+
+Python 3.11+를 사용합니다. Use Python 3.11+:
+
+```bash
+python3 -m venv .venv-readme
+.venv-readme/bin/python -m pip install -r tools/requirements-readme-diagrams.txt
+.venv-readme/bin/python -m playwright install chromium
+make readme-diagrams PYTHON=.venv-readme/bin/python
+```
+
+Playwright is pinned in the requirements file. Font embedding downloads the
+unmodified Pretendard v1.3.9 subsets; Latin fonts load from Google Fonts during
+rendering. PNGs need neither installed fonts nor network access.
+
+For individual steps:
+
+```bash
+python3 tools/build_readme_diagrams.py
+python3 tools/embed_readme_fonts.py
+python3 tools/render_readme_diagrams.py
+python3 -m unittest tools.tests.test_readme_visuals
+```
+
+The HTML builder uses only the standard library and works offline. Font
+embedding and PNG rendering need network access. The renderer waits for fonts
+and fails if a required family is unavailable. Generated HTML is portable and
+can be edited directly for a one-off copy; permanent changes belong in the JSON
+or builder, because the next full build replaces the generated HTML.
+
+</details>
+
+## Outputs
 
 | Figure | 한국어 원본 | English source | Code reference |
 |---|---|---|---|
-| CLI·MCP와 API 연결 / API routing | [HTML](readme-overview.html) · [PNG](readme-overview.png) | [HTML](readme-overview.en.html) · [PNG](readme-overview.en.png) | [Hybrid routing](../internal/hybrid/client.go), [architecture](../docs/architecture.md) |
-| MCP 카탈로그 호출 / Catalog discovery | [HTML](mcp-discovery.html) · [PNG](mcp-discovery.png) | [HTML](mcp-discovery.en.html) · [PNG](mcp-discovery.en.png) | [MCP server](../internal/mcp/server.go), [catalog](../internal/mcp/catalog.go) |
-| 실주문 승인 / Live-order approval | [HTML](order-safety.html) · [PNG](order-safety.png) | [HTML](order-safety.en.html) · [PNG](order-safety.en.png) | [Trading checks](../internal/trading/service.go), [backend selection](../internal/hybrid/policy.go), [agent rules](../AGENTS.md) |
+| 로그인 → 조회 → 활용 / Read workflow | [HTML](readme-workflow.html) · [PNG](readme-workflow.png) | [HTML](readme-workflow.en.html) · [PNG](readme-workflow.en.png) | [Agent guide](../AGENTS.md), [MCP catalog](../internal/mcp/catalog.go) |
+| CLI·MCP와 API 연결 / Connections | [HTML](readme-overview.html) · [PNG](readme-overview.png) | [HTML](readme-overview.en.html) · [PNG](readme-overview.en.png) | [Hybrid routing](../internal/hybrid/client.go), [architecture](../docs/architecture.md) |
 
 ## Design and scope
 
-- Types: **architecture**, **sequence**, **flowchart**. None of the specialized
-  semantic patterns adds useful meaning to these three figures.
-- Frame: `doc-inline`, `960 × 600`; PNG export at 2× (`1920 × 1200`). Each figure
-  has at most five nodes and six message/flow arrows, plus its legend.
+- Types: a simplified **flowchart** for the linear read workflow and an
+  **architecture** diagram for connections. No specialized semantic pattern is
+  needed. Each has at most five nodes and four arrows.
+- Frame: `fit`, `960 × 376` for the workflow and `960 × 456` for connections.
+  PNG export at 2× (`1920 × 752` and `1920 × 912`).
 - Palette: paper `#f5f5f5`, ink `#2d3142`, muted `#4f5d75`, accent `#eb6c36`,
-  external API links `#2e5aa8`. The user selected the shipped default palette.
+  The user selected the shipped default palette.
+- The user's visual reference calls for simple figures where they help. This
+  Diagram Design editorial variation uses line icons and a dark focus group.
+  All arrows show the forward workflow or a connection, so the separate legend
+  and individual arrow labels have been omitted.
 - Korean fonts: **Pretendard Variable** for titles, names, and prose, as
   requested. Unmodified [Pretendard v1.3.9](https://github.com/orioncactus/pretendard/tree/v1.3.9)
   subsets and their SIL Open Font License are embedded in each Korean HTML.
@@ -31,45 +88,18 @@ READMEs embed PNGs to preserve typography across viewers.
 - Figures are static and contain inline SVG with descriptive `title` / `desc`
   elements. README images have equivalent alt text and adjacent explanations.
 
-The overview summarizes default read routing and representative capabilities.
-It omits authentication helpers, individual endpoints, local history storage,
-and experimental paper trading. Agents may also use the CLI. The MCP sequence
-uses a **dividends read**, omitting API transport and authentication.
+The workflow shows representative **reads through a web session**, from phone
+approval to results. Official-key setup, session renewal, command options, and
+live-order execution are omitted. AI answers are written by the connected agent.
 
-The safety flow shows **regular CLI live orders**. Human approval is an agent
-operating rule; code enforces configuration, execution flags, and confirmation
-tokens. Product, sell, and fractional eligibility checks and API responses are
-outside the figure. MCP, ops, and conditional orders use the official API only.
-Settings and paper-trading requirements remain in the README's safety table.
+The overview summarizes **default read routing**. Both CLI and MCP use the same
+binary; agents can also use the CLI. Official keys are preferred for supported
+reads, and WTS-only capabilities use a web session. Per-command routing,
+authentication helpers, and local history are omitted. MCP, ops, and conditional
+orders use the official API only. The README keeps the user-facing order checks;
+full execution requirements live in the safety guide and configuration docs.
 
-The previous `official-vs-wts-v2.*` files are retained as earlier artwork; the
-READMEs use the new sources above.
-
-## Edit and render
-
-1. Edit the Korean and English HTML together. Keep labels on the 4px grid and
-   preserve the prefixed accessible title/description IDs.
-2. After editing Korean text, refresh the embedded font subsets from the
-   pinned upstream release (standard-library Python only):
-
-   ```bash
-   python3 tools/embed_readme_fonts.py
-   ```
-
-3. With Python Playwright and its Chromium browser already installed, run:
-
-   ```bash
-   python3 tools/render_readme_diagrams.py
-   ```
-
-   The renderer requires access to Google Fonts and stops if a required family
-   fails to load. It screenshots only the SVG and writes all six PNGs beside
-   their HTML sources. No account access or live API request is involved.
-4. Inspect all PNGs at README width, then run the existing README checks:
-
-   ```bash
-   python3 -m unittest tools.tests.test_readme_visuals
-   ```
+## Validation
 
 When Diagram Design is installed, run its `scripts/self_check.py` on each HTML
 source. Its package-level `scripts/verify-geometry.py` checks label-mask
@@ -80,3 +110,10 @@ Its stock CSS allowlist reports the embedded WOFF2 `url(data:font/woff2;...)`
 declarations as non-fragment CSS URLs. Review those font-only findings against
 the embedded source/license; other findings still need fixing. The fonts are
 packaged locally in the HTML, with no additional remote stylesheet or script.
+
+## Earlier diagrams
+
+The earlier [MCP sequence](mcp-discovery.html), [live-order flow](order-safety.html),
+their English versions and PNGs, and `official-vs-wts-v2.*` are retained as
+reference artwork. They are not embedded in the current READMEs or regenerated
+by the commands above. See the MCP and safety guides for their detailed policies.
