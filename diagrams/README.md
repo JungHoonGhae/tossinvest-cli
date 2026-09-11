@@ -1,16 +1,16 @@
 # README diagrams
 
-README에는 **사용 흐름과 연결 구조 두 장**을 표시합니다. 문구·레이아웃·생성 도구를
+README에는 **추가 기능·사용 흐름·연결 구조 세 장**을 표시합니다. 문구·레이아웃·생성 도구를
 모두 저장소에서 관리하므로, 수정 후 한 명령으로 HTML과 PNG를 다시 만들 수 있습니다.
 
-The README shows **two figures: the read workflow and the connections**. Copy,
+The README shows **three figures: extra capabilities, the read workflow, and connections**. Copy,
 layout, and build tools live in the repository. One command rebuilds the
 standalone HTML and PNG exports after an edit.
 
 ## 수정하고 다시 만들기 / Edit and rebuild
 
 1. 문구는 [`readme-content.json`](readme-content.json)의 `ko` / `en`에서 수정합니다.
-   각 언어의 `workflow`는 사용 흐름, `overview`는 연결 구조입니다.
+   각 언어의 `features`는 추가 기능, `workflow`는 사용 흐름, `overview`는 연결 구조입니다.
    Edit the bilingual copy in this JSON; the same keys exist in both languages.
 2. 배치·색상·아이콘은 [`build_readme_diagrams.py`](../tools/build_readme_diagrams.py)에서
    수정합니다. `text`, `rect`, `icon`, `arrow`는 다른 그림에도 재사용할 수 있는 SVG
@@ -22,7 +22,7 @@ standalone HTML and PNG exports after an edit.
    ```
 
    한·영 HTML 생성 → 한국어 폰트 포함 → 2× PNG 내보내기를 순서대로 실행합니다.
-   It builds both languages, embeds Korean fonts, and exports the four PNGs.
+   It builds both languages, embeds Korean fonts, and exports the six PNGs.
 4. README 폭에서 이미지를 확인하고 문구·원본·이미지를 함께 커밋합니다.
    Review at README width and commit the copy, builder changes, and outputs together.
 
@@ -63,16 +63,20 @@ or builder, because the next full build replaces the generated HTML.
 
 | Figure | 한국어 원본 | English source | Code reference |
 |---|---|---|---|
+| 공식 API 밖의 추가 기능 / Extra capabilities | [HTML](readme-features.html) · [PNG](readme-features.png) | [HTML](readme-features.en.html) · [PNG](readme-features.en.png) | [Support matrix](../website-fumadocs/content/docs/reference/support-scope.mdx) |
 | 로그인 → 조회 → 활용 / Read workflow | [HTML](readme-workflow.html) · [PNG](readme-workflow.png) | [HTML](readme-workflow.en.html) · [PNG](readme-workflow.en.png) | [Agent guide](../AGENTS.md), [MCP catalog](../internal/mcp/catalog.go) |
 | CLI·MCP와 API 연결 / Connections | [HTML](readme-overview.html) · [PNG](readme-overview.png) | [HTML](readme-overview.en.html) · [PNG](readme-overview.en.png) | [Hybrid routing](../internal/hybrid/client.go), [architecture](../docs/architecture.md) |
 
 ## Design and scope
 
 - Types: a simplified **flowchart** for the linear read workflow and an
-  **architecture** diagram for connections. No specialized semantic pattern is
-  needed. Each has at most five nodes and four arrows.
+  **architecture** diagram for connections and the capability map. No specialized
+  semantic pattern is needed. The capability map groups representative additions
+  into five areas; two separate source paths show how tossctl combines official
+  reads with additional capabilities. It is not a scale comparison of API sizes.
 - Frame: `fit`, `960 × 376` for the workflow and `960 × 456` for connections.
   PNG export at 2× (`1920 × 752` and `1920 × 912`).
+  The capability map uses `960 × 688`, exported at `1920 × 1376`.
 - Palette: paper `#f5f5f5`, ink `#2d3142`, muted `#4f5d75`, accent `#eb6c36`,
   The user selected the shipped default palette.
 - The user's visual reference calls for simple figures where they help. This

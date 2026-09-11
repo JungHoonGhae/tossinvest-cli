@@ -21,7 +21,7 @@ class TestReadmeVisuals(unittest.TestCase):
             root = pathlib.Path(directory)
             (root / "diagrams").mkdir()
             for locale in ("ko", "en"):
-                for figure in ("workflow", "overview"):
+                for figure in ("features", "workflow", "overview"):
                     copy[locale][figure]["title"] = f'{locale} {figure}: <수정> & "edit"'
             (root / "diagrams/readme-content.json").write_text(
                 json.dumps(copy, ensure_ascii=False), encoding="utf-8"
@@ -30,7 +30,7 @@ class TestReadmeVisuals(unittest.TestCase):
                 with contextlib.redirect_stdout(io.StringIO()):
                     build_readme_diagrams.main()
             for locale, suffix in (("ko", ""), ("en", ".en")):
-                for figure in ("workflow", "overview"):
+                for figure in ("features", "workflow", "overview"):
                     html = (root / f"diagrams/readme-{figure}{suffix}.html").read_text()
                     svg = ET.fromstring(re.search(r"<svg.*?</svg>", html, re.S).group())
                     self.assertEqual(svg[0].text, copy[locale][figure]["title"])
@@ -75,7 +75,7 @@ class TestReadmeVisuals(unittest.TestCase):
     def test_readmes_link_localized_diagrams_and_editable_sources(self):
         for readme_name, suffix in (("README.md", ""), ("README.en.md", ".en")):
             readme = (ROOT / readme_name).read_text(encoding="utf-8")
-            for stem in ("readme-workflow", "readme-overview"):
+            for stem in ("readme-features", "readme-workflow", "readme-overview"):
                 asset = f"diagrams/{stem}{suffix}.png"
                 with self.subTest(readme=readme_name, asset=asset):
                     self.assertIn(asset, readme)

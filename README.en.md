@@ -32,6 +32,13 @@
 
 tossctl brings [**30+ capabilities beyond the official API**](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope) into your AI and automation. Discover stocks, track changes in your assets, and review tax records in one place.
 
+<p align="center">
+  <img src="diagrams/readme-features.en.png" alt="tossctl connects official quotes, accounts, and holdings plus 30+ extra capabilities to your terminal and AI apps: stock research, news and events, assets and performance, taxes and income, and investing management." width="100%" />
+</p>
+
+<details>
+<summary>Compare capabilities</summary>
+
 | What else you can do | Official Open API | What tossctl connects |
 |---|:---:|---|
 | Discover and research stocks | Not supported | Toss AI signals, reasons for price moves, screening, sector analysis |
@@ -40,11 +47,9 @@ tossctl brings [**30+ capabilities beyond the official API**](https://tossinvest
 | Check taxes and other income | Not supported | Overseas capital gains, deposit interest, expected stock-lending income |
 | Manage your investing setup | Not supported | Watchlist folders, price alerts, hidden holdings, accumulation-plan lookup |
 
-**Go from “What's my balance?” to “Summarize my asset changes, dividends received, and holdings news.”** Ask your AI for the information you used to check separately in the app.
+</details>
 
-<p align="center">
-  <img src="diagrams/readme-workflow.en.png" alt="Sign in on your phone, select quotes, flows, accounts, or dividends, and query through the CLI or MCP. Use results in a terminal, JSON, or an AI answer. Live orders require a separate preview and human approval." width="100%" />
-</p>
+**Go from “What's my balance?” to “Summarize my asset changes, dividends received, and holdings news.”** Ask your AI for the information you used to check separately in the app.
 
 These extra features use WTS, Toss Securities' internal web API. The scope is **Toss Securities**, excluding general Toss banking and card spending. [Compare all supported features →](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope)
 
@@ -57,6 +62,10 @@ curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/in
 tossctl auth login
 tossctl account summary --output json
 ```
+
+<p align="center">
+  <img src="diagrams/readme-workflow.en.png" alt="Sign in on your phone, select quotes, flows, accounts, or dividends, and query through the CLI or MCP. Use results in a terminal, JSON, or an AI answer. Live orders require a separate preview and human approval." width="100%" />
+</p>
 
 Complete phone authentication and approve **Keep this device signed in**. To use a link instead of a QR code, sign in with `tossctl auth login --link`.
 

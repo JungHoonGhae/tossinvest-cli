@@ -27,6 +27,10 @@ ICONS = {
     'agent': '<path d="M8 5h24a6 6 0 0 1 6 6v16a6 6 0 0 1-6 6H18l-9 5v-5H8a6 6 0 0 1-6-6V11a6 6 0 0 1 6-6Z"/><circle cx="13" cy="18" r="1"/><circle cx="27" cy="18" r="1"/><path d="M14 25h12"/>',
     'key': '<circle cx="12" cy="13" r="9"/><path d="M18 20l16 16h4v-6l-4-4h-4v-4h-4M9 11h0"/>',
     'web': '<rect x="2" y="5" width="36" height="30" rx="4"/><path d="M2 13h36M8 9h0M14 9h0M15 20l-5 5 5 5M25 20l5 5-5 5"/>',
+    'news': '<rect x="4" y="4" width="32" height="32" rx="4"/><path d="M12 12h16M12 20h16M12 28h8"/>',
+    'chart': '<path d="M4 4v32h32M12 28V20M20 28V12M28 28V4"/>',
+    'income': '<rect x="4" y="8" width="32" height="24" rx="4"/><circle cx="20" cy="20" r="6"/><path d="M10 20h0M30 20h0"/>',
+    'folder': '<path d="M4 12V8a4 4 0 0 1 4-4h8l4 8h12a4 4 0 0 1 4 4v16a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V12Z"/>',
 }
 
 def icon(name, x, y, color=INK, scale=1):
@@ -82,11 +86,33 @@ svg {{ display: block; width: 100%; height: auto; font-family: {family}; }}
     target = ROOT / 'diagrams' / (stem + ('.en' if locale == 'en' else '') + '.html')
     target.write_text(html, encoding='utf-8')
 
+def build_features(locale, copy):
+    """Show the added scope separately from official reads, then their shared use."""
+    stem = 'readme-features'
+    slug = stem + ('.en' if locale == 'en' else '')
+    body = [text(40, 36, copy['eyebrow'], 16, 600, MUTED), text(40, 80, copy['title'], 32, 700, cls='figure-title')]
+    # The two sources have distinct ports: official reads enter at the top,
+    # extra capabilities enter at the left. Nothing merges or crosses en route.
+    body += [f'<path d="M616 164H808Q816 164 816 172V272" fill="none" stroke="{INK}" stroke-width="2" marker-end="url(#{slug}-arrow-ink)"/>', arrow(616, 408, 704, slug)]
+    body += [rect(40, 128, 568, 72, '#ffffff', RULE), icon('key', 64, 144, scale=0.8), text(112, 156, copy['official'], 20, 600), text(112, 184, copy['official_detail'], 16, 400, MUTED)]
+    body += [rect(40, 224, 568, 384, INK), text(64, 272, copy['count'], 40, 700, ACCENT), text(172, 256, copy['extra'], 20, 600, PAPER), text(172, 284, copy['extra_hint'], 16, 400, '#bfc0c0')]
+    body += [f'<path d="M64 304H584" stroke="rgba(245,245,245,0.24)"/>']
+    symbols = ('search', 'news', 'chart', 'income', 'folder')
+    for index, group in enumerate(copy['groups']):
+        y = 328 + index * 56
+        body += [icon(symbols[index], 64, y - 16, PAPER, 0.8), text(112, y, group['title'], 20, 600, PAPER), text(112, y + 24, group['detail'], 16, 400, '#bfc0c0')]
+    body += [rect(712, 280, 208, 176, '#ffffff', RULE), icon('agent', 796, 304), text(816, 384, 'tossctl', 32, 500, INK, 'middle', 'mono'), text(816, 416, copy['destination'], 16, 500, MUTED, 'middle')]
+    for index, line in enumerate(copy['outcome']):
+        body.append(text(816, 500 + index * 24, line, 16, 500, INK, 'middle'))
+    body += [f'<path d="M40 632H920" stroke="{RULE}"/>', text(40, 660, copy['footer'], 16, 400, MUTED)]
+    save(stem, locale, 688, copy['title'], copy['description'], copy['note'], '\n'.join(body))
+
 def main():
     content = json.loads((ROOT / 'diagrams' / 'readme-content.json').read_text(encoding='utf-8'))
     for locale in ('ko', 'en'):
         copy = content[locale]
         ko = locale == 'ko'
+        build_features(locale, copy['features'])
         stem = 'readme-workflow'
         slug = stem + ('' if ko else '.en')
         title = copy['workflow']['title']
@@ -129,7 +155,7 @@ def main():
         body += [f'<path d="M40 400H920" stroke="{RULE}"/>', text(40, 428, copy['overview']['footer'], 16, 400, MUTED)]
         save(stem, locale, 456, title, desc, note, '\n'.join(body))
 
-    print('Built four standalone HTML diagrams from readme-content.json.')
+    print('Built six standalone HTML diagrams from readme-content.json.')
 
 
 if __name__ == '__main__':

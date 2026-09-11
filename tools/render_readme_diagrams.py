@@ -12,7 +12,7 @@ from playwright.sync_api import sync_playwright
 
 
 ROOT = Path(__file__).resolve().parents[1]
-STEMS = ("readme-workflow", "readme-overview")
+STEMS = ("readme-features", "readme-workflow", "readme-overview")
 
 
 def main():

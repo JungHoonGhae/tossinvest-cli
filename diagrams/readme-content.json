@@ -33,6 +33,46 @@
       "wts": "WTS 내부 API",
       "wts_hint": "웹 세션 · 확장 기능",
       "footer": "조회 기본값: 공식 키가 있으면 지원 조회는 공식 API 우선 · WTS 전용 기능은 웹 세션 사용"
+    },
+    "features": {
+      "title": "공식 API에 없는 기능까지, tossctl로.",
+      "description": "tossctl은 공식 API의 시세·계좌·보유종목 조회에 더해, 공식 API에 없는 종목 분석·뉴스와 일정·자산 성과·세금과 수익·투자 관리 등 30가지 이상의 기능을 터미널과 AI 앱에 연결합니다.",
+      "note": "추가 기능은 지원표의 공식 API 미지원 기능을 기준으로 합니다. 다섯 영역은 대표 기능을 묶은 것이며 전체 endpoint 목록이 아닙니다. 로컬 기능과 실험적 모의투자는 집계에서 제외합니다. 그림은 지원 범위를 보여주며 주문 실행이나 자동 승인을 뜻하지 않습니다.",
+      "eyebrow": "tossctl이 더 연결하는 투자 정보",
+      "official": "공식 Open API",
+      "official_detail": "시세 · 계좌 · 보유 종목",
+      "count": "30+",
+      "extra": "공식 API에 없는 추가 기능",
+      "extra_hint": "종목 탐색부터 내 투자 관리까지",
+      "groups": [
+        {
+          "title": "종목 발굴·분석",
+          "detail": "AI 시그널 · 등락 이유 · 조건검색"
+        },
+        {
+          "title": "뉴스·투자 일정",
+          "detail": "보유종목 뉴스 · 어닝콜 · 경제 일정"
+        },
+        {
+          "title": "자산·성과",
+          "detail": "평가 이력 · 배당 · 실현손익"
+        },
+        {
+          "title": "세금·추가 수익",
+          "detail": "양도소득 · 예탁금 이자 · 대여 예상 수익"
+        },
+        {
+          "title": "내 투자 관리",
+          "detail": "관심종목 폴더 · 목표가 알림 · 주식모으기 조회"
+        }
+      ],
+      "destination": "터미널 · AI 앱",
+      "outcome": [
+        "“내 자산 변화와 배당,",
+        "보유 종목 뉴스를",
+        "함께 정리해 줘.”"
+      ],
+      "footer": "추가 기능은 토스증권 웹 세션으로 연결합니다."
     }
   },
   "en": {
@@ -69,6 +109,46 @@
       "wts": "Internal WTS API",
       "wts_hint": "Web session · extra features",
       "footer": "Default reads: prefer the official API with a key; use a web session for WTS-only features."
+    },
+    "features": {
+      "title": "Go beyond the official API with tossctl.",
+      "description": "tossctl combines official quotes, accounts, and holdings with 30+ extra capabilities for stock research, news and events, asset performance, taxes and income, and investing management in your terminal and AI apps.",
+      "note": "Extra capabilities are counted from official-API-absent rows in the support matrix. Five areas summarize representative capabilities, not the full endpoint inventory. Local features and experimental paper trading are excluded. This is a capability map, not an order-execution or approval flow.",
+      "eyebrow": "MORE INVESTMENT DATA WITH TOSSCTL",
+      "official": "Official Open API",
+      "official_detail": "Quotes · accounts · holdings",
+      "count": "30+",
+      "extra": "Capabilities beyond the official API",
+      "extra_hint": "From stock research to portfolio management",
+      "groups": [
+        {
+          "title": "Stock discovery & research",
+          "detail": "AI signals · price-move reasons · screening"
+        },
+        {
+          "title": "News & investment events",
+          "detail": "Holdings news · earnings calls · economic events"
+        },
+        {
+          "title": "Assets & performance",
+          "detail": "Valuation history · dividends · realized profit"
+        },
+        {
+          "title": "Taxes & other income",
+          "detail": "Capital gains · deposit interest · expected lending income"
+        },
+        {
+          "title": "Your investing setup",
+          "detail": "Watchlist folders · price alerts · accumulation-plan lookup"
+        }
+      ],
+      "destination": "Terminal · AI apps",
+      "outcome": [
+        "“Summarize asset changes,",
+        "dividends, and holdings",
+        "news together.”"
+      ],
+      "footer": "Extra capabilities connect through your Toss Securities web session."
     }
   }
 }
