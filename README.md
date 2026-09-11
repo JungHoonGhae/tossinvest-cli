@@ -30,7 +30,7 @@
 
 ## 공식 API만으로는 빠지는 것들
 
-**AI 시그널·배당·관심종목은 일부입니다.** tossctl은 [공식 API에 없는 **30가지 이상의 기능**](https://tossinvest-cli.vercel.app/docs/reference/support-scope)을 내 AI와 자동화에 연결합니다. 종목을 찾는 일부터 내 자산의 변화와 세금 자료를 확인하는 일까지 한곳에서 다루세요.
+tossctl은 [공식 API에 없는 **30가지 이상의 기능**](https://tossinvest-cli.vercel.app/docs/reference/support-scope)을 내 AI와 자동화에 연결합니다. 종목을 찾는 일부터 내 자산의 변화와 세금 자료를 확인하는 일까지 한곳에서 다루세요.
 
 | 더 할 수 있는 일 | 공식 Open API | tossctl에서 연결하는 기능 |
 |---|:---:|---|

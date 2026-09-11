@@ -30,7 +30,7 @@
 
 ## What the Official API Leaves Out
 
-**AI signals, dividends, and watchlists are only part of it.** tossctl brings [**30+ capabilities beyond the official API**](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope) into your AI and automation. Discover stocks, track changes in your assets, and review tax records in one place.
+tossctl brings [**30+ capabilities beyond the official API**](https://tossinvest-cli.vercel.app/en/docs/reference/support-scope) into your AI and automation. Discover stocks, track changes in your assets, and review tax records in one place.
 
 | What else you can do | Official Open API | What tossctl connects |
 |---|:---:|---|
