@@ -52,6 +52,9 @@ func (c *Client) ListCompletedOrdersRange(ctx context.Context, market string, fr
 		if err := c.getJSON(ctx, endpoint, &envelope); err != nil {
 			return nil, err
 		}
+		if envelope.Result.Body == nil {
+			return nil, fmt.Errorf("invalid completed orders response: result.body must be an array")
+		}
 
 		for _, item := range envelope.Result.Body {
 			orders = append(orders, parseCompletedOrder(item, entry))

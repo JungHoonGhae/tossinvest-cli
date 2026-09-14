@@ -34,6 +34,7 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"watchlist":                           true,
 		"quote-stock-infos":                   true,
 		"pending-orders":                      true,
+		"completed-orders-all-dates":          true,
 		"quote-trades":                        true,
 		"quote-orderbook":                     true,
 		"quote-price-limits":                  true,

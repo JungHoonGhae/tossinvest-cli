@@ -259,6 +259,7 @@ IMPLEMENTED = [
     # A new version or sibling is a separate contract, not automatic support.
     # ListCompletedOrdersRange only calls the v2 date-range KR/US endpoint.
     r"^/api/v2/trading/my-orders/markets/(?:kr|us|\{(?:market|param)\})/by-date/completed$",
+    r"^/api/v3/trading/my-orders/completed$",
     r"^/api/v1/trading/orders/calculate/[^/]+/(orderable-quantity|cost-basis-elements|average-price)",
     r"^/api/v2/trading/orders/calculate/[^/]+/cost-basis-elements",
     r"^/api/v1/trading/orders/histories/all/pending$",
@@ -540,11 +541,23 @@ REAL_SHADOWS = {
 # Keeping these in the generated inventory lets the weekly monitor retain and
 # diff every endpoint tossctl actually calls, including safe write surfaces.
 CURATED_CONTRACTS = {
+    "/api/v2/trading/orders/histories/all/pending": {
+        "method": "GET",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "note": "Build zohm1Acaa2LR63_36yS6O, chunk 9100-d49ee1a7b36fa188.js, module 64370 export YB: CERT GET with accountKey and no query/body. Read-only live check on 2026-09-14 returned result.body array and result.totalCount number; no nonempty row observed. Existing v1 remains live and implemented. See change-analysis/2026-09-14-wts.md.",
+    },
+    "/api/v3/trading/my-orders/completed": {
+        "method": "GET",
+        "host": "wts-cert-api",
+        "evidence": "verified",
+        "note": "Build zohm1Acaa2LR63_36yS6O, module 64370 export NQ; CERT GET with accountKey. Live-verified on 2026-09-14: optional kr/us market, executedOnly=false, size/number and server key cursor; result.body nonempty order rows, pagingParam and lastPage. Used by orders completed --all-dates and completed_orders all_dates. Optional filter enum remains unexposed. See change-analysis/2026-09-14-wts.md.",
+    },
     "/api/v2/trading/my-orders/markets/{market}/by-date/completed": {
         "method": "GET",
         "host": "wts-cert-api",
         "evidence": "partial",
-        "note": "Existing internal/client/completed_orders.go call contract and HTTP fixtures: kr|us; range.from, range.to, size, number; result.body array. Retained independently of new bundle routes. Live validation on 2026-09-14 was unavailable because the WTS session returned 401.",
+        "note": "Existing internal/client/completed_orders.go call contract and HTTP fixtures: kr|us; range.from, range.to, size, number; result.body array. Both markets returned HTTP 200 with explicit empty body arrays after reauthentication on 2026-09-14. Retained independently of new bundle routes.",
     },
     "/api/v3/my-assets/transactions/markets/{market}": {
         "method": "GET",

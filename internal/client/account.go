@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -159,6 +160,9 @@ func (c *Client) ListPendingOrders(ctx context.Context) ([]domain.Order, error) 
 	var envelope pendingOrdersEnvelope
 	if err := c.getJSON(ctx, c.certBaseURL+"/api/v1/trading/orders/histories/all/pending", &envelope); err != nil {
 		return nil, err
+	}
+	if envelope.Result == nil {
+		return nil, fmt.Errorf("invalid pending orders response: result must be an array")
 	}
 
 	orders := make([]domain.Order, 0, len(envelope.Result))
