@@ -497,16 +497,16 @@
         "type": "object"
       },
       "AfterMarketSession": {
-        "description": "애프터마켓 세션 (NXT)",
+        "description": "애프터마켓 세션. KRX·NXT 애프터마켓의 합집합(가장 이른 시작 ~ 가장 늦은 종료)",
         "properties": {
           "endTime": {
-            "description": "애프터마켓 전체 종료",
+            "description": "애프터마켓 전체 종료. 가장 늦은 KRX/NXT 애프터마켓 종료 시각",
             "example": "2026-03-25T20:00:00+09:00",
             "format": "date-time",
             "type": "string"
           },
           "singlePriceAuctionEndTime": {
-            "description": "애프터마켓 내 시가단일가 구간 종료.",
+            "description": "애프터마켓 내 시가단일가 구간 종료 (NXT 기준). NXT 애프터마켓이 휴장이면 null",
             "example": "2026-03-25T15:40:00+09:00",
             "oneOf": [
               {
@@ -519,7 +519,7 @@
             ]
           },
           "startTime": {
-            "description": "애프터마켓 시작",
+            "description": "애프터마켓 시작. 가장 이른 KRX/NXT 애프터마켓 시작 시각",
             "example": "2026-03-25T15:30:00+09:00",
             "format": "date-time",
             "type": "string"
@@ -1628,10 +1628,10 @@
         "type": "object"
       },
       "IntegratedHour": {
-        "description": "거래 가능 시간. 특수장(시간외종가/시간외단일가) 제외, 통합 모드 (KRX+NXT) 기준.\n세 세션(`preMarket`, `regularMarket`, `afterMarket`) 각각 nullable. 해당 세션이 휴장이면 null,\n세 세션 모두 null 이면 상위 `integrated` 자체가 null.\n",
+        "description": "거래 가능 시간. 장전/장후 시간외종가 제외, 통합 모드 (KRX+NXT) 기준.\n세 세션(`preMarket`, `regularMarket`, `afterMarket`) 각각 nullable. 해당 세션이 KRX·NXT 모두 휴장이면 null,\n세 세션 모두 null 이면 상위 `integrated` 자체가 null.\n",
         "properties": {
           "afterMarket": {
-            "description": "애프터마켓 (NXT). NXT 애프터마켓이 휴장이면 null",
+            "description": "애프터마켓. KRX·NXT 애프터마켓의 합집합. 둘 다 휴장이면 null",
             "oneOf": [
               {
                 "$ref": "#/components/schemas/AfterMarketSession"
@@ -3290,7 +3290,7 @@
             "type": "string"
           },
           "shortSellingAmountRate": {
-            "description": "공매도 거래대금 비중 (소수 비율, 소수 넷째 자리까지). 해당 일자 전체 거래대금 대비 공매도 거래대금.\n분모인 전체 거래대금은 정규장 외 세션(장전·장후·시간외단일가)을 포함한 당일 누적입니다.\n기준 거래대금 데이터가 없는 날짜는 null, 기준 거래대금이 0 이면 `0`. 예: `0.0318` = 3.18%\n",
+            "description": "공매도 거래대금 비중 (소수 비율, 소수 넷째 자리까지). 해당 일자 전체 거래대금 대비 공매도 거래대금.\n분모인 전체 거래대금은 정규장 외 세션(장전·장후 시간외종가, 애프터마켓)을 포함한 당일 누적입니다.\n기준 거래대금 데이터가 없는 날짜는 null, 기준 거래대금이 0 이면 `0`. 예: `0.0318` = 3.18%\n",
             "example": "0.0318",
             "format": "decimal",
             "maxLength": 30,
@@ -3307,7 +3307,7 @@
             "type": "string"
           },
           "shortSellingVolumeRate": {
-            "description": "공매도 거래량 비중 (소수 비율, 소수 다섯째 자리까지). 해당 일자 전체 거래량 대비 공매도 거래량.\n분모인 전체 거래량은 정규장 외 세션(장전·장후·시간외단일가)을 포함한 당일 누적입니다.\n기준 거래량 데이터가 없는 날짜는 null, 기준 거래량이 0 이면 `0`. 예: `0.03215` = 3.215%\n",
+            "description": "공매도 거래량 비중 (소수 비율, 소수 다섯째 자리까지). 해당 일자 전체 거래량 대비 공매도 거래량.\n분모인 전체 거래량은 정규장 외 세션(장전·장후 시간외종가, 애프터마켓)을 포함한 당일 누적입니다.\n기준 거래량 데이터가 없는 날짜는 null, 기준 거래량이 0 이면 `0`. 예: `0.03215` = 3.215%\n",
             "example": "0.03215",
             "format": "decimal",
             "maxLength": 30,
@@ -3976,7 +3976,7 @@
   "info": {
     "description": "토스증권 트레이딩 Open API 의 REST 스펙입니다. 실시간 체결·호가·본인 주문 이벤트 스트리밍은 REST 가 아닌 웹소켓 API(`wss://openapi-ws.tossinvest.com/ws/v1`)로 제공되며, 별도의 AsyncAPI 3.0 문서 (https://openapi.tossinvest.com/openapi-docs/latest/asyncapi.json)가 실시간 스펙의 source of truth 입니다.",
     "title": "토스증권 Open API",
-    "version": "1.2.15"
+    "version": "1.2.17"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -5787,7 +5787,7 @@
     },
     "/api/v1/market-calendar/KR": {
       "get": {
-        "description": "국내 시장의 거래 가능 시간을 조회합니다. 통합 모드 (KRX+NXT) 기준이며, 특수장(시간외종가/시간외단일가)은 제외됩니다. 전일/당일/익일 3영업일 정보를 반환합니다. 모든 시간은 KST(+09:00) 기준.\n\n**Rate Limits Group**: `MARKET_INFO`\n",
+        "description": "국내 시장의 거래 가능 시간을 조회합니다. 통합 모드 (KRX+NXT) 기준이며, 장전/장후 시간외종가는 제외됩니다. 전일/당일/익일 3영업일 정보를 반환합니다. 모든 시간은 KST(+09:00) 기준.\n\n**Rate Limits Group**: `MARKET_INFO`\n",
         "operationId": "getKrMarketCalendar",
         "parameters": [
           {
@@ -7001,7 +7001,7 @@
     },
     "/api/v1/orders": {
       "get": {
-        "description": "주문 목록을 조회합니다.\nstatus 파라미터로 주문 상태를 필터링합니다.\n\n**지원하는 status 값:**\n- 진행 중 주문: `OPEN` -- PENDING, PARTIAL_FILLED, PENDING_CANCEL, PENDING_REPLACE 상태의 주문을 반환\n- 종료된 주문: `CLOSED` -- FILLED, CANCELED, REJECTED, REPLACED 등 종료 상태 주문을 반환합니다.\n\nsymbol을 지정하면 해당 종목의 주문만 필터링하여 반환합니다.\n\n**조회 범위:**\nOpen API 가 지원하는 호가 유형(지정가 · 시장가 · 장마감지정가)으로 접수된 주문만 반환합니다.\n시간외단일가 · 장후시간외 종가 · 장전시간외 종가 등 Open API 로 주문할 수 없는 호가 유형의 주문은\n`OPEN`·`CLOSED` 목록과 주문 상세 조회 모두에서 조회되지 않습니다.\n\n**페이징 동작:**\n- `status=OPEN`: 모든 대기 중 주문을 전량 반환합니다. `limit`, `cursor` 는 무시되며, `from`/`to` 만 주문 생성일(`orderedAt`, KST 기준) 범위 필터로 적용됩니다 (미지정 시 전체 기간).\n- `status=CLOSED`: `limit` (기본 20, 최대 100), `cursor`, `from`/`to` 파라미터 모두 적용됩니다.\n\n**Rate Limits Group**: `ORDER_HISTORY`\n",
+        "description": "주문 목록을 조회합니다.\nstatus 파라미터로 주문 상태를 필터링합니다.\n\n**지원하는 status 값:**\n- 진행 중 주문: `OPEN` -- PENDING, PARTIAL_FILLED, PENDING_CANCEL, PENDING_REPLACE 상태의 주문을 반환\n- 종료된 주문: `CLOSED` -- FILLED, CANCELED, REJECTED, REPLACED 등 종료 상태 주문을 반환합니다.\n\nsymbol을 지정하면 해당 종목의 주문만 필터링하여 반환합니다.\n\n**조회 범위:**\nOpen API 가 지원하는 호가 유형(지정가 · 시장가 · 장마감지정가)으로 접수된 주문만 반환합니다.\n장후시간외 종가 · 장전시간외 종가 등 Open API 로 주문할 수 없는 호가 유형의 주문은\n`OPEN`·`CLOSED` 목록과 주문 상세 조회 모두에서 조회되지 않습니다.\n\n**페이징 동작:**\n- `status=OPEN`: 모든 대기 중 주문을 전량 반환합니다. `limit`, `cursor` 는 무시되며, `from`/`to` 만 주문 생성일(`orderedAt`, KST 기준) 범위 필터로 적용됩니다 (미지정 시 전체 기간).\n- `status=CLOSED`: `limit` (기본 20, 최대 100), `cursor`, `from`/`to` 파라미터 모두 적용됩니다.\n\n**Rate Limits Group**: `ORDER_HISTORY`\n",
         "operationId": "getOrders",
         "parameters": [
           {
@@ -10313,7 +10313,7 @@
     },
     "/api/v1/stocks/{symbol}/short-selling": {
       "get": {
-        "description": "국내(KR) 종목의 공매도 동향을 일별 시계열로 조회합니다. 공매도 거래량·거래대금과 함께\n해당 일자 전체 거래량·거래대금 대비 공매도 비중을 최신순으로 제공합니다.\n\n- 국내(KR) 종목만 지원합니다. 다른 시장의 종목은 400 `unsupported-market` 으로 응답합니다.\n- 모든 금액은 원화(KRW)이며, 별도의 통화 필드는 제공하지 않습니다.\n- 비중(`shortSellingVolumeRate`·`shortSellingAmountRate`)의 분모는 정규장 외 세션\n  (장전·장후·시간외단일가)을 포함한 해당 일자 누적 거래량·거래대금입니다.\n  분모 데이터가 없는 날짜는 비중이 null, 분모가 0 이면 `0` 입니다.\n- 다음 페이지는 응답의 `nextUntil` 값을 `until` 파라미터로 전달해 조회합니다.\n\n**데이터 적시성**: 일별 확정치는 해당 일자 저녁에 반영됩니다.\n\n**Rate Limits Group**: `STOCK_TRADING_TREND`\n",
+        "description": "국내(KR) 종목의 공매도 동향을 일별 시계열로 조회합니다. 공매도 거래량·거래대금과 함께\n해당 일자 전체 거래량·거래대금 대비 공매도 비중을 최신순으로 제공합니다.\n\n- 국내(KR) 종목만 지원합니다. 다른 시장의 종목은 400 `unsupported-market` 으로 응답합니다.\n- 모든 금액은 원화(KRW)이며, 별도의 통화 필드는 제공하지 않습니다.\n- 비중(`shortSellingVolumeRate`·`shortSellingAmountRate`)의 분모는 정규장 외 세션\n  (장전·장후 시간외종가, 애프터마켓)을 포함한 해당 일자 누적 거래량·거래대금입니다.\n  분모 데이터가 없는 날짜는 비중이 null, 분모가 0 이면 `0` 입니다.\n- 다음 페이지는 응답의 `nextUntil` 값을 `until` 파라미터로 전달해 조회합니다.\n\n**데이터 적시성**: 일별 확정치는 해당 일자 저녁에 반영됩니다.\n\n**Rate Limits Group**: `STOCK_TRADING_TREND`\n",
         "operationId": "getStockShortSelling",
         "parameters": [
           {
