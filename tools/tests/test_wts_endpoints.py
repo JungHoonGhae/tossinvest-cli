@@ -703,6 +703,54 @@ class TestClassify(unittest.TestCase):
         status, _ = W.classify("/api/v1/brand-new-thing", {})
         self.assertEqual(status, "candidate")
 
+    def test_order_history_versions_and_siblings_require_their_own_implementation(self):
+        for path in [
+            "/api/v1/trading/orders/histories/all/pending",
+            "/api/v2/trading/my-orders/markets/kr/by-date/completed",
+            "/api/v2/trading/my-orders/markets/us/by-date/completed",
+            "/api/v2/trading/my-orders/markets/{market}/by-date/completed",
+            "/api/v2/trading/my-orders/markets/{param}/by-date/completed",
+        ]:
+            with self.subTest(path=path):
+                self.assertEqual(W.classify(path, {})[0], "implemented")
+
+        for path in [
+            "/api/v2/trading/orders/histories/all/pending",
+            "/api/v1/trading/orders/histories/all/pending/summary",
+            "/api/v3/trading/my-orders/completed",
+            "/api/v3/trading/my-orders/markets/us/by-date/completed",
+            "/api/v2/trading/my-orders/markets/us-opt/by-date/completed",
+            "/api/v2/trading/my-orders/markets/us-opt/pending/instruments",
+            "/api/v2/trading/my-orders/markets/{market}/pending",
+            "/api/v2/trading/my-orders/markets/{market}/order-details/{orderDate}/{orderNo}",
+            "/api/v2/trading/my-orders/markets/{market}/preorder-details/{orderDate}/{orderNo}",
+        ]:
+            with self.subTest(path=path):
+                self.assertEqual(W.classify(path, {})[0], "candidate")
+
+    def test_completed_order_client_contract_survives_bundle_route_changes(self):
+        path = "/api/v2/trading/my-orders/markets/{market}/by-date/completed"
+        new_path = "/api/v3/trading/my-orders/completed"
+        with tempfile.TemporaryDirectory() as directory:
+            catalog_path = os.path.join(directory, "catalog.json")
+            # The new UI bundle contains only v3; tossctl still calls v2.
+            with mock.patch.object(W, "CATALOG", catalog_path), \
+                 mock.patch.object(W, "collect_paths", return_value=(
+                     "new-build", ["new-build"], 1, {new_path}, {},
+                 )), \
+                 mock.patch.object(W, "discover_go_probes", return_value=[]), \
+                 mock.patch.dict(os.environ, {"WTS_DIFF_OUT": ""}), \
+                 mock.patch("builtins.print"):
+                self.assertEqual(W.main(), 0)
+            with open(catalog_path, encoding="utf-8") as source:
+                endpoints = json.load(source)["endpoints"]
+
+        self.assertEqual(endpoints[new_path]["status"], "candidate")
+        self.assertEqual(endpoints[path]["status"], "implemented")
+        self.assertEqual(endpoints[path]["method"], "GET")
+        self.assertEqual(endpoints[path]["host"], "wts-cert-api")
+        self.assertEqual(endpoints[path]["evidence"], "partial")
+
     def test_implemented_patterns_are_not_over_broad(self):
         # exchange 계열 패턴이 접두사라서 부르지도 않는 형제 경로까지
         # implemented 로 잡던 것을 정확 경로로 좁혔다.
