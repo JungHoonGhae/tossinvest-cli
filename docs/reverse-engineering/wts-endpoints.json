@@ -1,14 +1,14 @@
 {
   "source": "tossinvest.com web bundles",
-  "build_id": "7r39ou7dRVa7AiAbxAXNF",
+  "build_id": "zohm1Acaa2LR63_36yS6O",
   "build_ids": [
-    "7r39ou7dRVa7AiAbxAXNF"
+    "zohm1Acaa2LR63_36yS6O"
   ],
-  "chunk_count": 77,
+  "chunk_count": 75,
   "total": 1148,
   "counts": {
-    "implemented": 167,
-    "candidate": 321,
+    "implemented": 168,
+    "candidate": 320,
     "excluded": 660,
     "candidate_next": 0,
     "meaningful": 488
@@ -2773,6 +2773,8 @@
     },
     "/api/v1/dashboard/wts/news": {
       "status": "implemented",
+      "method": "POST",
+      "host": "wts-info-api",
       "first_seen": "2026-08-03",
       "observed": {
         "method": "POST",
@@ -7355,24 +7357,6 @@
         "at": "2026-09-03"
       }
     },
-    "/api/v1/trading/orders/histories/tab": {
-      "status": "candidate",
-      "note": "thin: 응답이 기본 탭 문자열 하나(\"kr\") 뿐 (CERT, GET, 200 확인 2026-08-04)",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-api",
-        "status": 400,
-        "verdict": "needs-params"
-      },
-      "observed": {
-        "method": "GET",
-        "host": "wts-cert-api",
-        "query": [],
-        "body": [],
-        "at": "2026-09-03"
-      }
-    },
     "/api/v1/trading/orders/histories/{type}": {
       "status": "candidate",
       "method": "GET",
@@ -9000,23 +8984,6 @@
       "host": "wts-api",
       "first_seen": "2026-06-19"
     },
-    "/api/v2/my-assets/orders/markets": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-cert-api",
-        "status": 404,
-        "verdict": "not-found"
-      },
-      "observed": {
-        "method": "GET",
-        "host": "wts-api",
-        "query": [],
-        "body": [],
-        "at": "2026-09-03"
-      }
-    },
     "/api/v2/my-assets/transactions": {
       "status": "candidate",
       "first_seen": "2026-06-19",
@@ -9994,6 +9961,10 @@
         "verdict": "not-found"
       }
     },
+    "/api/v2/trading/orders/histories/all/pending": {
+      "status": "candidate",
+      "first_seen": "2026-09-14"
+    },
     "/api/v2/trading/settings/investor-exchange-choice-type": {
       "status": "implemented",
       "note": "Exact GET contract, integrated/krx/nxt bundle enum, and read-only live string schema verified 2026-09-03. Read only through account trading-settings.",
@@ -10712,6 +10683,10 @@
         "verdict": "needs-params"
       }
     },
+    "/api/v3/trading/my-orders/completed": {
+      "status": "implemented",
+      "first_seen": "2026-09-14"
+    },
     "/api/v3/trading/order/{orderKorNo}/available-actions": {
       "status": "implemented",
       "method": "GET",
@@ -10978,9 +10953,9 @@
     "paper-trading-us-options": {
       "lifecycle": "rolling_out",
       "stability": "experimental",
-      "checked_at": "2026-09-07",
+      "checked_at": "2026-09-14",
       "active_build_ids": [
-        "7r39ou7dRVa7AiAbxAXNF"
+        "zohm1Acaa2LR63_36yS6O"
       ],
       "bundle_markers": {
         "option.paper.wts.open": true
@@ -11087,5 +11062,5 @@
       ]
     }
   },
-  "updated_at": "2026-09-07"
+  "updated_at": "2026-09-14"
 }
