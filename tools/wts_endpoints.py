@@ -256,10 +256,12 @@ IMPLEMENTED = [
     # 별개 API)와 `current-quote`·`/for-sell` 이 그렇게 잘못 표시돼 있었다.
     r"^/api/v1/exchange/current-quote/for-buy$",
     r"^/api/v1/exchange/usd/base-exchange-rate$",
-    r"^/api/v\d+/trading/my-orders/",
+    # A new version or sibling is a separate contract, not automatic support.
+    # ListCompletedOrdersRange only calls the v2 date-range KR/US endpoint.
+    r"^/api/v2/trading/my-orders/markets/(?:kr|us|\{(?:market|param)\})/by-date/completed$",
     r"^/api/v1/trading/orders/calculate/[^/]+/(orderable-quantity|cost-basis-elements|average-price)",
     r"^/api/v2/trading/orders/calculate/[^/]+/cost-basis-elements",
-    r"^/api/v1/trading/orders/histories/all/pending",
+    r"^/api/v1/trading/orders/histories/all/pending$",
     # Paper options use a physically separate ledger and dedicated routes. The
     # feature remains lifecycle=rolling_out even though these concrete calls
     # are implemented and live-verified; rollout stability is tracked below.
@@ -538,6 +540,12 @@ REAL_SHADOWS = {
 # Keeping these in the generated inventory lets the weekly monitor retain and
 # diff every endpoint tossctl actually calls, including safe write surfaces.
 CURATED_CONTRACTS = {
+    "/api/v2/trading/my-orders/markets/{market}/by-date/completed": {
+        "method": "GET",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "note": "Existing internal/client/completed_orders.go call contract and HTTP fixtures: kr|us; range.from, range.to, size, number; result.body array. Retained independently of new bundle routes. Live validation on 2026-09-14 was unavailable because the WTS session returned 401.",
+    },
     "/api/v3/my-assets/transactions/markets/{market}": {
         "method": "GET",
         "host": "wts-api",
