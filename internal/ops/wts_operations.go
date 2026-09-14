@@ -1582,13 +1582,29 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "completed_orders", Method: "GET", Path: "wts:trading/my-orders/completed", Backend: "wts",
-			Category: "order", Summary: "Completed (filled) orders with average execution price + executed quantity — the data needed for realized P&L. Supports a date range and paging. WTS-only.",
+			Category: "order", Summary: "Completed orders, including canceled orders, with average execution price and executed quantity. Defaults to the current month; all_dates reads unified history without a date filter. WTS-only.",
 			Params: []Param{
 				{Name: "market", Type: "string", Desc: `"kr", "us", or "all" (default all)`},
 				{Name: "from", Type: "string", Desc: "start date YYYY-MM-DD (default: current month start)"},
 				{Name: "to", Type: "string", Desc: "end date YYYY-MM-DD (default: today)"},
+				{Name: "all_dates", Type: "boolean", Desc: "read across all dates; incompatible with from/to (default false)"},
 				{Name: "size", Type: "integer", Desc: "page size (default 50)"},
-				{Name: "page", Type: "integer", Desc: "page number, 1-based (default 1)"},
+				{Name: "page", Type: "integer", Desc: "page number, 1-based (default 1); all_dates: size/page 1–100, preceding pages read for cursors"},
+			},
+			Probe: &ProbeSpec{
+				Name: "completed-orders-all-dates", Method: "GET", AccountScoped: true,
+				URL: probeCert + "/api/v3/trading/my-orders/completed?executedOnly=false&size=1&number=1",
+				Check: func(status int, body []byte) error {
+					if err := ExpectStatus(status, 200); err != nil {
+						return err
+					}
+					for path, kind := range map[string]string{"result.body": "array", "result.lastPage": "bool", "result.pagingParam": "object"} {
+						if err := ExpectPath(body, path, kind); err != nil {
+							return err
+						}
+					}
+					return nil
+				},
 			},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				market, err := argString(args, "market")
@@ -1606,13 +1622,19 @@ func wtsOperations() []Operation {
 				if err != nil {
 					return nil, err
 				}
-				// No range given → default helper (current month).
-				if fromStr == "" && toStr == "" {
-					return d.WTS.ListCompletedOrders(ctx, market)
+				allDates, err := argBool(args, "all_dates")
+				if err != nil {
+					return nil, err
+				}
+				if allDates && (fromStr != "" || toStr != "") {
+					return nil, fmt.Errorf("all_dates cannot be combined with from or to")
 				}
 				size, err := argInt(args, "size")
 				if err != nil {
 					return nil, err
+				}
+				if _, set := args["size"]; allDates && set && size <= 0 {
+					return nil, fmt.Errorf("all_dates requires a positive size")
 				}
 				if size <= 0 {
 					size = 50
@@ -1621,8 +1643,14 @@ func wtsOperations() []Operation {
 				if err != nil {
 					return nil, err
 				}
+				if _, set := args["page"]; allDates && set && page <= 0 {
+					return nil, fmt.Errorf("all_dates requires a positive page")
+				}
 				if page <= 0 {
 					page = 1
+				}
+				if allDates {
+					return d.WTS.ListCompletedOrdersAllDates(ctx, market, size, page)
 				}
 				now := time.Now()
 				from, to := now, now

@@ -108,6 +108,9 @@ tossctl market signals
 # 내 배당 확인하기
 tossctl portfolio dividends
 
+# 이번 달 이전의 완료·취소 주문도 확인하기
+tossctl orders completed --all-dates --size 50
+
 # 보유 종목을 스크립트로 넘기기
 tossctl portfolio positions --output json
 ```

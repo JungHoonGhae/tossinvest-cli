@@ -108,6 +108,9 @@ tossctl market signals
 # Review your dividends
 tossctl portfolio dividends
 
+# Include completed and canceled orders from earlier months
+tossctl orders completed --all-dates --size 50
+
 # Pass holdings to your scripts
 tossctl portfolio positions --output json
 ```

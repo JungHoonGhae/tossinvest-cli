@@ -710,6 +710,7 @@ class TestClassify(unittest.TestCase):
             "/api/v2/trading/my-orders/markets/us/by-date/completed",
             "/api/v2/trading/my-orders/markets/{market}/by-date/completed",
             "/api/v2/trading/my-orders/markets/{param}/by-date/completed",
+            "/api/v3/trading/my-orders/completed",
         ]:
             with self.subTest(path=path):
                 self.assertEqual(W.classify(path, {})[0], "implemented")
@@ -717,7 +718,6 @@ class TestClassify(unittest.TestCase):
         for path in [
             "/api/v2/trading/orders/histories/all/pending",
             "/api/v1/trading/orders/histories/all/pending/summary",
-            "/api/v3/trading/my-orders/completed",
             "/api/v3/trading/my-orders/markets/us/by-date/completed",
             "/api/v2/trading/my-orders/markets/us-opt/by-date/completed",
             "/api/v2/trading/my-orders/markets/us-opt/pending/instruments",
@@ -730,10 +730,10 @@ class TestClassify(unittest.TestCase):
 
     def test_completed_order_client_contract_survives_bundle_route_changes(self):
         path = "/api/v2/trading/my-orders/markets/{market}/by-date/completed"
-        new_path = "/api/v3/trading/my-orders/completed"
+        new_path = "/api/v4/trading/my-orders/completed"
         with tempfile.TemporaryDirectory() as directory:
             catalog_path = os.path.join(directory, "catalog.json")
-            # The new UI bundle contains only v3; tossctl still calls v2.
+            # A future UI bundle contains only v4; tossctl still calls v2/v3.
             with mock.patch.object(W, "CATALOG", catalog_path), \
                  mock.patch.object(W, "collect_paths", return_value=(
                      "new-build", ["new-build"], 1, {new_path}, {},

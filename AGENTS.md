@@ -95,7 +95,7 @@ Rules for agents:
 
 ## Probe 목록
 
-현재 `monitor api` 는 85개 read-only endpoint 를 감시합니다. 단일 진실 소스는
+현재 `monitor api` 는 86개 read-only endpoint 를 감시합니다. 단일 진실 소스는
 `internal/monitor.Probes()` 런타임 결과입니다. 대부분은 `internal/ops`
 레지스트리의 오퍼레이션 옆 `ProbeSpec`과 공용 `ProbeRefs`에서 파생되고, 카탈로그
 오퍼레이션이 없는 CLI 전용 5개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
@@ -183,6 +183,7 @@ Rules for agents:
 - `hidden-holdings` — `GET /api/v2/hidden-stocks`
 - `portfolio-positions` — `POST /api/v2/dashboard/asset/sections/all`
 - `pending-orders` — `GET /api/v1/trading/orders/histories/all/pending`
+- `completed-orders-all-dates` — `GET /api/v3/trading/my-orders/completed?executedOnly=false&size=1&number=1` (`accountKey`)
 - `watchlist` — `GET /api/v1/new-watchlists`
 - `watchlist-groups` — `GET /api/v1/new-watchlists/groups/simple`
 - `watchlist-group` — `GET /api/v1/new-watchlists/groups?ids=<first-user-folder-id>&includePrice=true`

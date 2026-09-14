@@ -82,10 +82,10 @@ GitHub 모니터의 07:00·19:00 KST 수집 뒤 20분 여유를 둔 값입니다
 - [#15 / #17](https://github.com/JungHoonGhae/tossinvest-cli/issues/15) — User-Agent 핑거프린팅 차단 (v0.3.6 fix)
 - [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) — `/sections/all` body 계약 변경 (v0.4.8 fix)
 
-`monitor api` 명령은 85개 read-only endpoint 를 schema-invariant probe 로 호출해 이런 변경을 사용자보다 먼저 감지합니다.
+`monitor api` 명령은 86개 read-only endpoint 를 schema-invariant probe 로 호출해 이런 변경을 사용자보다 먼저 감지합니다.
 
 `experimental.paper_trading=true`로 옵트인한 경우에는 모의 잔고·교육 요약·대기 주문·완료
-주문 4개를 추가해 총 86개를 검사합니다. 옵트인하지 않은 사용자의 일반 회귀 신호와 아직
+주문 4개를 추가해 총 90개를 검사합니다. 옵트인하지 않은 사용자의 일반 회귀 신호와 아직
 롤아웃 중인 기능의 신호가 섞이지 않도록 기본 목록에서는 제외합니다.
 
 ### 동작 흐름
@@ -104,7 +104,7 @@ GitHub 모니터의 07:00·19:00 KST 수집 뒤 20분 여유를 둔 값입니다
 
 ### Probe 목록
 
-런타임 목록인 `internal/monitor.Probes()` 가 단일 진실 소스입니다. 80개는
+런타임 목록인 `internal/monitor.Probes()` 가 단일 진실 소스입니다. 81개는
 `internal/ops` 레지스트리의 오퍼레이션 옆 `ProbeSpec` 또는 공용 probe에서 파생되고,
 카탈로그 오퍼레이션이 없는 CLI 전용 5개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
 
@@ -125,7 +125,7 @@ go run ./tools/wtsinventory -mode probes -root "$(pwd)" | jq 'length'
 # 85
 ```
 
-위 inventory 명령은 사용자 설정과 무관한 안정 표면 85개를 출력합니다. 실제
+위 inventory 명령은 사용자 설정과 무관한 안정 표면 86개를 출력합니다. 실제
 `tossctl monitor api`는 옵트인 설정을 읽어 paper probe 4개를 더 실행합니다. WTS 주간 정적 모니터는 별도로
 `rolling_features.paper-trading-us-options`의 UI flag·활성 build·critical endpoint와 stable
 승격 기준 변경을 감시합니다. 현재 `/paper/init`의 불투명한 500이 해결되지 않아 승격 심사는
@@ -181,7 +181,7 @@ webhook 페이로드:
 
 ```
 🚨 tossctl API regression detected (0.4.9)
-2026-05-13 10:00 UTC — 1/85 probes failed
+2026-05-13 10:00 UTC — 1/86 probes failed
 
 ❌ portfolio-positions — POST wts-cert-api.tossinvest.com/api/v2/dashboard/asset/sections/all
     status=200, result.sections is empty — likely body-contract regression (#29-class)

@@ -103,6 +103,13 @@ Trading is disabled by default. See the [Safety Model](/en/docs/guide/safety).
 | `tossctl order cancel --order-id <id> --symbol <s> [--execute --confirm <token>]` | Preview by default; cancel with that command's token |
 | `tossctl order amend --order-id <id> ... [--execute --confirm <token>]` | Preview by default; amend with that command's token |
 | `tossctl orders list` · `orders completed` · `order show <id>` | Pending/filled/single lookup |
+| `tossctl orders completed --all-dates --market all --size 50 --page 1` | Recent completed and canceled orders across all dates |
+
+`orders completed` defaults to the current month. `--all-dates` removes the date filter;
+`--size` (default 50) and `--page` (default 1) each accept 1–100. Only the requested page
+is returned. Reaching page N requires up to N history reads to follow server cursors.
+For MCP, pass `{"all_dates":true,"market":"all","size":50,"page":1}` to `completed_orders`.
+`all_dates` cannot be combined with `from` or `to`.
 
 Fractional buys use `--fractional --type market --amount <krw>`; sells use `--fractional --type market --side sell --qty <quantity>`. Supply the other order fields and pass preview/execution gates. Fractional sells are not live-verified.
 
