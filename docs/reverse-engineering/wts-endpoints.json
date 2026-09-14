@@ -9971,6 +9971,10 @@
     },
     "/api/v2/trading/orders/histories/all/pending": {
       "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "note": "Build zohm1Acaa2LR63_36yS6O, chunk 9100-d49ee1a7b36fa188.js, module 64370 export YB: CERT GET with accountKey request option and no query/body. Response contract not live-verified; this is not a replacement for the implemented v1 route without further validation. See change-analysis/2026-09-14-wts.md.",
       "first_seen": "2026-09-14"
     },
     "/api/v2/trading/settings/investor-exchange-choice-type": {
@@ -10693,6 +10697,10 @@
     },
     "/api/v3/trading/my-orders/completed": {
       "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "evidence": "partial",
+      "note": "Build zohm1Acaa2LR63_36yS6O, chunk 9100-d49ee1a7b36fa188.js, module 64370 export NQ: CERT GET with accountKey request option; optional market, repeated filter, executedOnly derived from includeCanceled, and pagingParam query fields. Response and paging contracts not live-verified. Existing v2 date-range route remains in the same module. See change-analysis/2026-09-14-wts.md.",
       "first_seen": "2026-09-14"
     },
     "/api/v3/trading/order/{orderKorNo}/available-actions": {

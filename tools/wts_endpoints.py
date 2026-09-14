@@ -540,6 +540,18 @@ REAL_SHADOWS = {
 # Keeping these in the generated inventory lets the weekly monitor retain and
 # diff every endpoint tossctl actually calls, including safe write surfaces.
 CURATED_CONTRACTS = {
+    "/api/v2/trading/orders/histories/all/pending": {
+        "method": "GET",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "note": "Build zohm1Acaa2LR63_36yS6O, chunk 9100-d49ee1a7b36fa188.js, module 64370 export YB: CERT GET with accountKey request option and no query/body. Response contract not live-verified; this is not a replacement for the implemented v1 route without further validation. See change-analysis/2026-09-14-wts.md.",
+    },
+    "/api/v3/trading/my-orders/completed": {
+        "method": "GET",
+        "host": "wts-cert-api",
+        "evidence": "partial",
+        "note": "Build zohm1Acaa2LR63_36yS6O, chunk 9100-d49ee1a7b36fa188.js, module 64370 export NQ: CERT GET with accountKey request option; optional market, repeated filter, executedOnly derived from includeCanceled, and pagingParam query fields. Response and paging contracts not live-verified. Existing v2 date-range route remains in the same module. See change-analysis/2026-09-14-wts.md.",
+    },
     "/api/v2/trading/my-orders/markets/{market}/by-date/completed": {
         "method": "GET",
         "host": "wts-cert-api",

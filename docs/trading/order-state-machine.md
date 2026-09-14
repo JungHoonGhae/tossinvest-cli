@@ -9,6 +9,12 @@ It polls pending/completed history at most eight times, 250 ms apart; it never
 resubmits a mutation. A disappeared pending order without a canceled history row
 returns `unknown`, not `canceled`. Users must inspect history before retrying.
 
+Order history must contain an explicit array: `result` for pending orders and
+`result.body` for completed orders. A missing or `null` list is a response-contract
+error, even with HTTP 200; it cannot establish that no orders exist. An explicit
+empty array remains a valid empty history. Direct order lookup propagates this
+error instead of treating it as a missing order.
+
 Matching checks symbol, buy/sell direction, market when present, price and
 quantity. Multiple matching rows remain `unknown` rather than selecting the first
 order. Amendment matching excludes the original order and canceled rows.
