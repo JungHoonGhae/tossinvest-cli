@@ -17,6 +17,7 @@
 /auth-helper/**/__pycache__/
 /auth-helper/*.egg-info/
 /tools/**/__pycache__/
+/.venv-readme/
 *.pyc
 
 /fixtures/raw/

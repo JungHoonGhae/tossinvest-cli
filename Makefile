@@ -1,4 +1,5 @@
 BINARY := bin/tossctl
+PYTHON ?= python3
 VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -6,7 +7,7 @@ LDFLAGS := -X github.com/JungHoonGhae/tossinvest-cli/internal/version.Version=$(
 	-X github.com/JungHoonGhae/tossinvest-cli/internal/version.Commit=$(COMMIT) \
 	-X github.com/JungHoonGhae/tossinvest-cli/internal/version.Date=$(DATE)
 
-.PHONY: build run test lint fmt tidy clean
+.PHONY: build run test lint fmt tidy clean readme-diagrams
 
 build:
 	mkdir -p bin
@@ -17,6 +18,11 @@ run:
 
 test:
 	go test ./...
+
+readme-diagrams:
+	$(PYTHON) tools/build_readme_diagrams.py
+	$(PYTHON) tools/embed_readme_fonts.py
+	$(PYTHON) tools/render_readme_diagrams.py
 
 # lint is gofmt + vet only — no extra tooling to install. `gofmt -l` lists
 # unformatted files without changing them, so the check fails loudly instead of

@@ -7,8 +7,8 @@
 <h1 align="center">tossinvest-cli</h1>
 
 <p align="center">
-  <strong>공식 API로는 못 보는 토스증권 데이터까지, CLI와 MCP로.</strong>
-  <br />계좌·시세·주문에 수급·AI 시그널·배당·관심종목을 더하세요.<br />터미널, 스크립트, AI 에이전트에서 같은 <code>tossctl</code>로 사용합니다.
+  <strong>공식 API에 없는 투자 정보까지, 내 AI에게.</strong>
+  <br />종목 탐색부터 자산·손익·세금·관심종목 관리까지, <code>tossctl</code> 하나로.
 </p>
 
 <p align="center">
@@ -19,24 +19,39 @@
 
 <p align="center">
   <a href="#빠른-시작"><strong>빠른 시작</strong></a> ·
-  <a href="#왜-tossctl인가"><strong>왜 tossctl인가</strong></a> ·
-  <a href="#cli와-mcp"><strong>CLI와 MCP</strong></a> ·
-  <a href="#안전-모델"><strong>안전</strong></a> ·
+  <a href="#공식-api에-없는-기능까지-tossctl로"><strong>더 할 수 있는 일</strong></a> ·
+  <a href="#ai와-함께-사용하기"><strong>AI 연결</strong></a> ·
+  <a href="#주문-전-확인하세요"><strong>주문 전 확인</strong></a> ·
   <a href="https://tossinvest-cli.vercel.app/docs"><strong>문서</strong></a>
 </p>
 
 > [!WARNING]
 > 이 프로젝트는 토스증권 공식 제품이 아닙니다. 공식 Open API 외 기능은 토스증권 웹 내부 API를 비공식적으로 사용하며, 이용약관 위반에 해당할 수 있고 예고 없이 변경될 수 있습니다. 계좌 제한·손실 등 사용 결과는 사용자 본인의 책임입니다.
 
-## 왜 tossctl인가?
+## 공식 API에 없는 기능까지, tossctl로
 
-**계좌와 주문을 넘어, 토스증권에서 보던 정보를 자동화에 연결합니다.** 공식 Open API에 없는 투자자 수급, AI 시그널, 배당 내역, 관심종목 관리까지 WTS(토스증권 웹 트레이딩 시스템) API로 제공합니다.
+tossctl은 [공식 API에 없는 **30가지 이상의 기능**](https://tossinvest-cli.vercel.app/docs/reference/support-scope)을 내 AI와 자동화에 연결합니다. 종목을 찾는 일부터 내 자산의 변화와 세금 자료를 확인하는 일까지 한곳에서 다루세요.
 
 <p align="center">
-  <img src="diagrams/official-vs-wts-v2.svg" alt="tossctl에서 공식 Open API와 WTS 전용 기능으로 이어지는 경로" width="100%" />
+  <img src="diagrams/readme-features.png" alt="공식 API의 시세·계좌·보유종목 조회에 더해, tossctl이 공식 API에 없는 30+ 기능을 터미널과 AI 앱에 연결합니다. 종목 분석, 뉴스·일정, 자산·성과, 세금·수익, 투자 관리의 다섯 영역을 함께 활용합니다." width="100%" />
 </p>
 
-공식 키가 있으면 지원되는 조회는 기본적으로 공식 API를 우선 사용합니다. WTS 기능은 웹 세션으로 연결합니다. 현재 지원 대상은 **토스증권**이며, 일반 토스뱅킹·카드 소비 내역은 지원하지 않습니다. [전체 기능 비교 →](https://tossinvest-cli.vercel.app/docs/reference/support-scope)
+<details>
+<summary>기능별 비교 보기</summary>
+
+| 더 할 수 있는 일 | 공식 Open API | tossctl에서 연결하는 기능 |
+|---|:---:|---|
+| 종목 발굴·분석 | 미지원 | 토스 AI 시그널·등락 이유·조건검색·업종별 분석 |
+| 뉴스·투자 일정 확인 | 미지원 | 보유·관심종목 뉴스·어닝콜·주요 경제지표 일정 |
+| 내 자산·성과 모아 보기 | 미지원 | 전체 계좌 합산·평가 이력·배당·기간별 실현손익 |
+| 세금·추가 수익 확인 | 미지원 | 해외 양도소득·예탁금 이자·주식대여 예상 수익 |
+| 내 투자 관리 | 미지원 | 관심종목 폴더·목표가 알림·숨긴 종목·주식모으기 조회 |
+
+</details>
+
+**“잔고가 얼마야?”에서 “내 자산 변화와 받은 배당, 보유 종목 뉴스까지 정리해 줘”로.** 앱에서 따로 확인하던 정보를 이제 내 AI에게 요청하세요.
+
+위 추가 기능은 WTS(토스증권 웹 내부 API)를 사용합니다. 지원 대상은 **토스증권**이며, 일반 토스뱅킹·카드 소비 내역은 포함하지 않습니다. [전체 기능 비교 →](https://tossinvest-cli.vercel.app/docs/reference/support-scope)
 
 ## 빠른 시작
 
@@ -47,6 +62,10 @@ curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/in
 tossctl auth login
 tossctl account summary --output json
 ```
+
+<p align="center">
+  <img src="diagrams/readme-workflow.png" alt="휴대폰으로 로그인하고 시세·수급·계좌·배당을 선택해 CLI나 MCP로 조회합니다. 결과는 터미널·JSON·AI 답변으로 활용하며, 실주문은 별도 미리보기와 사람의 승인이 필요합니다." width="100%" />
+</p>
 
 휴대폰 인증 후 **이 기기 로그인 유지**까지 승인하세요. QR 대신 링크를 쓰려면 `tossctl auth login --link`로 로그인합니다.
 
@@ -70,44 +89,74 @@ Homebrew·소스 빌드는 [설치 문서](https://tossinvest-cli.vercel.app/doc
 
 </details>
 
+<details>
+<summary>설치부터 첫 조회까지 — 데모</summary>
+
+<p align="center">
+  <img src="docs/assets/demo/install.gif" alt="tossctl 설치와 로그인 후 첫 계좌 조회" width="760" />
+</p>
+
+</details>
+
 ## 이렇게 사용하세요
 
 ```bash
-# 수급과 AI 시그널로 시장 살펴보기 — WTS 전용
+# 시장 살펴보기
 tossctl quote flows A005930
 tossctl market signals
 
-# 배당과 전체 계좌 자산 모아보기 — WTS 전용
+# 내 배당 확인하기
 tossctl portfolio dividends
-tossctl account overview
 
 # 보유 종목을 스크립트로 넘기기
 tossctl portfolio positions --output json
+```
+
+위 수급 명령은 WTS를 사용하며, 공식 API의 투자자별 매매동향 조회도 별도로 지원합니다. AI 시그널·배당 등 추가 기능의 사용법은 [명령 레퍼런스](https://tossinvest-cli.vercel.app/docs/reference/commands)에서 확인하세요.
+
+<details>
+<summary>실시간 구독 · API 감시 · 로컬 이력</summary>
+
+```bash
+# 전체 계좌 자산과 보유 종목 브리핑
+tossctl account overview
+tossctl portfolio briefing
 
 # 실시간 체결 구독과 API 변경 감시
 tossctl stream --trade A005930
-tossctl monitor api           # 85개 endpoint schema probe; 통과 0, 실패 1
+tossctl monitor api           # 읽기 전용 점검; 통과 0, 실패 1
 ```
 
-관심종목 폴더·목표가 알림 관리, 조건검색, 거래 내역, 주문 미리보기도 제공합니다. 전체 사용법은 [명령 레퍼런스](https://tossinvest-cli.vercel.app/docs/reference/commands), 개별 옵션은 `tossctl <command> --help`에서 확인하세요.
+`tossctl history sync`로 보유 종목·거래 내역 수집을 미리 확인할 수 있습니다. 저장 후 `history list`, `history search`, `history compare`는 오프라인으로 동작합니다.
 
-보유 종목과 거래내역을 로컬에 저장해 비교하려면 `tossctl history sync`로 수집을 미리 확인하세요. 저장 후 `history list`, `history search`, `history compare`는 오프라인으로 동작합니다. `portfolio briefing`은 보유 종목 뉴스·어닝콜·미체결 주문을 함께 조회합니다. `--fields symbol,quantity --compact`로 필요한 JSON만 받을 수 있습니다. [로컬 이력·브리핑 가이드](https://tossinvest-cli.vercel.app/docs/guide/history)
+`--fields symbol,quantity --compact`로 필요한 JSON 필드만 받으세요. [로컬 이력·브리핑 가이드 →](https://tossinvest-cli.vercel.app/docs/guide/history)
 
-## CLI와 MCP
+</details>
 
-터미널·스크립트에서는 CLI로, Claude Code·Codex·Cursor 같은 AI 에이전트에서는 MCP로 사용하세요. 별도 서버를 설치하지 않고 같은 바이너리에서 `tossctl mcp`를 실행합니다.
+## AI와 함께 사용하기
 
-MCP의 기본 API 표면은 **117개 오퍼레이션**입니다. 세 개의 카탈로그 도구가 필요한 기능과 스키마를 찾아 호출하므로, 모든 기능 설명을 한꺼번에 컨텍스트에 넣지 않습니다.
+<p align="center">
+  <img src="diagrams/readme-overview.png" alt="터미널·스크립트의 CLI와 AI 에이전트의 MCP가 하나의 tossctl로 공식 Open API와 WTS 내부 API에 연결됩니다. 공식 키가 있으면 지원 조회는 기본적으로 공식 API를 우선 사용하고, WTS 전용 기능은 웹 세션을 사용합니다." width="100%" />
+</p>
+
+**설치한 tossctl을 AI 앱에 연결하면 말로 요청할 수 있습니다.** Claude Code·Codex·Cursor에서 MCP 연결을 지원합니다.
+
+Claude Code에 MCP를 등록하려면:
 
 ```bash
-# Claude Code
 claude mcp add tossctl tossctl mcp
 ```
 
-<details>
-<summary>다른 MCP 호스트 설정 · CLI에서 기능 탐색</summary>
+연결한 에이전트에 이렇게 요청하세요.
 
-MCP 호스트가 아래 형식의 설정을 지원하면 추가하세요. 호스트별 등록 방법은 [MCP 가이드](https://tossinvest-cli.vercel.app/docs/guide/mcp)를 참고하세요.
+> 내 자산 변화와 받은 배당을 정리하고, 보유 종목 뉴스도 함께 보여줘.
+
+Codex·Cursor 등 앱별 등록 방법은 [MCP 가이드](https://tossinvest-cli.vercel.app/docs/guide/mcp)를 참고하세요.
+
+<details>
+<summary>다른 AI 앱에 연결하기 — MCP 설정</summary>
+
+사용하는 AI 앱이 아래 형식의 MCP 설정을 지원하면 추가하세요.
 
 ```json
 {
@@ -116,24 +165,6 @@ MCP 호스트가 아래 형식의 설정을 지원하면 추가하세요. 호스
   }
 }
 ```
-
-셸 기반 에이전트도 같은 카탈로그를 탐색할 수 있습니다.
-
-```bash
-tossctl ops list --query dividend
-tossctl ops describe dividends
-```
-
-</details>
-
-자세한 내용은 [AI 에이전트 가이드](https://tossinvest-cli.vercel.app/docs/guide/agents)와 [MCP 가이드](https://tossinvest-cli.vercel.app/docs/guide/mcp)를 참고하세요.
-
-<details>
-<summary>설치부터 첫 조회까지 — 데모</summary>
-
-<p align="center">
-  <img src="docs/assets/demo/install.gif" alt="tossctl 설치와 로그인 후 첫 계좌 조회" width="760" />
-</p>
 
 </details>
 
@@ -146,38 +177,28 @@ tossctl ops describe dividends
 
 </details>
 
-## 안전 모델
+## 주문 전 확인하세요
 
 > [!IMPORTANT]
-> 실거래는 설치 직후 모두 꺼져 있습니다. 설정에서 해당 액션을 허용하더라도 실제 제출 전마다 미리보기와 확인 토큰이 필요합니다.
+> **실거래는 기본적으로 꺼져 있습니다.** 에이전트는 주문을 미리보기합니다. 실제 주문은 사람이 검토·승인하고 실행하세요.
 
 ```bash
 tossctl order preview --symbol AAPL --side buy --qty 1 --price 200
 # 미리보기만 실행합니다. 실제 주문은 사람이 결과와 확인 토큰을 검토한 뒤 진행하세요.
 ```
 
-- **실주문:** CLI 일반 주문은 공식 API 또는 WTS 중 한 경로로 제출하며, 실패해도 다른 경로로 재주문하지 않습니다. MCP·`ops` 주문과 조건주문은 공식 API 전용입니다.
-- **설정 변경:** 관심종목·목표가 알림 등도 미리보기 후 현재 상태에 묶인 확인 토큰으로 실행합니다. 되돌릴 수 없는 작업은 추가 확인이 필요합니다.
-- **모의투자:** 별도 활성화·승인을 사용하며, 모의투자 승인이 실거래 승인으로 이어지지 않습니다.
-
-전체 정책과 설정 예시는 [안전 가이드](https://tossinvest-cli.vercel.app/docs/guide/safety)와 [`docs/configuration.md`](docs/configuration.md)를 참고하세요.
+- **주문 내용 확인:** 종목·수량·가격을 미리보기에서 확인한 뒤 직접 승인하고 실행하세요.
+- **관심종목·알림 변경:** 무엇이 바뀌는지 미리 확인하고 승인하세요.
+- **전송 결과를 모를 때:** 다시 주문하기 전에 주문 상태부터 확인하세요.
 
 <details>
-<summary>실험적 기능 — 미국 옵션 모의투자</summary>
+<summary>미국 옵션 모의투자 — 실험 기능</summary>
 
-아직 안정화 중인 기능으로, 기본적으로 숨겨져 있습니다. `config.json`에 아래 설정을 추가하면 명령과 MCP 오퍼레이션에 나타납니다. 활성화해도 서버 측 이용 자격은 별도로 충족해야 합니다.
-
-```json
-{
-  "experimental": {
-    "paper_trading": true
-  }
-}
-```
-
-실험적 API는 변경될 수 있으며 실거래로 자동 승격되지 않습니다. 상태와 제한은 [지원 범위 문서](https://tossinvest-cli.vercel.app/docs/reference/support-scope)에 표시합니다.
+아직 안정화 중이며 기본적으로 숨겨져 있습니다. 활성화해도 토스증권의 이용 자격을 별도로 충족해야 합니다. 모의투자와 실거래의 잔고·주문은 분리되고, 모의 주문 승인이 실거래 승인으로 이어지지 않습니다. 설정과 제한은 [지원 범위](https://tossinvest-cli.vercel.app/docs/reference/support-scope)에서 확인하세요.
 
 </details>
+
+거래를 활성화하는 방법과 확인 절차는 [안전 가이드](https://tossinvest-cli.vercel.app/docs/guide/safety)를 참고하세요.
 
 ## 문서
 
@@ -186,16 +207,10 @@ tossctl order preview --symbol AAPL --side buy --qty 1 --price 200
 | [빠른 시작](https://tossinvest-cli.vercel.app/docs/getting-started/quickstart) | 설치 후 첫 조회까지 |
 | [명령 레퍼런스](https://tossinvest-cli.vercel.app/docs/reference/commands) | 전체 CLI 명령과 예시 |
 | [지원 범위](https://tossinvest-cli.vercel.app/docs/reference/support-scope) | 공식 API·WTS 기능 비교 |
-| [설정](docs/configuration.md) | config 필드와 로컬 상태 |
-| [운영](docs/operations.md) | 세션 갱신, API 변경 감시, 예약 실행과 알림 |
-| [아키텍처](docs/architecture.md) | 라우팅·모듈·안전 경계 |
-| [변경 내역](CHANGELOG.md) | 버전별 변경 사항과 기여자 크레딧 |
+| [AI 앱 연결](https://tossinvest-cli.vercel.app/docs/guide/mcp) | Claude Code·Codex·Cursor 설정 |
+| [안전 가이드](https://tossinvest-cli.vercel.app/docs/guide/safety) | 실제 주문 전 설정과 확인 절차 |
 
-## 개발과 기여
-
-로컬 빌드는 `make build`, 테스트는 `make test`로 실행합니다.
-
-버그와 제안은 [Issues](https://github.com/JungHoonGhae/tossinvest-cli/issues), 변경 사항은 Pull Request로 보내주세요. 자세한 기준은 [`CONTRIBUTING.md`](CONTRIBUTING.md), 보안 문제는 [`SECURITY.md`](SECURITY.md)를 확인하세요.
+문제나 제안은 [Issues](https://github.com/JungHoonGhae/tossinvest-cli/issues)에 남겨주세요. 보안 문제는 [`SECURITY.md`](SECURITY.md)를 참고하세요.
 
 ## 후원
 

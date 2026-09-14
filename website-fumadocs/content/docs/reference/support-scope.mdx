@@ -10,6 +10,15 @@ description: 공식 Open API 대비 커버리지
 - `공식 API` 칼럼은 공개 계약 기준입니다. 실제 제출 경로는 명령별 정책과 설정을 따릅니다.
 - 공식이 ❌인 행은 WTS 추가 기능 또는 로컬 기능입니다. CSV·preview 자체는 WTS endpoint가 아닙니다.
 
+README의 **30+ 추가 기능**은 아래 표에서 공식 API가 ❌이고 tossctl이 ✅인 기능을
+기준으로 하며, 로컬 CSV 내보내기·주문 미리보기·실험적 모의투자는 제외합니다.
+한 행이 여러 호출을 묶기도 하므로 개별 endpoint 수와는 다릅니다.
+
+2026-09-12에 [공식 Open API 명세](https://openapi.tossinvest.com/openapi-docs/latest/openapi.json)
+**1.2.15**와 대조했습니다. 공식 API도 국내 투자자별
+매매동향, 거래량·거래대금·등락률 랭킹, 일부 시장 지표, 다건 시세를 제공합니다.
+이 영역은 WTS와 범위·필드가 달라 아래에서 부분 지원으로 표시하며 추가 기능 수에 넣지 않습니다.
+
 ## 기능 영역 ≠ 접근 경로
 
 `증권`·`Banking`·`MyData`는 기능 영역이고, 공식 Open API·WTS·mobile은 접근 경로입니다.
@@ -62,24 +71,30 @@ app/device header, request/response cipher를 처리하는 mobile connector가 �
 | 상·하한가 / 매수 유의 | `quote limits`, `quote warnings` | ✅ | ✅ |
 | 매도가능수량 / 수수료 | `quote sellable`, `quote commission` | ✅ | ✅ |
 | 시세 / 캔들 | `quote get`, `quote chart` | 🔸 | ✅ |
-| 멀티 시세 / 실시간 갱신 | `quote batch --live` | ❌ | ✅ |
-| 수급(투자자별 순매수) | `quote flows` | ❌ | ✅ |
-| 시장 지수 / 지수 상세 | `market index [<코드\|이름>]` (상세에 시세원·거래 세션 포함) | ❌ | ✅ |
-| 실시간 인기 순위 | `market ranking` | ❌ | ✅ |
+| 멀티 시세 / 실시간 갱신 | `quote batch --live` | 🔸 (다건 시세 최대 200종목) | ✅ |
+| 수급(투자자별 순매수) | `quote flows` (WTS), `quote supply` (공식) | 🔸 (국내 일별 거래량) | ✅ |
+| 시장 지수 / 지수 상세 | `market index [<코드\|이름>]` (WTS), `market indicator` (공식) | 🔸 (국내 지수·국채 8종) | ✅ |
+| 실시간 인기 순위 | `market ranking` (WTS), `market rankings` (공식) | 🔸 (거래량·거래대금·등락률 랭킹) | ✅ |
 | 투자자별 순매수 상위 | `market investors` | ❌ | ✅ |
 | 업종별 등락·상세 | `market sectors`, `market sector <id>` | ❌ | ✅ |
 | 실적(어닝콜) 일정·상세 | `market earnings [event-id]` (`--major`: 주요 기업) | ❌ | ✅ |
 | 개인화 뉴스 브리핑 | `market briefing` (종목·수익률·AI 사유·뉴스) | ❌ | ✅ |
+| 시장·보유·관심종목 뉴스 | `market news --type <scope>` | ❌ | ✅ |
 | 🆕 핵심 실적·경제지표 | `market key-events` | ❌ | ✅ |
 | 🆕 증권 주식모으기 자금연결 상태 | `accumulate funding-status [--full]` (`banking status`는 deprecated alias; 일반 Banking/MyData 아님, 내부 ID 미출력) | ❌ | ✅ |
 | 🆕 알림 설정·상태 조회 | `notifications list`, `notifications status` (통합 설정·받은함·AI 분석 동의, 변경 없음) | ❌ | ✅ |
 | 목표가 알림 조회·관리 | `quote alert list/add/remove` | ❌ | ✅ |
 | 숨긴 보유종목 조회·관리 | `portfolio hidden list/hide/show` | ❌ | ✅ |
 | 토스 AI 시그널 | `market signals`, `market signal <symbol>` | ❌ | ✅ |
+| 종목 등락 이유·호악재 시그널 | `quote reasoning`, `quote reasons`, `quote signals` | ❌ | ✅ |
 | 조건검색(스크리너) | `market screener` | ❌ | ✅ |
+| 미국 옵션 만기·체인 조회 | `quote options <symbol> [--expiry <date>]` (가격 제외, 읽기 전용) | ❌ | ✅ |
 | 배당 내역 | `portfolio dividends` | ❌ | ✅ |
+| 예탁금 이자 지급 내역 | `account interest --year N` | ❌ | ✅ |
+| 주식대여 예상 수익·수익 순위 | `lending expected`, `lending top` (읽기 전용) | ❌ | ✅ |
 | 누적 실현손익 | `profit` | ❌ | ✅ |
 | 해외 양도소득(세금) | `tax overseas --year N` | ❌ | ✅ |
+| RIA 절세 보고서 | `tax ria` | ❌ | ✅ |
 | 주식모으기 조회 📱 | `accumulate list/status` | ❌ *(웹 UI 없음; 증권 모바일 화면에서 발견 후 WTS 검증)* | ✅ |
 | 커뮤니티 랭킹 | `community rankings` | ❌ | ✅ |
 | 관심종목 조회·관리 | `watchlist ...` | ❌ | ✅ |
