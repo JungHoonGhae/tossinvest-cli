@@ -318,9 +318,11 @@ type TradingHours struct {
 // TradingSession is one named window within a business day (pre-market,
 // regular, after-hours, and — US only — the day market).
 //
-// SinglePriceAuction* are KR-only: the 단일가 auction windows the KRX runs at
-// the edges of a session. They stay empty for US days rather than being faked,
-// so an empty value means "this market has no such auction", not "unknown".
+// KR after_market is the KRX/NXT union (earliest start, latest end), not an
+// NXT-open flag. It is absent only when both exchanges close the after-market.
+// SinglePriceAuction* are KR-only: the regular-market auction start is KRX-based;
+// the after-market auction end is NXT-based and may be absent while KRX opens.
+// Null or unavailable auction times stay empty and are omitted from JSON.
 type TradingSession struct {
 	Name                    string `json:"name"`
 	Start                   string `json:"start,omitempty"`

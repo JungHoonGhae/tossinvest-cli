@@ -37,6 +37,8 @@ type sessionRaw struct {
 }
 
 // sessions flattens whichever shape the server used, in trading order.
+// KR afterMarket already contains the KRX/NXT union. Preserve the server's
+// bounds even when the NXT auction end is null (KRX alone may still be open).
 func (b businessDayRaw) sessions() []domain.TradingSession {
 	type named struct {
 		name string

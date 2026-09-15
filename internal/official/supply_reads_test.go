@@ -76,10 +76,12 @@ func TestSupplyInvestorKeepsNullDistinctFromZero(t *testing.T) {
 	}
 }
 
-func TestSupplyShortSellingNullRates(t *testing.T) {
+func TestSupplyShortSellingPreservesDecimalAndNullRates(t *testing.T) {
 	body := `{"result":{"nextUntil":null,"records":[
 	  {"date":"2026-01-05","shortSellingVolume":"1000","shortSellingAmount":"5000000",
-	   "shortSellingVolumeRate":null,"shortSellingAmountRate":"4.2"}]}}`
+	   "shortSellingVolumeRate":null,"shortSellingAmountRate":null},
+	  {"date":"2026-01-06","shortSellingVolumeRate":"0","shortSellingAmountRate":"0"},
+	  {"date":"2026-01-07","shortSellingVolumeRate":"0.03215","shortSellingAmountRate":"0.0318"}]}}`
 	srv := supplyServer(t, "/api/v1/stocks/005930/short-selling", body)
 	defer srv.Close()
 
@@ -90,16 +92,22 @@ func TestSupplyShortSellingNullRates(t *testing.T) {
 	if got.NextUntil != "" {
 		t.Errorf("null nextUntil = %q, want empty", got.NextUntil)
 	}
+	if len(got.Records) != 3 {
+		t.Fatalf("records = %d, want 3", len(got.Records))
+	}
 	r := got.Records[0]
 	if r.ShortVolume == nil || *r.ShortVolume != 1000 {
 		t.Errorf("ShortVolume = %v", r.ShortVolume)
 	}
 	// 비중이 null 인 날이 실제로 있다 — 0% 로 보이면 안 된다.
-	if r.ShortVolumeRate != nil {
-		t.Errorf("null rate materialised as %v", *r.ShortVolumeRate)
+	if r.ShortVolumeRate != nil || r.ShortAmountRate != nil {
+		t.Errorf("null rates must remain absent: %+v", r)
 	}
-	if r.ShortAmountRate == nil || *r.ShortAmountRate != 4.2 {
-		t.Errorf("ShortAmountRate = %v", r.ShortAmountRate)
+	for i, want := range []struct{ volume, amount float64 }{{0, 0}, {0.03215, 0.0318}} {
+		r := got.Records[i+1]
+		if r.ShortVolumeRate == nil || *r.ShortVolumeRate != want.volume || r.ShortAmountRate == nil || *r.ShortAmountRate != want.amount {
+			t.Errorf("record %d rates = %+v, want volume=%v amount=%v", i+1, r, want.volume, want.amount)
+		}
 	}
 }
 
