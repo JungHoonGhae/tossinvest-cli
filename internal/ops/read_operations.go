@@ -123,10 +123,7 @@ func readOperations() []Operation {
 		{
 			ID: "orders", Method: "GET", Path: "/api/v1/orders",
 			Category: "order",
-			Summary: "List orders with optional filters. Returns one PAGE: check has_next, " +
-				"and pass next_cursor back as cursor to get the rest — the first call is not " +
-				"necessarily the whole history. Only LIMIT, MARKET and limit-on-close orders supported by Open API are visible; " +
-				"unsupported after-hours order types are excluded from both OPEN/CLOSED lists and detail. An empty result does not prove no orders exist.",
+			Summary:  "One page of Open API-supported orders. While has_next, pass next_cursor as cursor. Unsupported types, including pre/post-market closing-price orders, are absent from lists and detail; empty results do not prove no orders exist.",
 			Params: []Param{
 				{Name: "status", Type: "string", Desc: `"OPEN" or "CLOSED"`},
 				{Name: "symbol", Type: "string"},
@@ -161,7 +158,7 @@ func readOperations() []Operation {
 		},
 		{
 			ID: "order", Method: "GET", Path: "/api/v1/orders/{orderId}",
-			Category: "order", Summary: "Fetch a single Open API-supported order by id. Unsupported after-hours order types are excluded, just as in the orders list.",
+			Category: "order", Summary: "One Open API-supported order by id. Unsupported types, including pre/post-market closing-price orders, are absent as in the list.",
 			Params: []Param{{Name: "order_id", Type: "string", Required: true}},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				orderID, err := argString(args, "order_id")
@@ -418,7 +415,7 @@ func readOperations() []Operation {
 		},
 		{
 			ID: "stock_supply", Method: "GET", Path: "/api/v1/stocks/{symbol}/supply",
-			Category: "market", Summary: "KR stock supply series — investor-type trading (with the 7-way institution breakdown, foreign holding, CFD balance), short selling, credit trades, securities lending, or program trades. Daily time series with a cursor. Fields not yet tallied for a date are null, which is distinct from zero.",
+			Category: "market", Summary: "KR daily investor flows (7-way institutions, foreign holdings, CFD), short selling, credit, lending or program trades; cursor pagination. Unavailable fields are omitted, distinct from zero. Short rates are decimal ratios of daily totals including pre/post-market closing-price sessions and after-market.",
 			Params: []Param{
 				{Name: "symbol", Type: "string", Required: true, Desc: "KR ticker, e.g. 005930"},
 				{Name: "type", Type: "string", Desc: `"investor" (default), "short", "credit", "lending", or "program"`},
@@ -453,7 +450,7 @@ func readOperations() []Operation {
 		},
 		{
 			ID: "market_calendar", Method: "GET", Path: "/api/v1/market-calendar/{country}",
-			Category: "market", Summary: "Trading-hours calendar (previous/today/next business day) for KR or US, normalized to one shape across both markets: each day carries a holiday flag and a session list (pre_market, day_market for US, regular_market, after_market) with KR single-price auction windows where they apply. Also available as `tossctl market business-days`.",
+			Category: "market", Summary: "KR/US previous/today/next business-day sessions and holiday flag. KR after_market: KRX/NXT union, earliest start to latest end; absent only if both close. Its single_price_auction_end is NXT-based, omitted if NXT closes; a session alone does not imply NXT is open. KR pre/post-market closing-price sessions excluded; US includes day_market. CLI: market business-days.",
 			Params: []Param{
 				{Name: "country", Type: "string", Required: true, Desc: `"KR" or "US"`},
 				{Name: "date", Type: "string", Desc: "reference date YYYY-MM-DD (default: today)"},

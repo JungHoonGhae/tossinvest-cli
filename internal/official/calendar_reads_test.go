@@ -2,6 +2,7 @@ package official
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -105,6 +106,77 @@ func TestMarketCalendarNormalizesKR(t *testing.T) {
 	}
 	if got.Today.Sessions[0].SinglePriceAuctionStart == "" {
 		t.Error("KR 단일가 시각이 유실됐다")
+	}
+}
+
+// Synthetic sessions exercise the OpenAPI 1.2.17 union/null contract, not
+// exchange schedules. Bounds must come from the response, not local constants.
+func TestMarketCalendarKRAfterMarketUnion(t *testing.T) {
+	for _, tc := range []struct {
+		name, integrated, start, end, auctionEnd string
+		wantSessions                             int
+		holiday                                  bool
+	}{
+		{
+			name:       "KRX open, NXT closed",
+			integrated: `{"afterMarket":{"startTime":"2026-09-15T16:00:00+09:00","endTime":"2026-09-15T18:00:00+09:00","singlePriceAuctionEndTime":null}}`,
+			start:      "2026-09-15T16:00:00+09:00", end: "2026-09-15T18:00:00+09:00", wantSessions: 1,
+		},
+		{
+			name:       "NXT open, KRX closed",
+			integrated: `{"afterMarket":{"startTime":"2026-09-15T15:30:00+09:00","endTime":"2026-09-15T20:00:00+09:00","singlePriceAuctionEndTime":"2026-09-15T15:40:00+09:00"}}`,
+			start:      "2026-09-15T15:30:00+09:00", end: "2026-09-15T20:00:00+09:00", auctionEnd: "2026-09-15T15:40:00+09:00", wantSessions: 1,
+		},
+		{
+			name:       "both open, server union preserved",
+			integrated: `{"afterMarket":{"startTime":"2026-09-15T15:45:00+09:00","endTime":"2026-09-15T20:15:00+09:00","singlePriceAuctionEndTime":"2026-09-15T15:55:00+09:00"}}`,
+			start:      "2026-09-15T15:45:00+09:00", end: "2026-09-15T20:15:00+09:00", auctionEnd: "2026-09-15T15:55:00+09:00", wantSessions: 1,
+		},
+		{
+			name:         "both after-markets closed, regular session open",
+			integrated:   `{"regularMarket":{"startTime":"2026-09-15T09:00:00+09:00","endTime":"2026-09-15T15:30:00+09:00"},"afterMarket":null}`,
+			wantSessions: 1,
+		},
+		{
+			name: "both exchanges closed all day", integrated: `null`, holiday: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := calendarServer(t, "/api/v1/market-calendar/KR",
+				`{"result":{"today":{"date":"2026-09-15","integrated":`+tc.integrated+`}}}`)
+			defer srv.Close()
+			got, err := newCalendarClient(t, srv).MarketCalendar(context.Background(), "KR", "2026-09-15")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.Today.Holiday != tc.holiday || len(got.Today.Sessions) != tc.wantSessions {
+				t.Fatalf("today = %+v, want holiday=%v, sessions=%d", got.Today, tc.holiday, tc.wantSessions)
+			}
+			found := false
+			for _, session := range got.Today.Sessions {
+				if session.Name != "after_market" {
+					continue
+				}
+				found = true
+				if session.Start != tc.start || session.End != tc.end || session.SinglePriceAuctionEnd != tc.auctionEnd {
+					t.Errorf("after_market = %+v, want start=%s end=%s auctionEnd=%s", session, tc.start, tc.end, tc.auctionEnd)
+				}
+				encoded, err := json.Marshal(session)
+				if err != nil {
+					t.Fatal(err)
+				}
+				var fields map[string]any
+				if err := json.Unmarshal(encoded, &fields); err != nil {
+					t.Fatal(err)
+				}
+				if value, exists := fields["single_price_auction_end"]; exists != (tc.auctionEnd != "") || (exists && value != tc.auctionEnd) {
+					t.Errorf("auction end JSON = %s", encoded)
+				}
+			}
+			if found != (tc.start != "") {
+				t.Errorf("after_market present=%v, want %v", found, tc.start != "")
+			}
+		})
 	}
 }
 

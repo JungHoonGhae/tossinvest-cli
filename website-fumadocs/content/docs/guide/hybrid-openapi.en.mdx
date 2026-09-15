@@ -239,8 +239,20 @@ tossctl account summary --backend auto       # default: auto-routing
 
 - `quote chart` and ops/MCP `candles` return **oldest first**, consistently across table, JSON and CSV. Official newest-first responses are normalized to the WTS chart convention; the last candle is the latest.
 - `market indicator-candles` preserves the official **newest-first** page. `next_before` addresses an older page.
-- Official ops/MCP `orders` and `order` only expose supported order types, including limit, market and limit-on-close. Unsupported after-hours auction and pre/post-market closing-price orders are excluded from both lists and detail. Reading every page or receiving an empty list **does not establish the full order history**. WTS queries have a different scope; these omissions are not HTTP errors and do not trigger automatic fallback.
+- Official ops/MCP `orders` and `order` only expose supported order types, including limit, market and limit-on-close. Unsupported types such as pre/post-market closing-price orders are excluded from both lists and detail. Reading every page or receiving an empty list **does not establish the full order history**. WTS queries have a different scope; these omissions are not HTTP errors and do not trigger automatic fallback.
 - `stream` infers numeric-leading six-character alphanumeric codes (`005930`, `0101N0`) as KR. This is client classification, not a guarantee that the server supports subscriptions for each symbol.
+
+For `market business-days KR`, **`after_market` spans the KRX/NXT after-market union**.
+The server's earliest start and latest end are preserved. The session is omitted only when
+both exchanges close their after-market; its presence does not establish NXT availability.
+`single_price_auction_end` is NXT-based and omitted from JSON when NXT closes.
+`holiday: true` means the day has no sessions. Pre/post-market closing-price sessions are excluded.
+
+For official ops/MCP `stock_supply` with `type=short`, rates are server-provided decimal
+ratios (for example, `0.0318` = 3.18%). Their denominators are daily cumulative volume
+and amount, including pre/post-market closing-price sessions and the after-market.
+`null` means the baseline data is unavailable; `0` is returned when the baseline is zero.
+In tossctl JSON, a rate field is omitted for an upstream `null`, while numeric `0` is retained.
 
 ## Fallback and source display
 

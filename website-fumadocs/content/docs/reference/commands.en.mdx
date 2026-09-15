@@ -86,6 +86,10 @@ All commands except sync work offline. See the [collection contract](/en/docs/gu
 | `tossctl market hours` | Trading hours |
 | `tossctl market screener [<preset-id>] [--filter '<json>'] [--nation kr\|us]` | Screener |
 
+`market business-days KR` returns combined KRX/NXT session times. An after-market
+session may exist while NXT is closed and its auction end is absent. See
+[session and response scope](/en/docs/guide/hybrid-openapi#response-scope-and-ordering).
+
 ## Community
 
 | Command | Description |
