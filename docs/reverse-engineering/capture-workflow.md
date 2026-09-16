@@ -548,6 +548,9 @@ host·인증·interceptor까지 추적된 경우에만 `source=mobile` 후보로
 2. APK/XAPK의 SHA-256과 서명 인증서 SHA-256을 기록하고 알려진 Toss 배포본과 대조한다.
    `apksigtool verify`에서 v2/v3가 모두 검증돼야 한다. 검증 실패 산출물은 분석하지 않는다.
 3. JADX에서 Retrofit annotation을 찾아 method/path/header/query/body를 기록한다.
+   알려진 클래스·코드 참조를 빠르게 읽을 때는 [ASC 보조 도구](../../tools/asc/README.md)를 사용한다.
+   ASC 문자열 검색은 annotation 선언을 놓칠 수 있고 선택 디컴파일은 인자를 생략할 수 있으므로
+   API 목록·요청 계약은 JADX·원본 DEX와 대조한다. [실측 결과](change-analysis/2026-09-16-asc.md).
 4. request serializer에서 **wire field 이름과 기본값**, response serializer에서 필수 필드와
    자료형을 확인한다. UI 문자열이나 클래스명만으로 필드 의미를 만들지 않는다.
 5. repository/use-case 호출부에서 wrapper 해제 순서와 실제 선택하는 section/item을 확인한다.
