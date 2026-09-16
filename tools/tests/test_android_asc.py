@@ -91,11 +91,45 @@ class TestASCVerification(unittest.TestCase):
             self.assertEqual(result, 1)
             self.assertEqual(json.loads((out / "report.json").read_text())["status"], "failed")
 
-    def test_refuses_analysis_output_in_repository(self):
+    def test_refuses_analysis_output_in_source_directories(self):
         with contextlib.redirect_stderr(io.StringIO()), patch.object(V, "run_command") as run:
             with self.assertRaises(SystemExit):
                 V.main(["unused.apk", "--output", str(ROOT / "asc-output")])
             run.assert_not_called()
+
+    def test_project_artifact_output_is_allowed_but_never_overwritten(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            apk, profile = self.make_profile(directory)
+            root = (directory / "repo").resolve()
+            out = root / ".artifacts/android/toss/1/asc/verification"
+            args = [str(apk), "--profile", str(profile), "--output", str(out), "--runs", "1"]
+            with patch.object(V, "ROOT", root), patch.object(V, "run_command", return_value=(
+                {"exit_code": 0, "seconds": 0.1, "stdout_bytes": 11}, "/known/path method(Body)"
+            )) as run, contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(V.main(args), 0)
+                original = (out / "report.json").read_bytes()
+                run.reset_mock()
+                with self.assertRaises(FileExistsError):
+                    V.main(args)
+                run.assert_not_called()
+                self.assertEqual((out / "report.json").read_bytes(), original)
+
+    def test_artifact_path_cannot_escape_into_tracked_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = (Path(tmp) / "repo").resolve()
+            source = root / "docs"
+            source.mkdir(parents=True)
+            artifact = root / ".artifacts/android/toss"
+            artifact.mkdir(parents=True)
+            (artifact / "linked-source").symlink_to(source, target_is_directory=True)
+            for out in (artifact / "../../../docs/out", artifact / "linked-source/out"):
+                with self.subTest(out=out), patch.object(V, "ROOT", root), \
+                        patch.object(V, "run_command") as run, contextlib.redirect_stderr(io.StringIO()):
+                    with self.assertRaises(SystemExit):
+                        V.main(["unused.apk", "--output", str(out)])
+                    run.assert_not_called()
+            self.assertFalse((source / "out").exists())
 
     def test_timeout_is_recorded(self):
         with tempfile.TemporaryDirectory() as tmp:

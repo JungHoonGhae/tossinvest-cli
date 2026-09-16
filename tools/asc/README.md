@@ -25,14 +25,30 @@ APK는 [출처·서명 검증 절차](../../docs/reverse-engineering/capture-wor
 
 ```bash
 # 기본값과 Retrofit annotation이 들어 있는 API 클래스
-tools/asc/run.sh getclass /path/to/toss.apk o.setRouteDatabaseokhttp
+tools/asc/run.sh getclass .artifacts/android/toss/5.275.0/viva.republica.toss.apk o.setRouteDatabaseokhttp
 # 요청 serializer: $$를 셸에서 확장하지 않도록 작은따옴표 사용
-tools/asc/run.sh getclass /path/to/toss.apk 'im.toss.tosssecurities.core.account.data.model.AllAccountsRequestBody$$serializer'
+tools/asc/run.sh getclass .artifacts/android/toss/5.275.0/viva.republica.toss.apk 'im.toss.tosssecurities.core.account.data.model.AllAccountsRequestBody$$serializer'
 # 실제 코드의 메서드 참조
-tools/asc/run.sh findrefs /path/to/toss.apk method IAuthTabCallback --class o.setRouteDatabaseokhttp
+tools/asc/run.sh findrefs .artifacts/android/toss/5.275.0/viva.republica.toss.apk method IAuthTabCallback --class o.setRouteDatabaseokhttp
 ```
 
-원본·추출 파일은 저장소 밖에 둡니다. `-o /path/to/output.java`로 저장할 수 있습니다.
+APK·JADX 추출 소스·ASC 결과는 프로젝트의 `.artifacts/android/toss/<version>/`에 둡니다.
+이 경로는 Git에서 제외됩니다. Downloads나 임시 디렉터리를 재사용 경로로 삼지 않습니다.
+실행 코드·잠금 파일·검증 profile은 `tools/asc/`, 검증된 조사 요약은
+`docs/reverse-engineering/change-analysis/`에서 소스로 관리합니다.
+
+```text
+.artifacts/android/toss/5.275.0/
+├── viva.republica.toss.apk
+├── viva.republica.toss@5.275.0.xapk
+├── dex/
+├── jadx/sources/
+└── asc/
+    ├── adoption-20260916/       # 최초 도입 검증 원본
+    └── opportunities-20260916/  # 기능 후보 조사 원본
+```
+
+`-o .artifacts/android/toss/<version>/asc/<name>.java`로 선택 디컴파일 결과를 저장할 수 있습니다.
 `findrefs ... string /api/...`는 **Retrofit annotation에만 있는 선언을 놓칠 수 있습니다**.
 결과가 없거나 일부만 나와도 endpoint가 없다는 뜻은 아닙니다. `getclass`가 endpoint
 annotation을 복원해도 메서드 인자와 parameter annotation은 빠질 수 있습니다.
@@ -43,15 +59,22 @@ annotation을 복원해도 메서드 인자와 parameter annotation은 빠질 �
 호출하며 APK를 실행하거나 API에 접속하지 않습니다.
 
 ```bash
-python3 tools/asc/verify.py /path/to/toss-5.275.0.apk \
-  --output /tmp/asc-verification-20260916 --runs 3
+python3 tools/asc/verify.py .artifacts/android/toss/5.275.0/viva.republica.toss.apk \
+  --output .artifacts/android/toss/5.275.0/asc/verification-20260916 --runs 3
 # 선택: JADX 설치 시 같은 API 클래스를 새 프로세스로 1회 읽는 시간·출력 비교
-python3 tools/asc/verify.py /path/to/toss-5.275.0.apk \
-  --output /tmp/asc-verification-with-jadx --runs 3 --jadx
+python3 tools/asc/verify.py .artifacts/android/toss/5.275.0/viva.republica.toss.apk \
+  --output .artifacts/android/toss/5.275.0/asc/verification-with-jadx-20260916 --runs 3 --jadx
+# 실적 발표·관심종목 후보의 정적 근거 재확인 (라이브 지원 판정 아님)
+python3 tools/asc/verify.py .artifacts/android/toss/5.275.0/viva.republica.toss.apk \
+  --profile tools/asc/toss-5.275.0-opportunities.json \
+  --output .artifacts/android/toss/5.275.0/asc/opportunities-verify-20260916 --runs 1
 ```
 
-출력 경로는 **새 디렉터리이며 저장소 밖**이어야 합니다. 원본 stdout/stderr와 `report.json`이
-남습니다. 빈 case/필수 검사, 중복·경로 형태의 case id, 잘못된 정규식은 실행 전에 거부합니다.
+출력 경로는 **새 디렉터리**여야 합니다. 다시 실행할 때는 날짜·회차를 바꿉니다. 프로젝트 안에서는
+`.artifacts/android/toss/` 아래만 허용하며, 외부 작업 공간으로의 출력도 지원합니다.
+경로 이동·심볼릭 링크로 일반 소스 디렉터리를 가리키는 출력은 거부합니다.
+원본 stdout/stderr와 `report.json`이 남습니다. 빈 case/필수 검사, 중복·경로 형태의 case id,
+잘못된 정규식은 실행 전에 거부합니다.
 해시가 profile과 다르면 실행 전에 중단합니다. `--timeout`(기본 180초)은 각
 호출에 적용하며 시간 초과 시 자식 프로세스까지 종료합니다.
 
