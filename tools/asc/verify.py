@@ -92,7 +92,8 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("apk", type=Path)
     parser.add_argument("--profile", type=Path, default=Path(__file__).with_name("toss-5.275.0.json"))
-    parser.add_argument("--output", type=Path, required=True, help="new output directory outside the repository")
+    parser.add_argument("--output", type=Path, required=True,
+                        help="new output directory under .artifacts/android/toss/ (or outside the repository)")
     parser.add_argument("--runs", type=int, default=3)
     parser.add_argument("--timeout", type=int, default=180)
     parser.add_argument("--jadx", action="store_true", help="also time one fresh JADX single-class invocation")
@@ -100,8 +101,9 @@ def main(argv=None):
     if not 1 <= args.runs <= 10 or args.timeout <= 0:
         parser.error("runs must be 1..10 and timeout must be positive")
     output_dir = args.output.resolve()
-    if output_dir.is_relative_to(ROOT):
-        parser.error("keep APK analysis output outside the repository")
+    artifact_root = ROOT / ".artifacts/android/toss"
+    if output_dir.is_relative_to(ROOT) and not output_dir.is_relative_to(artifact_root):
+        parser.error("keep in-repository APK analysis output under .artifacts/android/toss/")
     try:
         profile = json.loads(args.profile.read_text())
         validate_profile(profile)

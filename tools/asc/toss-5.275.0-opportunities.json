@@ -1,0 +1,254 @@
+{
+  "package": "viva.republica.toss",
+  "version": "5.275.0",
+  "apk_sha256": "06715f2d15dd530cb426474e87a4b39aaaf91d1013ef8db171f882d2bf29e2ca",
+  "scope": "Static opportunity evidence only. Not live API validation or implementation approval. Cross-check query/path/body annotations and Korean labels with JADX.",
+  "cases": [
+    {
+      "id": "earnings-service",
+      "args": [
+        "getclass",
+        "{apk}",
+        "o.setSettings"
+      ],
+      "required": [
+        "/api/v2/earning-call/home",
+        "/api/v2/earning-call/events/past",
+        "/api/v2/earning-call/events/current-or-future"
+      ],
+      "coverage": {
+        "query_parameters": "@oby1\\(onNavigationEvent\\s*=\\s*\"maxSize\""
+      }
+    },
+    {
+      "id": "earnings-detail-service",
+      "args": [
+        "getclass",
+        "{apk}",
+        "o.RealConnectionCompanion"
+      ],
+      "required": [
+        "/api/v1/company-events/{eventId}/transcripts/paragraph-inferences",
+        "/api/v2/company-events/{eventId}/report",
+        "/api/v1/company-events/{eventId}/preview/content"
+      ],
+      "coverage": {
+        "path_parameter": "@aeuycx\\(onWarmupCompleted\\s*=\\s*\"eventId\""
+      }
+    },
+    {
+      "id": "watchlist-service",
+      "args": [
+        "getclass",
+        "{apk}",
+        "o.concat"
+      ],
+      "required": [
+        "v1/new-watchlists/items/move-groups",
+        "NewMoveWatchListItemGroupRequest"
+      ],
+      "coverage": {
+        "body_parameter": "@registerContentObserver"
+      }
+    },
+    {
+      "id": "watchlist-recommend-service",
+      "args": [
+        "getclass",
+        "{apk}",
+        "o.NioFileSystemWrappingFileSystemExternalSyntheticApiModelOutline4"
+      ],
+      "required": [
+        "v1/new-watchlists/recommend/news",
+        "v1/new-watchlists/recommend/tics"
+      ],
+      "coverage": {
+        "folder_parameter": "@oby1\\(onNavigationEvent\\s*=\\s*(?:\"watchlistId\"|TossSecRoute\\.Main\\.PARAM_WATCHLIST_ID)"
+      }
+    },
+    {
+      "id": "watchlist-move-serializer",
+      "args": [
+        "getclass",
+        "{apk}",
+        "im.toss.tosssecurities.core.watchlistv2.data.model.request.NewMoveWatchListItemGroupRequest$$serializer"
+      ],
+      "required": [
+        "\"items\"",
+        "\"fromWatchlistIds\"",
+        "\"toWatchlistIds\""
+      ]
+    },
+    {
+      "id": "earnings-home-serializer",
+      "args": [
+        "getclass",
+        "{apk}",
+        "im.toss.tosssecurities.features.earning_call.home.data.model.EarningCallHomeV2Response$$serializer"
+      ],
+      "required": [
+        "\"currentOrFuture\"",
+        "\"past\"",
+        "\"rankings\""
+      ]
+    },
+    {
+      "id": "earnings-summary-serializer",
+      "args": [
+        "getclass",
+        "{apk}",
+        "im.toss.tosssecurities.features.earning_call.home.data.model.EarningCallEventSummaryResponse$$serializer"
+      ],
+      "required": [
+        "\"eventId\"",
+        "\"userBaseContentText\"",
+        "\"watchPointKeywords\""
+      ]
+    },
+    {
+      "id": "earnings-inference-serializer",
+      "args": [
+        "getclass",
+        "{apk}",
+        "im.toss.tosssecurities.features.earning_call.detail.data.model.response.ParagraphInferenceResponse$$serializer"
+      ],
+      "required": [
+        "\"elapsedStartSeconds\"",
+        "\"elapsedEndSeconds\"",
+        "\"originalText\"",
+        "\"translated\"",
+        "\"summarized\""
+      ]
+    },
+    {
+      "id": "earnings-preview-serializer",
+      "args": [
+        "getclass",
+        "{apk}",
+        "im.toss.tosssecurities.features.earning_call.detail.data.model.response.PreviewContentResponse$$serializer"
+      ],
+      "required": [
+        "\"latestEvents\"",
+        "\"latestNews\"",
+        "\"researchCenterArticles\"",
+        "\"watchPoints\""
+      ]
+    },
+    {
+      "id": "earnings-reports-serializer",
+      "args": [
+        "getclass",
+        "{apk}",
+        "im.toss.tosssecurities.features.earning_call.detail.data.model.response.ReportsResponse$$serializer"
+      ],
+      "required": [
+        "\"eventId\"",
+        "\"analysis\"",
+        "\"watchPoint\""
+      ]
+    },
+    {
+      "id": "earnings-filter-map",
+      "args": [
+        "getclass",
+        "{apk}",
+        "o.Http2ConnectionsendDegradedPingLaterinlinedexecutedefault1"
+      ],
+      "required": [
+        "\"USER_BASED\""
+      ]
+    },
+    {
+      "id": "earnings-sort",
+      "args": [
+        "getclass",
+        "{apk}",
+        "o.ackSettings"
+      ],
+      "required": [
+        "\"POPULAR\"",
+        "\"TIME\""
+      ]
+    },
+    {
+      "id": "earnings-tabs",
+      "args": [
+        "getclass",
+        "{apk}",
+        "o.getReaderokhttp"
+      ],
+      "required": [
+        "UserBased",
+        "All"
+      ],
+      "coverage": {
+        "korean_label": "내 투자·관심|\\\\ub0b4 \\\\ud22c\\\\uc790\\\\u00b7\\\\uad00\\\\uc2ec"
+      }
+    },
+    {
+      "id": "earnings-analysis-serializer",
+      "args": [
+        "getclass",
+        "{apk}",
+        "im.toss.tosssecurities.features.earning_call.detail.data.model.response.ReportsResponse$AnalysisResponse$$serializer"
+      ],
+      "required": [
+        "\"reportId\"",
+        "\"overall\"",
+        "\"pros\"",
+        "\"cons\""
+      ]
+    },
+    {
+      "id": "earnings-watchpoints-serializer",
+      "args": [
+        "getclass",
+        "{apk}",
+        "im.toss.tosssecurities.features.earning_call.detail.data.model.response.ReportsResponse$WatchPointResponse$$serializer"
+      ],
+      "required": [
+        "\"createdAt\"",
+        "\"updatedAt\"",
+        "\"points\"",
+        "\"sources\""
+      ]
+    },
+    {
+      "id": "watchlist-item-serializer",
+      "args": [
+        "getclass",
+        "{apk}",
+        "im.toss.tosssecurities.core.watchlistv2.data.model.request.NewWatchListItemCodeRequest$$serializer"
+      ],
+      "required": [
+        "\"code\"",
+        "\"itemType\""
+      ]
+    },
+    {
+      "id": "watchlist-news-model",
+      "args": [
+        "getclass",
+        "{apk}",
+        "im.toss.tosssecurities.features.main.watchlistv2.data.model.recommendednews.RecommendedNewsSection"
+      ],
+      "required": [
+        "newsList",
+        "pageSize",
+        "title"
+      ]
+    },
+    {
+      "id": "watchlist-related-product-model",
+      "args": [
+        "getclass",
+        "{apk}",
+        "im.toss.tosssecurities.features.main.watchlistv2.data.model.recomendedproduct.RecommendedProductSection"
+      ],
+      "required": [
+        "products",
+        "title"
+      ]
+    }
+  ]
+}
