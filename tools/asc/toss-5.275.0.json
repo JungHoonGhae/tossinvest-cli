@@ -1,0 +1,43 @@
+{
+  "package": "viva.republica.toss",
+  "version": "5.275.0",
+  "apk_sha256": "06715f2d15dd530cb426474e87a4b39aaaf91d1013ef8db171f882d2bf29e2ca",
+  "provenance": "docs/reverse-engineering/change-analysis/2026-09-02-android-static.md",
+  "cases": [
+    {
+      "id": "service",
+      "args": ["getclass", "{apk}", "o.setRouteDatabaseokhttp"],
+      "required": ["/api/v1/dashboard/all-accounts", "SUMMARY_WITH_MINOR", "AllAccountsRequestBody"],
+      "coverage": {
+        "method_parameters": "Object IAuthTabCallback\\([^)]*AllAccountsRequestBody",
+        "parameter_annotation": "@registerContentObserver"
+      }
+    },
+    {
+      "id": "request-serializer",
+      "args": ["getclass", "{apk}", "im.toss.tosssecurities.core.account.data.model.AllAccountsRequestBody$$serializer"],
+      "required": ["\"sections\"", "getDescriptor", "serialize"]
+    },
+    {
+      "id": "client-module",
+      "args": ["getclass", "{apk}", "im.toss.di.TossApiServiceModule"],
+      "required": ["class TossApiServiceModule", "im.toss.di.TossApiServiceModule"]
+    },
+    {
+      "id": "path-references",
+      "args": ["findrefs", "{apk}", "string", "/api/v1/dashboard/all-accounts"],
+      "required": ["Lo/TaskQueueexecute1;", "/api/v1/dashboard/all-accounts"],
+      "coverage": {"retrofit_declaration": "Lo/setRouteDatabaseokhttp;"}
+    },
+    {
+      "id": "method-references",
+      "args": ["findrefs", "{apk}", "method", "IAuthTabCallback", "--class", "o.setRouteDatabaseokhttp"],
+      "required": ["Lo/setRouteDatabaseokhttp;->onExtraCallback", "Lo/setRouteDatabaseokhttp;->IAuthTabCallback"]
+    },
+    {
+      "id": "manifest",
+      "args": ["getmanifest", "{apk}"],
+      "required": ["package=\"viva.republica.toss\"", "5.275.0"]
+    }
+  ]
+}

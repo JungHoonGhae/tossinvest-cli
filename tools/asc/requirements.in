@@ -1,0 +1,3 @@
+# Pin the audited upstream revision; update only after rerunning the APK checks.
+droidasc @ git+https://github.com/MG1937/ASC.git@ff1df854bb9db63066364bbb0d16484fcc72fb75
+androguard==4.1.3
