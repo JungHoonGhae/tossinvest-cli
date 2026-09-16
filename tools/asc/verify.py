@@ -20,6 +20,41 @@ ROOT = Path(__file__).resolve().parents[2]
 ASC = Path(__file__).with_name("run.sh")
 
 
+def validate_profile(profile):
+    if not isinstance(profile, dict):
+        raise ValueError("profile must be an object")
+    for key in ("package", "version", "apk_sha256"):
+        if not isinstance(profile.get(key), str) or not profile[key].strip():
+            raise ValueError(f"profile requires a nonempty {key}")
+    if not re.fullmatch(r"[a-f0-9]{64}", profile["apk_sha256"]):
+        raise ValueError("apk_sha256 must be a lowercase SHA-256 digest")
+    cases = profile.get("cases")
+    if not isinstance(cases, list) or not cases:
+        raise ValueError("profile must contain at least one case")
+    ids = set()
+    for case in cases:
+        if not isinstance(case, dict):
+            raise ValueError("each case must be an object")
+        name = case.get("id")
+        if not isinstance(name, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]*", name) or name in ids:
+            raise ValueError("case ids must be unique lowercase names, digits and hyphens")
+        ids.add(name)
+        args = case.get("args")
+        if (not isinstance(args, list) or not args or not all(isinstance(arg, str) for arg in args)
+                or args[0] not in {"getclass", "getmanifest", "findrefs"} or args.count("{apk}") != 1):
+            raise ValueError(f"{name}: args must select a read command and contain one {{apk}}")
+        required = case.get("required")
+        if not isinstance(required, list) or not required or not all(isinstance(value, str) and value.strip() for value in required):
+            raise ValueError(f"{name}: required must contain nonempty expected strings")
+        coverage = case.get("coverage", {})
+        if not isinstance(coverage, dict):
+            raise ValueError(f"{name}: coverage must be an object")
+        for key, pattern in coverage.items():
+            if not key or not isinstance(pattern, str) or not pattern.strip():
+                raise ValueError(f"{name}: coverage requires named, nonempty patterns")
+            re.compile(pattern)
+
+
 def inspect_output(case, output):
     return {
         "missing_required": [value for value in case["required"] if value not in output],
@@ -67,9 +102,13 @@ def main(argv=None):
     output_dir = args.output.resolve()
     if output_dir.is_relative_to(ROOT):
         parser.error("keep APK analysis output outside the repository")
-    profile = json.loads(args.profile.read_text())
+    try:
+        profile = json.loads(args.profile.read_text())
+        validate_profile(profile)
+    except (ValueError, re.error) as error:
+        parser.error(str(error))
     service = next((case for case in profile["cases"] if case["id"] == "service"), None)
-    if args.jadx and (not shutil.which("jadx") or not service or service["args"][0] != "getclass"):
+    if args.jadx and (not shutil.which("jadx") or not service or service["args"][0] != "getclass" or len(service["args"]) < 3):
         parser.error("--jadx requires JADX and a service getclass case in the profile")
     apk = args.apk.resolve()
     with apk.open("rb") as source:

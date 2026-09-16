@@ -51,7 +51,8 @@ python3 tools/asc/verify.py /path/to/toss-5.275.0.apk \
 ```
 
 출력 경로는 **새 디렉터리이며 저장소 밖**이어야 합니다. 원본 stdout/stderr와 `report.json`이
-남습니다. 해시가 profile과 다르면 실행 전에 중단합니다. `--timeout`(기본 180초)은 각
+남습니다. 빈 case/필수 검사, 중복·경로 형태의 case id, 잘못된 정규식은 실행 전에 거부합니다.
+해시가 profile과 다르면 실행 전에 중단합니다. `--timeout`(기본 180초)은 각
 호출에 적용하며 시간 초과 시 자식 프로세스까지 종료합니다.
 
 - `passed`: 필수 검색 결과와 선언한 추가 coverage 검사 모두 확인.

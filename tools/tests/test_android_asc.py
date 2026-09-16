@@ -42,6 +42,29 @@ class TestASCVerification(unittest.TestCase):
                     V.main([str(apk), "--profile", str(profile), "--output", str(Path(tmp) / "out")])
                 run.assert_not_called()
 
+    def test_empty_or_unsafe_profile_is_rejected_without_execution(self):
+        for variant in ("no-cases", "no-required", "empty-marker", "path-id", "setup"):
+            with self.subTest(variant=variant), tempfile.TemporaryDirectory() as tmp:
+                directory = Path(tmp)
+                apk, profile = self.make_profile(directory)
+                data = json.loads(profile.read_text())
+                if variant == "no-cases":
+                    data["cases"] = []
+                elif variant == "no-required":
+                    data["cases"][0]["required"] = []
+                elif variant == "empty-marker":
+                    data["cases"][0]["required"] = [""]
+                elif variant == "path-id":
+                    data["cases"][0]["id"] = "../escape"
+                else:
+                    data["cases"][0]["args"] = ["setup", "{apk}"]
+                profile.write_text(json.dumps(data))
+                with patch.object(V, "run_command") as run, contextlib.redirect_stderr(io.StringIO()):
+                    with self.assertRaises(SystemExit):
+                        V.main([str(apk), "--profile", str(profile), "--output", str(directory / "out")])
+                    run.assert_not_called()
+                self.assertFalse((directory / "out").exists())
+
     def test_zero_exit_does_not_hide_missing_contract_details(self):
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp)
