@@ -73,6 +73,18 @@
         "함께 정리해 줘.”"
       ],
       "footer": "추가 기능은 토스증권 웹 세션으로 연결합니다."
+    },
+    "sponsor": {
+      "title": "이 자리에 브랜드를 소개하세요.",
+      "description": "스폰서 모집 안내입니다. 비어 있는 브랜드 자리를 소개하며 support@remodule.dev로 스폰서십을 문의할 수 있습니다.",
+      "note": "스폰서 모집을 위한 예시 자리이며 실제 후원 브랜드를 표시한 것이 아닙니다. README의 카드나 이메일 링크로 문의할 수 있습니다.",
+      "eyebrow": "스폰서 모집",
+      "brand_top": "YOUR",
+      "brand_bottom": "BRAND",
+      "slot": "스폰서 자리",
+      "subtitle": "tossctl의 성장을 함께할 스폰서를 찾습니다.",
+      "cta": "스폰서십 문의하기",
+      "email": "support@remodule.dev"
     }
   },
   "en": {
@@ -149,6 +161,18 @@
         "news together.”"
       ],
       "footer": "Extra capabilities connect through your Toss Securities web session."
+    },
+    "sponsor": {
+      "title": "Your brand, here.",
+      "description": "An open sponsorship slot for your brand. Contact support@remodule.dev to discuss sponsoring tossctl.",
+      "note": "This is an available sponsorship slot, not an existing sponsor. Use the card or email link in the README to get in touch.",
+      "eyebrow": "OPEN FOR SPONSORSHIP",
+      "brand_top": "YOUR",
+      "brand_bottom": "BRAND",
+      "slot": "Sponsor spot",
+      "subtitle": "Sponsor tossctl and help it grow.",
+      "cta": "Discuss sponsorship",
+      "email": "support@remodule.dev"
     }
   }
 }

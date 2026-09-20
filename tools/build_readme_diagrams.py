@@ -107,12 +107,31 @@ def build_features(locale, copy):
     body += [f'<path d="M40 632H920" stroke="{RULE}"/>', text(40, 660, copy['footer'], 16, 400, MUTED)]
     save(stem, locale, 688, copy['title'], copy['description'], copy['note'], '\n'.join(body))
 
+def build_sponsor(locale, copy):
+    """Reserve one clearly labelled brand slot using the existing README tokens."""
+    body = [
+        f'<rect x="40" y="32" width="208" height="184" rx="8" fill="#ffffff" stroke="{MUTED}" stroke-opacity="0.4" stroke-dasharray="6 6"/>',
+        f'<path d="M136 64H152M144 56V72" fill="none" stroke="{ACCENT}" stroke-width="2" stroke-linecap="round"/>',
+        text(144, 112, copy['brand_top'], 28, 600, INK, 'middle'),
+        text(144, 144, copy['brand_bottom'], 28, 600, INK, 'middle'),
+        text(144, 192, copy['slot'], 16, 400, MUTED, 'middle'),
+        f'<circle cx="292" cy="48" r="4" fill="{ACCENT}"/>',
+        text(308, 54, copy['eyebrow'], 16, 600, MUTED),
+        text(288, 104, copy['title'], 32, 700, cls='figure-title'),
+        text(288, 140, copy['subtitle'], 18, 400, MUTED),
+        rect(288, 168, 224, 48, INK),
+        text(400, 198, copy['cta'], 18, 600, PAPER, 'middle'),
+        text(540, 198, copy['email'], 16, 400, MUTED, cls='mono'),
+    ]
+    save('readme-sponsor', locale, 248, copy['title'], copy['description'], copy['note'], '\n'.join(body))
+
 def main():
     content = json.loads((ROOT / 'diagrams' / 'readme-content.json').read_text(encoding='utf-8'))
     for locale in ('ko', 'en'):
         copy = content[locale]
         ko = locale == 'ko'
         build_features(locale, copy['features'])
+        build_sponsor(locale, copy['sponsor'])
         stem = 'readme-workflow'
         slug = stem + ('' if ko else '.en')
         title = copy['workflow']['title']
@@ -155,7 +174,7 @@ def main():
         body += [f'<path d="M40 400H920" stroke="{RULE}"/>', text(40, 428, copy['overview']['footer'], 16, 400, MUTED)]
         save(stem, locale, 456, title, desc, note, '\n'.join(body))
 
-    print('Built six standalone HTML diagrams from readme-content.json.')
+    print('Built eight standalone README visuals from readme-content.json.')
 
 
 if __name__ == '__main__':

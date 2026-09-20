@@ -218,6 +218,12 @@ Report problems or suggestions in [Issues](https://github.com/JungHoonGhae/tossi
 ## Sponsors
 
 <p align="center">
+  <a href="mailto:support@remodule.dev?subject=tossinvest-cli%20sponsorship"><img src="diagrams/readme-sponsor.en.png" alt="Open for sponsorship — your brand, here. Contact support@remodule.dev to discuss sponsorship." width="100%" /></a>
+</p>
+
+For sponsorship and brand placement, contact [support@remodule.dev](mailto:support@remodule.dev?subject=tossinvest-cli%20sponsorship).
+
+<p align="center">
   <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/badges/sponsor.svg" height="46" alt="Become a sponsor" /></a>
 </p>
 
