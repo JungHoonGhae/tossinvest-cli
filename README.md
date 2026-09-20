@@ -215,7 +215,13 @@ tossctl order preview --symbol AAPL --side buy --qty 1 --price 200
 
 문제나 제안은 [Issues](https://github.com/JungHoonGhae/tossinvest-cli/issues)에 남겨주세요. 보안 문제는 [`SECURITY.md`](SECURITY.md)를 참고하세요.
 
-## 후원
+## 스폰서십 · 후원
+
+<p align="center">
+  <a href="mailto:support@remodule.dev?subject=tossinvest-cli%20sponsorship"><img src="diagrams/readme-sponsor.png" alt="스폰서 모집 — 이 자리에 브랜드를 소개하세요. 스폰서십 문의: support@remodule.dev" width="100%" /></a>
+</p>
+
+스폰서십·브랜드 노출에 관심이 있다면 [support@remodule.dev](mailto:support@remodule.dev?subject=tossinvest-cli%20sponsorship)로 연락해 주세요.
 
 <p align="center">
   <a href="https://github.com/sponsors/JungHoonGhae"><img src="docs/assets/badges/sponsor.svg" height="46" alt="Become a sponsor" /></a>
