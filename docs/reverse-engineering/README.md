@@ -15,6 +15,7 @@
 | [auth-notes.md](auth-notes.md) | 세션·쿠키·인증 헤더 |
 | [push-events.md](push-events.md) | 실시간 push 이벤트 |
 | [change-analysis/](change-analysis/) | 서버 변경이 관측된 날의 분석 기록 |
+| [change-analysis/2026-09-28-wts.md](change-analysis/2026-09-28-wts.md) | gzip 수집·호스트 검증·가격 API 감시 보완, 지수 AI·실적 본문/분석·폴더 뉴스 구현과 라이브 검증 |
 | [change-analysis/2026-09-02-android-static.md](change-analysis/2026-09-02-android-static.md) | Android 5.275.0 정적 계약 감사: WTS 교차검증, 은행/MyData 인증 경계, 쓰기 후보 정책 |
 | [change-analysis/2026-09-16-asc-opportunities.md](change-analysis/2026-09-16-asc-opportunities.md) | ASC로 대조한 고도화 후보: 실적 발표 내용·개인화 일정·관심종목 폴더, 정적 근거와 남은 라이브 검증 |
 

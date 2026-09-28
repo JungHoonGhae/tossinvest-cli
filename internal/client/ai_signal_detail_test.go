@@ -94,7 +94,7 @@ func TestGetAISignalDetailRejectsUnobservedProductTypeBeforeRequest(t *testing.T
 	t.Cleanup(server.Close)
 
 	_, err := testClientFor(server).GetAISignalDetail(context.Background(), "A005930", "bond")
-	if err == nil || !strings.Contains(err.Error(), "stocks or equity_etf") {
+	if err == nil || !strings.Contains(err.Error(), "stocks, equity_etf, or index") {
 		t.Fatalf("error = %v", err)
 	}
 	if requested.Load() {

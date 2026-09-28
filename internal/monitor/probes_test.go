@@ -33,6 +33,7 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"portfolio-folders":                   true,
 		"watchlist":                           true,
 		"quote-stock-infos":                   true,
+		"quote-product-prices":                true,
 		"pending-orders":                      true,
 		"completed-orders-all-dates":          true,
 		"quote-trades":                        true,
@@ -51,6 +52,10 @@ func TestProbesRegistryStableNames(t *testing.T) {
 		"index-info":                          true,
 		"earning-call":                        true,
 		"earning-call-home":                   true,
+		"earning-call-transcript":             true,
+		"earning-call-report":                 true,
+		"ai-index-detail":                     true,
+		"watchlist-news":                      true,
 		"earning-call-detail":                 true,
 		"community-rankings":                  true,
 		"lending-expected":                    true,
@@ -197,6 +202,45 @@ func TestWatchlistGroupProbeDeclaresScopedURL(t *testing.T) {
 		return
 	}
 	t.Fatal("watchlist-group probe missing")
+}
+
+func TestProductPriceProbeRejectsEmptyOrChangedQuotes(t *testing.T) {
+	t.Parallel()
+	var probe Probe
+	for _, p := range Probes() {
+		if p.Name == "quote-product-prices" {
+			probe = p
+		}
+	}
+	if probe.Check == nil {
+		t.Fatal("quote-product-prices probe missing")
+	}
+	if probe.Method != "GET" || probe.URL != "https://wts-info-api.tossinvest.com/api/v1/product/stock-prices?meta=true&productCodes=A005930" {
+		t.Fatalf("unexpected price request: %s %s", probe.Method, probe.URL)
+	}
+	for _, tc := range []struct {
+		name   string
+		status int
+		body   string
+		ok     bool
+	}{
+		{"valid with extra fields", 200, `{"result":[{"productCode":"A005930","close":0,"currency":"KRW","extra":true}]}`, true},
+		{"missing", 200, `{}`, false},
+		{"null", 200, `{"result":null}`, false},
+		{"empty", 200, `{"result":[]}`, false},
+		{"changed wrapper", 200, `{"result":{"body":[]}}`, false},
+		{"missing price", 200, `{"result":[{"productCode":"A005930","currency":"KRW"}]}`, false},
+		{"string price", 200, `{"result":[{"productCode":"A005930","close":"1","currency":"KRW"}]}`, false},
+		{"missing currency", 200, `{"result":[{"productCode":"A005930","close":1}]}`, false},
+		{"missing product", 200, `{"result":[{"close":1,"currency":"KRW"}]}`, false},
+		{"upstream failure", 503, `{"result":[{"productCode":"A005930","close":1,"currency":"KRW"}]}`, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := probe.Check(tc.status, []byte(tc.body)); (err == nil) != tc.ok {
+				t.Fatalf("check error = %v, want success %v", err, tc.ok)
+			}
+		})
+	}
 }
 
 func TestExpectPathTypes(t *testing.T) {

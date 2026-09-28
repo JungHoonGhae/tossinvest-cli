@@ -344,3 +344,22 @@ func TestRunProbesCatalogExperimentGate(t *testing.T) {
 		})
 	}
 }
+
+func TestFolderScopedNewsUsesNewsSchema(t *testing.T) {
+	t.Parallel()
+	groups := namedProbe(t, "watchlist-groups")
+	news := namedProbe(t, "watchlist-news")
+	client := &http.Client{Transport: probeTransport(func(req *http.Request) (*http.Response, error) {
+		if req.URL.String() == groups.URL {
+			return probeResponse(200, `{"result":{"watchlists":[{"id":731,"itemCount":0}]}}`), nil
+		}
+		if req.URL.Query().Get("watchlistId") != "731" {
+			t.Errorf("folder not substituted")
+		}
+		return probeResponse(200, `{"result":{"newsList":[]}}`), nil
+	})}
+	results := runProbes(context.Background(), nil, []Probe{groups, news}, client)
+	if len(results) != 2 || !results[0].OK || !results[1].OK {
+		t.Fatalf("scoped news rejected its own schema: %#v", results)
+	}
+}

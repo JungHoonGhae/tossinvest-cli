@@ -31,7 +31,9 @@
   chunk 수, endpoint 추가·삭제를 `docs/reverse-engineering/wts-endpoints.json`과 비교합니다.
   root ID가 같아도 active 집합이 바뀌면 이전/현재 집합을 Discord 알림에 표시합니다. 수집
   결과가 기존 endpoint의 75% 아래로 급감하거나 root build ID/manifest를 확인할 수 없으면
-  부분 fetch로 판정해 카탈로그를 덮어쓰지 않습니다.
+  부분 fetch로 판정해 카탈로그를 덮어쓰지 않습니다. gzip 번들은 해제한 뒤 분석하며,
+  압축 본문과 해제한 본문 각각에 크기 제한을 적용합니다. 총 수집 예산에는 둘 다 포함하고,
+  손상된 gzip이나 지원하지 않는 Content-Encoding은 수집 실패로 처리합니다.
 - **일반 Toss Android 앱**: `viva.republica.toss`의 공개 배포 후보 버전을
   `docs/reverse-engineering/android-app.json`의 마지막 정적 감사본과 비교합니다. Google Play가
   안정적인 기계용 version 필드를 제공하지 않아 APKPure 메타데이터를 **비신뢰 후보 신호**로만
@@ -82,10 +84,10 @@ GitHub 모니터의 07:00·19:00 KST 수집 뒤 20분 여유를 둔 값입니다
 - [#15 / #17](https://github.com/JungHoonGhae/tossinvest-cli/issues/15) — User-Agent 핑거프린팅 차단 (v0.3.6 fix)
 - [#29](https://github.com/JungHoonGhae/tossinvest-cli/issues/29) — `/sections/all` body 계약 변경 (v0.4.8 fix)
 
-`monitor api` 명령은 86개 read-only endpoint 를 schema-invariant probe 로 호출해 이런 변경을 사용자보다 먼저 감지합니다.
+`monitor api` 명령은 91개 read-only endpoint 를 schema-invariant probe 로 호출해 이런 변경을 사용자보다 먼저 감지합니다.
 
 `experimental.paper_trading=true`로 옵트인한 경우에는 모의 잔고·교육 요약·대기 주문·완료
-주문 4개를 추가해 총 90개를 검사합니다. 옵트인하지 않은 사용자의 일반 회귀 신호와 아직
+주문 4개를 추가해 총 95개를 검사합니다. 옵트인하지 않은 사용자의 일반 회귀 신호와 아직
 롤아웃 중인 기능의 신호가 섞이지 않도록 기본 목록에서는 제외합니다.
 
 ### 동작 흐름
@@ -104,17 +106,17 @@ GitHub 모니터의 07:00·19:00 KST 수집 뒤 20분 여유를 둔 값입니다
 
 ### Probe 목록
 
-런타임 목록인 `internal/monitor.Probes()` 가 단일 진실 소스입니다. 81개는
+런타임 목록인 `internal/monitor.Probes()` 가 단일 진실 소스입니다. 85개는
 `internal/ops` 레지스트리의 오퍼레이션 옆 `ProbeSpec` 또는 공용 probe에서 파생되고,
-카탈로그 오퍼레이션이 없는 CLI 전용 5개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
+카탈로그 오퍼레이션이 없는 CLI 전용 6개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
 
 | 보호 영역 | Probe (개수) |
 | --- | --- |
 | 계좌·포트폴리오 | `account-list`, `account-summary-overview`, `account-all-overview`, `account-receivable`, `account-interest-years`, `account-commission-info`, `account-last-login`, `account-margin-frozen`, `account-accident-count`, `portfolio-positions`, `portfolio-folders`, `hidden-holdings`, `trading-simple-trade`, `trading-exchange-choice`, `trading-ats-notification`, `option-real-time-tick`, `securities-transfer-my-accounts`, `securities-transfer-recent-accounts`, `asset-performance-all`, `asset-performance-account`, `asset-snapshots-all`, `asset-snapshots-account`, `asset-snapshot-detail-all`, `asset-snapshot-detail-account` (24) |
-| 주문·자금 | `pending-orders`, `order-funding`, `auto-trades`, `transactions-kr`, `transactions-us` (5) |
-| 시세·종목 | `quote-stock-infos`, `quote-trades`, `quote-orderbook`, `quote-price-limits`, `quote-charts`, `quote-reasons`, `quote-crypto`, `quote-stock-signals`, `stock-search`, `trading-flows`, `option-expiries` (11) |
-| 시장·리서치 | `market-index`, `index-prices`, `index-info`, `stock-ranking`, `investor-rankings`, `theme-rankings`, `sectors-tics`, `sector-detail-simple`, `sector-detail-overview`, `sector-detail-stocks`, `sector-detail-etfs`, `sector-detail-news`, `ai-signals`, `ai-signal-detail`, `screener-presets`, `screener-filter-range`, `earning-call`, `earning-call-home`, `earning-call-detail`, `news-briefing`, `market-news-briefing`, `holdings-news`, `market-issues`, `market-calendar`, `market-key-events`, `market-halt`, `market-trading-hours` (27) |
-| 개인화·계좌 부가기능 | `community-rankings`, `lending-expected`, `lending-top-revenue`, `accumulation-plans`, `profit-overview`, `ria-report`, `open-banking-status`, `open-banking-creatable`, `open-banking-registration`, `auto-trading-open-banking`, `notification-settings`, `notification-inbox-unread`, `notification-reasoning-agreement`, `notification-reasoning-news-count`, `price-alerts`, `watchlist`, `watchlist-groups`, `watchlist-group` (18) |
+| 주문·자금 | `pending-orders`, `completed-orders-all-dates`, `order-funding`, `auto-trades`, `transactions-kr`, `transactions-us` (6) |
+| 시세·종목 | `quote-product-prices`, `quote-stock-infos`, `quote-trades`, `quote-orderbook`, `quote-price-limits`, `quote-charts`, `quote-reasons`, `quote-crypto`, `quote-stock-signals`, `stock-search`, `trading-flows`, `option-expiries` (12) |
+| 시장·리서치 | `market-index`, `index-prices`, `index-info`, `stock-ranking`, `investor-rankings`, `theme-rankings`, `sectors-tics`, `sector-detail-simple`, `sector-detail-overview`, `sector-detail-stocks`, `sector-detail-etfs`, `sector-detail-news`, `ai-signals`, `ai-signal-detail`, `screener-presets`, `screener-filter-range`, `earning-call`, `earning-call-home`, `earning-call-detail`, `earning-call-transcript`, `earning-call-report`, `ai-index-detail`, `news-briefing`, `market-news-briefing`, `holdings-news`, `market-issues`, `market-calendar`, `market-key-events`, `market-halt`, `market-trading-hours` (30) |
+| 개인화·계좌 부가기능 | `community-rankings`, `lending-expected`, `lending-top-revenue`, `accumulation-plans`, `profit-overview`, `ria-report`, `open-banking-status`, `open-banking-creatable`, `open-banking-registration`, `auto-trading-open-banking`, `notification-settings`, `notification-inbox-unread`, `notification-reasoning-agreement`, `notification-reasoning-news-count`, `price-alerts`, `watchlist`, `watchlist-groups`, `watchlist-group`, `watchlist-news` (19) |
 | 모의투자(옵트인) | `paper-cash-balance`, `paper-education-summary`, `paper-pending-orders`, `paper-completed-orders` (4) |
 
 이름·method·endpoint 전체 매핑은 [`AGENTS.md`](../AGENTS.md) 의 “Probe 목록”에 있고,
@@ -122,10 +124,10 @@ GitHub 모니터의 07:00·19:00 KST 수집 뒤 20분 여유를 둔 값입니다
 
 ```bash
 go run ./tools/wtsinventory -mode probes -root "$(pwd)" | jq 'length'
-# 85
+# 91
 ```
 
-위 inventory 명령은 사용자 설정과 무관한 안정 표면 86개를 출력합니다. 실제
+위 inventory 명령은 사용자 설정과 무관한 안정 표면 91개를 출력합니다. 실제
 `tossctl monitor api`는 옵트인 설정을 읽어 paper probe 4개를 더 실행합니다. WTS 주간 정적 모니터는 별도로
 `rolling_features.paper-trading-us-options`의 UI flag·활성 build·critical endpoint와 stable
 승격 기준 변경을 감시합니다. 현재 `/paper/init`의 불투명한 500이 해결되지 않아 승격 심사는

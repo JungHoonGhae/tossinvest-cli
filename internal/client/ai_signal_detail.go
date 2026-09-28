@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -61,14 +62,13 @@ type aiSignalDetailRaw struct {
 			RelatedStocks []relatedStockRaw `json:"relatedStocks"`
 		} `json:"details"`
 	} `json:"relatedReasoning"`
-	Terms struct {
+	Terms *struct {
 		ServiceAgreed             bool `json:"serviceAgreed"`
 		PersonalizedServiceAgreed bool `json:"personalizedServiceAgreed"`
 	} `json:"terms"`
 }
 
-// AISignalProductType converts the two product types observed in the live WTS
-// briefing contract to the exact values accepted by the detail endpoint.
+// AISignalProductType normalizes the supported stock/ETF and index routes.
 func AISignalProductType(value string) (string, error) {
 	normalized := strings.ToUpper(strings.ReplaceAll(strings.TrimSpace(value), "-", "_"))
 	switch normalized {
@@ -76,14 +76,15 @@ func AISignalProductType(value string) (string, error) {
 		return "STOCKS", nil
 	case "ETF", "EQUITY_ETF":
 		return "EQUITY_ETF", nil
+	case "INDEX":
+		return "INDEX", nil
 	default:
-		return "", fmt.Errorf("unsupported AI signal product type %q: use stocks or equity_etf", value)
+		return "", fmt.Errorf("unsupported AI signal product type %q: use stocks, equity_etf, or index", value)
 	}
 }
 
-// GetAISignalDetail returns the full current AI reasoning for one stock or
-// equity ETF. The product-type vocabulary is taken from the live WTS briefing
-// contract; an absent current signal is represented by Found=false.
+// GetAISignalDetail returns current AI reasoning for a stock, equity ETF, or
+// index. An explicitly null current signal is represented by Found=false.
 func (c *Client) GetAISignalDetail(ctx context.Context, symbol, productType string) (domain.AISignalDetail, error) {
 	typ, err := AISignalProductType(productType)
 	if err != nil {
@@ -92,42 +93,49 @@ func (c *Client) GetAISignalDetail(ctx context.Context, symbol, productType stri
 	if err := c.requireSession(); err != nil {
 		return domain.AISignalDetail{}, err
 	}
-	code, err := c.resolveProductCode(ctx, symbol)
+	code := strings.TrimSpace(symbol)
+	var endpoint string
+	if typ == "INDEX" {
+		if code == "" || strings.ContainsAny(code, "/?#%\\") {
+			return domain.AISignalDetail{}, fmt.Errorf("provide an index code from market index")
+		}
+		endpoint = c.certBaseURL + "/api/v1/reasoning/indices/" + url.PathEscape(code) + "/detail"
+	} else {
+		code, err = c.resolveProductCode(ctx, symbol)
+		if err != nil {
+			return domain.AISignalDetail{}, err
+		}
+		query := url.Values{"productCode": {code}, "productType": {typ}}
+		endpoint = c.infoBaseURL + "/api/v1/dashboard/wts/overview/ai-signals/detail?" + query.Encode()
+	}
+	data, err := c.resultJSON(ctx, endpoint)
 	if err != nil {
 		return domain.AISignalDetail{}, err
 	}
-
-	endpoint, err := url.Parse(c.infoBaseURL + "/api/v1/dashboard/wts/overview/ai-signals/detail")
-	if err != nil {
-		return domain.AISignalDetail{}, err
-	}
-	query := endpoint.Query()
-	query.Set("productCode", code)
-	query.Set("productType", typ)
-	endpoint.RawQuery = query.Encode()
-
-	var envelope quoteEnvelope[*aiSignalDetailRaw]
-	if err := c.getJSON(ctx, endpoint.String(), &envelope); err != nil {
+	var raw *aiSignalDetailRaw
+	if err := json.Unmarshal(data, &raw); err != nil {
 		return domain.AISignalDetail{}, err
 	}
 	out := domain.AISignalDetail{
 		ProductCode: code,
 		ProductType: typ,
-		Found:       envelope.Result != nil,
+		Found:       raw != nil,
 		FetchedAt:   time.Now().UTC(),
 		Keywords:    []string{},
 		News:        []domain.BriefingNews{},
 		Related:     []domain.AISignalRelatedReasoning{},
 	}
-	if envelope.Result == nil {
+	if raw == nil {
 		return out, nil
 	}
-	raw := envelope.Result
+	if raw.SignalID == "" || raw.Reasoning.Issue.AssetCode == "" {
+		return domain.AISignalDetail{}, fmt.Errorf("AI signal is missing identity fields")
+	}
 	out.SignalID = raw.SignalID
 	out.TraceID = raw.TraceID
 	out.CreatedAt = raw.CreatedAt
 	out.SignalDirection = raw.SignalDirection
-	out.HasRelatedReasoning = raw.HasRelatedReasoning
+	out.HasRelatedReasoning = raw.HasRelatedReasoning || len(raw.RelatedReasoning.Details) > 0
 	out.Description = raw.Reasoning.Description
 	out.Issue = domain.AISignalIssue{
 		AssetCode: raw.Reasoning.Issue.AssetCode, AssetName: raw.Reasoning.Issue.AssetName,
@@ -155,9 +163,11 @@ func (c *Client) GetAISignalDetail(ctx context.Context, symbol, productType stri
 			Stocks: mapRelatedStocks(item.RelatedStocks),
 		})
 	}
-	out.Terms = domain.AISignalTerms{
-		ServiceAgreed:             raw.Terms.ServiceAgreed,
-		PersonalizedServiceAgreed: raw.Terms.PersonalizedServiceAgreed,
+	if raw.Terms != nil {
+		out.Terms = &domain.AISignalTerms{
+			ServiceAgreed:             raw.Terms.ServiceAgreed,
+			PersonalizedServiceAgreed: raw.Terms.PersonalizedServiceAgreed,
+		}
 	}
 	return out, nil
 }

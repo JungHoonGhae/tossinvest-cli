@@ -17,6 +17,8 @@ stdlib only (runs in CI without deps).
 """
 import concurrent.futures
 import datetime
+import gzip
+import io
 import json
 import os
 import re
@@ -36,6 +38,7 @@ GO_WTS_SOURCE_ROOTS = (
     "internal/push",
     "internal/monitor",
     "internal/ops/wts_operations.go",
+    "internal/ops/research_operations.go",
 )
 GO_FMT_VERB_RE = re.compile(
     r"%(?:\[[0-9]+\])?[-+#0 ']*[0-9]*(?:\.[0-9]+)?[vTtbcdoOqxXUeEfgGsxp]"
@@ -141,7 +144,7 @@ FETCH_OPENER = urllib.request.build_opener(SameOriginRedirectHandler())
 
 
 class DiscoveryByteBudget:
-    """Thread-safe monotonic downloaded-byte budget shared by the crawler."""
+    """Bound downloaded bytes plus decoded gzip bytes across the crawler."""
 
     def __init__(self, limit=DISCOVERY_MAX_TOTAL_BYTES):
         self.limit = limit
@@ -157,12 +160,14 @@ class DiscoveryByteBudget:
                     f"WTS discovery byte budget exceeded: {next_total}>{self.limit}"
                 )
 
-# The bundle currently declares these reads on cert, while live WTS captures
-# used by the production client verified the same paths on info. Both hosts are
-# therefore accepted for these exact paths; every other host mismatch remains a
-# CI failure. Keep this list narrow so it cannot turn host checking back into
-# the old "try every host" guesswork.
+# Bundle declarations and existing clients can use different, live-verified
+# hosts for the same read. Accept only the exact pairs below; every other host
+# mismatch remains a CI failure, not a reason to guess another host.
 KNOWN_HOST_ALIASES = {
+    # 2026-09-28: launcher declarations coexist with INFO callers. Both hosts
+    # returned non-empty stocks/ticsItems arrays; unrelated paths stay strict.
+    "/api/v2/search/stocks": {"wts-api", "wts-info-api"},
+    "/api/v1/tics/all": {"wts-api", "wts-info-api"},
     "/api/v1/earning-call/upcoming": {"wts-cert-api", "wts-info-api"},
     "/api/v1/earning-call/home": {"wts-cert-api", "wts-info-api"},
     "/api/v1/dashboard/wts/overview/ai-signals/personalized": {"wts-cert-api", "wts-info-api"},
@@ -285,6 +290,10 @@ IMPLEMENTED = [
     r"^/api/v1/earning-call/upcoming$",                          # market earnings
     r"^/api/v1/earning-call/home$",                              # market earnings --major
     r"^/api/v1/earning-call/events/[^/]+/info$",                 # market earnings <event-id>
+    r"^/api/v1/company-events/[^/]+/transcripts/paragraph-inferences$",
+    r"^/api/v2/company-events/[^/]+/report$",
+    r"^/api/v1/reasoning/indices/[^/]+/detail$",
+    r"^/api/v1/new-watchlists/recommend/news$",
     r"^/api/v1/community/top-rankings(?:/[^/]+)?$",              # community rankings
     r"^/api/v1/dashboard/wts/overview/ai-signals/personalized$", # market briefing
     r"^/api/v1/dashboard/wts/overview/ai-signals/latest$",       # market briefing --scope kr|us
@@ -379,6 +388,24 @@ EXCLUDED = [
 ]
 
 
+def _read_asset_bytes(stream, path, budget):
+    chunks = []
+    response_bytes = 0
+    while True:
+        piece = stream.read(64 * 1024)
+        if not piece:
+            break
+        response_bytes += len(piece)
+        if budget is not None:
+            budget.reserve(len(piece))
+        if response_bytes > DISCOVERY_MAX_RESPONSE_BYTES:
+            raise RuntimeError(
+                f"WTS asset exceeds {DISCOVERY_MAX_RESPONSE_BYTES} byte limit: {path}"
+            )
+        chunks.append(piece)
+    return b"".join(chunks)
+
+
 def fetch(path, budget=None):
     # Route HTML and chunks occasionally return a transient empty/error response.
     # A single miss makes the route walk look like real endpoint deletion, so
@@ -389,7 +416,9 @@ def fetch(path, budget=None):
             current_url = BASE + path
             response = None
             for redirect_count in range(DISCOVERY_MAX_REDIRECTS + 1):
-                req = urllib.request.Request(current_url, headers={"User-Agent": UA})
+                req = urllib.request.Request(current_url, headers={
+                    "User-Agent": UA, "Accept-Encoding": "gzip, identity",
+                })
                 response = FETCH_OPENER.open(req, timeout=25)
                 status = response.getcode()
                 if not isinstance(status, int) or not 300 <= status < 400:
@@ -417,21 +446,16 @@ def fetch(path, budget=None):
                         raise RuntimeError(
                             f"refusing redirected WTS asset outside {BASE_ORIGIN}: {_origin(final_url)}"
                         )
-                chunks = []
-                response_bytes = 0
-                while True:
-                    piece = response.read(64 * 1024)
-                    if not piece:
-                        break
-                    response_bytes += len(piece)
-                    if budget is not None:
-                        budget.reserve(len(piece))
-                    if response_bytes > DISCOVERY_MAX_RESPONSE_BYTES:
-                        raise RuntimeError(
-                            f"WTS asset exceeds {DISCOVERY_MAX_RESPONSE_BYTES} byte limit: {path}"
-                        )
-                    chunks.append(piece)
-                payload = b"".join(chunks)
+                encoding = response.headers.get("Content-Encoding", "").strip().lower()
+                if encoding not in ("", "identity", "gzip"):
+                    raise RuntimeError(f"unsupported WTS Content-Encoding: {encoding}")
+                payload = _read_asset_bytes(response, path, budget)
+                if encoding == "gzip":
+                    # urllib does not decompress even when the server sends gzip
+                    # without negotiation. Bound both wire and expanded bodies;
+                    # gzip.decompress would allocate the entire expansion first.
+                    with gzip.GzipFile(fileobj=io.BytesIO(payload)) as decoded:
+                        payload = _read_asset_bytes(decoded, path, budget)
             finally:
                 response.close()
             body = payload.decode("utf-8", "ignore")
@@ -1168,6 +1192,14 @@ def discover_go_probes(repo_root):
 def _probe_inventory_path(path):
     """Turn fixed probe symbols into the reusable endpoint template they verify."""
     path = re.sub(
+        r"(^/api/v[12]/company-events/)(?:[0-9]+|\{id\})(?=/)",
+        r"\1{eventId}", path, count=1,
+    )
+    path = re.sub(
+        r"(^/api/v1/reasoning/indices/)[A-Z][A-Z0-9]+(?=/detail$)",
+        r"\1{indexCode}", path, count=1,
+    )
+    path = re.sub(
         r"(^/api/v1/asset-snapshot/(?:all-accounts/)?chart)/ONE_MONTH/DAY$",
         r"\1/{range}/{stepUnit}",
         path,
@@ -1253,7 +1285,8 @@ def probe_inventory_mismatches(probes, endpoints):
 def main():
     prev = {}
     if os.path.exists(CATALOG):
-        prev = json.load(open(CATALOG, encoding="utf-8"))
+        with open(CATALOG, encoding="utf-8") as source:
+            prev = json.load(source)
     overrides = prev.get("overrides", {})
     prev_eps_map = prev.get("endpoints", {})
     prev_eps = set(prev_eps_map.keys())

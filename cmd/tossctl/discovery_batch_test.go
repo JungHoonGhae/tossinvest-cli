@@ -95,7 +95,7 @@ func TestMarketAISignalDetailRejectsUnobservedTypeBeforeAuthentication(t *testin
 	cmd := newMarketCmd(&rootOptions{})
 	cmd.SetArgs([]string{"signal", "A005930", "--type", "bond"})
 	err := cmd.Execute()
-	if err == nil || !strings.Contains(err.Error(), "stocks or equity_etf") {
+	if err == nil || !strings.Contains(err.Error(), "stocks, equity_etf, or index") {
 		t.Fatalf("error = %v", err)
 	}
 }

@@ -445,10 +445,10 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "ai_signal_detail", Method: "GET", Path: "wts:market/signal", Backend: "wts", Domain: "securities",
-			Category: "market", Summary: "Full current AI reasoning for one stock or equity ETF, including evidence, news, and related-company flows. WTS-only.",
+			Category: "market", Summary: "Current AI reasoning for a stock, equity ETF or index, including evidence and source news. WTS-only.",
 			Params: []Param{
 				{Name: "symbol", Type: "string", Required: true, Desc: "ticker or Toss product code"},
-				{Name: "product_type", Type: "string", Desc: `"stocks" (default) or "equity_etf"; the asset_type returned by a briefing can also be used`},
+				{Name: "product_type", Type: "string", Desc: `stocks (default), equity_etf, or index (use a market index code)`},
 			},
 			// A product can legitimately have no current signal. The probe accepts
 			// result:null, but validates the detail schema whenever a signal is active.
@@ -461,6 +461,13 @@ func wtsOperations() []Operation {
 					[2]string{"result.reasoning.news.data", "array"},
 					[2]string{"result.relatedReasoning.details", "array"},
 				)},
+			ExtraProbes: []ProbeSpec{{Name: "ai-index-detail", Method: "GET",
+				URL: probeCert + "/api/v1/reasoning/indices/KGG01P/detail",
+				Check: statusAndNullableResultPaths(
+					[2]string{"result.signalId", "string"},
+					[2]string{"result.reasoning.issue.assetCode", "string"},
+					[2]string{"result.reasoning.news.data", "array"},
+				)}},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbol, err := argString(args, "symbol")
 				if err != nil {
@@ -850,7 +857,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "market_issues", Method: "GET", Path: "wts:lens/issues", Backend: "wts",
 			Category: "market",
-			Summary:  "Ranked board of the topics the market is talking about most, each with its rank movement (UP/DOWN), the number of articles behind it, and those articles. A different axis from market_news (flat headlines) and news_briefing (AI category grouping): here the topic ranking itself is the payload. Takes no parameters. WTS-only.",
+			Summary:  "Ranked market topics, rank movement (UP/DOWN), article counts and articles. Unlike market_news headlines or news_briefing AI groups, this returns topic rankings. No parameters. WTS-only.",
 			Probe: &ProbeSpec{Name: "market-issues", Method: "GET",
 				URL: probeInfo + "/api/v1/lens/issues",
 				Check: func(status int, body []byte) error {
@@ -936,7 +943,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "quote_charts", Method: "POST", Path: "wts:dashboard/common/stocks/mini-chart", Backend: "wts",
-			Category: "quote", Summary: "Today's intraday candles for MANY symbols in one request. Range and step are chosen by the server (observed 1d/10m) and are NOT parameters — use quote_chart for an explicit interval on one symbol. The WTS response omits symbols with no data; tossctl preserves requested order for found rows and reports omitted inputs in missing. WTS-only.",
+			Category: "quote", Summary: "Batch intraday candles, server-selected range/step (observed 1d/10m). Use quote_chart to select an interval. Found rows keep requested order; omitted symbols appear in missing. WTS-only.",
 			Params: []Param{
 				{Name: "symbols", Type: "string[]", Required: true, Desc: "symbols or names, e.g. [\"005930\", \"AAPL\"]"},
 			},
@@ -959,7 +966,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "quote_reasons", Method: "POST", Path: "wts:dashboard/wts/overview/ai-signals", Backend: "wts",
-			Category: "quote", Summary: "One-line AI explanation of why each stock is moving, for many symbols in a single request (web sends up to 100). Use quote_reasoning for the full card on ONE symbol. The WTS response omits symbols with no reasoning; tossctl preserves requested order for found rows and reports omitted inputs in missing. WTS-only.",
+			Category: "quote", Summary: "Batch one-line AI explanations (web uses up to 100 symbols). Full single-stock card: quote_reasoning. Found rows keep requested order; omitted symbols appear in missing. WTS-only.",
 			Params: []Param{
 				{Name: "symbols", Type: "string[]", Required: true, Desc: "symbols or names, e.g. [\"005930\", \"AAPL\"]"},
 			},
@@ -997,7 +1004,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "market_news", Method: "POST", Path: "wts:dashboard/wts/news", Backend: "wts",
-			Category: "market", Summary: "Market news with each article's RELATED STOCKS and how they are moving right now — the part a plain headline list lacks. Scopes: all (widest, general market news, no stock linkage), watchlist / holdings (news about the user's own stocks, with moves), soaring (stocks spiking), recommended, latest. Server caps at 50 items; there is no pagination and no keyword search. WTS-only.",
+			Category: "market", Summary: "Market news and related-stock moves. Scopes: all (no stock linkage), watchlist, holdings, soaring, recommended, latest. Maximum 50 items; no pagination or keyword search. WTS-only.",
 			ProbeRefs: []string{"holdings-news"},
 			Params: []Param{
 				{Name: "scope", Type: "string", Desc: "all (default) | recommended | watchlist | holdings | latest | soaring; a raw server enum also works"},
