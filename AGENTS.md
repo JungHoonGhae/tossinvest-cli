@@ -95,10 +95,10 @@ Rules for agents:
 
 ## Probe 목록
 
-현재 `monitor api` 는 86개 read-only endpoint 를 감시합니다. 단일 진실 소스는
+현재 `monitor api` 는 91개 read-only endpoint 를 감시합니다. 단일 진실 소스는
 `internal/monitor.Probes()` 런타임 결과입니다. 대부분은 `internal/ops`
 레지스트리의 오퍼레이션 옆 `ProbeSpec`과 공용 `ProbeRefs`에서 파생되고, 카탈로그
-오퍼레이션이 없는 CLI 전용 5개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
+오퍼레이션이 없는 CLI 전용 6개만 `internal/monitor/probes.go` 에 직접 선언됩니다.
 `experimental.paper_trading=true`인 사용자는 여기에 paper 잔고·교육 요약·대기 주문·완료
 주문 4개 probe가 더해집니다. 실험 기능 실패가 옵트인하지 않은 사용자의 안정 표면 장애로
 보이지 않도록 기본 목록과 분리합니다.
@@ -126,6 +126,10 @@ Rules for agents:
 - `stock-search` — `POST /api/v2/search/stocks`
 - `trading-flows` — `GET /api/v1/stock-infos/trade/trend/trading-trend`
 - `earning-call` — `GET /api/v1/earning-call/upcoming`
+- `earning-call-transcript` — `GET /api/v1/company-events/228692/transcripts/paragraph-inferences`
+- `earning-call-report` — `GET /api/v2/company-events/228692/report`
+- `ai-index-detail` — `GET /api/v1/reasoning/indices/KGG01P/detail`
+- `watchlist-news` — `GET /api/v1/new-watchlists/recommend/news?watchlistId=<first-user-folder-id>`
 - `earning-call-detail` — `GET /api/v1/earning-call/events/228692/info`
 - `holdings-news` — `POST /api/v1/dashboard/wts/news` (`PERSONALIZE_HOLD`)
 - `transactions-kr` — `GET /api/v3/my-assets/transactions/markets/kr` (today, `size=1`)
@@ -189,6 +193,7 @@ Rules for agents:
 - `watchlist-group` — `GET /api/v1/new-watchlists/groups?ids=<first-user-folder-id>&includePrice=true`
 - `earning-call-home` — `GET /api/v1/earning-call/home`
 - `account-list` — `GET /api/v1/account/list`
+- `quote-product-prices` — `GET /api/v1/product/stock-prices?meta=true&productCodes=A005930`
 - `quote-stock-infos` — `GET /api/v2/stock-infos/A005930`
 - `quote-trades` — `GET /api/v2/stock-prices/A005930/ticks`
 - `quote-orderbook` — `GET /api/v3/stock-prices/A005930/quotes`

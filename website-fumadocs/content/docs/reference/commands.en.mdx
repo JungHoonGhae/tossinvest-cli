@@ -78,10 +78,12 @@ All commands except sync work offline. See the [collection contract](/en/docs/gu
 | `tossctl market sectors [<id>]` | Sector movements (top-level/sub, 1d·1m·1y) |
 | `tossctl market sector <id>` | Current sector move, related-sector tree, constituents, ETFs, and news |
 | `tossctl market earnings [event-id]` | Earnings calendar / report and media links for an ID (`--major`: major companies) |
+| `tossctl market earnings transcript <event-id>` | Timestamped original paragraphs, nullable translations and summaries |
+| `tossctl market earnings report <event-id>` | Analysis, watch points and source IDs; unavailable sections remain null |
 | `tossctl market briefing` | Personalized AI briefing with holdings/watchlist context, return, reasoning, news, and related stocks |
 | `tossctl market key-events` | Current key earnings and economic releases (estimates, actuals, previous values) |
 | `tossctl market signals` | Toss AI signals |
-| `tossctl market signal <symbol> [--type stocks\|equity_etf]` | Full AI reasoning, news, and related stocks for one stock or ETF |
+| `tossctl market signal <symbol> [--type stocks\|equity_etf\|index]` | AI reasoning and source news for a stock, ETF, or index (e.g. KGG01P) |
 | `tossctl market fx` | FX & dollar index |
 | `tossctl market hours` | Trading hours |
 | `tossctl market screener [<preset-id>] [--filter '<json>'] [--nation kr\|us]` | Screener |
@@ -89,6 +91,9 @@ All commands except sync work offline. See the [collection contract](/en/docs/gu
 `market business-days KR` returns combined KRX/NXT session times. An after-market
 session may exist while NXT is closed and its auction end is absent. See
 [session and response scope](/en/docs/guide/hybrid-openapi#response-scope-and-ordering).
+
+
+`earnings transcript` returns `available: false` with an empty paragraph list when no transcript is available. Report analysis and watch points are independently nullable. Translation/summary nulls do not identify why content is unavailable. JSON preserves source IDs and timestamps; MCP may trim long results, so use fields projection or the CLI for the full transcript. `market signal --type index` uses index codes from `market index`; unavailable agreement metadata remains `terms: null`.
 
 ## Community
 
@@ -144,6 +149,7 @@ Conditional orders use `order conditional list/get/place/cancel/modify` and requ
 | Command | Description |
 |------|------|
 | `tossctl watchlist list [<group-id>] [--all]` · `watchlist groups` | Watchlist items by folder / folder list |
+| `tossctl watchlist news <folder-id>` | Recommended news for one existing folder; server-limited first page |
 | `tossctl watchlist group create\|rename\|delete [--execute --confirm <token>]` | Preview/confirm folder changes; delete also needs `--acknowledge-irreversible` |
 | `tossctl watchlist add\|remove <symbol or name> --group <id> [--execute --confirm <token>]` | Preview/confirm adding or removing symbols |
 

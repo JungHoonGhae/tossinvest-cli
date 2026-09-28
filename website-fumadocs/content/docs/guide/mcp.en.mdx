@@ -37,7 +37,7 @@ For hosts supporting `mcpServers` JSON (such as Claude Desktop), see [JSON confi
 
 ## Why a catalog — load schemas when needed
 
-tossctl's default API surface is **117 operations**. Instead of listing every schema up front, agents discover the operation and schema they need. Tool-loading behavior varies by host, so no fixed token savings are guaranteed.
+tossctl's default API surface is **120 operations**. Instead of listing every schema up front, agents discover the operation and schema they need. Tool-loading behavior varies by host, so no fixed token savings are guaranteed.
 
 Following [KIS_MCP_Server](https://github.com/pineconedata/kis-mcp-server)'s catalog mode, tossctl
 exposes **just 3 fixed tools** up front and keeps every operation behind them, fetching a schema

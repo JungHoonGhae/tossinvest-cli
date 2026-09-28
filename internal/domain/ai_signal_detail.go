@@ -53,6 +53,6 @@ type AISignalDetail struct {
 	News                []BriefingNews             `json:"news"`
 	RelatedCallout      string                     `json:"related_callout,omitempty"`
 	Related             []AISignalRelatedReasoning `json:"related"`
-	Terms               AISignalTerms              `json:"terms"`
+	Terms               *AISignalTerms             `json:"terms"`
 	FetchedAt           time.Time                  `json:"fetched_at"`
 }

@@ -115,6 +115,7 @@ func newWatchlistCmd(opts *rootOptions) *cobra.Command {
 
 	cmd.AddCommand(
 		newWatchlistListCmd(opts),
+		newWatchlistNewsCmd(opts),
 		&cobra.Command{
 			Use:         "groups",
 			Short:       i18n.T("watchlist.groups.short"),

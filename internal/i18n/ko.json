@@ -161,7 +161,7 @@
   "market.sector.long": "업종 id 하나의 현재 등락, 개요, 연관 업종 트리, 구성 종목, 관련 ETF, 뉴스를 한 번에 조회합니다. id는 `market sectors`에서 확인합니다. 화면에서는 나뉘어 호출되는 WTS 조회 API 5개를 하나의 결과로 합칩니다. 종목·ETF·뉴스 배열은 서버 기본 첫 페이지이며, 반환 건수/전체 건수를 함께 표시합니다.",
   "market.sector.short": "업종 상세 (종목·ETF·뉴스)",
   "market.short": "시장 전반 정보 (장 운영 시간 등)",
-  "market.signal.long": "종목 또는 주식형 ETF 하나의 현재 토스 AI 시그널과 전체 근거, 출처 뉴스, 연관 종목 연결을 봅니다. ETF는 --type equity_etf를 사용하며 기본값은 stocks입니다. 정상 종목이어도 현재 시그널이 없을 수 있습니다. 웹앱(WTS) 전용.",
+  "market.signal.long": "종목·주식형 ETF·지수의 현재 토스 AI 시그널과 근거, 출처 뉴스를 봅니다. ETF는 --type equity_etf, 지수는 --type index와 지수 코드(예: KGG01P)를 사용하며 기본값은 stocks입니다. 정상 종목이어도 현재 시그널이 없을 수 있습니다. 웹앱(WTS) 전용.",
   "market.signal.short": "종목·ETF 하나의 AI 시그널 상세 근거",
   "market.signals.short": "토스 AI 시장 시그널",
   "market.stocks.short": "마켓별 전체 종목 (유니버스)",
@@ -786,5 +786,14 @@
   "watchlist.groups.short": "관심종목 폴더 목록 조회",
   "watchlist.list.short": "관심종목 조회 (폴더 지정 또는 전체)",
   "watchlist.remove.short": "관심종목에서 종목 제거",
-  "watchlist.short": "관심종목 조회 및 관리"
+  "watchlist.short": "관심종목 조회 및 관리",
+  "market.earnings.transcript.short": "실적 발표 원문·번역·요약 문단 조회",
+  "market.earnings.report.short": "실적 발표 분석·관전 포인트·출처 조회",
+  "watchlist.news.short": "관심종목 폴더별 추천 뉴스 조회",
+  "output.transcript.empty": "이 발표의 대본이 아직 제공되지 않았습니다.",
+  "output.transcript.translationEmpty": "번역 미제공",
+  "output.transcript.summaryEmpty": "요약 미제공",
+  "output.transcript.summary": "요약: %s",
+  "output.research.unavailable": "미제공",
+  "output.watchlistNews.empty": "이 폴더의 추천 뉴스가 없습니다."
 }

@@ -78,10 +78,12 @@ description: 주요 CLI 명령과 전체 기능 탐색 방법
 | `tossctl market sectors [<id>]` | 업종별 등락(대분류/하위, 1일·1개월·1년) |
 | `tossctl market sector <id>` | 업종 현재 등락·연관 업종·구성 종목·ETF·뉴스 집계 |
 | `tossctl market earnings [event-id]` | 어닝콜 일정 / ID 지정 시 보고서·오디오·대본·발표자료 링크 (`--major`: 주요 기업) |
+| `tossctl market earnings transcript <event-id>` | 시간대별 원문·번역·요약 문단; 없는 번역·요약은 null |
+| `tossctl market earnings report <event-id>` | 분석·관전 포인트·출처 ID; 미제공 섹션은 null |
 | `tossctl market briefing` | 개인화 AI 뉴스 브리핑(보유·관심 종목, 수익률, AI 사유, 뉴스·관련 종목) |
 | `tossctl market key-events` | 현재 핵심 실적·경제지표(예상·발표·직전값) |
 | `tossctl market signals` | 토스 AI 시그널 |
-| `tossctl market signal <symbol> [--type stocks\|equity_etf]` | 종목·ETF 하나의 AI 시그널 전체 근거·뉴스·연관 종목 |
+| `tossctl market signal <symbol> [--type stocks\|equity_etf\|index]` | 종목·ETF·지수의 AI 근거와 출처 뉴스 (지수 코드 예: KGG01P) |
 | `tossctl market fx` | 환율·달러 인덱스 |
 | `tossctl market hours` | 장 운영 시간 |
 | `tossctl market screener [<preset-id>] [--filter '<json>'] [--nation kr\|us]` | 조건검색 |
@@ -89,6 +91,9 @@ description: 주요 CLI 명령과 전체 기능 탐색 방법
 `market business-days KR`은 KRX·NXT를 합친 세션 시간을 반환합니다. 애프터마켓이
 있어도 NXT는 휴장일 수 있으며, NXT 단일가 종료 시각은 생략될 수 있습니다.
 [세션·응답 범위](/docs/guide/hybrid-openapi#응답-범위와-정렬)를 참고하세요.
+
+
+`earnings transcript`는 본문이 없으면 `available: false`와 빈 문단 목록을 반환합니다. 보고서의 분석·관전 포인트는 각각 null일 수 있습니다. 번역·요약의 null만으로 미제공 사유를 추측하지 않습니다. JSON은 출처 ID·시간을 보존하며, 긴 MCP 응답은 잘릴 수 있으므로 fields 선택이나 CLI로 전체 본문을 조회하세요. `market signal --type index`에는 `market index`의 지수 코드를 사용합니다. 약관 상태가 제공되지 않으면 `terms: null`로 표시합니다.
 
 ## 커뮤니티 (community)
 
@@ -144,6 +149,7 @@ MCP는 `completed_orders`에 `{"all_dates":true,"market":"all","size":50,"page":
 | 명령 | 설명 |
 |------|------|
 | `tossctl watchlist list [<group-id>] [--all]` · `watchlist groups` | 관심종목 폴더별 조회 / 폴더 목록 |
+| `tossctl watchlist news <folder-id>` | 기존 폴더의 추천 뉴스; 서버가 제한한 첫 페이지 |
 | `tossctl watchlist group create\|rename\|delete [--execute --confirm <token>]` | 폴더 변경 preview/confirm; 삭제는 `--acknowledge-irreversible` 추가 필요 |
 | `tossctl watchlist add\|remove <symbol or name> --group <id> [--execute --confirm <token>]` | 종목 추가/제거 preview/confirm |
 

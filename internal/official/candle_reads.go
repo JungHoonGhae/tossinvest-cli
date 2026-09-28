@@ -14,7 +14,9 @@ import (
 // Endpoint: GET /api/v1/candles
 // Schema (openapi.latest.json component "CandlePageResponse"):
 //
-//	candles[].timestamp  string (datetime, RFC3339) — bar open time
+//	candles[].timestamp  string (datetime, RFC3339) — bar reference time:
+//	                    1m: close time for [timestamp - 1 minute, timestamp)
+//	                    1d: trading date at market-local midnight
 //	candles[].openPrice  string (decimal)
 //	candles[].highPrice  string (decimal)
 //	candles[].lowPrice   string (decimal)

@@ -7,6 +7,8 @@
     python3 -m unittest discover -s tools/tests
 """
 
+import gzip
+import io
 import json
 import os
 import sys
@@ -421,6 +423,16 @@ class TestClassify(unittest.TestCase):
             "/api/v1/earning-call/events/{eventId}/info",
         )
 
+    def test_research_probe_templates_do_not_duplicate_bundle_contracts(self):
+        for concrete, template in [
+            ("/api/v1/company-events/228692/transcripts/paragraph-inferences", "/api/v1/company-events/{eventId}/transcripts/paragraph-inferences"),
+            ("/api/v2/company-events/228692/report", "/api/v2/company-events/{eventId}/report"),
+            ("/api/v1/reasoning/indices/KGG01P/detail", "/api/v1/reasoning/indices/{indexCode}/detail"),
+        ]:
+            self.assertEqual(W._probe_inventory_path(W._normalize(concrete)), template)
+            self.assertEqual(W.classify(template, {})[0], "implemented")
+        self.assertNotEqual(W.classify("/api/v1/new-watchlists/recommend/tics", {})[0], "implemented")
+
     def test_diff_reports_build_and_chunk_changes(self):
         previous = {"build_id": "old", "build_ids": ["old", "rolling"], "chunk_count": 10}
         current = {
@@ -504,6 +516,7 @@ class TestClassify(unittest.TestCase):
 
     def test_fetch_retries_a_transient_failure(self):
         response = mock.Mock()
+        response.headers = {}
         response.geturl.return_value = W.BASE + "/asset.js"
         response.read.side_effect = [b"ok", b""]
         with mock.patch.object(
@@ -517,6 +530,7 @@ class TestClassify(unittest.TestCase):
 
     def test_fetch_rejects_oversized_or_cross_origin_assets(self):
         oversized = mock.Mock()
+        oversized.headers = {}
         oversized.geturl.return_value = W.BASE + "/asset.js"
         oversized.read.return_value = b"x" * (W.DISCOVERY_MAX_RESPONSE_BYTES + 1)
         with mock.patch.object(W.FETCH_OPENER, "open", return_value=oversized):
@@ -557,6 +571,7 @@ class TestClassify(unittest.TestCase):
         redirected.getcode.return_value = 302
         redirected.headers = {"Location": "/final.js"}
         final = mock.Mock()
+        final.headers = {}
         final.getcode.return_value = 200
         final.geturl.return_value = W.BASE + "/final.js"
         final.read.side_effect = [b"ok", b""]
@@ -587,6 +602,64 @@ class TestClassify(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "byte budget exceeded"):
             budget.reserve(1)
         self.assertEqual(budget.used, 2, "downloaded-byte budget must be monotonic after failure")
+
+    def asset_response(self, payload, encoding):
+        response = mock.Mock()
+        response.getcode.return_value = 200
+        response.geturl.return_value = W.BASE + "/asset.js"
+        response.headers = {"Content-Encoding": encoding}
+        response.read.side_effect = io.BytesIO(payload).read
+        return response
+
+    def test_gzip_and_identity_produce_the_same_endpoint_inventory(self):
+        blob = triple("info", "GET", "/api/v1/example") + '// 한글'
+        for encoding, payload in [("", blob.encode()), ("identity", blob.encode()),
+                                  ("gzip", gzip.compress(blob.encode()))]:
+            with self.subTest(encoding=encoding):
+                response = self.asset_response(payload, encoding)
+                with mock.patch.object(W.FETCH_OPENER, "open", return_value=response):
+                    decoded = W.fetch("/asset.js", W.DiscoveryByteBudget())
+                self.assertEqual(decoded, blob)
+                self.assertEqual(W.derive_paths(decoded), W.derive_paths(blob))
+                response.close.assert_called_once()
+
+    def test_gzip_expansion_obeys_per_asset_and_shared_budgets(self):
+        payload = gzip.compress(b"x" * 4096)
+        for limit, budget, error in [
+            (128, W.DiscoveryByteBudget(), "byte limit"),
+            (8192, W.DiscoveryByteBudget(128), "byte budget exceeded"),
+        ]:
+            with self.subTest(error=error):
+                response = self.asset_response(payload, "gzip")
+                with mock.patch.object(W.FETCH_OPENER, "open", return_value=response), \
+                     mock.patch.object(W, "DISCOVERY_MAX_RESPONSE_BYTES", limit):
+                    with self.assertRaisesRegex(RuntimeError, error):
+                        W.fetch("/asset.js", budget)
+                response.close.assert_called_once()
+
+    def test_corrupt_gzip_and_unsupported_encoding_fail_closed(self):
+        compressed = gzip.compress(b"some bundle text")
+        for payload in (b"not gzip", compressed[:-4], compressed[:-8] + b"bad crc!"):
+            with self.subTest(payload=payload):
+                responses = [self.asset_response(payload, "gzip") for _ in range(3)]
+                with mock.patch.object(W.FETCH_OPENER, "open", side_effect=responses):
+                    with self.assertRaises(W.WTSFetchError):
+                        W.fetch("/asset.js")
+                for response in responses:
+                    response.close.assert_called_once()
+        response = self.asset_response(b"opaque", "br")
+        with mock.patch.object(W.FETCH_OPENER, "open", return_value=response):
+            with self.assertRaisesRegex(RuntimeError, "unsupported WTS Content-Encoding"):
+                W.fetch("/asset.js")
+        response.read.assert_not_called()
+        response.close.assert_called_once()
+
+    def test_search_and_sector_host_aliases_are_narrow(self):
+        for path in ("/api/v2/search/stocks", "/api/v1/tics/all"):
+            self.assertTrue(W.hosts_compatible(path, "wts-info-api", "wts-api"))
+            self.assertTrue(W.hosts_compatible(path, "wts-api", "wts-info-api"))
+            self.assertFalse(W.hosts_compatible(path, "wts-cert-api", "wts-api"))
+            self.assertFalse(W.hosts_compatible(path + "/other", "wts-info-api", "wts-api"))
 
     def test_collect_paths_rejects_an_exhausted_chunk_fetch(self):
         root_chunk = "/assets/v2/_next/static/chunks/root.js"
@@ -751,6 +824,35 @@ class TestClassify(unittest.TestCase):
         self.assertEqual(endpoints[path]["host"], "wts-cert-api")
         self.assertEqual(endpoints[path]["evidence"], "partial")
 
+    def test_product_price_probe_preserves_contract_missing_from_bundle(self):
+        path = "/api/v1/product/stock-prices"
+        repo = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        probes = W.discover_go_probes(repo)
+        self.assertTrue(any(p["name"] == "quote-product-prices" for p in probes))
+        with tempfile.TemporaryDirectory() as directory:
+            catalog_path = os.path.join(directory, "catalog.json")
+            prior = {"endpoints": {path: {
+                "status": "implemented", "first_seen": "2026-06-19",
+                "observed": {"method": "GET", "host": "wts-info-api"},
+            }}}
+            with open(catalog_path, "w", encoding="utf-8") as out:
+                json.dump(prior, out)
+            with mock.patch.object(W, "CATALOG", catalog_path), \
+                 mock.patch.object(W, "collect_paths", return_value=(
+                     "new-build", ["new-build"], 1, {"/api/v1/example"}, {},
+                 )), \
+                 mock.patch.object(W, "discover_go_probes", return_value=probes), \
+                 mock.patch.dict(os.environ, {"WTS_DIFF_OUT": ""}), \
+                 mock.patch("builtins.print"):
+                self.assertEqual(W.main(), 0)
+            with open(catalog_path, encoding="utf-8") as source:
+                endpoints = json.load(source)["endpoints"]
+        self.assertEqual(endpoints[path]["status"], "implemented")
+        self.assertEqual(endpoints[path]["method"], "GET")
+        self.assertEqual(endpoints[path]["host"], "wts-info-api")
+        self.assertEqual(endpoints[path]["first_seen"], "2026-06-19")
+        self.assertEqual(endpoints[path]["observed"], prior["endpoints"][path]["observed"])
+
     def test_implemented_patterns_are_not_over_broad(self):
         # exchange 계열 패턴이 접두사라서 부르지도 않는 형제 경로까지
         # implemented 로 잡던 것을 정확 경로로 좁혔다.
@@ -875,6 +977,7 @@ class TestClassify(unittest.TestCase):
                 "internal/push",
                 "internal/monitor",
                 "internal/ops/wts_operations.go",
+                "internal/ops/research_operations.go",
             },
         )
 

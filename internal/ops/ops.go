@@ -269,6 +269,7 @@ type Catalog struct {
 func NewCatalog(enabledExperiments ...string) *Catalog {
 	ops := append(readOperations(), writeOperations()...)
 	ops = append(ops, wtsOperations()...)
+	ops = append(ops, researchOperations()...)
 	ops = append(ops, settingsOperations()...)
 	ops = append(ops, historyOperations()...)
 	ops = append(ops, paperOperations()...)

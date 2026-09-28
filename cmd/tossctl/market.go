@@ -208,7 +208,7 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 			return output.WriteAISignalDetail(cmd.OutOrStdout(), app.format, detail)
 		},
 	}
-	signalCmd.Flags().StringVar(&signalType, "type", "stocks", "product type: stocks or equity_etf")
+	signalCmd.Flags().StringVar(&signalType, "type", "stocks", "product type: stocks, equity_etf, or index")
 
 	var investorsSize int
 	investorsCmd := &cobra.Command{
@@ -271,6 +271,7 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 	earningsCmd.Flags().BoolVar(&earningsMajor, "major", false, "show only major companies' earnings calls (curated)")
+	earningsCmd.AddCommand(newEarningContentCmd(opts, false), newEarningContentCmd(opts, true))
 
 	sectorsCmd := &cobra.Command{
 		Use:         "sectors [id]",

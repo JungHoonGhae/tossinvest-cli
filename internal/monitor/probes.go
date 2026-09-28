@@ -67,6 +67,27 @@ func Probes(enabledExperiments ...string) []Probe {
 	// CLI-surface probes without a registry operation (covered by cmd quote/market).
 	out = append(out,
 		Probe{
+			Name:   "quote-product-prices",
+			Method: "GET",
+			URL:    info + "/api/v1/product/stock-prices?meta=true&productCodes=A005930",
+			Check: func(status int, body []byte) error {
+				if err := expectStatus(status, 200); err != nil {
+					return err
+				}
+				for _, field := range []struct{ path, typ string }{
+					{"result", "array"},
+					{"result.0.productCode", "string"},
+					{"result.0.close", "number"},
+					{"result.0.currency", "string"},
+				} {
+					if err := expectPath(body, field.path, field.typ); err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+		},
+		Probe{
 			Name:   "quote-stock-infos",
 			Method: "GET",
 			URL:    info + "/api/v2/stock-infos/A005930",
@@ -204,6 +225,10 @@ func runProbes(ctx context.Context, sess *session.Session, probes []Probe, httpC
 					return
 				}
 				p.URL = strings.ReplaceAll(p.URL, "{watchlistGroupId}", strconv.FormatInt(watchlistGroupID, 10))
+			}
+			// The folder endpoint echoes IDs; folder-scoped news returns a news
+			// section instead. Scope substitution must not impose that wrapper.
+			if p.Name == "watchlist-group" && p.WatchlistGroupScoped {
 				baseCheck := p.Check
 				p.Check = func(status int, body []byte) error {
 					if err := baseCheck(status, body); err != nil {
