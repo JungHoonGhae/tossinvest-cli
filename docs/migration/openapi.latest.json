@@ -3976,7 +3976,7 @@
   "info": {
     "description": "토스증권 트레이딩 Open API 의 REST 스펙입니다. 실시간 체결·호가·본인 주문 이벤트 스트리밍은 REST 가 아닌 웹소켓 API(`wss://openapi-ws.tossinvest.com/ws/v1`)로 제공되며, 별도의 AsyncAPI 3.0 문서 (https://openapi.tossinvest.com/openapi-docs/latest/asyncapi.json)가 실시간 스펙의 source of truth 입니다.",
     "title": "토스증권 Open API",
-    "version": "1.2.17"
+    "version": "1.2.19"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -5077,7 +5077,7 @@
     },
     "/api/v1/conditional-orders/{conditionalOrderId}/modify": {
       "post": {
-        "description": "조건주문을 수정합니다. 조건주문 전체를 재설정하므로 본문에 `type`·`expireDate`·`first`(필요 시 `second`) 를 모두 전달합니다.\n수량(`quantity`)은 각 감시 조건(`first`/`second`) 안에 입력합니다.\n(등록과 달리 `expireDate` 가 필수입니다.) 종목은 `conditionalOrderId` 로 식별되므로 본문에 `symbol` 은 필요 없습니다.\n본문의 `type` 은 변경 결과 타입이며, 타입 전환(예: SINGLE→OCO)이 허용됩니다. 응답의 `type` 으로 확인하세요.\n\n`conditionalOrderId` 로 수정 대상을 식별합니다.\n\n**주의**: 수정은 기존 조건주문을 취소하고 새 조건주문을 생성하는 방식으로 동작합니다.\n따라서 수정 후에는 **새로운 `conditionalOrderId` 가 발급되고 기존 ID 는 무효화**됩니다.\n이후 조회·수정·취소에는 반드시 응답으로 반환된 `conditionalOrderId` 를 사용하세요.\n\n**Rate Limits Group**: `CONDITIONAL_ORDER`\n",
+        "description": "조건주문을 수정합니다. 조건주문 전체를 재설정하므로 본문에 `type`·`quantity`·`orderType`·`expireDate`·`first`(필요 시 `second`) 를 모두 전달합니다.\n종목은 `conditionalOrderId` 로 식별되므로 본문에 `symbol` 은 필요 없습니다.\n본문의 `type` 은 변경 결과 타입이며, 타입 전환(예: SINGLE→OCO)이 허용됩니다. 응답의 `type` 으로 확인하세요.\n\n`conditionalOrderId` 로 수정 대상을 식별합니다.\n\n**주의**: 수정은 기존 조건주문을 취소하고 새 조건주문을 생성하는 방식으로 동작합니다.\n따라서 수정 후에는 **새로운 `conditionalOrderId` 가 발급되고 기존 ID 는 무효화**됩니다.\n이후 조회·수정·취소에는 반드시 응답으로 반환된 `conditionalOrderId` 를 사용하세요.\n\n**Rate Limits Group**: `CONDITIONAL_ORDER`\n",
         "operationId": "modifyConditionalOrder",
         "parameters": [
           {
@@ -10737,18 +10737,32 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "invalidRequest": {
-                    "summary": "필수 파라미터 누락 / 형식 오류",
+                  "malformedCredentials": {
+                    "summary": "자격증명 형식 오류 (Authorization Basic 헤더 형식 오류, client_id/client_secret 파라미터 중복 등)",
                     "value": {
                       "error": "invalid_request",
-                      "error_description": "Required parameter is missing."
+                      "error_description": "Malformed client authentication: check Authorization header or client_id/client_secret/code_verifier parameters"
+                    }
+                  },
+                  "missingClientSecret": {
+                    "summary": "client_secret 누락 (빈 문자열 포함)",
+                    "value": {
+                      "error": "invalid_request",
+                      "error_description": "OAuth 2.0 Parameter: client_secret"
+                    }
+                  },
+                  "missingGrantType": {
+                    "summary": "grant_type 누락 (본문을 form-urlencoded 가 아닌 형식으로 보낸 경우 포함)",
+                    "value": {
+                      "error": "invalid_request",
+                      "error_description": "OAuth 2.0 Parameter: grant_type"
                     }
                   },
                   "unsupportedGrantType": {
                     "summary": "지원하지 않는 grant_type",
                     "value": {
                       "error": "unsupported_grant_type",
-                      "error_description": "Only client_credentials grant type is supported."
+                      "error_description": "OAuth 2.0 Parameter: grant_type"
                     }
                   }
                 },
@@ -10757,7 +10771,7 @@
                 }
               }
             },
-            "description": "잘못된 요청.\n필수 파라미터 누락, 지원하지 않는 grant_type 등.\n"
+            "description": "잘못된 요청.\n필수 파라미터(`grant_type`, `client_id`, `client_secret`) 누락, 자격증명 형식 오류, 지원하지 않는 grant_type 등.\n`error_description` 의 `OAuth 2.0 Parameter: {name}` 은 누락되거나 잘못된 파라미터 이름입니다.\n401 `invalid_client` 와 달리 자격증명 값이 아니라 요청 형식의 문제이므로, 값을 다시 복사하기 전에 요청 본문·헤더를 확인하세요.\n"
           },
           "401": {
             "content": {
