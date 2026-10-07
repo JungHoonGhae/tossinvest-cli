@@ -799,6 +799,15 @@
               "null"
             ]
           },
+          "orderSide": {
+            "description": "매매 유형 (매수/매도). 조건 충족 시 이 유형으로 주문을 냅니다. 등록 요청의 `orderSide` 와 같은 값입니다.",
+            "enum": [
+              "BUY",
+              "SELL"
+            ],
+            "example": "SELL",
+            "type": "string"
+          },
           "status": {
             "description": "조건(leg) 단위 상태. 최상위 조건주문 `status` 와 달리 leg 전용인 `HOLDING`·`CANCELED` 를 포함합니다.\n- `HOLDING`: 선행 조건(OTO first) 체결 전 대기 (leg 전용)\n- `CANCELED`: 취소됨 (완료된 OCO 에서 자동취소된 반대편 조건)\n",
             "enum": [
@@ -851,7 +860,8 @@
         },
         "required": [
           "type",
-          "status"
+          "status",
+          "orderSide"
         ],
         "type": "object"
       },
@@ -2109,7 +2119,7 @@
         "properties": {
           "client_id": {
             "description": "발급받은 클라이언트 ID",
-            "example": "c_01HXYZABCDEFG123456789",
+            "example": "tsck_live_example-client-id",
             "type": "string"
           },
           "client_secret": {
@@ -3976,7 +3986,7 @@
   "info": {
     "description": "토스증권 트레이딩 Open API 의 REST 스펙입니다. 실시간 체결·호가·본인 주문 이벤트 스트리밍은 REST 가 아닌 웹소켓 API(`wss://openapi-ws.tossinvest.com/ws/v1`)로 제공되며, 별도의 AsyncAPI 3.0 문서 (https://openapi.tossinvest.com/openapi-docs/latest/asyncapi.json)가 실시간 스펙의 source of truth 입니다.",
     "title": "토스증권 Open API",
-    "version": "1.2.19"
+    "version": "1.2.21"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -4606,6 +4616,7 @@
                         "expireDate": "2026-09-10",
                         "first": {
                           "orderPrice": "305",
+                          "orderSide": "SELL",
                           "status": "WATCHING",
                           "targetProfitRate": null,
                           "triggerPrice": "305",
@@ -4617,6 +4628,7 @@
                         "quantity": "100",
                         "second": {
                           "orderPrice": "294.5",
+                          "orderSide": "SELL",
                           "status": "WATCHING",
                           "targetProfitRate": null,
                           "triggerPrice": "295",
@@ -5002,6 +5014,7 @@
                     "expireDate": "2026-09-10",
                     "first": {
                       "orderPrice": "305",
+                      "orderSide": "SELL",
                       "status": "WATCHING",
                       "targetProfitRate": null,
                       "triggerPrice": "305",
@@ -5013,6 +5026,7 @@
                     "quantity": "100",
                     "second": {
                       "orderPrice": "294.5",
+                      "orderSide": "SELL",
                       "status": "WATCHING",
                       "targetProfitRate": null,
                       "triggerPrice": "295",
@@ -10706,7 +10720,7 @@
           "content": {
             "application/x-www-form-urlencoded": {
               "example": {
-                "client_id": "c_01HXYZABCDEFG123456789",
+                "client_id": "tsck_live_example-client-id",
                 "client_secret": "s_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
                 "grant_type": "client_credentials"
               },
@@ -10818,6 +10832,13 @@
         "summary": "OAuth2 액세스 토큰 발급",
         "tags": [
           "Auth"
+        ],
+        "x-codeSamples": [
+          {
+            "label": "PowerShell",
+            "lang": "PowerShell",
+            "source": "$body = @{\n  grant_type    = 'client_credentials'\n  client_id     = 'tsck_live_example-client-id'\n  client_secret = 's_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'\n}\n$response = Invoke-RestMethod -Uri 'https://openapi.tossinvest.com/oauth2/token' -Method Post -ContentType 'application/x-www-form-urlencoded' -Body $body\n$response.access_token\n"
+          }
         ]
       }
     }
