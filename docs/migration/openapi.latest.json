@@ -252,6 +252,23 @@
       "InternalErrorRanking": {
         "description": "랭킹 조회 중 일시적 오류"
       },
+      "InternalErrorSector": {
+        "content": {
+          "application/json": {
+            "example": {
+              "error": {
+                "code": "internal-error",
+                "message": "처리 중 문제가 생겼어요. 잠시 후 다시 시도해주세요.",
+                "requestId": "01HXYZABCDEFG123456789"
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        },
+        "description": "섹터 정보 조회 중 일시적 오류"
+      },
       "InternalErrorStock": {
         "content": {
           "application/json": {
@@ -383,6 +400,23 @@
             }
           }
         }
+      },
+      "SectorNotFound": {
+        "content": {
+          "application/json": {
+            "example": {
+              "error": {
+                "code": "sector-not-found",
+                "message": "섹터를 찾을 수 없습니다.",
+                "requestId": "01HXYZABCDEFG123456789"
+              }
+            },
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        },
+        "description": "섹터를 찾을 수 없음"
       },
       "ServiceUnavailable": {
         "content": {
@@ -881,7 +915,7 @@
             "type": "boolean"
           },
           "expireDate": {
-            "description": "조건주문 만료일 (YYYY-MM-DD, 필수). 만료일까지 조건이 충족되지 않으면 자동 만료됩니다.",
+            "description": "조건주문 만료일 (YYYY-MM-DD, 필수). 오늘로부터 최대 1년까지 지정할 수 있습니다. 만료일까지 조건이 충족되지 않으면 자동 만료됩니다.",
             "example": "2026-09-10",
             "format": "date",
             "type": "string"
@@ -1080,7 +1114,7 @@
             "type": "boolean"
           },
           "expireDate": {
-            "description": "조건주문 만료일 (수정 시 필수)",
+            "description": "조건주문 만료일 (수정 시 필수). 오늘로부터 최대 1년까지 지정할 수 있습니다.",
             "example": "2026-09-10",
             "format": "date",
             "type": "string"
@@ -3192,6 +3226,332 @@
         ],
         "type": "object"
       },
+      "Sector": {
+        "properties": {
+          "depth": {
+            "description": "계층 깊이. 0 = 대분류, 1 = 중분류, 2 = 소분류",
+            "example": 1,
+            "type": "integer"
+          },
+          "name": {
+            "description": "섹터명",
+            "example": "반도체",
+            "type": "string"
+          },
+          "parentSectorId": {
+            "description": "상위 섹터의 `sectorId`. 대분류(`depth` 0)는 null",
+            "example": "10",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sectorId": {
+            "description": "섹터 식별자. 다른 섹터 API 의 경로 파라미터 `sectorId` 로 사용합니다.",
+            "example": "100",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sectorId",
+          "name",
+          "depth",
+          "parentSectorId"
+        ],
+        "type": "object"
+      },
+      "SectorChangeRate": {
+        "properties": {
+          "changeRate": {
+            "description": "기간 등락률, 소수비율 (`0.0179` = 1.79%).\n해당 기간의 데이터가 없으면 null 입니다.\n",
+            "example": "0.0179",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "duration": {
+            "description": "등락률 산정 기간. 모든 기간은 거래일 기준입니다.\n- `1d`: 1일\n- `1w`: 1주\n- `1mo`: 1개월\n- `3mo`: 3개월\n- `6mo`: 6개월\n- `1y`: 1년\n",
+            "enum": [
+              "1d",
+              "1w",
+              "1mo",
+              "3mo",
+              "6mo",
+              "1y"
+            ],
+            "example": "1d",
+            "type": "string"
+          }
+        },
+        "required": [
+          "duration",
+          "changeRate"
+        ],
+        "type": "object"
+      },
+      "SectorDetailResponse": {
+        "properties": {
+          "depth": {
+            "description": "계층 깊이. 0 = 대분류, 1 = 중분류, 2 = 소분류",
+            "example": 1,
+            "type": "integer"
+          },
+          "name": {
+            "description": "섹터명",
+            "example": "반도체",
+            "type": "string"
+          },
+          "parentSectorId": {
+            "description": "상위 섹터의 `sectorId`. 대분류(`depth` 0)는 null",
+            "example": "10",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "performance": {
+            "$ref": "#/components/schemas/SectorPerformance"
+          },
+          "sectorId": {
+            "description": "섹터 식별자",
+            "example": "100",
+            "type": "string"
+          },
+          "summary": {
+            "description": "섹터 한 줄 요약. 등록되지 않은 섹터는 null",
+            "example": "반도체 설계·제조 전문 회사들",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "sectorId",
+          "name",
+          "depth",
+          "parentSectorId",
+          "summary",
+          "performance"
+        ],
+        "type": "object"
+      },
+      "SectorEtf": {
+        "properties": {
+          "name": {
+            "description": "ETF 명",
+            "example": "KODEX 반도체",
+            "type": "string"
+          },
+          "symbol": {
+            "description": "ETF 심볼. KR: 6자리 종목코드 (예: 091160), US: 영문 티커 (예: SOXX)",
+            "example": "091160",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "name"
+        ],
+        "type": "object"
+      },
+      "SectorEtfsResponse": {
+        "properties": {
+          "etfs": {
+            "description": "관련 ETF 목록 (직전 분기 시가총액이 큰 순서, 시가총액 정보가 없는 ETF 는 뒤). 해당 시장에 관련 ETF 가 없으면 빈 배열.",
+            "items": {
+              "$ref": "#/components/schemas/SectorEtf"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "etfs"
+        ],
+        "type": "object"
+      },
+      "SectorPerformance": {
+        "description": "요청한 `marketCountry` 시장 기준 기간별 등락률",
+        "properties": {
+          "changeRates": {
+            "description": "기간별 등락률. `duration` 순서(`1d` → `1y`)로 항상 6건",
+            "items": {
+              "$ref": "#/components/schemas/SectorChangeRate"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "changeRates"
+        ],
+        "type": "object"
+      },
+      "SectorRankingItem": {
+        "properties": {
+          "changeRate": {
+            "description": "`duration` 기간 등락률, 소수비율 (`0.0179` = 1.79%). `TOP_GAINERS` 의 랭킹 기준값입니다.\n항상 값이 있으며, 데이터가 없는 섹터는 `0` 입니다.\n",
+            "example": "0.0179",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "marketCapitalization": {
+            "description": "이 섹터에 속한 종목들의 시가총액 합계. 하위 섹터는 포함하지 않습니다.\n통화는 `currency` 를 따르며 US 도 원화(KRW) 환산값입니다. 데이터가 없으면 null 입니다.\n",
+            "example": "612000000000000",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "description": "섹터명",
+            "example": "반도체",
+            "type": "string"
+          },
+          "rank": {
+            "description": "순위. 1부터 시작",
+            "example": 1,
+            "type": "integer"
+          },
+          "sectorId": {
+            "description": "섹터 식별자",
+            "example": "100",
+            "type": "string"
+          },
+          "tradingAmount": {
+            "description": "`duration` 누적 거래대금. `MARKET_TRADING_AMOUNT` 의 랭킹 기준값입니다.\n통화는 `currency` 를 따르며 US 도 원화(KRW) 환산값입니다. 데이터가 없으면 null 입니다.\n",
+            "example": "2411000000000",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "rank",
+          "sectorId",
+          "name",
+          "changeRate",
+          "tradingAmount",
+          "marketCapitalization",
+          "currency"
+        ],
+        "type": "object"
+      },
+      "SectorRankingResponse": {
+        "properties": {
+          "rankings": {
+            "description": "섹터 랭킹 목록 (순위 오름차순, 최대 100건). 데이터가 없으면 빈 배열.",
+            "items": {
+              "$ref": "#/components/schemas/SectorRankingItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "rankings"
+        ],
+        "type": "object"
+      },
+      "SectorStock": {
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "marketCapitalization": {
+            "description": "시가총액 (매일 갱신). 통화는 `currency` 를 따르며 US 종목도 원화(KRW) 환산값입니다. 데이터가 없으면 null",
+            "example": "388035900000000",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "description": "종목명",
+            "example": "삼성전자",
+            "type": "string"
+          },
+          "symbol": {
+            "description": "종목 심볼. KR: 6자리 종목코드 (숫자 또는 영문·숫자 조합; 예: 005930, 0101N0), US: 영문 티커 (예: AAPL)",
+            "example": "005930",
+            "type": "string"
+          },
+          "tradingAmount": {
+            "description": "당일 누적 거래대금. 통화는 `currency` 를 따르며 US 종목도 원화(KRW) 환산값입니다. 시세 데이터가 없으면 null",
+            "example": "1041436650000",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "volume": {
+            "description": "당일 누적 거래량 (주). 시세 데이터가 없으면 null",
+            "example": "18432100",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "symbol",
+          "name",
+          "volume",
+          "tradingAmount",
+          "marketCapitalization",
+          "currency"
+        ],
+        "type": "object"
+      },
+      "SectorStocksResponse": {
+        "properties": {
+          "stocks": {
+            "description": "구성 주식 목록 (시가총액 내림차순). 하위 섹터의 종목을 포함합니다. 해당 시장에 구성 주식이 없으면 빈 배열.",
+            "items": {
+              "$ref": "#/components/schemas/SectorStock"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "stocks"
+        ],
+        "type": "object"
+      },
+      "SectorsResponse": {
+        "properties": {
+          "sectors": {
+            "description": "섹터 목록 (`depth` 오름차순, 같은 depth 안에서는 `sectorId` 오름차순)",
+            "items": {
+              "$ref": "#/components/schemas/Sector"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "sectors"
+        ],
+        "type": "object"
+      },
       "SecuritiesLendingRecord": {
         "properties": {
           "balanceAmount": {
@@ -3986,7 +4346,7 @@
   "info": {
     "description": "토스증권 트레이딩 Open API 의 REST 스펙입니다. 실시간 체결·호가·본인 주문 이벤트 스트리밍은 REST 가 아닌 웹소켓 API(`wss://openapi-ws.tossinvest.com/ws/v1`)로 제공되며, 별도의 AsyncAPI 3.0 문서 (https://openapi.tossinvest.com/openapi-docs/latest/asyncapi.json)가 실시간 스펙의 source of truth 입니다.",
     "title": "토스증권 Open API",
-    "version": "1.2.21"
+    "version": "1.2.24"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -9034,6 +9394,818 @@
         ]
       }
     },
+    "/api/v1/sectors": {
+      "get": {
+        "description": "토스증권 섹터 분류 전체를 계층 정보와 함께 한 번에 반환합니다.\n\n- 섹터는 토스증권 자체 산업 분류로, 한 종목이 여러 섹터에 속할 수 있습니다.\n- `depth` 0 = 대분류, 1 = 중분류, 2 = 소분류이며, `parentSectorId` 로 상위 섹터를 따라가면 전체 계층을 만들 수 있습니다.\n- 정렬은 `depth` 오름차순, 같은 depth 안에서는 `sectorId` 오름차순(숫자 기준)입니다.\n- 자주 바뀌지 않으므로 하루 한 번만 조회해 저장해 두고 쓰는 것을 권장합니다. 다른 섹터 API 의 `sectorId` 입력값은 이 목록에서 확인합니다.\n\n**Rate Limits Group**: `SECTOR`\n",
+        "operationId": "listSectors",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "sectors": {
+                    "summary": "섹터 목록 (계층 포함)",
+                    "value": {
+                      "result": {
+                        "sectors": [
+                          {
+                            "depth": 0,
+                            "name": "IT 하드웨어",
+                            "parentSectorId": null,
+                            "sectorId": "10"
+                          },
+                          {
+                            "depth": 1,
+                            "name": "스마트폰 부품",
+                            "parentSectorId": "10",
+                            "sectorId": "42"
+                          },
+                          {
+                            "depth": 1,
+                            "name": "반도체",
+                            "parentSectorId": "10",
+                            "sectorId": "100"
+                          },
+                          {
+                            "depth": 2,
+                            "name": "스마트폰 카메라",
+                            "parentSectorId": "42",
+                            "sectorId": "103"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/SectorsResponse"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "성공"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalErrorSector"
+          }
+        },
+        "security": [
+          {
+            "oauth2ClientCredentials": []
+          }
+        ],
+        "summary": "섹터 목록 조회",
+        "tags": [
+          "Sector"
+        ]
+      }
+    },
+    "/api/v1/sectors/rankings": {
+      "get": {
+        "description": "지정한 시장(`marketCountry`) · 기간(`duration`) · 기준(`type`)의 섹터 랭킹을 조회합니다. 상위 100위까지 한 번에 제공합니다.\n\n- 대상은 대분류(`depth` 0)와 중분류(`depth` 1) 섹터이며, 소분류(`depth` 2)는 포함되지 않습니다.\n- 소속 종목이 너무 적거나 해당 시장·기간의 데이터가 없는 섹터는 랭킹에 나타나지 않습니다.\n- `TOP_GAINERS` 는 `changeRate`, `MARKET_TRADING_AMOUNT` 는 `tradingAmount` 가 랭킹 기준값입니다. `tradingAmount` · `marketCapitalization` 은 데이터가 없으면 null 이고, `changeRate` 는 항상 값이 있습니다.\n- 금액은 US 도 원화(KRW) 환산값이며 통화는 각 항목의 `currency` 로 표기됩니다.\n- 응답 항목 수는 100건보다 적을 수 있고, 데이터가 없는 조합은 에러가 아닌 빈 `rankings` 배열로 응답합니다.\n\n**Rate Limits Group**: `SECTOR_RANKING`\n",
+        "operationId": "getSectorRankings",
+        "parameters": [
+          {
+            "description": "랭킹 종류.\n- `TOP_GAINERS`: 급상승 (기간 등락률 상위)\n- `MARKET_TRADING_AMOUNT`: 시장 거래대금 상위\n",
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "enum": [
+                "TOP_GAINERS",
+                "MARKET_TRADING_AMOUNT"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "조회 시장",
+            "in": "query",
+            "name": "marketCountry",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/MarketCountry"
+            }
+          },
+          {
+            "description": "랭킹 산정 기간. 모든 기간은 거래일 기준입니다.\n- `1d`: 1일\n- `1w`: 1주\n- `1mo`: 1개월\n- `3mo`: 3개월\n- `6mo`: 6개월\n- `1y`: 1년\n",
+            "in": "query",
+            "name": "duration",
+            "required": true,
+            "schema": {
+              "enum": [
+                "1d",
+                "1w",
+                "1mo",
+                "3mo",
+                "6mo",
+                "1y"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "emptyRankings": {
+                    "summary": "데이터 없음 (빈 배열)",
+                    "value": {
+                      "result": {
+                        "rankings": []
+                      }
+                    }
+                  },
+                  "marketTradingAmount": {
+                    "summary": "시장 거래대금 상위 (US / 1w) — 금액은 원화 환산값",
+                    "value": {
+                      "result": {
+                        "rankings": [
+                          {
+                            "changeRate": "0.0412",
+                            "currency": "KRW",
+                            "marketCapitalization": "9120000000000000",
+                            "name": "반도체",
+                            "rank": 1,
+                            "sectorId": "100",
+                            "tradingAmount": "184200000000000"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "topGainers": {
+                    "summary": "급상승 (KR / 1d) — 2위는 거래대금 데이터 없음",
+                    "value": {
+                      "result": {
+                        "rankings": [
+                          {
+                            "changeRate": "0.0179",
+                            "currency": "KRW",
+                            "marketCapitalization": "612000000000000",
+                            "name": "반도체",
+                            "rank": 1,
+                            "sectorId": "100",
+                            "tradingAmount": "2411000000000"
+                          },
+                          {
+                            "changeRate": "0.0123",
+                            "currency": "KRW",
+                            "marketCapitalization": "9800000000000",
+                            "name": "스마트폰 부품",
+                            "rank": 2,
+                            "sectorId": "42",
+                            "tradingAmount": null
+                          },
+                          {
+                            "changeRate": "0.0098",
+                            "currency": "KRW",
+                            "marketCapitalization": "998000000000000",
+                            "name": "IT 하드웨어",
+                            "rank": 3,
+                            "sectorId": "10",
+                            "tradingAmount": "3105000000000"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/SectorRankingResponse"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "성공"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "missingRequiredParameter": {
+                    "summary": "필수 파라미터 누락 (type · marketCountry · duration 동일 형식)",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "field": "type"
+                        },
+                        "message": "요청 필드가 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
+                  "unsupportedDuration": {
+                    "summary": "지원하지 않는 duration 값",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "allowedValues": [
+                            "1d",
+                            "1w",
+                            "1mo",
+                            "3mo",
+                            "6mo",
+                            "1y"
+                          ],
+                          "field": "duration"
+                        },
+                        "message": "요청이 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
+                  "unsupportedMarketCountry": {
+                    "summary": "지원하지 않는 marketCountry 값",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "allowedValues": [
+                            "KR",
+                            "US"
+                          ],
+                          "field": "marketCountry"
+                        },
+                        "message": "요청이 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
+                  "unsupportedType": {
+                    "summary": "지원하지 않는 type 값",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "allowedValues": [
+                            "TOP_GAINERS",
+                            "MARKET_TRADING_AMOUNT"
+                          ],
+                          "field": "type"
+                        },
+                        "message": "요청이 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "잘못된 요청"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalErrorSector"
+          }
+        },
+        "security": [
+          {
+            "oauth2ClientCredentials": []
+          }
+        ],
+        "summary": "섹터 랭킹 조회",
+        "tags": [
+          "Sector"
+        ]
+      }
+    },
+    "/api/v1/sectors/{sectorId}": {
+      "get": {
+        "description": "섹터의 기본 정보(이름 · 계층 · 한 줄 요약)와 지정한 시장(`marketCountry`) 기준 기간별 등락률을 조회합니다.\n\n- 기본 정보는 시장과 무관하며, `performance.changeRates` 만 `marketCountry` 기준입니다.\n- `changeRates` 는 `duration` 순서(`1d` → `1y`)로 항상 6건이며, 데이터가 없는 기간은 `changeRate` 가 null 입니다 (예: 해당 시장에 구성 종목이 없는 섹터).\n- 등락률은 소수비율입니다.\n- 목록(`GET /api/v1/sectors`)에 없는 `sectorId` 는 404 `sector-not-found` 로 응답합니다.\n\n**Rate Limits Group**: `SECTOR`\n",
+        "operationId": "getSector",
+        "parameters": [
+          {
+            "description": "섹터 식별자. `GET /api/v1/sectors` 응답의 `sectorId` 값을 사용합니다.",
+            "example": "100",
+            "in": "path",
+            "name": "sectorId",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{1,40}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "등락률(`performance`)의 기준 시장",
+            "in": "query",
+            "name": "marketCountry",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/MarketCountry"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "sector": {
+                    "summary": "섹터 상세 (KR) — 6개월 등락률은 데이터 없음",
+                    "value": {
+                      "result": {
+                        "depth": 1,
+                        "name": "반도체",
+                        "parentSectorId": "10",
+                        "performance": {
+                          "changeRates": [
+                            {
+                              "changeRate": "0.0179",
+                              "duration": "1d"
+                            },
+                            {
+                              "changeRate": "0.0412",
+                              "duration": "1w"
+                            },
+                            {
+                              "changeRate": "-0.0231",
+                              "duration": "1mo"
+                            },
+                            {
+                              "changeRate": "0.1188",
+                              "duration": "3mo"
+                            },
+                            {
+                              "changeRate": null,
+                              "duration": "6mo"
+                            },
+                            {
+                              "changeRate": "0.3542",
+                              "duration": "1y"
+                            }
+                          ]
+                        },
+                        "sectorId": "100",
+                        "summary": "반도체 설계·제조 전문 회사들"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/SectorDetailResponse"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "성공"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalidSectorId": {
+                    "summary": "sectorId 형식 위반",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "field": "sectorId",
+                          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+                          "rule": "Pattern"
+                        },
+                        "message": "요청 필드가 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
+                  "missingMarketCountry": {
+                    "summary": "필수 파라미터 marketCountry 누락",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "field": "marketCountry"
+                        },
+                        "message": "요청 필드가 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
+                  "unsupportedMarketCountry": {
+                    "summary": "지원하지 않는 marketCountry 값",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "allowedValues": [
+                            "KR",
+                            "US"
+                          ],
+                          "field": "marketCountry"
+                        },
+                        "message": "요청이 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "잘못된 요청"
+          },
+          "404": {
+            "$ref": "#/components/responses/SectorNotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalErrorSector"
+          }
+        },
+        "security": [
+          {
+            "oauth2ClientCredentials": []
+          }
+        ],
+        "summary": "섹터 상세 조회",
+        "tags": [
+          "Sector"
+        ]
+      }
+    },
+    "/api/v1/sectors/{sectorId}/etfs": {
+      "get": {
+        "description": "이 섹터로 분류된 ETF 전체를 지정한 시장(`marketCountry`) 기준으로 반환합니다 (하위 섹터 미포함).\n\n- 직전 분기 시가총액이 큰 순서이며, 시가총액 정보가 없는 ETF 는 뒤에 옵니다.\n- 심볼과 이름만 제공합니다. 시세는 `GET /api/v1/prices`, 종목 기본 정보는 `GET /api/v1/stocks` 를 사용하세요.\n- 상장폐지된 ETF 는 제외됩니다.\n- 목록(`GET /api/v1/sectors`)에 없는 `sectorId` 는 404 `sector-not-found` 로 응답합니다.\n\n**Rate Limits Group**: `SECTOR`\n",
+        "operationId": "getSectorEtfs",
+        "parameters": [
+          {
+            "description": "섹터 식별자. `GET /api/v1/sectors` 응답의 `sectorId` 값을 사용합니다. 하위 섹터는 포함하지 않습니다.",
+            "example": "100",
+            "in": "path",
+            "name": "sectorId",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{1,40}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "조회 시장 (KR = 국내 상장 ETF, US = 미국 상장 ETF)",
+            "in": "query",
+            "name": "marketCountry",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/MarketCountry"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "emptyEtfs": {
+                    "summary": "해당 시장에 관련 ETF 없음 (빈 배열)",
+                    "value": {
+                      "result": {
+                        "etfs": []
+                      }
+                    }
+                  },
+                  "krEtfs": {
+                    "summary": "관련 ETF (KR)",
+                    "value": {
+                      "result": {
+                        "etfs": [
+                          {
+                            "name": "KODEX 반도체",
+                            "symbol": "091160"
+                          },
+                          {
+                            "name": "TIGER Fn반도체TOP10",
+                            "symbol": "396500"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/SectorEtfsResponse"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "성공"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalidSectorId": {
+                    "summary": "sectorId 형식 위반",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "field": "sectorId",
+                          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+                          "rule": "Pattern"
+                        },
+                        "message": "요청 필드가 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
+                  "missingMarketCountry": {
+                    "summary": "필수 파라미터 marketCountry 누락",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "field": "marketCountry"
+                        },
+                        "message": "요청 필드가 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
+                  "unsupportedMarketCountry": {
+                    "summary": "지원하지 않는 marketCountry 값",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "allowedValues": [
+                            "KR",
+                            "US"
+                          ],
+                          "field": "marketCountry"
+                        },
+                        "message": "요청이 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "잘못된 요청"
+          },
+          "404": {
+            "$ref": "#/components/responses/SectorNotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalErrorSector"
+          }
+        },
+        "security": [
+          {
+            "oauth2ClientCredentials": []
+          }
+        ],
+        "summary": "섹터 관련 ETF 조회",
+        "tags": [
+          "Sector"
+        ]
+      }
+    },
+    "/api/v1/sectors/{sectorId}/stocks": {
+      "get": {
+        "description": "섹터(하위 섹터 포함)에 속한 보통주 전체를 지정한 시장(`marketCountry`) 기준으로 시가총액 내림차순 반환합니다.\n\n- `volume` · `tradingAmount` 는 당일 누적값이며, 시세가 없는 종목은 null 입니다.\n- 금액은 US 종목도 원화(KRW) 환산값이며 통화는 각 항목의 `currency` 로 표기됩니다.\n- 상장폐지된 종목은 제외됩니다.\n- 목록(`GET /api/v1/sectors`)에 없는 `sectorId` 는 404 `sector-not-found` 로 응답합니다.\n\n**Rate Limits Group**: `SECTOR`\n",
+        "operationId": "getSectorStocks",
+        "parameters": [
+          {
+            "description": "섹터 식별자. `GET /api/v1/sectors` 응답의 `sectorId` 값을 사용합니다. 하위 섹터의 종목을 포함합니다.",
+            "example": "100",
+            "in": "path",
+            "name": "sectorId",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{1,40}$",
+              "type": "string"
+            }
+          },
+          {
+            "description": "조회 시장",
+            "in": "query",
+            "name": "marketCountry",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/MarketCountry"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "emptyStocks": {
+                    "summary": "해당 시장에 구성 주식 없음 (빈 배열)",
+                    "value": {
+                      "result": {
+                        "stocks": []
+                      }
+                    }
+                  },
+                  "krStocks": {
+                    "summary": "구성 주식 (KR)",
+                    "value": {
+                      "result": {
+                        "stocks": [
+                          {
+                            "currency": "KRW",
+                            "marketCapitalization": "388035900000000",
+                            "name": "삼성전자",
+                            "symbol": "005930",
+                            "tradingAmount": "1041436650000",
+                            "volume": "18432100"
+                          },
+                          {
+                            "currency": "KRW",
+                            "marketCapitalization": "140150000000000",
+                            "name": "SK하이닉스",
+                            "symbol": "000660",
+                            "tradingAmount": "927910250000",
+                            "volume": "4821300"
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "usStocks": {
+                    "summary": "구성 주식 (US) — 금액은 원화 환산값, 통화는 currency 로 표기",
+                    "value": {
+                      "result": {
+                        "stocks": [
+                          {
+                            "currency": "KRW",
+                            "marketCapitalization": "4703000000000000",
+                            "name": "엔비디아",
+                            "symbol": "NVDA",
+                            "tradingAmount": "31204500000000",
+                            "volume": "182400500"
+                          }
+                        ]
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/SectorStocksResponse"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "성공"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalidSectorId": {
+                    "summary": "sectorId 형식 위반",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "field": "sectorId",
+                          "pattern": "^[A-Za-z0-9_-]{1,40}$",
+                          "rule": "Pattern"
+                        },
+                        "message": "요청 필드가 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
+                  "missingMarketCountry": {
+                    "summary": "필수 파라미터 marketCountry 누락",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "field": "marketCountry"
+                        },
+                        "message": "요청 필드가 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
+                  "unsupportedMarketCountry": {
+                    "summary": "지원하지 않는 marketCountry 값",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "allowedValues": [
+                            "KR",
+                            "US"
+                          ],
+                          "field": "marketCountry"
+                        },
+                        "message": "요청이 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "잘못된 요청"
+          },
+          "404": {
+            "$ref": "#/components/responses/SectorNotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalErrorSector"
+          }
+        },
+        "security": [
+          {
+            "oauth2ClientCredentials": []
+          }
+        ],
+        "summary": "섹터 구성 주식 조회",
+        "tags": [
+          "Sector"
+        ]
+      }
+    },
     "/api/v1/sellable-quantity": {
       "get": {
         "description": "특정 종목의 판매 가능 수량을 조회합니다.\n\n**Rate Limits Group**: `ORDER_INFO`\n",
@@ -10879,6 +12051,10 @@
       "name": "Market Indicators"
     },
     {
+      "description": "토스증권 자체 산업 분류인 섹터의 목록·상세·구성 주식·관련 ETF·랭킹을 조회하는 그룹입니다. 섹터는 대분류(depth 0)·중분류(1)·소분류(2)의 계층 구조이며 한 종목이 여러 섹터에 속할 수 있습니다. 계좌와 무관한 정보로 토큰만으로 호출할 수 있습니다.",
+      "name": "Sector"
+    },
+    {
       "description": "사용자 본인의 계좌 목록을 조회하는 그룹입니다. 해지·휴면 등을 제외한 정상 상태의 계좌만 반환하며, 계좌가 없으면 빈 배열을 응답합니다. 응답에 포함된 `accountSeq`는 보유 주식·주문·매수 가능 금액 등 계좌정보가  필요한 모든 API의 `X-Tossinvest-Account` 헤더 값으로 사용되므로, 다른 계좌 관련 API를 호출하기 전 가장 먼저 호출하는 진입점에 해당합니다.",
       "name": "Account"
     },
@@ -10921,7 +12097,8 @@
         "Stock Info",
         "Market Info",
         "Ranking",
-        "Market Indicators"
+        "Market Indicators",
+        "Sector"
       ]
     },
     {
