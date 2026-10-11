@@ -63,7 +63,7 @@ Some rows include both reads and changes. `add/remove`, `hide/show`, and watchli
 | Feature | Command | Official API | tossctl |
 |------|------|:--:|:--:|
 | Accounts / summary | `account list`, `account summary` | ✅ | ✅ |
-| 🆕 All-account overview | `account overview [--full]` | ❌ | ✅ |
+| All-account overview | `account overview [--full]` | ❌ | ✅ |
 | 🆕 Securities trading settings | `account trading-settings [--account <key>]` (only simple trade is account-specific) | ❌ | ✅ |
 | 🆕 Securities transfer accounts | `account transfer-accounts [--account <key>] [--full]` (masked by default; never initiates a transfer) | ❌ | ✅ |
 | 🆕 Securities access and account restrictions | `account access-status [--account <key>]` (last login, margin freeze, accident-account count; no mutation) | ❌ | ✅ |
@@ -83,7 +83,7 @@ Some rows include both reads and changes. `add/remove`, `hide/show`, and watchli
 | Earnings calendar & detail | `market earnings [event-id]` (`--major`: major companies) | ❌ | ✅ |
 | Personalized news briefing | `market briefing` (asset, return, reasoning, news) | ❌ | ✅ |
 | Market, holdings, and watchlist news | `market news --type <scope>` | ❌ | ✅ |
-| 🆕 Key earnings & economic releases | `market key-events` | ❌ | ✅ |
+| Key earnings & economic releases | `market key-events` | ❌ | ✅ |
 | 🆕 Securities stock-accumulation funding status | `accumulate funding-status [--full]` (`banking status` is a deprecated alias; not general Banking/MyData; internal ID omitted) | ❌ | ✅ |
 | 🆕 Notification preferences and status | `notifications list`, `notifications status` (canonical preferences, inbox unread state, and AI-analysis agreement; no mutation) | ❌ | ✅ |
 | Target-price alert read & management | `quote alert list/add/remove` | ❌ | ✅ |

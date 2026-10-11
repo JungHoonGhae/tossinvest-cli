@@ -60,7 +60,7 @@ app/device header, request/response cipher를 처리하는 mobile connector가 �
 | 기능 | 명령 | 공식 API | tossctl |
 |------|------|:--:|:--:|
 | 계좌 목록 / 요약 | `account list`, `account summary` | ✅ | ✅ |
-| 🆕 전체 계좌 자산 | `account overview [--full]` | ❌ | ✅ |
+| 전체 계좌 자산 | `account overview [--full]` | ❌ | ✅ |
 | 🆕 증권 거래 설정 조회 | `account trading-settings [--account <key>]` (간편주문만 계좌별) | ❌ | ✅ |
 | 🆕 증권 주식이체 계좌 조회 | `account transfer-accounts [--account <key>] [--full]` (번호 기본 마스킹, 이체 실행 없음) | ❌ | ✅ |
 | 🆕 증권 접속·계좌 제한 상태 | `account access-status [--account <key>]` (최근 접속, 신용거래 동결, 사고계좌 수; 변경 없음) | ❌ | ✅ |
@@ -80,7 +80,7 @@ app/device header, request/response cipher를 처리하는 mobile connector가 �
 | 실적(어닝콜) 일정·상세 | `market earnings [event-id]` (`--major`: 주요 기업) | ❌ | ✅ |
 | 개인화 뉴스 브리핑 | `market briefing` (종목·수익률·AI 사유·뉴스) | ❌ | ✅ |
 | 시장·보유·관심종목 뉴스 | `market news --type <scope>` | ❌ | ✅ |
-| 🆕 핵심 실적·경제지표 | `market key-events` | ❌ | ✅ |
+| 핵심 실적·경제지표 | `market key-events` | ❌ | ✅ |
 | 🆕 증권 주식모으기 자금연결 상태 | `accumulate funding-status [--full]` (`banking status`는 deprecated alias; 일반 Banking/MyData 아님, 내부 ID 미출력) | ❌ | ✅ |
 | 🆕 알림 설정·상태 조회 | `notifications list`, `notifications status` (통합 설정·받은함·AI 분석 동의, 변경 없음) | ❌ | ✅ |
 | 목표가 알림 조회·관리 | `quote alert list/add/remove` | ❌ | ✅ |
