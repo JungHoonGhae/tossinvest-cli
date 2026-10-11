@@ -1,6 +1,6 @@
 module github.com/JungHoonGhae/tossinvest-cli
 
-go 1.25.13
+go 1.26.9
 
 require (
 	github.com/charmbracelet/bubbles v1.0.0
