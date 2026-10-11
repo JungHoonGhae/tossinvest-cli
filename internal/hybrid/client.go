@@ -455,3 +455,29 @@ func (c *Client) ListStocks(ctx context.Context, market, status, securityType st
 		return off.ListStocks(ctx, market, status, securityType, commonShareOnly)
 	})
 }
+
+// Official sector taxonomy (spec 1.2.24). Official-only: the WTS TICS tree
+// (GetSectors/GetSectorDetail) uses different ids and is not a fallback.
+func (c *Client) Sectors(ctx context.Context) (domain.SectorCatalog, error) {
+	return officialOnly(c, func(off *official.Client) (domain.SectorCatalog, error) { return off.Sectors(ctx) })
+}
+
+func (c *Client) Sector(ctx context.Context, id, market string) (domain.SectorProfile, error) {
+	return officialOnly(c, func(off *official.Client) (domain.SectorProfile, error) { return off.Sector(ctx, id, market) })
+}
+
+func (c *Client) SectorRankings(ctx context.Context, rankingType, market, duration string) (domain.SectorRankings, error) {
+	return officialOnly(c, func(off *official.Client) (domain.SectorRankings, error) {
+		return off.SectorRankings(ctx, rankingType, market, duration)
+	})
+}
+
+func (c *Client) SectorStocks(ctx context.Context, id, market string) (domain.SectorConstituents, error) {
+	return officialOnly(c, func(off *official.Client) (domain.SectorConstituents, error) {
+		return off.SectorStocks(ctx, id, market)
+	})
+}
+
+func (c *Client) SectorETFs(ctx context.Context, id, market string) (domain.SectorETFs, error) {
+	return officialOnly(c, func(off *official.Client) (domain.SectorETFs, error) { return off.SectorETFs(ctx, id, market) })
+}

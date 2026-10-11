@@ -50,11 +50,11 @@ func WriteConditionalOrder(w io.Writer, format Format, o domain.ConditionalOrder
 		return writeJSON(w, o)
 	case FormatCSV:
 		cw := csv.NewWriter(w)
-		if err := cw.Write([]string{"leg", "cond_type", "status", "trigger_price", "order_price", "target_profit_rate"}); err != nil {
+		if err := cw.Write([]string{"leg", "cond_type", "side", "status", "trigger_price", "order_price", "target_profit_rate"}); err != nil {
 			return err
 		}
 		legRow := func(name string, c domain.ConditionalOrderCondition) []string {
-			return []string{name, c.Type, c.Status,
+			return []string{name, c.Type, c.OrderSide, c.Status,
 				strconv.FormatFloat(c.TriggerPrice, 'f', -1, 64),
 				strconv.FormatFloat(c.OrderPrice, 'f', -1, 64),
 				strconv.FormatFloat(c.TargetProfitRate, 'f', -1, 64)}
@@ -76,12 +76,13 @@ func WriteConditionalOrder(w io.Writer, format Format, o domain.ConditionalOrder
 		headers := []string{
 			i18n.T("output.conditional.leg.header.leg"),
 			i18n.T("output.conditional.leg.header.condType"),
+			i18n.T("output.conditional.leg.header.side"),
 			i18n.T("output.conditional.header.status"),
 			i18n.T("output.conditional.leg.header.trigger"),
 			i18n.T("output.conditional.leg.header.orderPrice"),
 		}
 		legRow := func(name string, c domain.ConditionalOrderCondition) []string {
-			return []string{name, c.Type, c.Status,
+			return []string{name, c.Type, c.OrderSide, c.Status,
 				strconv.FormatFloat(c.TriggerPrice, 'f', -1, 64),
 				strconv.FormatFloat(c.OrderPrice, 'f', -1, 64)}
 		}

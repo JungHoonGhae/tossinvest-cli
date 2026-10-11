@@ -84,7 +84,7 @@ func readOperations() []Operation {
 	return []Operation{
 		{
 			ID: "auth_status", Method: "GET", Path: "local:auth-status", Backend: "none", Domain: "system",
-			Category: "system", Summary: "Which backends are connected and when they expire — WTS web session and official Open API key. No secrets returned. Call this to diagnose auth before other operations; a disconnected/expired backend means run `tossctl auth login` (WTS) or `tossctl openapi login` (official).",
+			Category: "system", Summary: "Which backends are connected and when they expire (WTS session, official key); no secrets. If one is missing run `tossctl auth login` (WTS) or `tossctl openapi login` (official).",
 			handler: func(_ context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.Auth, nil
 			},
@@ -370,7 +370,7 @@ func readOperations() []Operation {
 		},
 		{
 			ID: "market_stocks", Method: "GET", Path: "/api/v1/stocks/all",
-			Category: "market", Summary: "Every tradable stock on one market (the universe), sorted by symbol. Thousands of rows in a single response with no pagination — low-churn batch data refreshed daily, so cache rather than re-request. Use the returned symbols with the per-symbol operations.",
+			Category: "market", Summary: "Every tradable stock on one market, sorted by symbol — thousands of rows, no pagination, refreshed daily: cache it. Symbols feed the per-symbol operations.",
 			Params: []Param{
 				{Name: "market", Type: "string", Required: true, Desc: `"KOSPI", "KOSDAQ", "NYSE", "NASDAQ", "AMEX", "KR_ETC", or "US_ETC"`},
 				{Name: "status", Type: "string", Desc: `"ACTIVE" (default), "SCHEDULED", or "DELISTED"`},
@@ -386,6 +386,79 @@ func readOperations() []Operation {
 				secType, _ := args["security_type"].(string)
 				common, _ := args["common_share"].(bool)
 				return d.Client.ListStocks(ctx, market, status, secType, common)
+			},
+		},
+		{
+			ID: "sector_catalog", Method: "GET", Path: "/api/v1/sectors",
+			Category: "market", Summary: "Official sector taxonomy: all sectors with depth (0–2) and parent id; ids feed the other sector_* ops. Not the WTS TICS tree.",
+			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
+				return d.Client.Sectors(ctx)
+			},
+		},
+		{
+			ID: "sector_rankings", Method: "GET", Path: "/api/v1/sectors/rankings",
+			Category: "market", Summary: "Top-100 official sectors (depth 0–1) by change rate or trading amount. Rates are decimal ratios; KRW amounts null without data.",
+			Params: []Param{
+				{Name: "type", Type: "string", Required: true, Desc: `"TOP_GAINERS" or "MARKET_TRADING_AMOUNT"`},
+				{Name: "market", Type: "string", Desc: `"KR" (default) or "US"`},
+				{Name: "duration", Type: "string", Desc: `"1d" (default), "1w", "1mo", "3mo", "6mo", or "1y" — trading days`},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				typ, err := argString(args, "type")
+				if err != nil {
+					return nil, err
+				}
+				market, _ := args["market"].(string)
+				duration, _ := args["duration"].(string)
+				return d.Client.SectorRankings(ctx, typ, market, duration)
+			},
+		},
+		{
+			ID: "sector_profile", Method: "GET", Path: "/api/v1/sectors/{sectorId}",
+			Category: "market", Summary: "One official sector's summary and 1d–1y change rates (decimal ratio, null = no constituents on that market).",
+			Params: []Param{
+				{Name: "sector_id", Type: "string", Required: true, Desc: "id from sector_catalog"},
+				{Name: "market", Type: "string", Desc: `"KR" (default) or "US"`},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				id, err := argString(args, "sector_id")
+				if err != nil {
+					return nil, err
+				}
+				market, _ := args["market"].(string)
+				return d.Client.Sector(ctx, id, market)
+			},
+		},
+		{
+			ID: "sector_constituents", Method: "GET", Path: "/api/v1/sectors/{sectorId}/stocks",
+			Category: "market", Summary: "Common stocks in an official sector (sub-sectors included), market cap desc. Today's volume/amount null without a quote.",
+			Params: []Param{
+				{Name: "sector_id", Type: "string", Required: true, Desc: "id from sector_catalog"},
+				{Name: "market", Type: "string", Desc: `"KR" (default) or "US"`},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				id, err := argString(args, "sector_id")
+				if err != nil {
+					return nil, err
+				}
+				market, _ := args["market"].(string)
+				return d.Client.SectorStocks(ctx, id, market)
+			},
+		},
+		{
+			ID: "sector_etfs", Method: "GET", Path: "/api/v1/sectors/{sectorId}/etfs",
+			Category: "market", Summary: "ETFs under an official sector (sub-sectors excluded): symbol and name only.",
+			Params: []Param{
+				{Name: "sector_id", Type: "string", Required: true, Desc: "id from sector_catalog"},
+				{Name: "market", Type: "string", Desc: `"KR" (default) or "US"`},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				id, err := argString(args, "sector_id")
+				if err != nil {
+					return nil, err
+				}
+				market, _ := args["market"].(string)
+				return d.Client.SectorETFs(ctx, id, market)
 			},
 		},
 		{
@@ -450,7 +523,7 @@ func readOperations() []Operation {
 		},
 		{
 			ID: "market_calendar", Method: "GET", Path: "/api/v1/market-calendar/{country}",
-			Category: "market", Summary: "KR/US previous/today/next business-day sessions and holiday flag. KR after_market: KRX/NXT union, earliest start to latest end; absent only if both close. Its single_price_auction_end is NXT-based, omitted if NXT closes; a session alone does not imply NXT is open. KR pre/post-market closing-price sessions excluded; US includes day_market. CLI: market business-days.",
+			Category: "market", Summary: "KR/US previous/today/next business-day sessions and holiday flag. KR after_market is the KRX/NXT union (absent only if both close); its single_price_auction_end is NXT-based and omitted if NXT closes. KR pre/post closing-price sessions excluded; US includes day_market.",
 			Params: []Param{
 				{Name: "country", Type: "string", Required: true, Desc: `"KR" or "US"`},
 				{Name: "date", Type: "string", Desc: "reference date YYYY-MM-DD (default: today)"},

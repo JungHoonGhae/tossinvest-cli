@@ -285,8 +285,8 @@
     },
     "/api/v2/dashboard/wts/overview/tics/ranking": {
       "status": "candidate",
-      "priority": "deferred",
-      "note": "POST descriptor는 확인했지만 현재 bundle에 소비 호출부와 body 계약이 없다. 구현된 /api/v1/tics/rankings와 중복 여부도 미확정이라 보류 (2026-09-03)."
+      "priority": "rejected",
+      "note": "POST descriptor만 확인되고 body 계약이 없다. 공식 GET /api/v1/sectors/rankings(1.2.24, sector_rankings 로 구현)가 섹터 랭킹을 제공하므로 추적 중단 (2026-10-11)."
     },
     "/api/v1/dividends/accounts/{key}": {
       "status": "candidate",

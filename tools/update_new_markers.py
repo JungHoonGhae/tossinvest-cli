@@ -28,6 +28,11 @@ FILES = [
 # Longest keys are matched first so e.g. "market ranking" never matches a
 # "community rankings" row. Date = CHANGELOG version date of first appearance.
 FEATURE_DATES = {
+    "sector list": "2026-10-11",
+    "sector rankings": "2026-10-11",
+    "sector show": "2026-10-11",
+    "sector stocks": "2026-10-11",
+    "sector etfs": "2026-10-11",
     "orders completed --all-dates": "2026-09-14",
     "account overview": "2026-09-03",
     "market key-events": "2026-09-03",
