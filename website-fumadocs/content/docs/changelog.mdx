@@ -9,6 +9,8 @@ description: tossctl 버전별 변경 사항 (사용자 관점)
 
 ## [Unreleased]
 
+## [0.54.0] - 2026-10-11
+
 ### 새 기능
 - **공식 섹터 분류 조회** — 공식 Open API 1.2.24 에 추가된 토스증권 자체 섹터 분류를 `sector list`(전체 계층), `sector rankings <TOP_GAINERS|MARKET_TRADING_AMOUNT>`(상위 100, `--market KR|US`, `--duration 1d…1y`), `sector show <id>`(요약·기간별 등락률), `sector stocks <id>`(구성 보통주), `sector etfs <id>`(관련 ETF)로 조회합니다. 토큰만 있으면 되고 계좌는 필요 없습니다. 기존 `market sectors`(WTS TICS)와는 id 체계가 다릅니다.
 - 조건주문 조회에 각 감시 조건의 매매 방향(`order_side`)을 표시합니다. MCP 안정 오퍼레이션은 125개입니다.
