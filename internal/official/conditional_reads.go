@@ -13,6 +13,7 @@ import (
 // fields arrive as "" when JSON null).
 type apiConditionalCondition struct {
 	Type             string `json:"type"`
+	OrderSide        string `json:"orderSide"`
 	Status           string `json:"status"`
 	TriggerPrice     string `json:"triggerPrice"`
 	TargetProfitRate string `json:"targetProfitRate"`
@@ -88,6 +89,7 @@ func (c *Client) ConditionalOrder(ctx context.Context, id string) (domain.Condit
 func adaptCondition(a apiConditionalCondition) domain.ConditionalOrderCondition {
 	return domain.ConditionalOrderCondition{
 		Type:             a.Type,
+		OrderSide:        a.OrderSide,
 		Status:           a.Status,
 		TriggerPrice:     parseDecimal(a.TriggerPrice),
 		TargetProfitRate: parseDecimal(a.TargetProfitRate),
