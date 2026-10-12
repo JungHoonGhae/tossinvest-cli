@@ -1,17 +1,17 @@
 {
   "source": "tossinvest.com web bundles",
-  "build_id": "pbub84LX46OeSYEcuW6BP",
+  "build_id": "YNtK7AEyF5RExHH6OT4DC",
   "build_ids": [
-    "pbub84LX46OeSYEcuW6BP"
+    "YNtK7AEyF5RExHH6OT4DC"
   ],
   "chunk_count": 77,
   "total": 1317,
   "counts": {
     "implemented": 169,
-    "candidate": 453,
-    "excluded": 695,
-    "candidate_next": 1,
-    "meaningful": 622
+    "candidate": 444,
+    "excluded": 704,
+    "candidate_next": 0,
+    "meaningful": 613
   },
   "overrides": {
     "/api/v1/openapi/client/allowed-ips": {
@@ -488,6 +488,21 @@
       "host": "wts-cert-api",
       "evidence": "verified",
       "note": "Authenticated GET with watchlistId verified 2026-09-28 on two existing folders with different results. Exposed through watchlist news after validating folder existence; server-limited recommendation page, not an exhaustive stock-news feed."
+    },
+    "/api/v1/profit/products/{productCode}/summary": {
+      "status": "candidate",
+      "priority": "deferred",
+      "note": "웹 번들에 descriptor 만 있고 소비 호출부가 없다(2026-10-12 빌드 pbub84LX46OeSYEcuW6BP). 종목별 실현손익으로 보이며 기존 profit summary·daily 와 겹치는지 파라미터·응답을 못 봐 보류. 웹 화면에 쓰이기 시작하면 재검토 (2026-10-13)."
+    },
+    "/api/v1/profit/products/{productCode}/period-summaries": {
+      "status": "candidate",
+      "priority": "deferred",
+      "note": "웹 번들에 descriptor 만 있고 소비 호출부가 없다(2026-10-12 빌드 pbub84LX46OeSYEcuW6BP). 종목별 실현손익으로 보이며 기존 profit summary·daily 와 겹치는지 파라미터·응답을 못 봐 보류. 웹 화면에 쓰이기 시작하면 재검토 (2026-10-13)."
+    },
+    "/api/v1/profit/products/{productCode}/histories": {
+      "status": "candidate",
+      "priority": "deferred",
+      "note": "웹 번들에 descriptor 만 있고 소비 호출부가 없다(2026-10-12 빌드 pbub84LX46OeSYEcuW6BP). 종목별 실현손익으로 보이며 기존 profit summary·daily 와 겹치는지 파라미터·응답을 못 봐 보류. 웹 화면에 쓰이기 시작하면 재검토 (2026-10-13)."
     }
   },
   "endpoints": {
@@ -5636,18 +5651,24 @@
     },
     "/api/v1/profit/products/{productCode}/histories": {
       "status": "candidate",
+      "note": "웹 번들에 descriptor 만 있고 소비 호출부가 없다(2026-10-12 빌드 pbub84LX46OeSYEcuW6BP). 종목별 실현손익으로 보이며 기존 profit summary·daily 와 겹치는지 파라미터·응답을 못 봐 보류. 웹 화면에 쓰이기 시작하면 재검토 (2026-10-13).",
+      "priority": "deferred",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-10-12"
     },
     "/api/v1/profit/products/{productCode}/period-summaries": {
       "status": "candidate",
+      "note": "웹 번들에 descriptor 만 있고 소비 호출부가 없다(2026-10-12 빌드 pbub84LX46OeSYEcuW6BP). 종목별 실현손익으로 보이며 기존 profit summary·daily 와 겹치는지 파라미터·응답을 못 봐 보류. 웹 화면에 쓰이기 시작하면 재검토 (2026-10-13).",
+      "priority": "deferred",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-10-12"
     },
     "/api/v1/profit/products/{productCode}/summary": {
       "status": "candidate",
+      "note": "웹 번들에 descriptor 만 있고 소비 호출부가 없다(2026-10-12 빌드 pbub84LX46OeSYEcuW6BP). 종목별 실현손익으로 보이며 기존 profit summary·daily 와 겹치는지 파라미터·응답을 못 봐 보류. 웹 화면에 쓰이기 시작하면 재검토 (2026-10-13).",
+      "priority": "deferred",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-10-12"
@@ -7718,55 +7739,64 @@
       "first_seen": "2026-09-21"
     },
     "/api/v1/stockinout/intra-firm/continue": {
-      "status": "candidate",
+      "status": "excluded",
+      "note": "intra-firm stock transfer flow (asset movement)",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-10-12"
     },
     "/api/v1/stockinout/intra-firm/draft": {
-      "status": "candidate",
+      "status": "excluded",
+      "note": "intra-firm stock transfer flow (asset movement)",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-10-12"
     },
     "/api/v1/stockinout/intra-firm/histories": {
-      "status": "candidate",
+      "status": "excluded",
+      "note": "intra-firm stock transfer flow (asset movement)",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-10-12"
     },
     "/api/v1/stockinout/intra-firm/received": {
-      "status": "candidate",
+      "status": "excluded",
+      "note": "intra-firm stock transfer flow (asset movement)",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-10-12"
     },
     "/api/v1/stockinout/intra-firm/stock-balances": {
-      "status": "candidate",
+      "status": "excluded",
+      "note": "intra-firm stock transfer flow (asset movement)",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-10-12"
     },
     "/api/v1/stockinout/intra-firm/summary": {
-      "status": "candidate",
+      "status": "excluded",
+      "note": "intra-firm stock transfer flow (asset movement)",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-10-12"
     },
     "/api/v1/stockinout/intra-firm/transaction": {
-      "status": "candidate",
+      "status": "excluded",
+      "note": "intra-firm stock transfer flow (asset movement)",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-10-12"
     },
     "/api/v1/stockinout/intra-firm/validate-account": {
-      "status": "candidate",
+      "status": "excluded",
+      "note": "intra-firm stock transfer flow (asset movement)",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-10-12"
     },
     "/api/v1/stockinout/intra-firm/verifications/one-won/deposit": {
-      "status": "candidate",
+      "status": "excluded",
+      "note": "intra-firm stock transfer flow (asset movement)",
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-10-12"
@@ -9537,7 +9567,7 @@
     "/api/v2/dashboard/wts/overview/tics/ranking": {
       "status": "candidate",
       "note": "POST descriptor만 확인되고 body 계약이 없다. 공식 GET /api/v1/sectors/rankings(1.2.24, sector_rankings 로 구현)가 섹터 랭킹을 제공하므로 추적 중단 (2026-10-11).",
-      "priority": "next",
+      "priority": "rejected",
       "method": "POST",
       "host": "wts-info-api",
       "first_seen": "2026-06-29",
@@ -12109,9 +12139,9 @@
     "paper-trading-us-options": {
       "lifecycle": "rolling_out",
       "stability": "experimental",
-      "checked_at": "2026-10-12",
+      "checked_at": "2026-10-13",
       "active_build_ids": [
-        "pbub84LX46OeSYEcuW6BP"
+        "YNtK7AEyF5RExHH6OT4DC"
       ],
       "bundle_markers": {
         "option.paper.wts.open": true
@@ -12218,5 +12248,5 @@
       ]
     }
   },
-  "updated_at": "2026-10-12"
+  "updated_at": "2026-10-13"
 }
