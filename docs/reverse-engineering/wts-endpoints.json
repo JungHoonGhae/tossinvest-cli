@@ -1,17 +1,17 @@
 {
   "source": "tossinvest.com web bundles",
-  "build_id": "LCgFIQwFsag3GrRgpJus7",
+  "build_id": "pbub84LX46OeSYEcuW6BP",
   "build_ids": [
-    "LCgFIQwFsag3GrRgpJus7"
+    "pbub84LX46OeSYEcuW6BP"
   ],
-  "chunk_count": 86,
-  "total": 1307,
+  "chunk_count": 77,
+  "total": 1317,
   "counts": {
     "implemented": 169,
-    "candidate": 446,
-    "excluded": 692,
-    "candidate_next": 0,
-    "meaningful": 615
+    "candidate": 453,
+    "excluded": 695,
+    "candidate_next": 1,
+    "meaningful": 622
   },
   "overrides": {
     "/api/v1/openapi/client/allowed-ips": {
@@ -2097,6 +2097,13 @@
         "status": 500,
         "verdict": "http-500"
       }
+    },
+    "/api/v1/common/auth/account/session": {
+      "status": "excluded",
+      "note": "auth/KYC plumbing (handled by auth-helper)",
+      "method": "GET",
+      "host": "wts-api",
+      "first_seen": "2026-10-12"
     },
     "/api/v1/common/auth/account/verification-code": {
       "status": "excluded",
@@ -5627,6 +5634,24 @@
         "at": "2026-09-03"
       }
     },
+    "/api/v1/profit/products/{productCode}/histories": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-12"
+    },
+    "/api/v1/profit/products/{productCode}/period-summaries": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-12"
+    },
+    "/api/v1/profit/products/{productCode}/summary": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-12"
+    },
     "/api/v1/profit/type/overview": {
       "status": "implemented",
       "method": "POST",
@@ -7548,14 +7573,6 @@
         "at": "2026-08-03"
       }
     },
-    "/api/v1/stock-infos/index/net-buying/daily": {
-      "status": "candidate",
-      "first_seen": "2026-09-21"
-    },
-    "/api/v1/stock-infos/index/net-buying/range": {
-      "status": "candidate",
-      "first_seen": "2026-09-21"
-    },
     "/api/v1/stock-infos/trade/trend": {
       "status": "candidate",
       "first_seen": "2026-06-19",
@@ -7699,6 +7716,60 @@
       "method": "GET",
       "host": "wts-api",
       "first_seen": "2026-09-21"
+    },
+    "/api/v1/stockinout/intra-firm/continue": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-12"
+    },
+    "/api/v1/stockinout/intra-firm/draft": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-12"
+    },
+    "/api/v1/stockinout/intra-firm/histories": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-12"
+    },
+    "/api/v1/stockinout/intra-firm/received": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-12"
+    },
+    "/api/v1/stockinout/intra-firm/stock-balances": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-12"
+    },
+    "/api/v1/stockinout/intra-firm/summary": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-12"
+    },
+    "/api/v1/stockinout/intra-firm/transaction": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-12"
+    },
+    "/api/v1/stockinout/intra-firm/validate-account": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-12"
+    },
+    "/api/v1/stockinout/intra-firm/verifications/one-won/deposit": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-12"
     },
     "/api/v1/suggest/stock-open": {
       "status": "candidate",
@@ -9242,11 +9313,6 @@
       "host": "wts-api",
       "first_seen": "2026-06-19"
     },
-    "/api/v2/comments/report": {
-      "status": "excluded",
-      "note": "community/UGC",
-      "first_seen": "2026-06-19"
-    },
     "/api/v2/comments/upload/picture": {
       "status": "excluded",
       "note": "community/UGC",
@@ -9258,6 +9324,13 @@
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
+    },
+    "/api/v2/comments/{commentId}/report": {
+      "status": "excluded",
+      "note": "community/UGC",
+      "method": "GET",
+      "host": "wts-info-api",
+      "first_seen": "2026-10-12"
     },
     "/api/v2/comments/{id}": {
       "status": "excluded",
@@ -9463,8 +9536,8 @@
     },
     "/api/v2/dashboard/wts/overview/tics/ranking": {
       "status": "candidate",
-      "note": "POST descriptor는 확인했지만 현재 bundle에 소비 호출부와 body 계약이 없다. 구현된 /api/v1/tics/rankings와 중복 여부도 미확정이라 보류 (2026-09-03).",
-      "priority": "deferred",
+      "note": "POST descriptor만 확인되고 body 계약이 없다. 공식 GET /api/v1/sectors/rankings(1.2.24, sector_rankings 로 구현)가 섹터 랭킹을 제공하므로 추적 중단 (2026-10-11).",
+      "priority": "next",
       "method": "POST",
       "host": "wts-info-api",
       "first_seen": "2026-06-29",
@@ -11209,6 +11282,13 @@
         "verdict": "worth-review"
       }
     },
+    "/api/v3/comments/report": {
+      "status": "excluded",
+      "note": "community/UGC",
+      "method": "GET",
+      "host": "wts-info-api",
+      "first_seen": "2026-10-12"
+    },
     "/api/v3/dashboard/common/watchlists/{watchlistId}/table-view": {
       "status": "candidate",
       "method": "GET",
@@ -11220,14 +11300,6 @@
         "status": 404,
         "verdict": "not-found"
       }
-    },
-    "/api/v3/dashboard/wts/overview/indicator": {
-      "status": "candidate",
-      "first_seen": "2026-09-21"
-    },
-    "/api/v3/dashboard/wts/overview/indicator/mini-chart": {
-      "status": "candidate",
-      "first_seen": "2026-09-21"
     },
     "/api/v3/feed/recommend/posts": {
       "status": "excluded",
@@ -11262,16 +11334,6 @@
         ],
         "body": [],
         "at": "2026-09-03"
-      }
-    },
-    "/api/v3/ipd-thor/api/v1/workspaces": {
-      "status": "candidate",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-cert-api",
-        "status": 404,
-        "verdict": "not-found"
       }
     },
     "/api/v3/ipd-thor/api/v1/workspaces/6/posts": {
@@ -11501,6 +11563,13 @@
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
+    },
+    "/api/v3/promotion/lending/consent-payment": {
+      "status": "excluded",
+      "note": "marketing/promotion",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-12"
     },
     "/api/v3/promotion/lending/entrance/by-gateway": {
       "status": "excluded",
@@ -12040,9 +12109,9 @@
     "paper-trading-us-options": {
       "lifecycle": "rolling_out",
       "stability": "experimental",
-      "checked_at": "2026-09-28",
+      "checked_at": "2026-10-12",
       "active_build_ids": [
-        "LCgFIQwFsag3GrRgpJus7"
+        "pbub84LX46OeSYEcuW6BP"
       ],
       "bundle_markers": {
         "option.paper.wts.open": true
@@ -12149,5 +12218,5 @@
       ]
     }
   },
-  "updated_at": "2026-09-28"
+  "updated_at": "2026-10-12"
 }
