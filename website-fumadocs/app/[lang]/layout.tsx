@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
 import type { Viewport } from 'next';
 import { Space_Grotesk, JetBrains_Mono } from 'next/font/google';
-import { Provider } from '@/components/provider';
+import { FumadocsNextProvider, Provider } from '@/components/provider';
 import { Body } from '@/app/layout.client';
 import { source } from '@/lib/source';
-import { NextProvider } from 'fumadocs-core/framework/next';
 import { TreeContextProvider } from 'fumadocs-ui/contexts/tree';
 import { provider } from '@/components/layouts/shared';
 import { siteUrl, siteDescription } from '@/lib/site';
@@ -55,11 +54,11 @@ export default async function Layout({ params, children }: LayoutProps<'/[lang]'
   return (
     <html lang={lang} className={`${geist.variable} ${mono.variable}`} suppressHydrationWarning>
       <Body>
-        <NextProvider>
+        <FumadocsNextProvider>
           <TreeContextProvider tree={source.getPageTree(lang)}>
             <Provider i18n={provider(lang)}>{children}</Provider>
           </TreeContextProvider>
-        </NextProvider>
+        </FumadocsNextProvider>
       </Body>
     </html>
   );

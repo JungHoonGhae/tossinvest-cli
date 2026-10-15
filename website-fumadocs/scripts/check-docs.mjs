@@ -37,6 +37,9 @@ for (const file of pages) {
   const html = await fetchText(path);
   checkGithubIcon(html, path);
   assert.ok(html.includes(`<html lang="${locale}"`), `${path}: document language`);
+  // The server must see the browser's pathname. When it saw the proxy-rewritten /ko/... path,
+  // no sidebar link matched and the client's open folder caused a hydration mismatch.
+  assert.ok(html.includes('data-active="true"'), `${path}: active sidebar link in server HTML`);
   assert.ok(html.includes(markdownPath), `${path}: localized Markdown link`);
   assert.ok(html.includes(`website-fumadocs/content/docs/${file}`), `${path}: GitHub source link`);
   assert.ok(html.includes(imagePath), `${path}: localized OG image`);
