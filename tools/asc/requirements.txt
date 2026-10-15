@@ -4,7 +4,7 @@ alembic==1.20.0
     # via dataset
 androguard==4.1.3
     # via
-    #   -r tools/asc/requirements.in
+    #   -r requirements.in
     #   droidasc
 apkinspector==1.3.7
     # via androguard
@@ -27,13 +27,15 @@ cycler==0.12.1
 dataset==2.0.0
     # via androguard
 droidasc @ git+https://github.com/MG1937/ASC.git@ff1df854bb9db63066364bbb0d16484fcc72fb75
-    # via -r tools/asc/requirements.in
+    # via -r requirements.in
 executing==2.2.1
     # via stack-data
 fonttools==4.65.0
     # via matplotlib
 frida==17.18.0
     # via androguard
+greenlet==3.5.6
+    # via sqlalchemy
 ipython==9.17.1
     # via androguard
 ipython-pygments-lexers==1.1.1
@@ -46,7 +48,7 @@ loguru==0.7.3
     # via androguard
 lxml==6.1.3
     # via androguard
-mako==1.4.1
+mako==1.4.2
     # via alembic
 markupsafe==3.0.3
     # via mako
