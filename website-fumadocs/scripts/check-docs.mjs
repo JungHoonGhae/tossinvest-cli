@@ -8,7 +8,9 @@ const pages = readdirSync(docsRoot, { recursive: true }).filter((file) => file.e
 const fetchText = async (path) => {
   const response = await fetch(new URL(path, origin), { signal: AbortSignal.timeout(30_000) });
   assert.equal(response.status, 200, `${path}: HTTP ${response.status}`);
-  return response.text();
+  // Next streams the RSC payload in <script> chunks whose boundaries can split any string
+  // (a source URL failed on "website-" | "fumadocs/"). Join them so matches don't depend on byte offsets.
+  return (await response.text()).replaceAll('"])</script><script>self.__next_f.push([1,"', '');
 };
 const checkGithubIcon = (html, path) => {
   const links = html.match(/<a\b[^>]*href="https:\/\/github\.com\/JungHoonGhae\/tossinvest-cli"[^>]*>[\s\S]*?<\/a>/g) ?? [];
