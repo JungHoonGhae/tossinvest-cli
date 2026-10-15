@@ -1259,7 +1259,8 @@ type InvestorTrading struct {
 
 // ConditionalOrderCondition is one watch leg of a conditional order.
 type ConditionalOrderCondition struct {
-	Type             string  `json:"type"` // STOP | PROFIT_RATE
+	Type             string  `json:"type"`                 // STOP | PROFIT_RATE
+	OrderSide        string  `json:"order_side,omitempty"` // BUY | SELL — spec 1.2.24+
 	Status           string  `json:"status"`
 	TriggerPrice     float64 `json:"trigger_price"`
 	TargetProfitRate float64 `json:"target_profit_rate"`

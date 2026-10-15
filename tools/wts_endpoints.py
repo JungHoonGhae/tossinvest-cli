@@ -372,6 +372,9 @@ EXCLUDED = [
     (r"^/api/v\d+/pension", "pension account flow"),
     (r"^/api/v\d+/lending/(?!revenue)", "stock lending product"),
     (r"^/api/v\d+/(auto-transfer|transfer-income|rename-documents)", "transfer/document admin"),
+    # 토스 계좌 간 주식 이동(사내 대체) 흐름. 1원 인증·계좌 검증·draft/continue 가 섞인 자산 이동
+    # 절차라 계좌관리 "변경" 과 같은 기준으로 제외한다. 2026-10-12 번들엔 descriptor 만 있고 웹 소비 코드가 없다.
+    (r"^/api/v\d+/stockinout/intra-firm/", "intra-firm stock transfer flow (asset movement)"),
     (r"^/api/v\d+/terms", "legal terms"),
     (r"^/api/v\d+/portal/agreement-modules", "legal terms UI"),
     (r"^/api/v\d+/login", "login flow (handled by auth-helper)"),
@@ -1136,8 +1139,10 @@ def recommendation(path, status, note, override):
     """Return candidate priority without discarding audited triage context."""
     if status != "candidate":
         return "", note
-    if override and override.get("priority") == "deferred":
-        return "deferred", note
+    # An audited verdict (deferred/rejected) outranks the RECOMMENDED patterns;
+    # without this, a rejected override that matches a pattern resurfaces as "next".
+    if override and override.get("priority") in ("deferred", "rejected"):
+        return override["priority"], note
     for pattern, default_note in RECOMMENDED:
         if re.search(pattern, path):
             return "next", note or default_note

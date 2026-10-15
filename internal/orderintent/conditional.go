@@ -134,8 +134,13 @@ func NormalizeConditionalShape(shape ConditionalShape) (ConditionalShape, error)
 	}
 
 	shape.ExpireDate = strings.TrimSpace(shape.ExpireDate)
-	if _, err := time.Parse("2006-01-02", shape.ExpireDate); err != nil {
+	exp, err := time.Parse("2006-01-02", shape.ExpireDate)
+	if err != nil {
 		return ConditionalShape{}, fmt.Errorf("expire date must use YYYY-MM-DD")
+	}
+	// 스펙 1.2.24: 만료일은 오늘로부터 최대 1년. 서버도 거절하지만 왕복 전에 막는다.
+	if exp.After(time.Now().AddDate(1, 0, 0)) {
+		return ConditionalShape{}, fmt.Errorf("expire date must be within one year from today")
 	}
 	if shape.Quantity <= 0 {
 		return ConditionalShape{}, fmt.Errorf("quantity must be greater than zero")
