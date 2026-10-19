@@ -1,15 +1,15 @@
 {
   "source": "tossinvest.com web bundles",
-  "build_id": "YNtK7AEyF5RExHH6OT4DC",
+  "build_id": "iBmLP2TInVIF9_prvRS4d",
   "build_ids": [
-    "YNtK7AEyF5RExHH6OT4DC"
+    "iBmLP2TInVIF9_prvRS4d"
   ],
-  "chunk_count": 77,
-  "total": 1317,
+  "chunk_count": 78,
+  "total": 1323,
   "counts": {
-    "implemented": 169,
-    "candidate": 444,
-    "excluded": 704,
+    "implemented": 168,
+    "candidate": 445,
+    "excluded": 710,
     "candidate_next": 0,
     "meaningful": 613
   },
@@ -879,6 +879,12 @@
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
+    },
+    "/api/v1/account/frontend/post-return/monthly-transaction/status": {
+      "status": "candidate",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-19"
     },
     "/api/v1/account/frontend/product-eligibility/domestic-leverage-etp/deposit": {
       "status": "excluded",
@@ -3569,7 +3575,7 @@
     "/api/v1/growth/autotrade/open-banking/check/transfer": {
       "status": "candidate",
       "method": "GET",
-      "host": "wts-api",
+      "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/growth/autotrade/plan/stock/{stockCode}": {
@@ -5632,10 +5638,6 @@
         "at": "2026-09-03"
       }
     },
-    "/api/v1/product/stock-prices/mainsession": {
-      "status": "implemented",
-      "first_seen": "2026-08-03"
-    },
     "/api/v1/profit/overview": {
       "status": "implemented",
       "method": "POST",
@@ -5946,7 +5948,7 @@
       "status": "excluded",
       "note": "marketing/promotion",
       "method": "GET",
-      "host": "wts-api",
+      "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/promotion/cashback/display": {
@@ -5962,6 +5964,13 @@
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-06-19"
+    },
+    "/api/v1/promotion/cashback/stock/is-before-first-buy": {
+      "status": "excluded",
+      "note": "marketing/promotion",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-19"
     },
     "/api/v1/promotion/commission/event/user/status/bonus": {
       "status": "excluded",
@@ -6039,6 +6048,13 @@
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-08-24"
+    },
+    "/api/v1/promotion/fractional-buy/ranking": {
+      "status": "excluded",
+      "note": "marketing/promotion",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-19"
     },
     "/api/v1/promotion/friend-invite/budget-exhausted": {
       "status": "excluded",
@@ -6282,7 +6298,7 @@
       "status": "excluded",
       "note": "marketing/promotion",
       "method": "GET",
-      "host": "wts-api",
+      "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/promotion/pre-apply/is-target": {
@@ -6296,7 +6312,7 @@
       "status": "excluded",
       "note": "marketing/promotion",
       "method": "GET",
-      "host": "wts-api",
+      "host": "wts-cert-api",
       "first_seen": "2026-06-19",
       "observed": {
         "method": "GET",
@@ -6937,25 +6953,19 @@
     "/api/v1/rights/us/categories/dividend-option/detail": {
       "status": "candidate",
       "method": "GET",
-      "host": "wts-api",
-      "first_seen": "2026-08-03",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-api",
-        "status": 400,
-        "verdict": "needs-params"
-      }
+      "host": "wts-cert-api",
+      "first_seen": "2026-08-03"
     },
     "/api/v1/rights/us/categories/{category}": {
       "status": "candidate",
       "method": "GET",
-      "host": "wts-api",
+      "host": "wts-cert-api",
       "first_seen": "2026-08-03"
     },
     "/api/v1/rights/us/dividend-option/account-give-type": {
       "status": "implemented",
       "method": "GET",
-      "host": "wts-api",
+      "host": "wts-cert-api",
       "first_seen": "2026-08-03"
     },
     "/api/v1/rights/us/exercises/categories/dividend-option/account-default-give-type": {
@@ -7715,17 +7725,6 @@
         "verdict": "needs-params"
       }
     },
-    "/api/v1/stock-prices/mainsession": {
-      "status": "candidate",
-      "note": "정규장 종가만 주는 얇은 응답. product/stock-prices 와 겹친다 (2026-08-04)",
-      "first_seen": "2026-06-19",
-      "probe": {
-        "at": "2026-08-03",
-        "host": "wts-api",
-        "status": 400,
-        "verdict": "needs-params"
-      }
-    },
     "/api/v1/stock-prices/{code}": {
       "status": "candidate",
       "method": "GET",
@@ -8155,13 +8154,13 @@
     "/api/v1/trading/markets/us-opt/options/average-price": {
       "status": "candidate",
       "method": "GET",
-      "host": "wts-api",
+      "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/trading/markets/us/stocks/average-price": {
       "status": "candidate",
       "method": "GET",
-      "host": "wts-api",
+      "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/trading/open-banking/auto-trading": {
@@ -8301,7 +8300,7 @@
     "/api/v1/trading/stocks/{stockCode}/average-price": {
       "status": "candidate",
       "method": "GET",
-      "host": "wts-api",
+      "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/transfer-income-payments/ca/available": {
@@ -8706,7 +8705,7 @@
       "status": "excluded",
       "note": "UI personalization/prefs",
       "method": "GET",
-      "host": "wts-api",
+      "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/user-profiles/active": {
@@ -8793,6 +8792,13 @@
       "host": "wts-api",
       "first_seen": "2026-06-19"
     },
+    "/api/v1/user-profiles/moderation-notices/ack": {
+      "status": "excluded",
+      "note": "UI personalization/prefs",
+      "method": "POST",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-19"
+    },
     "/api/v1/user-profiles/pinned-comments/recommend": {
       "status": "excluded",
       "note": "UI personalization/prefs",
@@ -8858,7 +8864,7 @@
       "status": "excluded",
       "note": "UI personalization/prefs",
       "method": "GET",
-      "host": "wts-api",
+      "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/user-profiles/{id}/{type}": {
@@ -8874,6 +8880,13 @@
       "method": "GET",
       "host": "wts-cert-api",
       "first_seen": "2026-08-24"
+    },
+    "/api/v1/user-profiles/{userProfileId}/report": {
+      "status": "excluded",
+      "note": "UI personalization/prefs",
+      "method": "POST",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-19"
     },
     "/api/v1/user-reactions/summaries": {
       "status": "candidate",
@@ -8960,7 +8973,7 @@
     "/api/v1/users/ca-info": {
       "status": "candidate",
       "method": "GET",
-      "host": "wts-api",
+      "host": "wts-cert-api",
       "first_seen": "2026-06-19"
     },
     "/api/v1/users/email": {
@@ -11217,6 +11230,13 @@
       "note": "UI personalization/prefs",
       "first_seen": "2026-06-19"
     },
+    "/api/v2/user-profiles/represent": {
+      "status": "excluded",
+      "note": "UI personalization/prefs",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-19"
+    },
     "/api/v2/user-search/rank/realtime/keyword": {
       "status": "candidate",
       "method": "GET",
@@ -11910,6 +11930,13 @@
         "verdict": "needs-params"
       }
     },
+    "/api/v3/user-profiles": {
+      "status": "excluded",
+      "note": "UI personalization/prefs",
+      "method": "GET",
+      "host": "wts-cert-api",
+      "first_seen": "2026-10-19"
+    },
     "/api/v3/wts/trading/order/bulk-cancel": {
       "status": "candidate",
       "first_seen": "2026-06-19",
@@ -12083,6 +12110,10 @@
       "status": "candidate",
       "first_seen": "2026-09-03"
     },
+    "/api/v4/stock-prices/main-session": {
+      "status": "candidate",
+      "first_seen": "2026-10-19"
+    },
     "/api/v4/trading/auto-trading": {
       "status": "candidate",
       "method": "GET",
@@ -12139,9 +12170,9 @@
     "paper-trading-us-options": {
       "lifecycle": "rolling_out",
       "stability": "experimental",
-      "checked_at": "2026-10-13",
+      "checked_at": "2026-10-19",
       "active_build_ids": [
-        "YNtK7AEyF5RExHH6OT4DC"
+        "iBmLP2TInVIF9_prvRS4d"
       ],
       "bundle_markers": {
         "option.paper.wts.open": true
@@ -12248,5 +12279,5 @@
       ]
     }
   },
-  "updated_at": "2026-10-13"
+  "updated_at": "2026-10-19"
 }
