@@ -5451,7 +5451,7 @@
     },
     "/api/v1/conditional-orders/{conditionalOrderId}/modify": {
       "post": {
-        "description": "조건주문을 수정합니다. 조건주문 전체를 재설정하므로 본문에 `type`·`quantity`·`orderType`·`expireDate`·`first`(필요 시 `second`) 를 모두 전달합니다.\n종목은 `conditionalOrderId` 로 식별되므로 본문에 `symbol` 은 필요 없습니다.\n본문의 `type` 은 변경 결과 타입이며, 타입 전환(예: SINGLE→OCO)이 허용됩니다. 응답의 `type` 으로 확인하세요.\n\n`conditionalOrderId` 로 수정 대상을 식별합니다.\n\n**주의**: 수정은 기존 조건주문을 취소하고 새 조건주문을 생성하는 방식으로 동작합니다.\n따라서 수정 후에는 **새로운 `conditionalOrderId` 가 발급되고 기존 ID 는 무효화**됩니다.\n이후 조회·수정·취소에는 반드시 응답으로 반환된 `conditionalOrderId` 를 사용하세요.\n\n**Rate Limits Group**: `CONDITIONAL_ORDER`\n",
+        "description": "조건주문을 수정합니다. 조건주문 전체를 재설정하므로 본문에 `type`·`quantity`·`orderType`·`expireDate`·`first`(필요 시 `second`) 를 모두 전달합니다.\n종목은 `conditionalOrderId` 로 식별되므로 본문에 `symbol` 은 필요 없습니다.\n본문의 `type` 은 변경 결과 타입이며, 타입 전환(예: SINGLE→OCO)이 허용됩니다. 응답의 `type` 으로 확인하세요.\n\n`conditionalOrderId` 로 수정 대상을 식별합니다.\n\n**주의**: 수정은 기존 조건주문을 취소하고 새 조건주문을 생성하는 방식으로 동작합니다.\n따라서 수정 후에는 **새로운 `conditionalOrderId` 가 발급되고 기존 ID 는 무효화**됩니다.\n이후 조회·수정·취소에는 반드시 응답으로 반환된 `conditionalOrderId` 를 사용하세요.\n\n**수정 가능 상태**: 감시 중(`WATCHING`)·일시정지(`PAUSED`) 조건주문만 수정할 수 있습니다.\n조건이 충족되어 주문이 생성 중(`ORDERING`)이거나 주문이 접수된(`ORDERED`) 조건주문, 종료된(`COMPLETED`·`EXPIRED`) 조건주문은\n`422 modify-restricted` 로 거절됩니다. 감시 중이라도 조건 충족 여부를 판정하는 중에는 거절될 수 있습니다.\n주문이 접수된 조건주문은 취소한 뒤 새로 생성하세요. 단, 취소해도 이미 접수된 주문은 취소되지 않으므로 필요하면 주문 취소 API 로 함께 취소하세요.\n\n**Rate Limits Group**: `CONDITIONAL_ORDER`\n",
         "operationId": "modifyConditionalOrder",
         "parameters": [
           {
@@ -5572,6 +5572,18 @@
           "422": {
             "content": {
               "application/json": {
+                "examples": {
+                  "modifyRestricted": {
+                    "summary": "수정할 수 없는 상태",
+                    "value": {
+                      "error": {
+                        "code": "modify-restricted",
+                        "message": "해당 주문은 정정할 수 없습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
                 }
