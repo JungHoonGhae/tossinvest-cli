@@ -59,9 +59,9 @@ func (b *recordingBroker) CancelConditionalOrder(context.Context, orderintent.Co
 	return nil
 }
 
-func (b *recordingBroker) ModifyConditionalOrder(context.Context, orderintent.ConditionalModifyIntent) error {
+func (b *recordingBroker) ModifyConditionalOrder(context.Context, orderintent.ConditionalModifyIntent) (domain.ConditionalOrderRef, error) {
 	b.conditionalModified++
-	return nil
+	return domain.ConditionalOrderRef{ID: "co-2"}, nil
 }
 
 func (b *recordingBroker) total() int {

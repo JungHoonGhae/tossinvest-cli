@@ -36,9 +36,9 @@ func (b *conditionalBrokerStub) CancelConditionalOrder(context.Context, orderint
 	return nil
 }
 
-func (b *conditionalBrokerStub) ModifyConditionalOrder(context.Context, orderintent.ConditionalModifyIntent) error {
+func (b *conditionalBrokerStub) ModifyConditionalOrder(context.Context, orderintent.ConditionalModifyIntent) (domain.ConditionalOrderRef, error) {
 	b.modified++
-	return nil
+	return domain.ConditionalOrderRef{ID: "co-2"}, nil
 }
 
 func (b *brokerStub) PlacePendingOrder(_ context.Context, intent orderintent.PlaceIntent) (MutationResult, error) {
@@ -137,11 +137,11 @@ func TestConditionalCancelAndModifyUseSharedExecutionGuard(t *testing.T) {
 		},
 	}
 	modifyPreview := service.PreviewConditionalModify(modify)
-	if err := service.ModifyConditional(context.Background(), modify, ExecuteOptions{Execute: true, Confirm: "wrong"}); !errors.Is(err, ErrConfirmMismatch) {
+	if _, err := service.ModifyConditional(context.Background(), modify, ExecuteOptions{Execute: true, Confirm: "wrong"}); !errors.Is(err, ErrConfirmMismatch) {
 		t.Fatalf("modify: expected ErrConfirmMismatch, got %v", err)
 	}
-	if err := service.ModifyConditional(context.Background(), modify, ExecuteOptions{Execute: true, Confirm: modifyPreview.ConfirmToken}); err != nil {
-		t.Fatalf("ModifyConditional: %v", err)
+	if ref, err := service.ModifyConditional(context.Background(), modify, ExecuteOptions{Execute: true, Confirm: modifyPreview.ConfirmToken}); err != nil || ref.ID != "co-2" {
+		t.Fatalf("ModifyConditional = %+v, %v", ref, err)
 	}
 
 	if broker.canceled != 1 || broker.modified != 1 {

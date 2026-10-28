@@ -171,7 +171,7 @@ func writeOperations() []Operation {
 		},
 		{
 			ID: "modify_conditional_order", Method: "POST", Path: "/api/v1/conditional-orders/{conditionalOrderId}/modify",
-			Category: "order", Summary: "Modify a conditional order. Gated; preview unless execute=true.",
+			Category: "order", Summary: "Modify a WATCHING/PAUSED conditional order. Gated; preview unless execute=true. Returns a new id; the old one stops working.",
 			Write:    true,
 			Mutation: financialMutation("official response only; after a transport error, inspect conditional-order state before retrying"),
 			Params: append([]Param{
@@ -272,7 +272,7 @@ func conditionalModifyHandler(ctx context.Context, d *Deps, args map[string]any)
 	if !execute {
 		return d.Trading.PreviewConditionalModify(intent), nil
 	}
-	return nil, d.Trading.ModifyConditional(ctx, intent, trading.ExecuteOptions{Execute: true, Confirm: confirm})
+	return d.Trading.ModifyConditional(ctx, intent, trading.ExecuteOptions{Execute: true, Confirm: confirm})
 }
 
 func conditionalShapeArgs(args map[string]any) (orderintent.ConditionalShape, error) {
