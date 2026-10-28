@@ -92,7 +92,7 @@ func TestModifyConditionalOrderIntegration(t *testing.T) {
 			if got["quantity"] != "5" || got["orderType"] != "MARKET" {
 				t.Errorf("body: %+v", got)
 			}
-			_, _ = w.Write([]byte(`{"result":null}`))
+			_, _ = w.Write([]byte(`{"result":{"conditionalOrderId":"co-2"}}`))
 		default:
 			t.Errorf("unexpected %s %s", r.Method, r.URL.Path)
 		}
@@ -106,11 +106,14 @@ func TestModifyConditionalOrderIntegration(t *testing.T) {
 		WithHTTPClient(srv.Client()),
 		WithAccountSeq(1),
 	)
-	err := c.ModifyConditionalOrder(context.Background(), "co-1", ConditionalModifyBody{
+	ref, err := c.ModifyConditionalOrder(context.Background(), "co-1", ConditionalModifyBody{
 		Type: "SINGLE", Quantity: "5", OrderType: "MARKET", ExpireDate: "2026-12-31",
 		First: ConditionLegBody{OrderSide: "SELL", TriggerPrice: "68000"},
 	})
 	if err != nil {
 		t.Fatalf("ModifyConditionalOrder: %v", err)
+	}
+	if ref.ID != "co-2" {
+		t.Fatalf("modify must return the replacement id, got %+v", ref)
 	}
 }
