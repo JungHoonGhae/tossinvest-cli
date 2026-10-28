@@ -672,10 +672,11 @@ func newOrderConditionalCmd(opts *rootOptions) *cobra.Command {
 					i18n.T("order.conditional.confirmToken"), preview.ConfirmToken)
 				return nil
 			}
-			if err := app.tradingService.ModifyConditional(cmd.Context(), intent, trading.ExecuteOptions{Execute: true, Confirm: mdConfirm}); err != nil {
+			ref, err := app.tradingService.ModifyConditional(cmd.Context(), intent, trading.ExecuteOptions{Execute: true, Confirm: mdConfirm})
+			if err != nil {
 				return userFacingCommandError(err)
 			}
-			fmt.Fprintln(cmd.OutOrStdout(), i18n.T("order.conditional.modify.done"))
+			fmt.Fprintf(cmd.OutOrStdout(), "%s: %s\n", i18n.T("order.conditional.modify.done"), ref.ID)
 			return nil
 		},
 	}
