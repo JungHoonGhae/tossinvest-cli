@@ -34,6 +34,7 @@ type ConditionalCreateBody struct {
 }
 
 // apiConditionalCreateResponse mirrors ConditionalOrderCreateResponse (unwrapped result).
+// Modify answers with ConditionalOrderResponse, the same shape without clientOrderId.
 type apiConditionalCreateResponse struct {
 	ConditionalOrderID string `json:"conditionalOrderId"`
 	ClientOrderID      string `json:"clientOrderId"`
@@ -60,6 +61,12 @@ type ConditionalModifyBody struct {
 }
 
 // ModifyConditionalOrder modifies an existing conditional order (POST /modify).
-func (c *Client) ModifyConditionalOrder(ctx context.Context, id string, body ConditionalModifyBody) error {
-	return c.postAcct(ctx, "/api/v1/conditional-orders/"+url.PathEscape(id)+"/modify", body, nil)
+// The server cancels the order and creates a replacement, so the returned ref
+// carries a NEW id and the old one is invalid from then on.
+func (c *Client) ModifyConditionalOrder(ctx context.Context, id string, body ConditionalModifyBody) (domain.ConditionalOrderRef, error) {
+	var raw apiConditionalCreateResponse
+	if err := c.postAcct(ctx, "/api/v1/conditional-orders/"+url.PathEscape(id)+"/modify", body, &raw); err != nil {
+		return domain.ConditionalOrderRef{}, err
+	}
+	return domain.ConditionalOrderRef{ID: raw.ConditionalOrderID}, nil
 }
