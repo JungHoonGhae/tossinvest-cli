@@ -1710,6 +1710,39 @@
         },
         "type": "object"
       },
+      "InvestorNetTradingRanking": {
+        "properties": {
+          "netBuyRankings": {
+            "description": "순매수 상위 종목 (`netBuyAmount` 내림차순). 항목 수는 `count` 이하일 수 있습니다.",
+            "items": {
+              "$ref": "#/components/schemas/NetBuyRankingItem"
+            },
+            "type": "array"
+          },
+          "netSellRankings": {
+            "description": "순매도 상위 종목 (`netSellAmount` 내림차순). 항목 수는 `count` 이하일 수 있습니다.",
+            "items": {
+              "$ref": "#/components/schemas/NetSellRankingItem"
+            },
+            "type": "array"
+          },
+          "rankedAt": {
+            "description": "해당 투자자 랭킹의 마지막 갱신 시각입니다. 투자자마다 갱신 시점이 달라 서로 다를 수 있습니다.\n데이터를 제공할 수 없는 경우 null 입니다.\n",
+            "example": "2026-10-20T15:41:19+09:00",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "rankedAt",
+          "netBuyRankings",
+          "netSellRankings"
+        ],
+        "type": "object"
+      },
       "InvestorTradingAmount": {
         "properties": {
           "buyAmount": {
@@ -1730,6 +1763,40 @@
         "required": [
           "buyAmount",
           "sellAmount"
+        ],
+        "type": "object"
+      },
+      "InvestorTradingRankingResponse": {
+        "properties": {
+          "foreigner": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvestorNetTradingRanking"
+              }
+            ],
+            "description": "외국인"
+          },
+          "individual": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvestorNetTradingRanking"
+              }
+            ],
+            "description": "개인"
+          },
+          "institution": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvestorNetTradingRanking"
+              }
+            ],
+            "description": "기관"
+          }
+        },
+        "required": [
+          "foreigner",
+          "institution",
+          "individual"
         ],
         "type": "object"
       },
@@ -2114,6 +2181,68 @@
           "purchaseAmount",
           "amount",
           "amountAfterCost"
+        ],
+        "type": "object"
+      },
+      "NetBuyRankingItem": {
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "netBuyAmount": {
+            "description": "순매수 거래액 (매수 − 매도). 원화(KRW) 정수, 항상 양수",
+            "example": "386487682000",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "rank": {
+            "description": "순위. 1부터 시작",
+            "example": 1,
+            "type": "integer"
+          },
+          "symbol": {
+            "description": "종목 심볼. 6자리 종목코드 (숫자 또는 영문·숫자 조합; 예: 005930, 0167A0)",
+            "example": "005930",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rank",
+          "symbol",
+          "currency",
+          "netBuyAmount"
+        ],
+        "type": "object"
+      },
+      "NetSellRankingItem": {
+        "properties": {
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "netSellAmount": {
+            "description": "순매도 거래액 (매도 − 매수). 원화(KRW) 정수, 항상 양수",
+            "example": "391201805000",
+            "format": "decimal",
+            "maxLength": 30,
+            "type": "string"
+          },
+          "rank": {
+            "description": "순위. 1부터 시작",
+            "example": 1,
+            "type": "integer"
+          },
+          "symbol": {
+            "description": "종목 심볼. 6자리 종목코드 (숫자 또는 영문·숫자 조합; 예: 005930, 0167A0)",
+            "example": "000660",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rank",
+          "symbol",
+          "currency",
+          "netSellAmount"
         ],
         "type": "object"
       },
@@ -4346,7 +4475,7 @@
   "info": {
     "description": "토스증권 트레이딩 Open API 의 REST 스펙입니다. 실시간 체결·호가·본인 주문 이벤트 스트리밍은 REST 가 아닌 웹소켓 API(`wss://openapi-ws.tossinvest.com/ws/v1`)로 제공되며, 별도의 AsyncAPI 3.0 문서 (https://openapi.tossinvest.com/openapi-docs/latest/asyncapi.json)가 실시간 스펙의 source of truth 입니다.",
     "title": "토스증권 Open API",
-    "version": "1.2.24"
+    "version": "1.2.28"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -9401,6 +9530,324 @@
           }
         ],
         "summary": "주식 랭킹 조회",
+        "tags": [
+          "Ranking"
+        ]
+      }
+    },
+    "/api/v1/rankings/investor-trading": {
+      "get": {
+        "description": "국내(KR) 종목의 외국인·기관·개인 순매수 상위와 순매도 상위 종목을 한 번에 조회합니다.\n투자자별로 순매수(`netBuyRankings`)·순매도(`netSellRankings`) 목록을 거래액 순으로 최대 100위까지 제공합니다.\n\n- 대상은 국내(KR) 종목이며 ETF 를 포함합니다. 순매수·순매도 거래액은 KRX·NXT 통합 기준입니다.\n- 거래액은 원화(KRW) 정수이며 항상 양수입니다. `netBuyAmount` 는 매수 거래액에서 매도 거래액을, `netSellAmount` 는 매도 거래액에서 매수 거래액을 뺀 값입니다.\n- `count` 는 투자자별 순매수·순매도 목록에 각각 적용됩니다. 응답 항목 수는 `count` 보다 적을 수 있습니다.\n- 시세(현재가·등락률)는 포함하지 않습니다. 필요하면 응답의 `symbol` 로 `GET /api/v1/prices` 를 조회하세요.\n\n**데이터 적시성**: 최근 영업일 기준으로만 제공하며 과거 날짜는 조회할 수 없습니다.\n투자자마다 갱신 시점이 달라 `rankedAt` 이 서로 다를 수 있습니다.\n- 외국인·기관은 장중에 잠정치로 제공되고, 개인은 정규장 종료 후 제공됩니다. 정규장 종료 전까지 개인은 직전 영업일 기준입니다.\n- 정규장 종료 후에도 NXT 거래 반영으로 저녁(20시경)까지 값이 바뀔 수 있습니다.\n- 조회 시점에 따라 이전 시각 기준 데이터가 제공될 수 있으므로, 기준 시각은 `rankedAt` 으로 확인하세요.\n  데이터를 제공할 수 없는 경우 `rankedAt` 은 null 이며, 목록이 비어 있을 수 있습니다.\n\n**Rate Limits Group**: `RANKING`\n",
+        "operationId": "getInvestorTradingRankings",
+        "parameters": [
+          {
+            "description": "목록별 조회 수 (최대 100). 투자자별 순매수·순매도 목록에 각각 적용되며, 응답 항목 수는 `count` 이하일 수 있습니다.",
+            "in": "query",
+            "name": "count",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "afterRegularSession": {
+                    "summary": "정규장 종료 후 (count=2)",
+                    "value": {
+                      "result": {
+                        "foreigner": {
+                          "netBuyRankings": [
+                            {
+                              "currency": "KRW",
+                              "netBuyAmount": "386487682000",
+                              "rank": 1,
+                              "symbol": "005930"
+                            },
+                            {
+                              "currency": "KRW",
+                              "netBuyAmount": "43100000000",
+                              "rank": 2,
+                              "symbol": "402340"
+                            }
+                          ],
+                          "netSellRankings": [
+                            {
+                              "currency": "KRW",
+                              "netSellAmount": "391201805000",
+                              "rank": 1,
+                              "symbol": "000660"
+                            },
+                            {
+                              "currency": "KRW",
+                              "netSellAmount": "139536061500",
+                              "rank": 2,
+                              "symbol": "009150"
+                            }
+                          ],
+                          "rankedAt": "2026-10-20T15:41:19+09:00"
+                        },
+                        "individual": {
+                          "netBuyRankings": [
+                            {
+                              "currency": "KRW",
+                              "netBuyAmount": "189300000000",
+                              "rank": 1,
+                              "symbol": "005930"
+                            },
+                            {
+                              "currency": "KRW",
+                              "netBuyAmount": "79000000000",
+                              "rank": 2,
+                              "symbol": "233740"
+                            }
+                          ],
+                          "netSellRankings": [
+                            {
+                              "currency": "KRW",
+                              "netSellAmount": "41200000000",
+                              "rank": 1,
+                              "symbol": "005380"
+                            },
+                            {
+                              "currency": "KRW",
+                              "netSellAmount": "31500000000",
+                              "rank": 2,
+                              "symbol": "034020"
+                            }
+                          ],
+                          "rankedAt": "2026-10-20T15:41:19+09:00"
+                        },
+                        "institution": {
+                          "netBuyRankings": [
+                            {
+                              "currency": "KRW",
+                              "netBuyAmount": "29200000000",
+                              "rank": 1,
+                              "symbol": "353200"
+                            },
+                            {
+                              "currency": "KRW",
+                              "netBuyAmount": "28500000000",
+                              "rank": 2,
+                              "symbol": "068270"
+                            }
+                          ],
+                          "netSellRankings": [
+                            {
+                              "currency": "KRW",
+                              "netSellAmount": "93376868000",
+                              "rank": 1,
+                              "symbol": "000660"
+                            },
+                            {
+                              "currency": "KRW",
+                              "netSellAmount": "87898296000",
+                              "rank": 2,
+                              "symbol": "005930"
+                            }
+                          ],
+                          "rankedAt": "2026-10-20T15:37:30+09:00"
+                        }
+                      }
+                    }
+                  },
+                  "duringRegularSession": {
+                    "summary": "정규장 중 (count=1) — 개인은 직전 영업일 기준",
+                    "value": {
+                      "result": {
+                        "foreigner": {
+                          "netBuyRankings": [
+                            {
+                              "currency": "KRW",
+                              "netBuyAmount": "65951120500",
+                              "rank": 1,
+                              "symbol": "005930"
+                            }
+                          ],
+                          "netSellRankings": [
+                            {
+                              "currency": "KRW",
+                              "netSellAmount": "243714573500",
+                              "rank": 1,
+                              "symbol": "000660"
+                            }
+                          ],
+                          "rankedAt": "2026-10-20T10:34:28+09:00"
+                        },
+                        "individual": {
+                          "netBuyRankings": [
+                            {
+                              "currency": "KRW",
+                              "netBuyAmount": "86500000000",
+                              "rank": 1,
+                              "symbol": "122630"
+                            }
+                          ],
+                          "netSellRankings": [
+                            {
+                              "currency": "KRW",
+                              "netSellAmount": "120400000000",
+                              "rank": 1,
+                              "symbol": "005930"
+                            }
+                          ],
+                          "rankedAt": "2026-10-19T20:17:53+09:00"
+                        },
+                        "institution": {
+                          "netBuyRankings": [
+                            {
+                              "currency": "KRW",
+                              "netBuyAmount": "2103023000",
+                              "rank": 1,
+                              "symbol": "105560"
+                            }
+                          ],
+                          "netSellRankings": [
+                            {
+                              "currency": "KRW",
+                              "netSellAmount": "93376868000",
+                              "rank": 1,
+                              "symbol": "000660"
+                            }
+                          ],
+                          "rankedAt": "2026-10-20T10:00:00+09:00"
+                        }
+                      }
+                    }
+                  },
+                  "rankedAtUnavailable": {
+                    "summary": "데이터를 제공할 수 없는 투자자 (기관, count=1)",
+                    "value": {
+                      "result": {
+                        "foreigner": {
+                          "netBuyRankings": [
+                            {
+                              "currency": "KRW",
+                              "netBuyAmount": "386487682000",
+                              "rank": 1,
+                              "symbol": "005930"
+                            }
+                          ],
+                          "netSellRankings": [
+                            {
+                              "currency": "KRW",
+                              "netSellAmount": "391201805000",
+                              "rank": 1,
+                              "symbol": "000660"
+                            }
+                          ],
+                          "rankedAt": "2026-10-20T15:41:19+09:00"
+                        },
+                        "individual": {
+                          "netBuyRankings": [
+                            {
+                              "currency": "KRW",
+                              "netBuyAmount": "189300000000",
+                              "rank": 1,
+                              "symbol": "005930"
+                            }
+                          ],
+                          "netSellRankings": [
+                            {
+                              "currency": "KRW",
+                              "netSellAmount": "41200000000",
+                              "rank": 1,
+                              "symbol": "005380"
+                            }
+                          ],
+                          "rankedAt": "2026-10-20T15:41:19+09:00"
+                        },
+                        "institution": {
+                          "netBuyRankings": [],
+                          "netSellRankings": [],
+                          "rankedAt": null
+                        }
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "properties": {
+                        "result": {
+                          "$ref": "#/components/schemas/InvestorTradingRankingResponse"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "성공"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "countTypeMismatch": {
+                    "summary": "count 가 정수가 아님",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "field": "count",
+                          "rule": "typeMismatch"
+                        },
+                        "message": "요청 필드가 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  },
+                  "invalidCount": {
+                    "summary": "count 가 허용 범위(1~100)를 벗어남",
+                    "value": {
+                      "error": {
+                        "code": "invalid-request",
+                        "data": {
+                          "constraint": {
+                            "max": 100,
+                            "min": 1
+                          },
+                          "field": "count"
+                        },
+                        "message": "요청이 올바르지 않습니다.",
+                        "requestId": "01HXYZABCDEFG123456789"
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "잘못된 요청"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimitExceeded"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalErrorRanking"
+          }
+        },
+        "security": [
+          {
+            "oauth2ClientCredentials": []
+          }
+        ],
+        "summary": "투자자별 순매수·순매도 랭킹 조회",
         "tags": [
           "Ranking"
         ]
