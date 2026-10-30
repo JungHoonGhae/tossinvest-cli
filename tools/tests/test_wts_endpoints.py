@@ -396,6 +396,19 @@ class TestClassify(unittest.TestCase):
         self.assertEqual(priority, "deferred")
         self.assertEqual(note, "no current consumer")
 
+    def test_recommendation_keeps_rejected_override(self):
+        priority, _ = W.recommendation(
+            "/api/v2/dashboard/wts/overview/tics/ranking",
+            "candidate",
+            "replaced by official sectors",
+            {"priority": "rejected"},
+        )
+        self.assertEqual(priority, "rejected")
+
+    def test_intra_firm_stock_transfer_is_excluded(self):
+        status, _ = W.classify("/api/v1/stockinout/intra-firm/histories", {})
+        self.assertEqual(status, "excluded")
+
     def test_dynamic_price_alert_delete_contract_is_curated(self):
         path = "/api/v1/user-price-alimy/{stockCode}/{currency}/{targetPrice}"
         self.assertEqual(W.CURATED_CONTRACTS[path]["method"], "DELETE")

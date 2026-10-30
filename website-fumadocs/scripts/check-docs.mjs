@@ -8,7 +8,9 @@ const pages = readdirSync(docsRoot, { recursive: true }).filter((file) => file.e
 const fetchText = async (path) => {
   const response = await fetch(new URL(path, origin), { signal: AbortSignal.timeout(30_000) });
   assert.equal(response.status, 200, `${path}: HTTP ${response.status}`);
-  return response.text();
+  // Next streams the RSC payload in <script> chunks whose boundaries can split any string
+  // (a source URL failed on "website-" | "fumadocs/"). Join them so matches don't depend on byte offsets.
+  return (await response.text()).replaceAll('"])</script><script>self.__next_f.push([1,"', '');
 };
 const checkGithubIcon = (html, path) => {
   const links = html.match(/<a\b[^>]*href="https:\/\/github\.com\/JungHoonGhae\/tossinvest-cli"[^>]*>[\s\S]*?<\/a>/g) ?? [];
@@ -35,6 +37,9 @@ for (const file of pages) {
   const html = await fetchText(path);
   checkGithubIcon(html, path);
   assert.ok(html.includes(`<html lang="${locale}"`), `${path}: document language`);
+  // The server must see the browser's pathname. When it saw the proxy-rewritten /ko/... path,
+  // no sidebar link matched and the client's open folder caused a hydration mismatch.
+  assert.ok(html.includes('data-active="true"'), `${path}: active sidebar link in server HTML`);
   assert.ok(html.includes(markdownPath), `${path}: localized Markdown link`);
   assert.ok(html.includes(`website-fumadocs/content/docs/${file}`), `${path}: GitHub source link`);
   assert.ok(html.includes(imagePath), `${path}: localized OG image`);

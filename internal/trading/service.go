@@ -24,7 +24,7 @@ type Broker interface {
 type ConditionalBroker interface {
 	CreateConditionalOrder(ctx context.Context, intent orderintent.ConditionalPlaceIntent) (domain.ConditionalOrderRef, error)
 	CancelConditionalOrder(ctx context.Context, intent orderintent.ConditionalCancelIntent) error
-	ModifyConditionalOrder(ctx context.Context, intent orderintent.ConditionalModifyIntent) error
+	ModifyConditionalOrder(ctx context.Context, intent orderintent.ConditionalModifyIntent) (domain.ConditionalOrderRef, error)
 }
 
 type Preview struct {
@@ -298,12 +298,12 @@ func (s *Service) CancelConditional(ctx context.Context, intent orderintent.Cond
 	return s.conditional.CancelConditionalOrder(ctx, intent)
 }
 
-func (s *Service) ModifyConditional(ctx context.Context, intent orderintent.ConditionalModifyIntent, opts ExecuteOptions) error {
+func (s *Service) ModifyConditional(ctx context.Context, intent orderintent.ConditionalModifyIntent, opts ExecuteOptions) (domain.ConditionalOrderRef, error) {
 	if err := s.guard(ctx, ActionConditional, s.PreviewConditionalModify(intent), opts); err != nil {
-		return err
+		return domain.ConditionalOrderRef{}, err
 	}
 	if s.conditional == nil {
-		return ErrLiveMutationPending
+		return domain.ConditionalOrderRef{}, ErrLiveMutationPending
 	}
 	return s.conditional.ModifyConditionalOrder(ctx, intent)
 }

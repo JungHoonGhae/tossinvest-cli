@@ -197,6 +197,7 @@ func newRootCmd() *cobra.Command {
 		newQuoteCmd(opts),
 		newSearchCmd(opts),
 		newMarketCmd(opts),
+		newSectorCmd(opts),
 		newCommunityCmd(opts),
 		newOrderCmd(opts),
 		paperCmd,

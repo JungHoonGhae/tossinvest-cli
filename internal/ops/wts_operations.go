@@ -849,7 +849,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "account_detail", Method: "GET", Path: "wts:account/detail", Backend: "wts",
-			Category: "account", Summary: "Account identity plus withdrawal capacity and credit-trading status — the read-only half of the web's 계좌관리 screen. Number, name, status, open date, last trade date; withdrawable cash by settlement day (D+0/1/2) with per-transaction and daily caps and today's usage; whether 미수거래 is open per market. The account number and holder name are returned in full here (an agent needs them to act) — do not echo them into shared output. WTS-only.",
+			Category: "account", Summary: "Account identity, withdrawal capacity and credit-trading status (read-only half of 계좌관리): number, name, status, dates; withdrawable cash by settlement day (D+0/1/2) with caps and usage; 미수거래 per market. Full account number and holder name are returned — do not echo them into shared output. WTS-only.",
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.GetAccountDetail(ctx)
 			},
@@ -873,7 +873,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "auto_trades", Method: "GET", Path: "wts:trading/auto-trading/histories", Backend: "wts",
 			Category: "order",
-			Summary:  "Automated-trading rules armed on the account (STOP_LOSS, PROFIT_RATE, OCO, OTO) with their trigger and order prices. Read-only: arming and cancelling happen in the Toss app only. status is the server's numeric code translated to its enum name (6 = EXPIRED); status_code keeps the raw value. WTS-only.",
+			Summary:  "Automated-trading rules armed on the account (STOP_LOSS, PROFIT_RATE, OCO, OTO) with trigger/order prices. Read-only — arm/cancel in the app. status is the enum name, status_code the raw code. WTS-only.",
 			Probe: &ProbeSpec{Name: "auto-trades", Method: "GET",
 				URL: probeInfo + "/api/v3/trading/auto-trading/histories",
 				Check: func(status int, body []byte) error {
@@ -892,7 +892,7 @@ func wtsOperations() []Operation {
 			// 다른 기능이므로 id 를 나눈다.
 			ID: "market_events", Method: "POST", Path: "wts:calendar/monthly/{month}", Backend: "wts",
 			Category: "market",
-			Summary:  "One month of scheduled market events: economic releases (with the street's forecast, the actual print once published, and the prior value), Korean and US earnings announcements with their stock symbol and earnings-call time, and market holidays. month is a YYYY-MM path segment; omit it for the current month. The weekly AI summary is attached only for the present month. WTS-only.",
+			Summary:  "One month of market events: economic releases (forecast, actual, prior), KR/US earnings with symbol and call time, holidays. month is YYYY-MM (default: current). Weekly AI summary only for the present month. WTS-only.",
 			Params: []Param{
 				{Name: "month", Type: "string", Desc: "YYYY-MM; empty = current month"},
 			},
@@ -1054,7 +1054,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "profit_daily", Method: "POST", Path: "wts:profit/wts/daily/market", Backend: "wts",
-			Category: "portfolio", Summary: "Per-stock realized profit day by day — symbol, quantity, profit/loss, return rate, and the sell/buy amounts behind it, every page combined. Answers \"what did this position actually make?\" and feeds tax prep. currency selects the RATE BASIS (KRW folds in FX for foreign holdings, USD does not); it is not a filter — the same rows come back either way. WTS-only.",
+			Category: "portfolio", Summary: "Per-stock realized profit day by day — symbol, quantity, P/L, return rate, sell/buy amounts, all pages combined. currency selects the RATE BASIS (KRW folds in FX, USD does not), not a filter. WTS-only.",
 			Params: []Param{
 				{Name: "from", Type: "string", Desc: "start date YYYY-MM-DD; omit for all time (must be paired with to)"},
 				{Name: "to", Type: "string", Desc: "end date YYYY-MM-DD, not in the future; omit for all time"},
@@ -1205,7 +1205,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "screener_filter_ranges", Method: "GET", Path: "wts:market/filters", Backend: "wts",
-			Category: "market", Summary: "Usable value span (min/max) and base date for screener filters, so a filter threshold can be chosen from the live universe instead of guessed. Filter ids come from the presets returned by market_screener. WTS-only.",
+			Category: "market", Summary: "Min/max span and base date for screener filters so thresholds come from the live universe. Filter ids from market_screener presets. WTS-only.",
 			Params: []Param{
 				{Name: "filter_ids", Type: "string", Required: true, Desc: `comma-separated filter ids, e.g. "PER,PBR"`},
 				{Name: "nation", Type: "string", Desc: `"kr" (default) or "us"`},
@@ -1290,7 +1290,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "tax_ria", Method: "GET", Path: "wts:tax/ria", Backend: "wts",
-			Category: "account", Summary: "RIA account (해외주식 양도세 절세 계좌) tax-saving report: estimated capital-gains tax before/after the RIA deduction, the deduction's quarterly components, sell limit, and any further saving still reachable. Complements tax_overseas, which has no RIA concept. Mobile-app-only surface. WTS-only.",
+			Category: "account", Summary: "RIA (해외주식 양도세 절세 계좌) report: estimated capital-gains tax before/after the deduction, quarterly components, sell limit, remaining saving. Complements tax_overseas. Mobile-app-only. WTS-only.",
 			Probe: &ProbeSpec{Name: "ria-report", Method: "GET",
 				URL: probeCert + "/api/v1/ria-calculator/report",
 				Check: func(status int, body []byte) error {
@@ -1308,7 +1308,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "account_interest", Method: "GET", Path: "wts:account/interest", Backend: "wts",
-			Category: "account", Summary: "Deposit-interest (예탁금 이용료) payments for a year: payment date, pre-tax amount, tax, net amount, accrual period, and whether it is still an estimate. Distinct from profit_summary type=account-interest, which is one period total. WTS-only.",
+			Category: "account", Summary: "Deposit-interest (예탁금 이용료) payments for a year: date, pre-tax, tax, net, accrual period, estimate flag. profit_summary type=account-interest is the period total. WTS-only.",
 			Params: []Param{
 				{Name: "year", Type: "integer", Desc: "Year to report (default: current year)"},
 			},
@@ -1517,7 +1517,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "accumulation_funding_status", Aliases: []string{"banking_status"}, Method: "GET", Path: "wts:autotrade/open-banking/info/find", Backend: "wts", Domain: "securities",
 			Category: "accumulate",
-			Summary:  "Funding account used by Securities stock accumulation and its automated-order funding registration. Not general Toss Banking. Holder and account are masked unless full=true; internal connection IDs are never emitted. WTS-only.",
+			Summary:  "Funding account for stock accumulation and its auto-order registration (not Toss Banking). Holder/account masked unless full=true. WTS-only.",
 			Params:   []Param{{Name: "full", Type: "boolean", Desc: "reveal the account holder and complete account number; false/omitted masks them"}},
 			Probe: &ProbeSpec{Name: "open-banking-status", Method: "GET",
 				URL: probeAPI + "/api/v1/autotrade/open-banking/info/find",
