@@ -9,6 +9,17 @@ Version history below (source: the Korean-language [CHANGELOG.md](https://github
 
 ## [Unreleased]
 
+## [0.54.1] - 2026-10-28
+
+### 보안
+- Go 1.26.10 으로 빌드합니다. 이전 빌드의 Go 표준 라이브러리 `crypto/x509` 에 있던 인증서 검증 취약점(GO-2026-6809)이 해결됩니다. tossctl 은 모든 API 호출을 HTTPS 로 하므로 업데이트를 권장합니다.
+
+### 버그 수정
+- `order conditional modify`와 MCP `modify_conditional_order`가 수정 후 새로 발급된 조건주문 ID를 보여 줍니다. 토스는 조건주문 수정을 취소 후 재생성으로 처리해 기존 ID를 무효화하는데, 그동안 새 ID를 버려서 이후 조회·취소에 쓸 ID를 목록에서 다시 찾아야 했습니다.
+
+### 변경
+- 이미 발동했거나 끝난 조건주문을 수정하려 하면 수정 가능한 상태와 다음 조치를 함께 안내합니다. 조건주문을 취소해도 이미 접수된 주문은 취소되지 않는다는 점도 알려 줍니다.
+
 ## [0.54.0] - 2026-10-11
 
 ### 새 기능
