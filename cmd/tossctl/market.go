@@ -229,6 +229,26 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 	}
 	investorsCmd.Flags().IntVar(&investorsSize, "size", 10, "top stocks per investor type")
 
+	var investorRankingsCount int
+	investorRankingsCmd := &cobra.Command{
+		Use:         "investor-rankings",
+		Short:       i18n.T("market.investorRankings.short"),
+		Long:        i18n.T("market.investorRankings.long"),
+		Annotations: map[string]string{"source": "official"},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			r, err := app.client.InvestorTradingRankings(cmd.Context(), investorRankingsCount)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteInvestorTradingRankings(cmd.OutOrStdout(), app.format, r)
+		},
+	}
+	investorRankingsCmd.Flags().IntVar(&investorRankingsCount, "count", 10, "rows per list (1-100)")
+
 	var earningsMajor bool
 	earningsCmd := &cobra.Command{
 		Use:         "earnings [event-id]",
@@ -662,6 +682,6 @@ func newMarketCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(hoursCmd, haltCmd, businessDaysCmd, anomaliesCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, signalCmd, investorsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, sectorCmd, themesCmd, screenerCmd, filtersCmd, stocksCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, newMarketKeyEventsCmd(opts), issuesCmd, optionHoursCmd)
+	cmd.AddCommand(hoursCmd, haltCmd, businessDaysCmd, anomaliesCmd, fxCmd, indexCmd, rankingCmd, signalsCmd, signalCmd, investorsCmd, investorRankingsCmd, earningsCmd, briefingCmd, newsCmd, sectorsCmd, sectorCmd, themesCmd, screenerCmd, filtersCmd, stocksCmd, rankingsCmd, indicatorCmd, indicatorCandlesCmd, investorTradingCmd, calendarCmd, newMarketKeyEventsCmd(opts), issuesCmd, optionHoursCmd)
 	return cmd
 }

@@ -396,6 +396,18 @@ func readOperations() []Operation {
 			},
 		},
 		{
+			ID: "investor_trading_rankings", Method: "GET", Path: "/api/v1/rankings/investor-trading",
+			Category: "market", Summary: "KR net-buy and net-sell leaders per investor type, latest business day. Amounts are positive KRW; no names or quotes.",
+			Params: []Param{{Name: "count", Type: "integer", Desc: "rows per list, 1–100 (default 10)"}},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				count, err := argInt(args, "count")
+				if err != nil {
+					return nil, err
+				}
+				return d.Client.InvestorTradingRankings(ctx, count)
+			},
+		},
+		{
 			ID: "sector_rankings", Method: "GET", Path: "/api/v1/sectors/rankings",
 			Category: "market", Summary: "Top-100 official sectors (depth 0–1) by change rate or trading amount. Rates are decimal ratios; KRW amounts null without data.",
 			Params: []Param{

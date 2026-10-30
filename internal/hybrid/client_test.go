@@ -208,6 +208,7 @@ func assertOfficialOnlyUnavailable(t *testing.T, c *Client) {
 			return err
 		}},
 		{"Supply", func() error { _, err := c.Supply(ctx, "005930", domain.SupplyInvestor, 0, ""); return err }},
+		{"InvestorTradingRankings", func() error { _, err := c.InvestorTradingRankings(ctx, 0); return err }},
 		{"ListStocks", func() error { _, err := c.ListStocks(ctx, "KOSPI", "", "", false); return err }},
 	}
 	for _, tc := range calls {
