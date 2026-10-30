@@ -316,7 +316,7 @@ func wtsOperations() []Operation {
 	return []Operation{
 		{
 			ID: "market_indices", Method: "GET", Path: "wts:market/indices", Backend: "wts",
-			Category: "market", Summary: "Major market indices (KOSPI/KOSDAQ/NASDAQ/S&P500/VIX etc). WTS-only.",
+			Category: "market", Summary: "Major market indices (KOSPI/KOSDAQ/NASDAQ/S&P500/VIX etc).",
 			Probe: &ProbeSpec{Name: "market-index", Method: "GET",
 				URL:   probeCert + "/api/v1/dashboard/wts/overview/indicator/index",
 				Check: statusAndPath("result.majorIndicatorInfos", "array")},
@@ -326,7 +326,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "index_detail", Method: "GET", Path: "wts:market/index", Backend: "wts",
-			Category: "market", Summary: "Index detail quote (OHLC, 52w range, session hours/open state, realtime or delayed feed) by code or name. WTS-only.",
+			Category: "market", Summary: "Index detail quote (OHLC, 52w range, session hours/open state, realtime or delayed feed) by code or name.",
 			Params: []Param{{Name: "query", Type: "string", Required: true, Desc: `index code or name, e.g. "nasdaq" or "코스피"`}},
 			Probe: &ProbeSpec{Name: "index-prices", Method: "GET",
 				URL: probeInfo + "/api/v1/index-prices/KGG01P",
@@ -356,7 +356,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "stock_ranking", Method: "GET", Path: "wts:rankings/realtime/stock", Backend: "wts",
-			Category: "market", Summary: "Realtime popularity ranking (most-viewed stocks). WTS-only.",
+			Category: "market", Summary: "Realtime popularity ranking (most-viewed stocks).",
 			Params: []Param{{Name: "size", Type: "integer", Desc: "number of rows (default 20)"}},
 			Probe: &ProbeSpec{Name: "stock-ranking", Method: "GET",
 				URL:   probeInfo + "/api/v1/rankings/realtime/stock?size=1",
@@ -371,8 +371,8 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "investor_rankings", Method: "GET", Path: "wts:rankings/investor", Backend: "wts",
-			Category: "market", Summary: "Top net-buy stocks by investor type (foreign/institution/individual). WTS-only.",
-			Params: []Param{{Name: "size", Type: "integer", Desc: "number of rows (default 20)"}},
+			Category: "market", Summary: "Top net-buy stocks by investor type, with names and quotes. investor_trading_rankings adds net-sell.",
+			Params: []Param{{Name: "size", Type: "integer", Desc: "number of rows (default 10)"}},
 			Probe: &ProbeSpec{Name: "investor-rankings", Method: "GET",
 				URL:   probeInfo + "/api/v1/dashboard/wts/overview/rankings/by-investors",
 				Check: statusAndPath("result.rankings", "object")},
@@ -386,7 +386,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "theme_rankings", Method: "GET", Path: "wts:rankings/theme", Backend: "wts",
-			Category: "market", Summary: "Theme movement ranking (top-moving Toss themes today). WTS-only.",
+			Category: "market", Summary: "Theme movement ranking (top-moving Toss themes today).",
 			Params: []Param{{Name: "size", Type: "integer", Desc: "number of rows (0 = all)"}},
 			Probe: &ProbeSpec{Name: "theme-rankings", Method: "GET",
 				URL:   probeInfo + "/api/v1/tics/rankings",
@@ -401,7 +401,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "sectors", Method: "GET", Path: "wts:market/sectors", Backend: "wts",
-			Category: "market", Summary: "Sector movement (39 top-level sectors, 1d/1mo/1y returns). WTS-only.",
+			Category: "market", Summary: "Sector movement (39 top-level sectors, 1d/1mo/1y returns).",
 			Probe: &ProbeSpec{Name: "sectors-tics", Method: "GET",
 				URL:   probeInfo + "/api/v1/tics/all",
 				Check: statusAndPath("result.ticsItems", "array")},
@@ -411,7 +411,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "sector_detail", Method: "GET", Path: "wts:market/sector", Backend: "wts", Domain: "securities",
-			Category: "market", Summary: "One TICS sector's overview plus the server-default first page of constituent stocks, related ETFs, and news, with total counts. WTS-only.",
+			Category: "market", Summary: "One TICS sector's overview plus the server-default first page of constituent stocks, related ETFs, and news, with total counts.",
 			Params: []Param{{Name: "id", Type: "integer", Required: true, Desc: "sector id from sectors"}},
 			Probe: &ProbeSpec{Name: "sector-detail-overview", Method: "GET",
 				URL:   probeInfo + "/api/v2/dashboard/wts/overview/tics/1/overview",
@@ -435,7 +435,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "ai_signals", Method: "GET", Path: "wts:market/signals", Backend: "wts",
-			Category: "market", Summary: "Toss AI trading signals. WTS-only.",
+			Category: "market", Summary: "Toss AI trading signals.",
 			Probe: &ProbeSpec{Name: "ai-signals", Method: "GET",
 				URL:   probeInfo + "/api/v2/reasoning-contents/interest",
 				Check: statusAndPath("result.data", "array")},
@@ -445,7 +445,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "ai_signal_detail", Method: "GET", Path: "wts:market/signal", Backend: "wts", Domain: "securities",
-			Category: "market", Summary: "Current AI reasoning for a stock, equity ETF or index, including evidence and source news. WTS-only.",
+			Category: "market", Summary: "Current AI reasoning for a stock, equity ETF or index, including evidence and source news.",
 			Params: []Param{
 				{Name: "symbol", Type: "string", Required: true, Desc: "ticker or Toss product code"},
 				{Name: "product_type", Type: "string", Desc: `stocks (default), equity_etf, or index (use a market index code)`},
@@ -485,7 +485,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "screener_presets", Method: "GET", Path: "wts:market/screener", Backend: "wts",
-			Category: "market", Summary: "Screener presets (value/dividend/growth condition searches). WTS-only.",
+			Category: "market", Summary: "Screener presets (value/dividend/growth condition searches).",
 			Probe: &ProbeSpec{Name: "screener-presets", Method: "GET",
 				URL:   probeCert + "/api/v2/screener/presets/common?useCustom=true",
 				Check: statusAndPath("result", "array")},
@@ -495,7 +495,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "trading_flows", Method: "GET", Path: "wts:stock/trading-trend", Backend: "wts",
-			Category: "market", Summary: "Per-stock investor net-buy flows (individual/foreign/institution, KRX only). WTS-only.",
+			Category: "market", Summary: "Per-stock investor net-buy flows (individual/foreign/institution, KRX only).",
 			Params: []Param{
 				{Name: "symbol", Type: "string", Required: true, Desc: "KR ticker, e.g. 005930"},
 				{Name: "size", Type: "integer", Desc: "number of days (default 20)"},
@@ -517,7 +517,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "earning_calls", Method: "GET", Path: "wts:market/earnings", Backend: "wts",
-			Category: "market", Summary: "Upcoming earnings-call schedule. WTS-only.",
+			Category: "market", Summary: "Upcoming earnings-call schedule.",
 			ProbeRefs: []string{"earning-call"},
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.GetEarningCalls(ctx)
@@ -525,7 +525,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "earning_call_detail", Method: "GET", Path: "wts:market/earnings/{event_id}", Backend: "wts", Domain: "securities",
-			Category: "market", Summary: "Earnings-call report metadata and published audio, transcript, and slide links. WTS-only.",
+			Category: "market", Summary: "Earnings-call report metadata and published audio, transcript, and slide links.",
 			Params: []Param{{Name: "event_id", Type: "integer", Required: true, Desc: "event id returned by earning_calls"}},
 			Probe: &ProbeSpec{Name: "earning-call-detail", Method: "GET",
 				URL:   probeCert + "/api/v1/earning-call/events/228692/info",
@@ -540,7 +540,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "news_briefing", Method: "GET", Path: "wts:market/briefing", Backend: "wts",
-			Category: "market", Summary: "Personalized AI briefing enriched with the related holding/watchlist asset, return, signal direction, reasoning title, and source headlines. WTS-only.",
+			Category: "market", Summary: "Personalized AI briefing enriched with the related holding/watchlist asset, return, signal direction, reasoning title, and source headlines.",
 			Probe: &ProbeSpec{Name: "news-briefing", Method: "GET",
 				URL:   probeCert + "/api/v2/reasoning/personalized",
 				Check: statusAndPath("result.items", "array")},
@@ -550,7 +550,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "market_news_briefing", Method: "GET", Path: "wts:market/briefing/latest", Backend: "wts", Domain: "securities",
-			Category: "market", Summary: "Latest non-personalized AI briefing for the Korean or US market. WTS-only.",
+			Category: "market", Summary: "Latest non-personalized AI briefing for the Korean or US market.",
 			Params: []Param{{Name: "market", Type: "string", Required: true, Desc: `"kr" or "us"`}},
 			Probe: &ProbeSpec{Name: "market-news-briefing", Method: "GET",
 				URL:   probeCert + "/api/v1/dashboard/wts/overview/ai-signals/latest?nationCode=KOR",
@@ -565,7 +565,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "community_rankings", Method: "GET", Path: "wts:community/rankings", Backend: "wts",
-			Category: "market", Summary: "Toss community rankings (influencer / profit / followers). WTS-only.",
+			Category: "market", Summary: "Toss community rankings (influencer / profit / followers).",
 			Params: []Param{{Name: "type", Type: "string", Required: true, Desc: `"influencer", "profit", or "followers"`}},
 			Probe: &ProbeSpec{Name: "community-rankings", Method: "GET",
 				URL:   probeInfo + "/api/v1/community/top-rankings/INFLUENCER",
@@ -580,7 +580,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "lending_expected", Method: "GET", Path: "wts:lending/revenue/expected", Backend: "wts",
-			Category: "account", Summary: "Projected share-lending (대주) income for the account — monthly/yearly USD totals plus per-stock breakdown. Works even without an active lending agreement (zeros). WTS-only.",
+			Category: "account", Summary: "Projected share-lending (대주) income for the account — monthly/yearly USD totals plus per-stock breakdown. Works even without an active lending agreement (zeros).",
 			Probe: &ProbeSpec{Name: "lending-expected", Method: "GET",
 				URL: probeCert + "/api/v1/lending/revenue/account/expected",
 				Check: func(status int, _ []byte) error {
@@ -592,7 +592,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "lending_top_revenue", Method: "GET", Path: "wts:lending/revenue/top", Backend: "wts", Domain: "securities",
-			Category: "account", Summary: "Anonymized share-lending revenue ranking in server order. WTS-only.",
+			Category: "account", Summary: "Anonymized share-lending revenue ranking in server order.",
 			Params: []Param{{Name: "size", Type: "integer", Desc: "number of rows (0 = all returned by server)"}},
 			Probe: &ProbeSpec{Name: "lending-top-revenue", Method: "GET",
 				URL:   probeCert + "/api/v1/lending/revenue/account/top-revenue",
@@ -610,7 +610,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "accumulation_plans", Method: "GET", Path: "wts:autotrade/plan/find", Backend: "wts",
-			Category: "portfolio", Summary: "All stock-accumulation (주식모으기) recurring-buy plans on the account — which stocks, Active vs Paused, amount/quantity, frequency, rounds completed. WTS-only.",
+			Category: "portfolio", Summary: "All stock-accumulation (주식모으기) recurring-buy plans on the account — which stocks, Active vs Paused, amount/quantity, frequency, rounds completed.",
 			Probe: &ProbeSpec{Name: "accumulation-plans", Method: "GET",
 				URL:   probeAPI + "/api/v2/autotrade/plan/find",
 				Check: statusAndPath("result", "array")},
@@ -620,7 +620,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "accumulation_status", Method: "GET", Path: "wts:autotrade/plan/stock", Backend: "wts",
-			Category: "portfolio", Summary: "Stock-accumulation (주식모으기) plan(s) for one stock — Active vs Paused, amount/quantity, frequency. WTS-only.",
+			Category: "portfolio", Summary: "Stock-accumulation (주식모으기) plan(s) for one stock — Active vs Paused, amount/quantity, frequency.",
 			Params: []Param{{Name: "symbol", Type: "string", Required: true, Desc: "ticker (e.g. 005930, AAPL) or Toss product code"}},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbol, err := argString(args, "symbol")
@@ -632,7 +632,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "profit_overview", Method: "POST", Path: "wts:profit/overview", Backend: "wts",
-			Category: "portfolio", Summary: "Cumulative realized profit across every category — trading gains, dividends, share-lending, maturity, deposit interest — each in KRW and USD. A cumulative view distinct from account summary (current valuation). WTS-only.",
+			Category: "portfolio", Summary: "Cumulative realized profit across every category — trading gains, dividends, share-lending, maturity, deposit interest — each in KRW and USD. A cumulative view distinct from account summary (current valuation).",
 			Probe: &ProbeSpec{Name: "profit-overview", Method: "POST",
 				URL:  probeCert + "/api/v1/profit/overview",
 				Body: `{}`,
@@ -742,7 +742,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "portfolio_folders", Method: "POST", Path: "wts:POST /api/v2/dashboard/asset/sections/all", Backend: "wts", Domain: "securities",
-			Category: "portfolio", Summary: "Grouped Securities holdings with default and user-defined folders, fees, and after-fee returns for one account. Session-bound folder and item keys are not returned. WTS-only.",
+			Category: "portfolio", Summary: "Grouped Securities holdings with default and user-defined folders, fees, and after-fee returns for one account. Session-bound folder and item keys are not returned.",
 			Params: []Param{{Name: "account", Type: "string", Desc: "Securities account key; primary account when omitted"}},
 			Probe: &ProbeSpec{
 				Name: "portfolio-folders", Method: "POST", AccountScoped: true,
@@ -849,7 +849,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "account_detail", Method: "GET", Path: "wts:account/detail", Backend: "wts",
-			Category: "account", Summary: "Account identity, withdrawal capacity and credit-trading status (read-only half of 계좌관리): number, name, status, dates; withdrawable cash by settlement day (D+0/1/2) with caps and usage; 미수거래 per market. Full account number and holder name are returned — do not echo them into shared output. WTS-only.",
+			Category: "account", Summary: "Account identity, withdrawal capacity and credit-trading status (read-only half of 계좌관리): number, name, status, dates; withdrawable cash by settlement day (D+0/1/2) with caps and usage; 미수거래 per market. Full account number and holder name are returned — do not echo them into shared output.",
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.GetAccountDetail(ctx)
 			},
@@ -857,7 +857,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "market_issues", Method: "GET", Path: "wts:lens/issues", Backend: "wts",
 			Category: "market",
-			Summary:  "Ranked market topics, rank movement (UP/DOWN), article counts and articles. Unlike market_news headlines or news_briefing AI groups, this returns topic rankings. No parameters. WTS-only.",
+			Summary:  "Ranked market topics, rank movement (UP/DOWN), article counts and articles. Unlike market_news headlines or news_briefing AI groups, this returns topic rankings. No parameters.",
 			Probe: &ProbeSpec{Name: "market-issues", Method: "GET",
 				URL: probeInfo + "/api/v1/lens/issues",
 				Check: func(status int, body []byte) error {
@@ -873,7 +873,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "auto_trades", Method: "GET", Path: "wts:trading/auto-trading/histories", Backend: "wts",
 			Category: "order",
-			Summary:  "Automated-trading rules armed on the account (STOP_LOSS, PROFIT_RATE, OCO, OTO) with trigger/order prices. Read-only — arm/cancel in the app. status is the enum name, status_code the raw code. WTS-only.",
+			Summary:  "Automated-trading rules armed on the account (STOP_LOSS, PROFIT_RATE, OCO, OTO) with trigger/order prices. Read-only — arm/cancel in the app. status is the enum name, status_code the raw code.",
 			Probe: &ProbeSpec{Name: "auto-trades", Method: "GET",
 				URL: probeInfo + "/api/v3/trading/auto-trading/histories",
 				Check: func(status int, body []byte) error {
@@ -892,7 +892,7 @@ func wtsOperations() []Operation {
 			// 다른 기능이므로 id 를 나눈다.
 			ID: "market_events", Method: "POST", Path: "wts:calendar/monthly/{month}", Backend: "wts",
 			Category: "market",
-			Summary:  "One month of market events: economic releases (forecast, actual, prior), KR/US earnings with symbol and call time, holidays. month is YYYY-MM (default: current). Weekly AI summary only for the present month. WTS-only.",
+			Summary:  "One month of market events: economic releases (forecast, actual, prior), KR/US earnings with symbol and call time, holidays. month is YYYY-MM (default: current). Weekly AI summary only for the present month.",
 			Params: []Param{
 				{Name: "month", Type: "string", Desc: "YYYY-MM; empty = current month"},
 			},
@@ -918,7 +918,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "market_key_events", Method: "GET", Path: "wts:calendar/ai-summary/key-events", Backend: "wts",
 			Category: "market",
-			Summary:  "Current curated earnings and economic releases, including estimates and actual/forecast/historical values. WTS-only.",
+			Summary:  "Current curated earnings and economic releases, including estimates and actual/forecast/historical values.",
 			Probe: &ProbeSpec{Name: "market-key-events", Method: "GET",
 				URL: probeCert + "/api/v1/calendar/ai-summary/key-events",
 				Check: func(status int, body []byte) error {
@@ -936,14 +936,14 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "market_anomalies", Method: "GET", Path: "wts:dashboard/wts/overview/indicator#badged", Backend: "wts",
-			Category: "market", Summary: "Indices Toss flagged as moving unusually, each with its AI signal title, keyword and z-score (how far the move sits from that index's own recent distribution). WTS-only.",
+			Category: "market", Summary: "Indices Toss flagged as moving unusually, each with its AI signal title, keyword and z-score (how far the move sits from that index's own recent distribution).",
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				return d.WTS.GetIndexAnomalies(ctx)
 			},
 		},
 		{
 			ID: "quote_charts", Method: "POST", Path: "wts:dashboard/common/stocks/mini-chart", Backend: "wts",
-			Category: "quote", Summary: "Batch intraday candles, server-selected range/step (observed 1d/10m). Use quote_chart to select an interval. Found rows keep requested order; omitted symbols appear in missing. WTS-only.",
+			Category: "quote", Summary: "Batch intraday candles, server-selected range/step (observed 1d/10m). Use quote_chart to select an interval. Found rows keep requested order; omitted symbols appear in missing.",
 			Params: []Param{
 				{Name: "symbols", Type: "string[]", Required: true, Desc: "symbols or names, e.g. [\"005930\", \"AAPL\"]"},
 			},
@@ -966,7 +966,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "quote_reasons", Method: "POST", Path: "wts:dashboard/wts/overview/ai-signals", Backend: "wts",
-			Category: "quote", Summary: "Batch one-line AI explanations (web uses up to 100 symbols). Full single-stock card: quote_reasoning. Found rows keep requested order; omitted symbols appear in missing. WTS-only.",
+			Category: "quote", Summary: "Batch one-line AI explanations (web uses up to 100 symbols). Full single-stock card: quote_reasoning. Found rows keep requested order; omitted symbols appear in missing.",
 			Params: []Param{
 				{Name: "symbols", Type: "string[]", Required: true, Desc: "symbols or names, e.g. [\"005930\", \"AAPL\"]"},
 			},
@@ -989,7 +989,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "market_halt", Method: "GET", Path: "wts:dashboard/wts/overview/indicator", Backend: "wts",
-			Category: "market", Summary: "Whether a circuit breaker (서킷브레이커) or sidecar (사이드카) is currently firing on KOSPI/KOSDAQ. Returns all four switches with an activated flag, so a normal market is distinguishable from a failed call. WTS-only.",
+			Category: "market", Summary: "Whether a circuit breaker (서킷브레이커) or sidecar (사이드카) is currently firing on KOSPI/KOSDAQ. Returns all four switches with an activated flag, so a normal market is distinguishable from a failed call.",
 			Probe: &ProbeSpec{Name: "market-halt", Method: "GET",
 				URL: probeCert + "/api/v4/dashboard/wts/overview/indicator",
 				Check: func(status int, body []byte) error {
@@ -1004,7 +1004,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "market_news", Method: "POST", Path: "wts:dashboard/wts/news", Backend: "wts",
-			Category: "market", Summary: "Market news and related-stock moves. Scopes: all (no stock linkage), watchlist, holdings, soaring, recommended, latest. Maximum 50 items; no pagination or keyword search. WTS-only.",
+			Category: "market", Summary: "Market news and related-stock moves. Scopes: all (no stock linkage), watchlist, holdings, soaring, recommended, latest. Maximum 50 items; no pagination or keyword search.",
 			ProbeRefs: []string{"holdings-news"},
 			Params: []Param{
 				{Name: "scope", Type: "string", Desc: "all (default) | recommended | watchlist | holdings | latest | soaring; a raw server enum also works"},
@@ -1028,7 +1028,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "profit_period", Method: "POST", Path: "wts:profit/type/overview", Backend: "wts",
-			Category: "portfolio", Summary: "Realized profit for ONE category over a date range — earned amount, return rate, and purchase basis in KRW and USD. Omit from/to for the whole history. The period-scoped counterpart to profit_overview (all-time, every category). WTS-only.",
+			Category: "portfolio", Summary: "Realized profit for ONE category over a date range — earned amount, return rate, and purchase basis in KRW and USD. Omit from/to for the whole history. The period-scoped counterpart to profit_overview (all-time, every category).",
 			Params: []Param{
 				{Name: "type", Type: "string", Desc: "category: sales | dividend | lending | account-interest (default sales)"},
 				{Name: "from", Type: "string", Desc: "start date YYYY-MM-DD; omit for all time (must be paired with to)"},
@@ -1054,7 +1054,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "profit_daily", Method: "POST", Path: "wts:profit/wts/daily/market", Backend: "wts",
-			Category: "portfolio", Summary: "Per-stock realized profit day by day — symbol, quantity, P/L, return rate, sell/buy amounts, all pages combined. currency selects the RATE BASIS (KRW folds in FX, USD does not), not a filter. WTS-only.",
+			Category: "portfolio", Summary: "Per-stock realized profit day by day — symbol, quantity, P/L, return rate, sell/buy amounts, all pages combined. currency selects the RATE BASIS (KRW folds in FX, USD does not), not a filter.",
 			Params: []Param{
 				{Name: "from", Type: "string", Desc: "start date YYYY-MM-DD; omit for all time (must be paired with to)"},
 				{Name: "to", Type: "string", Desc: "end date YYYY-MM-DD, not in the future; omit for all time"},
@@ -1080,7 +1080,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "tax_overseas", Method: "GET", Path: "wts:tax/transfer-income/overseas", Backend: "wts",
-			Category: "portfolio", Summary: "Overseas-stock transfer income (해외주식 양도소득) for a tax year — tax summary (rate, deduction, tax due) plus per-stock profit/loss. For capital-gains tax filing (KRW). WTS-only.",
+			Category: "portfolio", Summary: "Overseas-stock transfer income (해외주식 양도소득) for a tax year — tax summary (rate, deduction, tax due) plus per-stock profit/loss. For capital-gains tax filing (KRW).",
 			Params: []Param{{Name: "year", Type: "integer", Desc: "tax year (0 = current)"}},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				year, err := argInt(args, "year")
@@ -1095,7 +1095,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "dividends", Method: "GET", Path: "wts:portfolio/dividends", Backend: "wts",
-			Category: "portfolio", Summary: "Annual dividend history (received/scheduled, by region, monthly). WTS-only.",
+			Category: "portfolio", Summary: "Annual dividend history (received/scheduled, by region, monthly).",
 			Params: []Param{
 				{Name: "year", Type: "integer", Desc: "year (0 = current)"},
 				{Name: "by_payment_date", Type: "boolean", Desc: "use payment date (incl. tax/fees) instead of ex-date"},
@@ -1114,14 +1114,14 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "community_boards", Method: "GET", Path: "wts:community/boards", Backend: "wts",
-			Category: "market", Summary: "Toss community lounges ranked by follower count, with comment counts and whether this account has joined. Server order is the ranking. WTS-only.",
+			Category: "market", Summary: "Toss community lounges ranked by follower count, with comment counts and whether this account has joined. Server order is the ranking.",
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.GetPopularBoards(ctx)
 			},
 		},
 		{
 			ID: "quote_crypto", Method: "GET", Path: "wts:quote/crypto", Backend: "wts",
-			Category: "market", Summary: "KRW crypto prices (BTC/ETH/SOL/XRP) — OHLC, 52-week range, and the premium gap against the global market at the current USD/KRW rate. A volume-weighted average across aggregated exchanges, not one venue. WTS-only.",
+			Category: "market", Summary: "KRW crypto prices (BTC/ETH/SOL/XRP) — OHLC, 52-week range, and the premium gap against the global market at the current USD/KRW rate. A volume-weighted average across aggregated exchanges, not one venue.",
 			Params: []Param{{Name: "symbols", Type: "string", Required: true, Desc: `comma-separated, e.g. "BTC,ETH" (full codes like VWAP.KRW-BTC also work)`}},
 			Probe: &ProbeSpec{Name: "quote-crypto", Method: "GET",
 				URL: probeInfo + "/api/v1/crypto-prices?productCodes=VWAP.KRW-BTC",
@@ -1141,7 +1141,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "quote_reasoning", Method: "GET", Path: "wts:quote/reasoning", Backend: "wts",
-			Category: "market", Summary: "Toss's AI explanation of why a stock moved today, plus the stocks it cites as connected. Narrative, unlike quote_signals which is short signal cards. WTS-only.",
+			Category: "market", Summary: "Toss's AI explanation of why a stock moved today, plus the stocks it cites as connected. Narrative, unlike quote_signals which is short signal cards.",
 			Params: []Param{{Name: "symbol", Type: "string", Required: true, Desc: "ticker (e.g. 005930, AAPL) or Toss product code"}},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				symbol, err := argString(args, "symbol")
@@ -1156,7 +1156,7 @@ func wtsOperations() []Operation {
 			// Summary must not name other operation ids: list_operations matches on
 			// summary text too, so a cross-reference makes this entry surface on a
 			// search for that other id.
-			Category: "market", Summary: "Per-stock signal cards (호재/악재 labels with a one-line reason), for one symbol. The market-wide personalized signal feed is a separate operation. WTS-only.",
+			Category: "market", Summary: "Per-stock signal cards (호재/악재 labels with a one-line reason), for one symbol. The market-wide personalized signal feed is a separate operation.",
 			Params: []Param{{Name: "symbol", Type: "string", Required: true, Desc: "ticker (e.g. 005930, AAPL) or Toss product code"}},
 			Probe: &ProbeSpec{Name: "quote-stock-signals", Method: "GET",
 				URL: probeInfo + "/api/v1/dashboard/wts/overview/signals?codes=A005930",
@@ -1176,7 +1176,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "account_receivable", Method: "GET", Path: "wts:account/receivable", Backend: "wts",
-			Category: "account", Summary: "Receivable (미수금) and forced-liquidation warning state for one currency: amount owed, payment deadline, liquidation time, and any trading-suspension window. All timestamps are null on a healthy account. WTS-only.",
+			Category: "account", Summary: "Receivable (미수금) and forced-liquidation warning state for one currency: amount owed, payment deadline, liquidation time, and any trading-suspension window. All timestamps are null on a healthy account.",
 			Params: []Param{{Name: "currency", Type: "string", Desc: `"KRW" (default) or "USD"`}},
 			Probe: &ProbeSpec{Name: "account-receivable", Method: "GET",
 				URL: probeCert + "/api/v1/margin/cert/notice/receivable?currency=KRW",
@@ -1193,7 +1193,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "search_stocks", Method: "GET", Path: "wts:search", Backend: "wts",
-			Category: "market", Summary: "Unified search over Toss's catalog by name or ticker, returning product codes usable by every other operation. WTS-only.",
+			Category: "market", Summary: "Unified search over Toss's catalog by name or ticker, returning product codes usable by every other operation.",
 			Params: []Param{{Name: "query", Type: "string", Required: true, Desc: "name or ticker, e.g. 삼성 or AAPL"}},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				query, err := argString(args, "query")
@@ -1205,7 +1205,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "screener_filter_ranges", Method: "GET", Path: "wts:market/filters", Backend: "wts",
-			Category: "market", Summary: "Min/max span and base date for screener filters so thresholds come from the live universe. Filter ids from market_screener presets. WTS-only.",
+			Category: "market", Summary: "Min/max span and base date for screener filters so thresholds come from the live universe. Filter ids from market_screener presets.",
 			Params: []Param{
 				{Name: "filter_ids", Type: "string", Required: true, Desc: `comma-separated filter ids, e.g. "PER,PBR"`},
 				{Name: "nation", Type: "string", Desc: `"kr" (default) or "us"`},
@@ -1229,7 +1229,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "quote_option_expiries", Method: "GET", Path: "wts:quote/options", Backend: "wts",
-			Category: "market", Summary: "Listed expiration dates for a US underlying's options, with each one's liquidation time. Pick one and pass it to quote_option_chain. WTS-only.",
+			Category: "market", Summary: "Listed expiration dates for a US underlying's options, with each one's liquidation time. Pick one and pass it to quote_option_chain.",
 			Params: []Param{{Name: "symbol", Type: "string", Required: true, Desc: "US ticker (e.g. AAPL) or Toss product code"}},
 			Probe: &ProbeSpec{Name: "option-expiries", Method: "GET",
 				URL: probeInfo + "/api/v1/option-maturity-date/get-all?underlyingGuid=US19801212001",
@@ -1249,7 +1249,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "quote_option_chain", Method: "GET", Path: "wts:quote/options/chain", Backend: "wts",
-			Category: "market", Summary: "Call/put option chain for one expiration: every strike with the contract identifiers and open interest on each side. Carries no prices. Get valid expiry values from quote_option_expiries. WTS-only.",
+			Category: "market", Summary: "Call/put option chain for one expiration: every strike with the contract identifiers and open interest on each side. Carries no prices. Get valid expiry values from quote_option_expiries.",
 			Params: []Param{
 				{Name: "symbol", Type: "string", Required: true, Desc: "US ticker (e.g. AAPL) or Toss product code"},
 				{Name: "expiry", Type: "string", Required: true, Desc: "expiration date, YYYY-MM-DD"},
@@ -1268,14 +1268,14 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "market_option_hours", Method: "GET", Path: "wts:market/option-hours", Backend: "wts",
-			Category: "market", Summary: "US options session windows for the previous, current, and next business day. Equity hours are market_trading_hours; the two can diverge around holidays. WTS-only.",
+			Category: "market", Summary: "US options session windows for the previous, current, and next business day. Equity hours are market_trading_hours; the two can diverge around holidays.",
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.GetOptionTradingHours(ctx)
 			},
 		},
 		{
 			ID: "order_funding", Method: "GET", Path: "wts:order/funding", Backend: "wts",
-			Category: "order", Summary: "Whether buying is possible right now and, when blocked, the deposit or exchange amount still required. Reports the gap, unlike account_summary which reports what is already orderable. WTS-only.",
+			Category: "order", Summary: "Whether buying is possible right now and, when blocked, the deposit or exchange amount still required. Reports the gap, unlike account_summary which reports what is already orderable.",
 			Probe: &ProbeSpec{Name: "order-funding", Method: "GET",
 				URL: probeInfo + "/api/v2/trading/order/buy-control/required-deposit-amount",
 				Check: func(status int, body []byte) error {
@@ -1290,7 +1290,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "tax_ria", Method: "GET", Path: "wts:tax/ria", Backend: "wts",
-			Category: "account", Summary: "RIA (해외주식 양도세 절세 계좌) report: estimated capital-gains tax before/after the deduction, quarterly components, sell limit, remaining saving. Complements tax_overseas. Mobile-app-only. WTS-only.",
+			Category: "account", Summary: "RIA (해외주식 양도세 절세 계좌) report: estimated capital-gains tax before/after the deduction, quarterly components, sell limit, remaining saving. Complements tax_overseas. Mobile-app-only.",
 			Probe: &ProbeSpec{Name: "ria-report", Method: "GET",
 				URL: probeCert + "/api/v1/ria-calculator/report",
 				Check: func(status int, body []byte) error {
@@ -1308,7 +1308,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "account_interest", Method: "GET", Path: "wts:account/interest", Backend: "wts",
-			Category: "account", Summary: "Deposit-interest (예탁금 이용료) payments for a year: date, pre-tax, tax, net, accrual period, estimate flag. profit_summary type=account-interest is the period total. WTS-only.",
+			Category: "account", Summary: "Deposit-interest (예탁금 이용료) payments for a year: date, pre-tax, tax, net, accrual period, estimate flag. profit_summary type=account-interest is the period total.",
 			Params: []Param{
 				{Name: "year", Type: "integer", Desc: "Year to report (default: current year)"},
 			},
@@ -1336,7 +1336,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "account_access_status", Method: "GET", Path: "wts:account/access-status", Backend: "wts", Domain: "securities",
 			Category: "account",
-			Summary:  "User-global last Toss Securities login context plus account-specific margin-freeze and accident-account signals. Read-only; does not unlock or modify the account. WTS-only.",
+			Summary:  "User-global last Toss Securities login context plus account-specific margin-freeze and accident-account signals. Read-only; does not unlock or modify the account.",
 			Params:   []Param{{Name: "account", Type: "string", Desc: "Securities account key; omit for the primary account"}},
 			Probe: &ProbeSpec{Name: "account-last-login", Method: "GET",
 				URL: probeAPI + "/api/v1/user/last-login-info",
@@ -1368,7 +1368,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "account_commission", Method: "GET", Path: "wts:account/commission", Backend: "wts",
-			Category: "account", Summary: "Commission schedule this account is charged, per market (KR equities, US equities, US options). Distinct from quote_commission, which is per-symbol. WTS-only.",
+			Category: "account", Summary: "Commission schedule this account is charged, per market (KR equities, US equities, US options). Distinct from quote_commission, which is per-symbol.",
 			Probe: &ProbeSpec{Name: "account-commission-info", Method: "GET",
 				URL: probeAPI + "/api/v2/trading/commission-info",
 				Check: func(status int, body []byte) error {
@@ -1388,14 +1388,14 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "prime_status", Method: "GET", Path: "wts:account/prime", Backend: "wts",
-			Category: "account", Summary: "Toss Prime subscription status and this month's fee/interest benefits. WTS-only.",
+			Category: "account", Summary: "Toss Prime subscription status and this month's fee/interest benefits.",
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.GetPrimeStatus(ctx)
 			},
 		},
 		{
 			ID: "account_summary", Method: "GET", Path: "wts:account/summary", Backend: "wts",
-			Category: "account", Summary: "Account summary (balance, holdings valuation, P&L). WTS-only.",
+			Category: "account", Summary: "Account summary (balance, holdings valuation, P&L).",
 			Probe: &ProbeSpec{Name: "account-summary-overview", Method: "GET",
 				URL: probeCert + "/api/v3/my-assets/summaries/markets/all/overview",
 				Check: func(status int, body []byte) error {
@@ -1413,7 +1413,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "account_overview", Method: "POST", Path: "wts:account/overview", Backend: "wts",
-			Category: "account", Summary: "All-account asset rollup, including minor accounts and pending-order counts. Account numbers are masked unless full=true. WTS-only.",
+			Category: "account", Summary: "All-account asset rollup, including minor accounts and pending-order counts. Account numbers are masked unless full=true.",
 			Params: []Param{{Name: "full", Type: "boolean", Desc: "reveal complete account numbers; false/omitted masks them"}},
 			Probe: &ProbeSpec{Name: "account-all-overview", Method: "POST",
 				URL:  probeInfo + "/api/v1/dashboard/all-accounts",
@@ -1517,7 +1517,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "accumulation_funding_status", Aliases: []string{"banking_status"}, Method: "GET", Path: "wts:autotrade/open-banking/info/find", Backend: "wts", Domain: "securities",
 			Category: "accumulate",
-			Summary:  "Funding account for stock accumulation and its auto-order registration (not Toss Banking). Holder/account masked unless full=true. WTS-only.",
+			Summary:  "Funding account for stock accumulation and its auto-order registration (not Toss Banking). Holder/account masked unless full=true.",
 			Params:   []Param{{Name: "full", Type: "boolean", Desc: "reveal the account holder and complete account number; false/omitted masks them"}},
 			Probe: &ProbeSpec{Name: "open-banking-status", Method: "GET",
 				URL: probeAPI + "/api/v1/autotrade/open-banking/info/find",
@@ -1561,7 +1561,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "notification_settings", Method: "GET", Path: "wts:user-alimies", Backend: "wts", Domain: "securities",
 			Category:  "settings",
-			Summary:   "Every WTS notification preference and its enabled state, including upstream untyped rows. Read-only; internal user ids are omitted. WTS-only.",
+			Summary:   "Every WTS notification preference and its enabled state, including upstream untyped rows. Read-only; internal user ids are omitted.",
 			ProbeRefs: []string{"notification-settings"},
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.GetNotificationSettings(ctx)
@@ -1570,7 +1570,7 @@ func wtsOperations() []Operation {
 		{
 			ID: "notification_status", Method: "GET", Path: "wts:notifications/status", Backend: "wts", Domain: "securities",
 			Category: "settings",
-			Summary:  "Inbox and selected AI/FOMC notification states summarized from the generic settings list, plus reasoning agreement and a deprecated global news-count field. Read-only. WTS-only.",
+			Summary:  "Inbox and selected AI/FOMC notification states summarized from the generic settings list, plus reasoning agreement and a deprecated global news-count field. Read-only.",
 			Probe: &ProbeSpec{Name: "notification-inbox-unread", Method: "GET",
 				URL:   probeCert + "/api/v1/inbox-alimies/has-unread",
 				Check: statusAndPath("result.unread", "bool")},
@@ -1589,7 +1589,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "completed_orders", Method: "GET", Path: "wts:trading/my-orders/completed", Backend: "wts",
-			Category: "order", Summary: "Completed orders, including canceled orders, with average execution price and executed quantity. Defaults to the current month; all_dates reads unified history without a date filter. WTS-only.",
+			Category: "order", Summary: "Completed orders, including canceled orders, with average execution price and executed quantity. Defaults to the current month; all_dates reads unified history without a date filter.",
 			Params: []Param{
 				{Name: "market", Type: "string", Desc: `"kr", "us", or "all" (default all)`},
 				{Name: "from", Type: "string", Desc: "start date YYYY-MM-DD (default: current month start)"},
@@ -1678,7 +1678,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "transactions_overview", Method: "GET", Path: "wts:transactions/overview", Backend: "wts",
-			Category: "account", Summary: "Transaction history overview (deposits/withdrawals/trades summary). WTS-only.",
+			Category: "account", Summary: "Transaction history overview (deposits/withdrawals/trades summary).",
 			Params: []Param{{Name: "market", Type: "string", Desc: `"kr" or "us" (optional)`}},
 			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
 				market, err := argString(args, "market")
@@ -1690,7 +1690,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "positions", Method: "GET", Path: "wts:portfolio/positions", Backend: "wts",
-			Category: "account", Summary: "Current holdings with valuation and unrealized P&L (works without an official key). WTS-only.",
+			Category: "account", Summary: "Current holdings with valuation and unrealized P&L (works without an official key).",
 			// #29 재발 방지: 빈 `{}` body 는 빈 sections 를 돌려준다 — 진짜 sections
 			// 배열에 SORTED_OVERVIEW 항목과 products[] 가 있어야 정상.
 			ProbeRefs: []string{"portfolio-positions"},
@@ -1700,7 +1700,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "pending_orders", Method: "GET", Path: "wts:trading/orders/pending", Backend: "wts",
-			Category: "order", Summary: "Open (unfilled) pending orders (works without an official key). WTS-only.",
+			Category: "order", Summary: "Open (unfilled) pending orders (works without an official key).",
 			ProbeRefs: []string{"pending-orders"},
 			handler: func(ctx context.Context, d *Deps, _ map[string]any) (any, error) {
 				return d.WTS.ListPendingOrders(ctx)
@@ -1708,7 +1708,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "transactions", Method: "GET", Path: "wts:transactions/list", Backend: "wts",
-			Category: "account", Summary: "Detailed transaction list (deposits/withdrawals/trades) aggregated across pages over a date range. WTS-only.",
+			Category: "account", Summary: "Detailed transaction list (deposits/withdrawals/trades) aggregated across pages over a date range.",
 			ProbeRefs: []string{"transactions-kr", "transactions-us"},
 			Params: []Param{
 				{Name: "market", Type: "string", Desc: `"kr", "us", or "all" (default all)`},
@@ -1769,7 +1769,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "watchlist", Method: "GET", Path: "wts:watchlist", Backend: "wts",
-			Category: "watchlist", Summary: "Watchlist items. Pass group_id for one folder (see watchlist_groups); with no arguments it returns every folder's items, flat. WTS-only.",
+			Category: "watchlist", Summary: "Watchlist items. Pass group_id for one folder (see watchlist_groups); with no arguments it returns every folder's items, flat.",
 			Params: []Param{
 				{Name: "group_id", Type: "integer", Desc: "folder id (see watchlist_groups); omit to get all folders"},
 				{Name: "all", Type: "boolean", Desc: "force the flat all-folders list (the default when group_id is omitted)"},
@@ -1801,7 +1801,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "watchlist_groups", Method: "GET", Path: "wts:watchlist/groups", Backend: "wts",
-			Category: "watchlist", Summary: "Watchlist folders/groups. WTS-only.",
+			Category: "watchlist", Summary: "Watchlist folders/groups.",
 			Probe: &ProbeSpec{Name: "watchlist-groups", Method: "GET",
 				URL:   probeCert + "/api/v1/new-watchlists/groups/simple?includeItemInfo=true",
 				Check: statusAndWatchlistGroupsSimple()},
@@ -1811,7 +1811,7 @@ func wtsOperations() []Operation {
 		},
 		{
 			ID: "earnings_major", Method: "GET", Path: "wts:market/earnings/major", Backend: "wts",
-			Category: "market", Summary: "Curated major-company earnings calls. WTS-only.",
+			Category: "market", Summary: "Curated major-company earnings calls.",
 			Probe: &ProbeSpec{Name: "earning-call-home", Method: "GET",
 				URL:   probeInfo + "/api/v1/earning-call/home",
 				Check: statusAndPath("result.majorCompanies", "object")},

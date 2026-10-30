@@ -386,3 +386,47 @@ func TestWriteCommissionPercentScale(t *testing.T) {
 		t.Errorf("CSV should carry the raw ratio:\n%s", csvBuf.String())
 	}
 }
+
+func TestWriteInvestorTradingRankings(t *testing.T) {
+	ranked := "2026-10-30T15:40:00+09:00"
+	r := domain.InvestorTradingRankings{Investors: []domain.InvestorTradingRanking{
+		{
+			Investor: "foreigner", RankedAt: &ranked,
+			NetBuy:  []domain.InvestorTradingRankItem{{Rank: 1, Symbol: "005930", Currency: "KRW", Amount: 1000}, {Rank: 2, Symbol: "000660", Currency: "KRW", Amount: 500}},
+			NetSell: []domain.InvestorTradingRankItem{{Rank: 1, Symbol: "035720", Currency: "KRW", Amount: 700}},
+		},
+		{Investor: "individual", NetBuy: []domain.InvestorTradingRankItem{}, NetSell: []domain.InvestorTradingRankItem{}},
+	}}
+
+	var csvOut bytes.Buffer
+	if err := WriteInvestorTradingRankings(&csvOut, FormatCSV, r); err != nil {
+		t.Fatal(err)
+	}
+	want := "investor,ranked_at,side,rank,symbol,currency,amount\n" +
+		"foreigner,2026-10-30T15:40:00+09:00,net_buy,1,005930,KRW,1000\n" +
+		"foreigner,2026-10-30T15:40:00+09:00,net_buy,2,000660,KRW,500\n" +
+		"foreigner,2026-10-30T15:40:00+09:00,net_sell,1,035720,KRW,700\n"
+	if csvOut.String() != want {
+		t.Errorf("csv:\n%s", csvOut.String())
+	}
+
+	var jsonOut bytes.Buffer
+	if err := WriteInvestorTradingRankings(&jsonOut, FormatJSON, r); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`"ranked_at": null`, `"net_buy": []`} {
+		if !strings.Contains(jsonOut.String(), want) {
+			t.Errorf("json lacks %s:\n%s", want, jsonOut.String())
+		}
+	}
+
+	var table bytes.Buffer
+	if err := WriteInvestorTradingRankings(&table, FormatTable, r); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{ranked, "035720", i18n.T("output.investorTrading.noData"), i18n.T("output.investorTrading.foreigner")} {
+		if !strings.Contains(table.String(), want) {
+			t.Errorf("table lacks %q:\n%s", want, table.String())
+		}
+	}
+}

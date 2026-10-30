@@ -2,6 +2,7 @@ package official
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -346,6 +347,71 @@ func (c *Client) Rankings(ctx context.Context, typ, marketCountry, duration stri
 		return domain.Ranking{}, err
 	}
 	return adaptRanking(typ, marketCountry, duration, raw), nil
+}
+
+// defaultInvestorRankingCount replaces the API default of 100: six lists of 100
+// overflow a terminal and the MCP result cap.
+const defaultInvestorRankingCount = 10
+
+type apiInvestorNetTrading struct {
+	RankedAt       *string `json:"rankedAt"`
+	NetBuyRankings []struct {
+		Rank         int    `json:"rank"`
+		Symbol       string `json:"symbol"`
+		Currency     string `json:"currency"`
+		NetBuyAmount string `json:"netBuyAmount"`
+	} `json:"netBuyRankings"`
+	NetSellRankings []struct {
+		Rank          int    `json:"rank"`
+		Symbol        string `json:"symbol"`
+		Currency      string `json:"currency"`
+		NetSellAmount string `json:"netSellAmount"`
+	} `json:"netSellRankings"`
+}
+
+// InvestorTradingRankings fetches KR net-buy and net-sell leaders per investor
+// type. count applies to each list (1–100, 0 = defaultInvestorRankingCount).
+func (c *Client) InvestorTradingRankings(ctx context.Context, count int) (domain.InvestorTradingRankings, error) {
+	if count == 0 {
+		count = defaultInvestorRankingCount
+	}
+	if count < 1 || count > 100 {
+		return domain.InvestorTradingRankings{}, fmt.Errorf("count must be between 1 and 100, got %d", count)
+	}
+	q := url.Values{}
+	q.Set("count", strconv.Itoa(count))
+	var raw struct {
+		Foreigner   apiInvestorNetTrading `json:"foreigner"`
+		Institution apiInvestorNetTrading `json:"institution"`
+		Individual  apiInvestorNetTrading `json:"individual"`
+	}
+	if err := c.get(ctx, "/api/v1/rankings/investor-trading", q, &raw); err != nil {
+		return domain.InvestorTradingRankings{}, err
+	}
+	return domain.InvestorTradingRankings{
+		Investors: []domain.InvestorTradingRanking{
+			adaptInvestorNetTrading("foreigner", raw.Foreigner),
+			adaptInvestorNetTrading("institution", raw.Institution),
+			adaptInvestorNetTrading("individual", raw.Individual),
+		},
+		FetchedAt: time.Now().UTC(),
+	}, nil
+}
+
+func adaptInvestorNetTrading(investor string, raw apiInvestorNetTrading) domain.InvestorTradingRanking {
+	out := domain.InvestorTradingRanking{
+		Investor: investor,
+		RankedAt: raw.RankedAt,
+		NetBuy:   make([]domain.InvestorTradingRankItem, 0, len(raw.NetBuyRankings)),
+		NetSell:  make([]domain.InvestorTradingRankItem, 0, len(raw.NetSellRankings)),
+	}
+	for _, r := range raw.NetBuyRankings {
+		out.NetBuy = append(out.NetBuy, domain.InvestorTradingRankItem{Rank: r.Rank, Symbol: r.Symbol, Currency: r.Currency, Amount: parseDecimal(r.NetBuyAmount)})
+	}
+	for _, r := range raw.NetSellRankings {
+		out.NetSell = append(out.NetSell, domain.InvestorTradingRankItem{Rank: r.Rank, Symbol: r.Symbol, Currency: r.Currency, Amount: parseDecimal(r.NetSellAmount)})
+	}
+	return out
 }
 
 // adaptRanking converts the official RankingResponse to domain.Ranking.
