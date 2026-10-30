@@ -34,7 +34,9 @@ cleanup() {
 trap cleanup EXIT
 
 checkout="$work_dir/repo"
-gh repo clone "$repo" "$checkout" -- --filter=blob:none --quiet
+# Full clone: the sandbox below has no network, so a partial clone cannot read the
+# parent snapshot and the analysis ends as an unverified breaking-risk (#330).
+gh repo clone "$repo" "$checkout" -- --quiet
 
 spec_commit=$(git -C "$checkout" log -1 --format=%H -- \
   docs/migration/openapi.latest.json docs/migration/asyncapi.latest.json)
@@ -68,6 +70,9 @@ if [ "$mode" = "--check" ]; then
   echo "Pending Codex analysis: commit=$short_commit output=$analysis_file"
   exit 0
 fi
+
+# A failing diff must stop here, not reach Codex and come back as a false alarm.
+(cd "$checkout" && python3 tools/openapi_diff.py --rev "$spec_commit" >/dev/null)
 
 git -C "$checkout" checkout -q -b "$branch" origin/main
 read -r -d '' prompt <<'PROMPT' || true

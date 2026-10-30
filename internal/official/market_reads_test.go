@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -386,6 +387,74 @@ func TestRankingsIntegration(t *testing.T) {
 	}
 	if len(got.Items) != 1 || got.Items[0].Symbol != "005930" || got.Items[0].LastPrice != 71900 {
 		t.Fatalf("unexpected result: %+v", got)
+	}
+}
+
+func TestInvestorTradingRankingsIntegration(t *testing.T) {
+	var counts []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/rankings/investor-trading":
+			counts = append(counts, r.URL.Query().Get("count"))
+			_, _ = w.Write([]byte(`{"result":{
+				"foreigner":{"rankedAt":"2026-10-30T15:40:00+09:00",
+					"netBuyRankings":[{"rank":1,"symbol":"005930","currency":"KRW","netBuyAmount":"123456789000"}],
+					"netSellRankings":[{"rank":1,"symbol":"0091P0","currency":"KRW","netSellAmount":"98765432000"}]},
+				"institution":{"rankedAt":"2026-10-30T15:35:00+09:00","netBuyRankings":[],"netSellRankings":[]},
+				"individual":{"rankedAt":null,"netBuyRankings":[],"netSellRankings":[]}}}`))
+		default:
+			t.Errorf("unexpected path %q", r.URL.Path)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+	)
+	ctx := context.Background()
+	got, err := c.InvestorTradingRankings(ctx, 5)
+	if err != nil {
+		t.Fatalf("InvestorTradingRankings: %v", err)
+	}
+	if len(got.Investors) != 3 || got.Investors[0].Investor != "foreigner" || got.Investors[1].Investor != "institution" || got.Investors[2].Investor != "individual" {
+		t.Fatalf("investor order: %+v", got.Investors)
+	}
+	foreigner := got.Investors[0]
+	if foreigner.NetBuy[0].Amount != 123456789000 || foreigner.NetSell[0].Amount != 98765432000 {
+		t.Errorf("both directions must stay positive: %+v", foreigner)
+	}
+	if foreigner.NetSell[0].Symbol != "0091P0" {
+		t.Errorf("alphanumeric symbol: %+v", foreigner.NetSell[0])
+	}
+	if foreigner.RankedAt == nil || got.Investors[1].RankedAt == nil || *foreigner.RankedAt == *got.Investors[1].RankedAt {
+		t.Errorf("each investor keeps its own timestamp: %+v", got.Investors)
+	}
+	individual := got.Investors[2]
+	if individual.RankedAt != nil {
+		t.Errorf("null rankedAt must stay nil, not an empty timestamp: %q", *individual.RankedAt)
+	}
+	if individual.NetBuy == nil || individual.NetSell == nil {
+		t.Errorf("empty lists must not become null: %+v", individual)
+	}
+
+	if _, err := c.InvestorTradingRankings(ctx, 0); err != nil {
+		t.Fatalf("default count: %v", err)
+	}
+	if _, err := c.InvestorTradingRankings(ctx, 100); err != nil {
+		t.Fatalf("max count: %v", err)
+	}
+	for _, bad := range []int{-1, 101} {
+		if _, err := c.InvestorTradingRankings(ctx, bad); err == nil {
+			t.Errorf("count %d must be rejected before the request", bad)
+		}
+	}
+	if want := []string{"5", "10", "100"}; !slices.Equal(counts, want) {
+		t.Errorf("count query = %v, want %v", counts, want)
 	}
 }
 

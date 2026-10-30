@@ -355,6 +355,15 @@ func (c *Client) CreateConditionalOrder(ctx context.Context, intent orderintent.
 	})
 }
 
+// InvestorTradingRankings serves the official investor ranking. official-only:
+// the WTS GetInvestorRankings has names and quotes but no net-sell lists, so
+// neither can stand in for the other.
+func (c *Client) InvestorTradingRankings(ctx context.Context, count int) (domain.InvestorTradingRankings, error) {
+	return officialOnly(c, func(off *official.Client) (domain.InvestorTradingRankings, error) {
+		return off.InvestorTradingRankings(ctx, count)
+	})
+}
+
 // ModifyConditionalOrder modifies a conditional order. official-only. The
 // returned ref is the replacement order; intent.ID is invalid afterwards.
 func (c *Client) ModifyConditionalOrder(ctx context.Context, intent orderintent.ConditionalModifyIntent) (domain.ConditionalOrderRef, error) {

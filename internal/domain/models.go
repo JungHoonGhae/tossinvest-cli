@@ -745,6 +745,32 @@ type InvestorRankings struct {
 	FetchedAt time.Time         `json:"fetched_at"`
 }
 
+// InvestorTradingRankItem is one row of an official investor ranking. Amount is
+// a positive KRW value for both directions; the list it sits in gives the side.
+type InvestorTradingRankItem struct {
+	Rank     int     `json:"rank"`
+	Symbol   string  `json:"symbol"`
+	Currency string  `json:"currency"`
+	Amount   float64 `json:"amount"`
+}
+
+// InvestorTradingRanking is one investor type's official KR ranking. RankedAt
+// is nil when the server has no data, and differs between investor types.
+type InvestorTradingRanking struct {
+	Investor string                    `json:"investor"`
+	RankedAt *string                   `json:"ranked_at"`
+	NetBuy   []InvestorTradingRankItem `json:"net_buy"`
+	NetSell  []InvestorTradingRankItem `json:"net_sell"`
+}
+
+// InvestorTradingRankings is GET /api/v1/rankings/investor-trading: both
+// directions per investor, without names or quotes (unlike the WTS
+// InvestorRankings, which is net-buy only and carries both).
+type InvestorTradingRankings struct {
+	Investors []InvestorTradingRanking `json:"investors"`
+	FetchedAt time.Time                `json:"fetched_at"`
+}
+
 // EarningCall is a single upcoming earnings-call event.
 type EarningCall struct {
 	EventID     int64  `json:"event_id"`

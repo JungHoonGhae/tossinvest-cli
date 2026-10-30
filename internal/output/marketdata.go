@@ -803,6 +803,64 @@ func WriteCommunityRanking(w io.Writer, format Format, r domain.CommunityRanking
 }
 
 // WriteSectors renders an industry (TICS) list with fluctuation rates.
+// WriteInvestorTradingRankings renders official net-buy and net-sell leaders.
+// Each list keeps its own rank column because the two are ranked independently.
+func WriteInvestorTradingRankings(w io.Writer, format Format, r domain.InvestorTradingRankings) error {
+	switch format {
+	case FormatJSON:
+		return writeJSON(w, r)
+	case FormatCSV:
+		var rows [][]string
+		for _, inv := range r.Investors {
+			rankedAt := ""
+			if inv.RankedAt != nil {
+				rankedAt = *inv.RankedAt
+			}
+			rows = appendInvestorTradingCSV(rows, inv.Investor, rankedAt, "net_buy", inv.NetBuy)
+			rows = appendInvestorTradingCSV(rows, inv.Investor, rankedAt, "net_sell", inv.NetSell)
+		}
+		return writeCSV(w, []string{"investor", "ranked_at", "side", "rank", "symbol", "currency", "amount"}, rows)
+	case FormatTable:
+		for _, inv := range r.Investors {
+			rankedAt := i18n.T("output.investorTrading.noData")
+			if inv.RankedAt != nil {
+				rankedAt = *inv.RankedAt
+			}
+			if _, err := fmt.Fprintf(w, i18n.T("output.investorTrading.header"), i18n.T("output.investorTrading."+inv.Investor), rankedAt); err != nil {
+				return err
+			}
+			var rows [][]string
+			for i := 0; i < max(len(inv.NetBuy), len(inv.NetSell)); i++ {
+				rows = append(rows, append(investorTradingCells(inv.NetBuy, i), investorTradingCells(inv.NetSell, i)...))
+			}
+			headers := []string{
+				i18n.T("output.investorRankings.header.rank"), i18n.T("output.investorTrading.header.netBuy"), i18n.T("output.investorTrading.header.amount"),
+				i18n.T("output.investorRankings.header.rank"), i18n.T("output.investorTrading.header.netSell"), i18n.T("output.investorTrading.header.amount"),
+			}
+			if err := renderTable(w, headers, rows, AlignRight, AlignLeft, AlignRight, AlignRight, AlignLeft, AlignRight); err != nil {
+				return err
+			}
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported output format: %s", format)
+	}
+}
+
+func appendInvestorTradingCSV(rows [][]string, investor, rankedAt, side string, items []domain.InvestorTradingRankItem) [][]string {
+	for _, x := range items {
+		rows = append(rows, []string{investor, rankedAt, side, fmt.Sprintf("%d", x.Rank), x.Symbol, x.Currency, strconv.FormatFloat(x.Amount, 'f', -1, 64)})
+	}
+	return rows
+}
+
+func investorTradingCells(items []domain.InvestorTradingRankItem, i int) []string {
+	if i >= len(items) {
+		return []string{"", "", ""}
+	}
+	return []string{fmt.Sprintf("%d", items[i].Rank), items[i].Symbol, formatKRW(items[i].Amount)}
+}
+
 // WriteThemeRankings renders the TICS theme fluctuation ranking. Table output
 // colours the change rate (KR convention: red up / blue down) only when the
 // colour gate is on; JSON/CSV are byte-identical regardless.
