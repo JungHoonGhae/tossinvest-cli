@@ -20,6 +20,7 @@ import (
 	"io"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/client"
@@ -354,8 +355,9 @@ func (c *Client) CreateConditionalOrder(ctx context.Context, intent orderintent.
 	})
 }
 
-// ModifyConditionalOrder modifies a conditional order. official-only.
-func (c *Client) ModifyConditionalOrder(ctx context.Context, intent orderintent.ConditionalModifyIntent) error {
+// ModifyConditionalOrder modifies a conditional order. official-only. The
+// returned ref is the replacement order; intent.ID is invalid afterwards.
+func (c *Client) ModifyConditionalOrder(ctx context.Context, intent orderintent.ConditionalModifyIntent) (domain.ConditionalOrderRef, error) {
 	body := official.ConditionalModifyBody{
 		Type: string(intent.Type), Quantity: fmtDec(intent.Quantity), OrderType: string(intent.OrderType),
 		ExpireDate: intent.ExpireDate, First: officialLeg(intent.First), ConfirmHighValueOrder: intent.ConfirmHighValue,
@@ -364,9 +366,15 @@ func (c *Client) ModifyConditionalOrder(ctx context.Context, intent orderintent.
 		s := officialLeg(*intent.Second)
 		body.Second = &s
 	}
-	return officialOnlyDo(c, func(off *official.Client) error {
+	ref, err := officialOnly(c, func(off *official.Client) (domain.ConditionalOrderRef, error) {
 		return off.ModifyConditionalOrder(ctx, intent.ID, body)
 	})
+	var apiErr *official.APIError
+	if errors.As(err, &apiErr) && apiErr.Code == 422 && strings.Contains(apiErr.Body, `"modify-restricted"`) {
+		// The broker's own message ("해당 주문은 정정할 수 없습니다.") gives no reason or way out.
+		return ref, fmt.Errorf("%w\n  only WATCHING or PAUSED conditional orders can be modified; check its status with `tossctl order conditional get %s`\n  once triggered (ORDERING/ORDERED), cancel it and place a new one. Canceling does NOT cancel the order it already submitted; cancel that with `tossctl order cancel`", err, intent.ID)
+	}
+	return ref, err
 }
 
 func fmtDec(v float64) string { return strconv.FormatFloat(v, 'f', -1, 64) }

@@ -21,7 +21,7 @@
     "fumadocs-ui": "16.17.1",
     "lucide-react": "^1.55.0",
     "mermaid": "12.1.0",
-    "next": "16.4.0",
+    "next": "16.4.3",
     "next-themes": "0.4.6",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
@@ -46,7 +46,8 @@
       "compression": ">=1.8.2",
       "sharp": ">=0.35.5",
       "fast-uri@3": "3.1.8",
-      "katex": ">=0.18.2"
+      "katex": ">=0.18.2",
+      "zod@4": "^4.6.6"
     }
   }
 }

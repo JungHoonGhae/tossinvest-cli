@@ -204,7 +204,8 @@ func assertOfficialOnlyUnavailable(t *testing.T, c *Client) {
 			return err
 		}},
 		{"ModifyConditionalOrder", func() error {
-			return c.ModifyConditionalOrder(ctx, orderintent.ConditionalModifyIntent{ID: "co-1", ConditionalShape: orderintent.ConditionalShape{Type: "SINGLE"}})
+			_, err := c.ModifyConditionalOrder(ctx, orderintent.ConditionalModifyIntent{ID: "co-1", ConditionalShape: orderintent.ConditionalShape{Type: "SINGLE"}})
+			return err
 		}},
 		{"Supply", func() error { _, err := c.Supply(ctx, "005930", domain.SupplyInvestor, 0, ""); return err }},
 		{"ListStocks", func() error { _, err := c.ListStocks(ctx, "KOSPI", "", "", false); return err }},
@@ -369,5 +370,40 @@ func TestSupplyWithoutOfficialKey(t *testing.T) {
 	c := &Client{pol: Policy{Prefer: "auto"}, stderr: io.Discard}
 	if _, err := c.Supply(context.Background(), "005930", domain.SupplyShort, 0, ""); err == nil {
 		t.Fatal("want error without official credentials")
+	}
+}
+
+func TestModifyConditionalOrderExplainsModifyRestricted(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = io.WriteString(w, `{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`)
+		case "/api/v1/conditional-orders/co-1/modify":
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_, _ = io.WriteString(w, `{"error":{"code":"modify-restricted","message":"해당 주문은 정정할 수 없습니다.","requestId":"req-1"}}`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	off := official.New(
+		official.Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "token.json"),
+		official.WithBaseURL(srv.URL),
+		official.WithHTTPClient(srv.Client()),
+		official.WithAccountSeq(7),
+	)
+	c := New(nil, off, Policy{Prefer: "auto"}, nil)
+
+	_, err := c.ModifyConditionalOrder(context.Background(), orderintent.ConditionalModifyIntent{ID: "co-1", ConditionalShape: orderintent.ConditionalShape{Type: "SINGLE"}})
+	var apiErr *official.APIError
+	if !errors.As(err, &apiErr) || apiErr.Code != 422 {
+		t.Fatalf("want wrapped 422 APIError, got %v", err)
+	}
+	for _, want := range []string{"WATCHING or PAUSED", "order conditional get co-1", "does NOT cancel"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error lacks %q: %v", want, err)
+		}
 	}
 }
