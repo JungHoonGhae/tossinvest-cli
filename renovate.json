@@ -1,0 +1,125 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommitTypeAll(chore)"
+  ],
+  "semanticCommits": "enabled",
+  "timezone": "Asia/Seoul",
+  "schedule": [
+    "* 9-11 * * 2"
+  ],
+  "minimumReleaseAge": "3 days",
+  "labels": [
+    "dependencies"
+  ],
+  "postUpdateOptions": [
+    "gomodTidy"
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true
+  },
+  "packageRules": [
+    {
+      "description": "메이저는 대시보드에서 체크해야 PR 이 열린다. 마이그레이션 검토 대상이라 쌓이지 않게 한다.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "go minor/patch"
+    },
+    {
+      "matchManagers": [
+        "npm"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "website minor/patch",
+      "automerge": true
+    },
+    {
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest"
+      ],
+      "groupName": "actions minor/patch",
+      "automerge": true
+    },
+    {
+      "matchManagers": [
+        "pep621"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "python minor/patch"
+    },
+    {
+      "matchDatasources": [
+        "golang-version"
+      ],
+      "rangeStrategy": "bump",
+      "separateMinorPatch": true
+    },
+    {
+      "description": "Go 패치는 표준 라이브러리 취약점 수정이다. govulncheck 가 모든 PR 을 막기 전에 바로 올린다.",
+      "matchDatasources": [
+        "golang-version"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "groupName": null,
+      "schedule": [
+        "at any time"
+      ],
+      "minimumReleaseAge": null,
+      "automerge": true
+    },
+    {
+      "description": "Go 마이너는 언어·표준 라이브러리 변화가 있어 메이저처럼 다룬다.",
+      "matchDatasources": [
+        "golang-version"
+      ],
+      "matchUpdateTypes": [
+        "minor"
+      ],
+      "groupName": null,
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Node 타입은 문서 서버의 Node 24 를 따른다.",
+      "matchPackageNames": [
+        "@types/node"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "uv pip compile 산출물이라 줄 단위로 갱신하면 잠금이 깨진다. 평소엔 대시보드에만 두고, 보안 패치는 이 규칙을 넘어 바로 열린다.",
+      "matchFileNames": [
+        "tools/asc/requirements.txt"
+      ],
+      "dependencyDashboardApproval": true
+    }
+  ]
+}
