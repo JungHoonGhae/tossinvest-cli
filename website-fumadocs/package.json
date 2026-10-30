@@ -41,11 +41,11 @@
   },
   "pnpm": {
     "overrides": {
-      "brace-expansion@1": "1.1.21",
+      "brace-expansion@1": "^1.1.21",
       "source-map-js": ">=1.2.2",
       "compression": ">=1.8.2",
       "sharp": ">=0.35.5",
-      "fast-uri@3": "3.1.8",
+      "fast-uri@3": "^3.1.9",
       "katex": ">=0.18.2",
       "zod@4": "^4.6.6"
     }
