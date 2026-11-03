@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -127,19 +126,19 @@ func (m *tokenManager) exchange(ctx context.Context) (string, error) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(form.Encode()))
 	if err != nil {
-		return "", fmt.Errorf("%w: %s", ErrTransport, err)
+		return "", fmt.Errorf("%w: %w", ErrTransport, err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := m.hc.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("%w: %s", ErrTransport, err)
+		return "", fmt.Errorf("%w: %w", ErrTransport, err)
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBodyCapped(resp.Body, maxJSONBodyBytes)
 	if err != nil {
-		return "", fmt.Errorf("%w: %s", ErrTransport, err)
+		return "", fmt.Errorf("%w: %w", ErrTransport, err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -148,7 +147,7 @@ func (m *tokenManager) exchange(ctx context.Context) (string, error) {
 
 	var tr tokenResponse
 	if err := json.Unmarshal(body, &tr); err != nil {
-		return "", fmt.Errorf("%w: parsing token response: %s", ErrServer, err)
+		return "", fmt.Errorf("%w: parsing token response: %w", ErrServer, err)
 	}
 	if tr.AccessToken == "" {
 		return "", fmt.Errorf("%w: empty access_token", ErrServer)

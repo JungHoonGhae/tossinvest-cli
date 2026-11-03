@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -83,12 +82,12 @@ type apiEnvelope struct {
 func (c *Client) doRequest(req *http.Request) (int, []byte, error) {
 	resp, err := c.hc.Do(req)
 	if err != nil {
-		return 0, nil, fmt.Errorf("%w: %s", ErrTransport, err)
+		return 0, nil, fmt.Errorf("%w: %w", ErrTransport, err)
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBodyCapped(resp.Body, maxJSONBodyBytes)
 	if err != nil {
-		return resp.StatusCode, nil, fmt.Errorf("%w: reading body: %s", ErrTransport, err)
+		return resp.StatusCode, nil, fmt.Errorf("%w: reading body: %w", ErrTransport, err)
 	}
 	return resp.StatusCode, body, nil
 }
@@ -246,7 +245,7 @@ func (c *Client) deleteAcct(ctx context.Context, path string, out any) error {
 	makeReq := func(tok string) (*http.Request, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodDelete, rawURL, nil)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %s", ErrTransport, err)
+			return nil, fmt.Errorf("%w: %w", ErrTransport, err)
 		}
 		req.Header.Set("Authorization", "Bearer "+tok)
 		req.Header.Set("X-Tossinvest-Account", strconv.Itoa(seq))
@@ -269,7 +268,7 @@ func (c *Client) getWithHeaders(ctx context.Context, path string, q url.Values, 
 	makeReq := func(tok string) (*http.Request, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %s", ErrTransport, err)
+			return nil, fmt.Errorf("%w: %w", ErrTransport, err)
 		}
 		req.Header.Set("Authorization", "Bearer "+tok)
 		for k, v := range extraHeaders {
@@ -300,13 +299,13 @@ func (c *Client) postWithHeaders(ctx context.Context, path string, body any, ext
 
 	encoded, err := json.Marshal(body)
 	if err != nil {
-		return fmt.Errorf("%w: marshalling request body: %s", ErrTransport, err)
+		return fmt.Errorf("%w: marshalling request body: %w", ErrTransport, err)
 	}
 
 	makeReq := func(tok string) (*http.Request, error) {
 		req, err := http.NewRequestWithContext(ctx, http.MethodPost, rawURL, bytes.NewReader(encoded))
 		if err != nil {
-			return nil, fmt.Errorf("%w: %s", ErrTransport, err)
+			return nil, fmt.Errorf("%w: %w", ErrTransport, err)
 		}
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+tok)

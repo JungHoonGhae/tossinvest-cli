@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"net/http"
 	"regexp"
 	"runtime"
@@ -158,7 +157,10 @@ func (c *Client) ensureTradingMetadata(ctx context.Context) error {
 		return err
 	}
 	defer resp.Body.Close()
-	html, err := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status %d for https://www.tossinvest.com/account", resp.StatusCode)
+	}
+	html, err := readBodyCapped(resp.Body, maxBundleBytes)
 	if err != nil {
 		return err
 	}
@@ -180,7 +182,10 @@ func (c *Client) ensureTradingMetadata(ctx context.Context) error {
 		return err
 	}
 	defer resp.Body.Close()
-	js, err := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status %d for bundle %s", resp.StatusCode, mainBundle)
+	}
+	js, err := readBodyCapped(resp.Body, maxBundleBytes)
 	if err != nil {
 		return err
 	}

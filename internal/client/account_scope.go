@@ -60,7 +60,7 @@ func (c *Client) doJSONWithAccountKey(ctx context.Context, method, endpoint stri
 		return err
 	}
 	defer resp.Body.Close()
-	data, err := io.ReadAll(resp.Body)
+	data, err := readBodyCapped(resp.Body, maxJSONBodyBytes)
 	if err != nil {
 		return err
 	}

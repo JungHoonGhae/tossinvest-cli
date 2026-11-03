@@ -169,3 +169,47 @@ func TestFinalizeExtensionWithoutSessionReturnsAuthError(t *testing.T) {
 		t.Fatalf("expected auth error, got %v", err)
 	}
 }
+
+func TestExtensionUUIDValidation(t *testing.T) {
+	t.Parallel()
+
+	c := New(Config{
+		HTTPClient: nil,
+		APIBaseURL: "http://127.0.0.1",
+		Session:    &session.Session{Cookies: map[string]string{"SESSION": "s"}},
+	})
+
+	for _, uuid := range []string{"", "   "} {
+		if _, err := c.GetExtensionStatus(context.Background(), uuid); err == nil {
+			t.Fatalf("GetExtensionStatus(%q): expected error, got nil", uuid)
+		}
+		if err := c.FinalizeExtension(context.Background(), uuid); err == nil {
+			t.Fatalf("FinalizeExtension(%q): expected error, got nil", uuid)
+		}
+	}
+}
+
+func TestGetExtensionStatusEscapesUUID(t *testing.T) {
+	t.Parallel()
+
+	var gotPath, gotEscaped string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.EscapedPath()
+		gotEscaped = r.URL.Path
+		_, _ = w.Write([]byte(`{"result":"REQUESTED"}`))
+	}))
+	defer server.Close()
+
+	c := New(Config{
+		HTTPClient: server.Client(),
+		APIBaseURL: server.URL,
+		Session:    &session.Session{Cookies: map[string]string{"SESSION": "s"}},
+	})
+
+	if _, err := c.GetExtensionStatus(context.Background(), "a/b c"); err != nil {
+		t.Fatalf("GetExtensionStatus: %v", err)
+	}
+	if gotPath != "/api/v1/wts-login-extend/doc/a%2Fb%20c/status" {
+		t.Fatalf("escaped path = %q / %q", gotPath, gotEscaped)
+	}
+}

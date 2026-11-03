@@ -19,9 +19,6 @@ Rules:
 - commit synthetic amounts, quantities, and product codes only — run the scrub step
 - inspect diffs before commit when fixture values change
 
-These double as a demo dataset: point `TOSSCTL_MOCK_DIR` here and account responses are served
-from these files while everything else still hits the live API.
-
-```bash
-TOSSCTL_MOCK_DIR=fixtures/responses/auth-sanitized tossctl portfolio positions
-```
+> `TOSSCTL_MOCK_DIR` is not implemented: no code reads it, so setting it
+> changes nothing and the command above would query the **live account API**.
+> Do not run fixture paths against live commands expecting mocks.

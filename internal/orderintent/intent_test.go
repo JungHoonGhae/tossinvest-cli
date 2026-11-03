@@ -1,6 +1,7 @@
 package orderintent
 
 import (
+	"math"
 	"strings"
 	"testing"
 )
@@ -194,6 +195,36 @@ func TestConfirmTokenIsDeterministic(t *testing.T) {
 	second := ConfirmToken(canonical)
 	if first != second {
 		t.Fatalf("expected stable token, got %q and %q", first, second)
+	}
+}
+func TestNormalizePlaceRejectsNonFiniteNumbers(t *testing.T) {
+	nan := math.NaN()
+	inf := math.Inf(1)
+	cases := []PlaceInput{
+		{Symbol: "AAPL", Side: "buy", Quantity: nan, Price: 10},
+		{Symbol: "AAPL", Side: "buy", Quantity: inf, Price: 10},
+		{Symbol: "AAPL", Side: "buy", Quantity: 1, Price: nan},
+		{Symbol: "AAPL", Side: "buy", Quantity: 1, Price: inf},
+		{Symbol: "AAPL", Side: "buy", Quantity: 1.5, Price: 10},
+		{Symbol: "AAPL", Side: "buy", Amount: nan, Fractional: true},
+		{Symbol: "TSLL", Side: "buy", OrderType: "limit", Fractional: true, Amount: 10000},
+	}
+	for i, in := range cases {
+		if _, err := NormalizePlace(in); err == nil {
+			t.Fatalf("case %d (%+v) must be rejected", i, in)
+		}
+	}
+}
+
+func TestNormalizePlaceFractionalDefaultsToMarket(t *testing.T) {
+	// Omitted type keeps the historical behavior (market); only an
+	// explicit limit is rejected.
+	intent, err := NormalizePlace(PlaceInput{Symbol: "TSLL", Side: "buy", Amount: 10000, Fractional: true})
+	if err != nil {
+		t.Fatalf("omitted type with fractional must default to market: %v", err)
+	}
+	if intent.OrderType != "market" {
+		t.Fatalf("expected market, got %q", intent.OrderType)
 	}
 }
 

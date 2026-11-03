@@ -518,3 +518,33 @@ func TestGetChartUsesOfficialForSupportedInterval(t *testing.T) {
 		t.Fatalf("unexpected official chart: %+v", chart)
 	}
 }
+
+func TestRouteJoinsOfficialAndWTSFailures(t *testing.T) {
+	c := &Client{off: &official.Client{}, pol: Policy{Fallback: true}}
+	wtsErr := errors.New("wts: no session")
+	_, err := route(c,
+		func() (string, error) { return "", official.ErrServer },
+		func() (string, error) { return "", wtsErr })
+	if err == nil {
+		t.Fatal("expected joined error when both paths fail")
+	}
+	// The original cause must survive: callers matching ErrServer (or
+	// logging the WTS side) see both, not just ErrNoSession.
+	if !errors.Is(err, official.ErrServer) {
+		t.Fatalf("joined error lost the official cause: %v", err)
+	}
+	if !strings.Contains(err.Error(), wtsErr.Error()) {
+		t.Fatalf("joined error lost the WTS side: %v", err)
+	}
+}
+
+func TestRouteDoesNotFallbackOnCancellation(t *testing.T) {
+	c := &Client{off: &official.Client{}, pol: Policy{Fallback: true}}
+	canceled := errors.Join(official.ErrTransport, context.Canceled)
+	_, err := route(c,
+		func() (string, error) { return "", canceled },
+		func() (string, error) { t.Fatal("wts must not be called on cancellation"); return "", nil })
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("cancellation must propagate, got: %v", err)
+	}
+}

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math"
 	"net/http"
 	"net/url"
@@ -212,7 +211,7 @@ func (c *Client) postPaperNoBody(ctx context.Context, endpoint string, target an
 		return err
 	}
 	defer resp.Body.Close()
-	data, err := io.ReadAll(resp.Body)
+	data, err := readBodyCapped(resp.Body, maxJSONBodyBytes)
 	if err != nil {
 		return err
 	}

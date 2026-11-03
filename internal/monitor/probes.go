@@ -145,6 +145,10 @@ func statusAndPath(path, typ string) func(int, []byte) error {
 // upstream and avoid tripping rate limits.
 const maxConcurrentProbes = 8
 
+// maxProbeBodyBytes caps a single probe response body (diagnostics only
+// needs status + Check snippet; API payloads are KBs).
+const maxProbeBodyBytes = 1 << 20
+
 // Run executes all probes concurrently (bounded by maxConcurrentProbes) using
 // the session for auth. Results are returned in probe order regardless of
 // completion order, so output stays stable.
@@ -325,10 +329,18 @@ func executeProbe(ctx context.Context, sess *session.Session, p Probe, accountKe
 		return res, nil
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	// Cap the probe body: diagnostics only needs status + a snippet for
+	// Check(); an unbounded read lets one pathological endpoint pin the
+	// monitor. Oversize bodies fail the probe instead of truncating
+	// silently into Check.
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxProbeBodyBytes+1))
 	res.Status = resp.StatusCode
 	if err != nil {
 		res.Detail = "read response: " + err.Error()
+		return res, nil
+	}
+	if int64(len(body)) > maxProbeBodyBytes {
+		res.Detail = fmt.Sprintf("response exceeds %d bytes", maxProbeBodyBytes)
 		return res, nil
 	}
 	if checkErr := p.Check(resp.StatusCode, body); checkErr != nil {

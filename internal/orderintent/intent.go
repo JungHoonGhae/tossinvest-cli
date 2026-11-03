@@ -2,6 +2,7 @@ package orderintent
 
 import (
 	"fmt"
+	"math"
 	"regexp"
 	"sort"
 	"strconv"
@@ -75,8 +76,15 @@ func NormalizePlace(input PlaceInput) (PlaceIntent, error) {
 	orderType := normalizeDefault(input.OrderType, "limit")
 	fractional := input.Fractional
 
-	// Fractional orders must be market orders
-	if fractional && orderType == "limit" {
+	// Fractional orders must be market orders. An explicit limit type is
+	// rejected instead of silently rewritten to market with the price
+	// dropped (that would execute at whatever the market bears while the
+	// caller believes they have price protection). An omitted type still
+	// defaults to market: fractional orders have no limit form.
+	if fractional {
+		if strings.EqualFold(strings.TrimSpace(input.OrderType), "limit") {
+			return PlaceIntent{}, fmt.Errorf("fractional orders must be market orders, not limit")
+		}
 		orderType = "market"
 	}
 
@@ -124,6 +132,9 @@ func NormalizePlace(input PlaceInput) (PlaceIntent, error) {
 		// accepted only for US MARKET SELL, up to 6 decimal places.
 		intent.Price = 0
 		if intent.Side == "sell" {
+			if math.IsNaN(intent.Quantity) || math.IsInf(intent.Quantity, 0) {
+				return PlaceIntent{}, fmt.Errorf("quantity must be a finite number for fractional sell orders")
+			}
 			if intent.Quantity <= 0 {
 				return PlaceIntent{}, fmt.Errorf("quantity must be greater than zero for fractional sell orders")
 			}
@@ -132,20 +143,35 @@ func NormalizePlace(input PlaceInput) (PlaceIntent, error) {
 			}
 			intent.Amount = 0
 		} else {
+			if math.IsNaN(intent.Amount) || math.IsInf(intent.Amount, 0) {
+				return PlaceIntent{}, fmt.Errorf("amount must be a finite number for fractional buy orders")
+			}
 			if intent.Amount <= 0 {
 				return PlaceIntent{}, fmt.Errorf("amount must be greater than zero for fractional buy orders")
 			}
 			intent.Quantity = 0
 		}
 	} else {
+		if math.IsNaN(intent.Quantity) || math.IsInf(intent.Quantity, 0) {
+			return PlaceIntent{}, fmt.Errorf("quantity must be a finite number")
+		}
 		if intent.Quantity <= 0 {
 			return PlaceIntent{}, fmt.Errorf("quantity must be greater than zero")
+		}
+		if intent.Quantity != math.Trunc(intent.Quantity) {
+			return PlaceIntent{}, fmt.Errorf("quantity must be a whole number of shares (fractional orders use --fractional)")
+		}
+		if math.IsNaN(intent.Price) || math.IsInf(intent.Price, 0) {
+			return PlaceIntent{}, fmt.Errorf("price must be a finite number")
 		}
 		if intent.OrderType == "limit" && intent.Price <= 0 {
 			return PlaceIntent{}, fmt.Errorf("price must be greater than zero for limit orders")
 		}
 		if intent.OrderType == "market" {
 			intent.Price = 0
+		}
+		if math.IsNaN(intent.Amount) || math.IsInf(intent.Amount, 0) {
+			return PlaceIntent{}, fmt.Errorf("amount must be a finite number")
 		}
 	}
 

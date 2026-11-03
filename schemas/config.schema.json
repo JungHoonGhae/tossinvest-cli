@@ -60,6 +60,7 @@
         }
       },
       "required": [
+        "trading",
         "place",
         "sell",
         "fractional",

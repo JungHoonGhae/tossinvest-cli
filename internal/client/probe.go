@@ -1,11 +1,11 @@
 package client
 
 import (
+	"context"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
-
-	"context"
 )
 
 // ProbeResult captures a single endpoint-family health probe. Meant for
@@ -51,19 +51,26 @@ func (c *Client) probeOne(ctx context.Context, family, endpoint string) ProbeRes
 	}
 	c.applySession(req)
 
+	path := endpoint
+	if u, perr := url.Parse(endpoint); perr != nil {
+		return ProbeResult{Family: family, Endpoint: endpoint, Error: perr.Error()}
+	} else {
+		path = u.Path
+	}
+
 	start := time.Now()
 	resp, err := c.httpClient.Do(req)
 	dur := time.Since(start)
 	if err != nil {
-		return ProbeResult{Family: family, Endpoint: endpoint, Duration: dur, Error: err.Error()}
+		return ProbeResult{Family: family, Endpoint: path, Duration: dur, Error: err.Error()}
 	}
 	defer resp.Body.Close()
 	// Drain body so the connection can be reused and timings reflect full response.
-	_, _ = io.Copy(io.Discard, resp.Body)
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, maxJSONBodyBytes+1))
 
 	return ProbeResult{
 		Family:     family,
-		Endpoint:   endpoint,
+		Endpoint:   path,
 		StatusCode: resp.StatusCode,
 		Duration:   dur,
 		AuthError:  resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden,

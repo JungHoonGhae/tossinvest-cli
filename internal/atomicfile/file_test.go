@@ -73,6 +73,11 @@ func TestWriteFileEnforcesPermissions(t *testing.T) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	// MkdirAll honors the process umask; Chmod does not — pin 755 so the
+	// 0700-tightening assertion below is umask-independent.
+	if err := os.Chmod(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
 	path := filepath.Join(dir, "secret.json")
 	if err := os.WriteFile(path, []byte("{}"), 0o644); err != nil {
 		t.Fatal(err)

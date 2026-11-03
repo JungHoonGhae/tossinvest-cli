@@ -5,8 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -86,7 +86,7 @@ func (c *Client) RequestExtension(ctx context.Context) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBodyCapped(resp.Body, maxJSONBodyBytes)
 	if err != nil {
 		return "", err
 	}
@@ -110,7 +110,10 @@ func (c *Client) GetExtensionStatus(ctx context.Context, uuid string) (Extension
 	if err := c.requireSession(); err != nil {
 		return ExtensionStatus{}, err
 	}
-	endpoint := c.apiBaseURL + "/api/v1/wts-login-extend/doc/" + uuid + "/status"
+	if strings.TrimSpace(uuid) == "" {
+		return ExtensionStatus{}, fmt.Errorf("extension uuid must not be empty")
+	}
+	endpoint := c.apiBaseURL + "/api/v1/wts-login-extend/doc/" + url.PathEscape(uuid) + "/status"
 	var env extensionStatusEnvelope
 	if err := c.getJSON(ctx, endpoint, &env); err != nil {
 		return ExtensionStatus{}, err
@@ -127,7 +130,10 @@ func (c *Client) FinalizeExtension(ctx context.Context, uuid string) error {
 	if err := c.requireSession(); err != nil {
 		return err
 	}
-	endpoint := c.apiBaseURL + "/api/v1/wts-login-extend/" + uuid + "/state"
+	if strings.TrimSpace(uuid) == "" {
+		return fmt.Errorf("extension uuid must not be empty")
+	}
+	endpoint := c.apiBaseURL + "/api/v1/wts-login-extend/" + url.PathEscape(uuid) + "/state"
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader([]byte("{}")))
 	if err != nil {
 		return err
@@ -140,7 +146,7 @@ func (c *Client) FinalizeExtension(ctx context.Context, uuid string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := readBodyCapped(resp.Body, maxJSONBodyBytes)
 	if err != nil {
 		return err
 	}

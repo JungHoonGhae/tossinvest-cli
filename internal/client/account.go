@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -294,7 +293,7 @@ func (c *Client) getJSON(ctx context.Context, endpoint string, target any) error
 	}
 	defer resp.Body.Close()
 
-	data, err := io.ReadAll(resp.Body)
+	data, err := readBodyCapped(resp.Body, maxJSONBodyBytes)
 	if err != nil {
 		return err
 	}

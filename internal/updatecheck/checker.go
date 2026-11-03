@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -21,10 +22,23 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/version"
 )
 
+// stableTagPattern is the strict shape of a release tag we accept from the
+// GitHub API: anything else (HTML error pages, garbage) is discarded before
+// it reaches the cache, the terminal notice, or MCP instructions.
+var stableTagPattern = regexp.MustCompile(`^\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?$`)
+
 const (
 	defaultRepoSlug = version.Repo
 	defaultInterval = 24 * time.Hour
-	fetchTimeout    = 3 * time.Second
+	// negativeInterval is the backoff after a failed fetch. Without it an
+	// offline machine pays the full fetchTimeout on EVERY command (the
+	// success timestamp never advances); with it we retry hourly instead
+	// of never noticing a release for a day after one transient failure.
+	negativeInterval = time.Hour
+	fetchTimeout     = 3 * time.Second
+	// maxReleaseBodyBytes caps the release-API response: the payload is a
+	// few KB of JSON; anything larger is an anomaly, not a release.
+	maxReleaseBodyBytes = 1 << 20
 )
 
 type cacheEntry struct {
@@ -33,6 +47,9 @@ type cacheEntry struct {
 	UpdateNotifiedAt time.Time `json:"update_notified_at,omitempty"`
 	ExpiryNotifiedAt time.Time `json:"expiry_notified_at,omitempty"`
 	ConfigNotifiedAt time.Time `json:"config_notified_at,omitempty"`
+	// LastFailedAt records the most recent fetch failure for negative
+	// caching; it advances only on failure so offline use stays fast.
+	LastFailedAt time.Time `json:"last_failed_at,omitempty"`
 }
 
 type Checker struct {
@@ -77,9 +94,18 @@ func (c *Checker) latest(ctx context.Context, force bool) string {
 	if !force && c.now().Sub(entry.LastCheckedAt) < c.interval && entry.LatestVersion != "" {
 		return entry.LatestVersion
 	}
+	if !force && !entry.LastFailedAt.IsZero() && c.now().Sub(entry.LastFailedAt) < negativeInterval {
+		// Recent failure: don't hammer the network again, serve the
+		// cached value (possibly empty) until the backoff expires.
+		return entry.LatestVersion
+	}
 
 	latest, err := c.fetch(ctx)
 	if err != nil || latest == "" {
+		if err != nil {
+			entry.LastFailedAt = c.now()
+			_ = c.writeCache(entry)
+		}
 		return entry.LatestVersion
 	}
 
@@ -157,9 +183,12 @@ func (c *Checker) fetch(ctx context.Context) (string, error) {
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("status %d", resp.StatusCode)
 	}
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxReleaseBodyBytes+1))
 	if err != nil {
 		return "", err
+	}
+	if int64(len(body)) > maxReleaseBodyBytes {
+		return "", fmt.Errorf("release response exceeds %d bytes", maxReleaseBodyBytes)
 	}
 	var payload struct {
 		TagName    string `json:"tag_name"`
@@ -171,7 +200,11 @@ func (c *Checker) fetch(ctx context.Context) (string, error) {
 	if payload.Prerelease {
 		return "", nil
 	}
-	return strings.TrimPrefix(payload.TagName, "v"), nil
+	tag := strings.TrimPrefix(payload.TagName, "v")
+	if !stableTagPattern.MatchString(tag) {
+		return "", fmt.Errorf("release tag %q is not stable semver", payload.TagName)
+	}
+	return tag, nil
 }
 
 func (c *Checker) readCache() (cacheEntry, error) {
