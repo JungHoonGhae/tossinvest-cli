@@ -5,15 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
+	tradingflow "github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 	"math"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
-	tradingflow "github.com/JungHoonGhae/tossinvest-cli/internal/trading"
 )
 
 type pendingOrderDetails struct {
@@ -748,7 +746,7 @@ func (c *Client) postJSONBytes(ctx context.Context, endpoint string, body []byte
 	}
 	defer resp.Body.Close()
 
-	data, err := io.ReadAll(resp.Body)
+	data, err := readBodyCapped(resp.Body, maxJSONBodyBytes)
 	if err != nil {
 		return nil, err
 	}

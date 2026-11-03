@@ -319,3 +319,28 @@ func TestExpiryWarningSilentWhenAlreadyExpired(t *testing.T) {
 		t.Fatalf("expected silence when already expired, got %q", buf.String())
 	}
 }
+
+func TestAuthSnapshotRespectsExpiry(t *testing.T) {
+	t.Parallel()
+	past := time.Now().Add(-time.Hour)
+	future := time.Now().Add(time.Hour)
+	// Known-expired session: not connected (previously any stored
+	// session claimed Connected regardless of expiry).
+	got := authSnapshot(&session.Session{ExpiresAt: &past}, nil, "")
+	if got.WTS.Connected {
+		t.Fatal("expired session must not report Connected")
+	}
+	got = authSnapshot(&session.Session{ServerExpiresAt: &past, ExpiresAt: &future}, nil, "")
+	if got.WTS.Connected {
+		t.Fatal("server-expired session must not report Connected")
+	}
+	// Fresh session: connected with the server expiry preferred.
+	got = authSnapshot(&session.Session{ServerExpiresAt: &future}, nil, "")
+	if !got.WTS.Connected || !got.WTS.ExpiresAt.Equal(future) {
+		t.Fatalf("fresh session must be connected with server expiry, got %+v", got.WTS)
+	}
+	// Absent session: disconnected.
+	if got := authSnapshot(nil, nil, ""); got.WTS.Connected {
+		t.Fatal("nil session must not report Connected")
+	}
+}

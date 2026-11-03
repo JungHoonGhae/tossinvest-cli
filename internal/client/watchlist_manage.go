@@ -295,7 +295,7 @@ func (c *Client) mutateJSON(ctx context.Context, method, endpoint string, body [
 		return err
 	}
 	defer resp.Body.Close()
-	data, err := io.ReadAll(resp.Body)
+	data, err := readBodyCapped(resp.Body, maxJSONBodyBytes)
 	if err != nil {
 		return err
 	}

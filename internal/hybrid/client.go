@@ -85,7 +85,13 @@ func route[T any](c *Client, officialCall func() (T, error), wts func() (T, erro
 		if c.stderr != nil {
 			fmt.Fprintf(c.stderr, "tossctl: official path unavailable, falling back to web session (%v)\n", err)
 		}
-		return wts()
+		wv, werr := wts()
+		if werr != nil {
+			// Both paths failed: join so the caller sees the original
+			// cause AND the fallback failure (not just ErrNoSession).
+			return wv, errors.Join(err, werr)
+		}
+		return wv, nil
 	}
 	return v, err // official's domain error — no fallback.
 }

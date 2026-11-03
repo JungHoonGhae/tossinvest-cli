@@ -2,6 +2,7 @@ package official
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"regexp"
@@ -55,6 +56,11 @@ func classifyStatus(code int, body []byte) error {
 // or the request should be retried via the unofficial (web-session) client.
 // Returns true for sentinel errors; false for *APIError passthroughs.
 func ShouldFallback(err error) bool {
+	// Cancellation is not an availability signal: falling back to WTS on
+	// a canceled context wastes work and masks the caller's cancellation.
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
 	var apiErr *APIError
 	if errors.As(err, &apiErr) {
 		return false

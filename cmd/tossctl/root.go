@@ -295,14 +295,16 @@ func resolveSessionFile(opts *rootOptions) string {
 func authSnapshot(sess *session.Session, off *official.Client, tokenFile string) ops.AuthStatus {
 	var status ops.AuthStatus
 	if sess != nil {
-		status.WTS.Connected = true
 		// The server-side expiry is authoritative when Toss told us one; the
-		// cookie's own expiry is the fallback.
+		// cookie's own expiry is the fallback. A known-expired session is
+		// NOT connected — previously any stored session claimed Connected
+		// regardless of expiry.
 		if sess.ServerExpiresAt != nil {
 			status.WTS.ExpiresAt = sess.ServerExpiresAt
 		} else {
 			status.WTS.ExpiresAt = sess.ExpiresAt
 		}
+		status.WTS.Connected = status.WTS.ExpiresAt == nil || time.Now().Before(*status.WTS.ExpiresAt)
 	}
 	if off != nil {
 		status.Official.Connected = true

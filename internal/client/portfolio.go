@@ -5,10 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
+	"net/http"
 )
 
 type assetSectionsEnvelope struct {
@@ -143,7 +141,7 @@ func (c *Client) postJSON(ctx context.Context, endpoint string, body json.RawMes
 	}
 	defer resp.Body.Close()
 
-	data, err := io.ReadAll(resp.Body)
+	data, err := readBodyCapped(resp.Body, maxJSONBodyBytes)
 	if err != nil {
 		return err
 	}

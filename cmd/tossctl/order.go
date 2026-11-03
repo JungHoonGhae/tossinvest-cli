@@ -214,11 +214,19 @@ func newOrderPlaceCmd(opts *rootOptions) *cobra.Command {
 				return err
 			}
 
+			// The --type flag defaults to "limit", which is indistinguishable
+			// from an explicit --type limit downstream — and NormalizePlace
+			// rejects explicit fractional+limit. An unflagged fractional
+			// order means market (fractional has no limit form).
+			orderType := place.orderType
+			if place.fractional && !cmd.Flags().Changed("type") {
+				orderType = "market"
+			}
 			intent, err := orderintent.NormalizePlace(orderintent.PlaceInput{
 				Symbol:       place.symbol,
 				Market:       place.market,
 				Side:         place.side,
-				OrderType:    place.orderType,
+				OrderType:    orderType,
 				Quantity:     place.quantity,
 				Price:        place.price,
 				Amount:       place.amount,

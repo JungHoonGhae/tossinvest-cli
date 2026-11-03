@@ -266,3 +266,63 @@ func TestLatestStableFreshFallsBackToCacheOffline(t *testing.T) {
 		t.Errorf("offline forced check must fall back to cache, got %q", got)
 	}
 }
+
+func TestLatestStableFailureBacksOffForAnHour(t *testing.T) {
+	dir := t.TempDir()
+	cachePath := filepath.Join(dir, "update-check.json")
+	seed := cacheEntry{LastCheckedAt: time.Now().Add(-48 * time.Hour), LatestVersion: "0.4.10"}
+	data, _ := json.Marshal(seed)
+	if err := os.WriteFile(cachePath, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now()
+	fetches := 0
+	c := &Checker{
+		cachePath:  cachePath,
+		httpClient: &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) { fetches++; return nil, http.ErrHandlerTimeout })},
+		repoSlug:   "x/y",
+		interval:   24 * time.Hour,
+		now:        func() time.Time { return now },
+	}
+	if got := c.LatestStable(context.Background()); got != "0.4.10" {
+		t.Fatalf("expected cached value on failure, got %q", got)
+	}
+	if fetches != 1 {
+		t.Fatalf("expected 1 fetch, got %d", fetches)
+	}
+	if got := c.LatestStable(context.Background()); got != "0.4.10" || fetches != 1 {
+		t.Fatalf("negative cache miss: got %q with %d fetches", got, fetches)
+	}
+	now = now.Add(2 * time.Hour)
+	if got := c.LatestStable(context.Background()); got != "0.4.10" || fetches != 2 {
+		t.Fatalf("expected refetch after backoff: got %q with %d fetches", got, fetches)
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestFetchRejectsNonSemverTag(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"tag_name": "nightly-main", "prerelease": false})
+	}))
+	defer server.Close()
+	c := &Checker{cachePath: filepath.Join(t.TempDir(), "c.json"), repoSlug: "x/y", interval: time.Hour, now: time.Now}
+	c.httpClient = &http.Client{Transport: redirectTransport{base: server.URL}}
+	if _, err := c.fetch(context.Background()); err == nil {
+		t.Fatal("non-semver tag must be rejected")
+	}
+}
+
+func TestFetchRejectsOversizeBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(make([]byte, maxReleaseBodyBytes+1))
+	}))
+	defer server.Close()
+	c := &Checker{cachePath: filepath.Join(t.TempDir(), "c.json"), repoSlug: "x/y", interval: time.Hour, now: time.Now}
+	c.httpClient = &http.Client{Transport: redirectTransport{base: server.URL}}
+	if _, err := c.fetch(context.Background()); err == nil {
+		t.Fatal("oversize release body must be rejected")
+	}
+}
