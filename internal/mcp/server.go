@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hiddenholding"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/history"
@@ -138,20 +140,35 @@ type rpcError struct {
 }
 
 const (
+	codeParseError     = -32700
 	codeMethodNotFound = -32601
 	codeInvalidParams  = -32602
+	codeInternalError  = -32603
 )
 
+// maxLineBytes caps a single newline-delimited frame. Tool results leaving
+// this server are capped at 30KB and requests are small parameter objects, so
+// anything bigger is a buggy or hostile host; the frame is rejected instead
+// of buffering it unboundedly.
+const maxLineBytes = 1 << 20
+
 // Serve reads newline-delimited JSON-RPC messages from in and writes responses
-// to out until in reaches EOF. Notifications (requests without an id) are
-// handled without producing a response, per the JSON-RPC spec.
+// to out until in reaches EOF (the host closing stdin is the shutdown signal;
+// a cancelled context is also honored between frames).
 func (s *Server) Serve(ctx context.Context, in io.Reader, out io.Writer) error {
 	r := bufio.NewReader(in)
 	enc := json.NewEncoder(out) // Encode appends '\n', giving newline framing.
 	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		line, readErr := r.ReadBytes('\n')
 		if trimmed := bytes.TrimSpace(line); len(trimmed) > 0 {
-			if resp, ok := s.handle(ctx, trimmed); ok {
+			if len(trimmed) > maxLineBytes {
+				if err := enc.Encode(rpcResponse{JSONRPC: "2.0", Error: &rpcError{Code: codeParseError, Message: "frame exceeds size limit"}}); err != nil {
+					return err
+				}
+			} else if resp, ok := s.handle(ctx, trimmed); ok {
 				if err := enc.Encode(resp); err != nil {
 					return err
 				}
@@ -168,27 +185,46 @@ func (s *Server) Serve(ctx context.Context, in io.Reader, out io.Writer) error {
 
 // handle processes one raw JSON-RPC message. It returns (response, true) for
 // requests and (_, false) for notifications, which take no response.
-func (s *Server) handle(ctx context.Context, raw []byte) (rpcResponse, bool) {
+//
+// A frame without an id is a notification: it is ignored BEFORE dispatch, so
+// a host (or an injected prompt) can never fire a tool — especially a gated
+// mutation — without asking for, and receiving, a response.
+func (s *Server) handle(ctx context.Context, raw []byte) (resp rpcResponse, ok bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			resp = rpcResponse{JSONRPC: "2.0", ID: rawID(raw), Error: &rpcError{Code: codeInternalError, Message: fmt.Sprintf("internal error: %v", r)}}
+			ok = true
+		}
+	}()
 	var req rpcRequest
 	if err := json.Unmarshal(raw, &req); err != nil {
-		// Malformed frame with no recoverable id: drop it silently rather than
-		// guessing an id, matching lenient MCP host behaviour.
+		// No recoverable id: answer -32700 with a null id per JSON-RPC 2.0
+		// instead of dropping the frame and leaving the host hanging.
+		return rpcResponse{JSONRPC: "2.0", Error: &rpcError{Code: codeParseError, Message: "parse error"}}, true
+	}
+	if len(req.ID) == 0 {
 		return rpcResponse{}, false
 	}
-	isNotification := len(req.ID) == 0
-
 	result, rerr := s.dispatch(ctx, req.Method, req.Params)
-
-	if isNotification {
-		return rpcResponse{}, false
-	}
-	resp := rpcResponse{JSONRPC: "2.0", ID: req.ID}
+	resp = rpcResponse{JSONRPC: "2.0", ID: req.ID}
 	if rerr != nil {
 		resp.Error = rerr
 	} else {
 		resp.Result = result
 	}
 	return resp, true
+}
+
+// rawID recovers the id of a frame that failed full parsing (for the panic
+// path): best-effort extraction, nil when the frame carries no usable id.
+func rawID(raw []byte) json.RawMessage {
+	var probe struct {
+		ID json.RawMessage `json:"id"`
+	}
+	if err := json.Unmarshal(raw, &probe); err != nil {
+		return nil
+	}
+	return probe.ID
 }
 
 // dispatch routes a method to its handler, returning either a result or an error.
@@ -375,10 +411,15 @@ func keepable(s []any) int {
 	return len(s)
 }
 
-// trim drops elements from the tail of s — roughly enough to shed `excess` bytes
-// given the array encodes to `size` bytes — and records the total number dropped
-// so far in a trailing placeholder. It always drops at least one element, so
+// trim drops elements from s — roughly enough to shed `excess` bytes given the
+// array encodes to `size` bytes — and records the total number dropped so far
+// in a trailing placeholder. It always drops at least one element, so
 // shrinkToCap's loop terminates; overshooting the cap only costs another pass.
+//
+// Oldest-first arrays (chart candles carry ascending `time`) drop from the
+// FRONT so the newest entries survive; everything else drops from the tail
+// (status quo). The placeholder stays trailing either way and still counts
+// every dropped row.
 func trim(s []any, size, excess int) []any {
 	n, dropped := keepable(s), 0
 	if n < len(s) {
@@ -405,17 +446,96 @@ func trim(s []any, size, excess int) []any {
 	if drop > n {
 		drop = n
 	}
-	keep := n - drop
 	dropped += drop
 	// drop is always at least one, so len(s) has room for the kept rows plus
 	// the omission marker. Using the existing length as capacity avoids an
 	// attacker-controlled addition in the allocation-size expression.
 	out := make([]any, 0, len(s))
-	out = append(out, s[:keep]...)
+	if ascendingByTime(s) {
+		out = append(out, s[drop:n]...)
+	} else {
+		out = append(out, s[:n-drop]...)
+	}
 	return append(out, omittedItems{
 		Count: dropped,
 		Note:  fmt.Sprintf("%d items omitted: result exceeded the %d-byte MCP limit. Narrow the request (see describe_operation params) or use the CLI for the full list.", dropped, maxResultBytes),
 	})
+}
+
+// timeKeys are decoded-JSON field names that may carry a timestamp. Only the
+// first hit per element is used.
+var timeKeys = []string{"time", "timestamp", "publishedAt", "published_at", "date", "orderedAt", "ordered_at", "createdAt", "created_at"}
+
+// ascendingByTime reports whether the array runs oldest-first (like chart
+// candles): the first and last time-bearing rows compare ascending. Anything
+// unparseable, schemaless, or non-monotonic falls back to false (drop tail).
+func ascendingByTime(s []any) bool {
+	first, okFirst := edgeTime(s, true)
+	last, okLast := edgeTime(s, false)
+	return okFirst && okLast && first.Before(last)
+}
+
+// edgeTime finds the time of the first (front=true) or last time-bearing row,
+// skipping omission markers and schemaless rows (at most a few probes per edge
+// so a ragged head does not scan the whole array).
+func edgeTime(s []any, front bool) (time.Time, bool) {
+	probes := 0
+	if front {
+		for i := range s {
+			if probes >= 3 {
+				break
+			}
+			if t, ok := rowTime(s[i]); ok {
+				return t, true
+			}
+			probes++
+		}
+		return time.Time{}, false
+	}
+	for i := len(s) - 1; i >= 0 && probes < 3; i-- {
+		if t, ok := rowTime(s[i]); ok {
+			return t, true
+		}
+		probes++
+	}
+	return time.Time{}, false
+}
+
+// rowTime extracts a timestamp from one decoded row, if it carries a
+// recognized time key with a parseable value.
+func rowTime(el any) (time.Time, bool) {
+	m, ok := el.(map[string]any)
+	if !ok {
+		return time.Time{}, false
+	}
+	if _, ok := m[omittedKey]; ok {
+		return time.Time{}, false
+	}
+	for _, key := range timeKeys {
+		v, ok := m[key]
+		if !ok {
+			continue
+		}
+		str, ok := v.(string)
+		if !ok || strings.TrimSpace(str) == "" {
+			continue
+		}
+		if t, ok := parseRowTime(strings.TrimSpace(str)); ok {
+			return t, true
+		}
+	}
+	return time.Time{}, false
+}
+
+// parseRowTime parses the timestamp shapes the tool surface emits (RFC3339
+// datetimes and bare dates).
+func parseRowTime(s string) (time.Time, bool) {
+	for _, layout := range []string{time.RFC3339Nano, time.RFC3339, "2006-01-02", "2006-01-02 15:04:05", "2006-01-02 15:04:05.999"} {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t, true
+		}
+	}
+	return time.Time{}, false
 }
 
 // walkSlices visits every array in a decoded JSON value, passing a setter that
