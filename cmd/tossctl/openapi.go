@@ -130,6 +130,10 @@ type statusInputs struct {
 
 	prefer   routing.Preference
 	fallback bool
+
+	accountSeq           int
+	accountSeqErr        error
+	accountSeqConfigured bool
 }
 
 // statusReport is the assembled output of buildStatusReport.
@@ -160,6 +164,9 @@ type statusReport struct {
 	RoutingPrefer    string `json:"routing_prefer"`
 	RoutingFallback  bool   `json:"routing_fallback"`
 	EligibleOpsCount int    `json:"eligible_ops_count"`
+
+	AccountSeq     int    `json:"account_seq,omitempty"`
+	AccountSeqNote string `json:"account_seq_note,omitempty"`
 }
 
 // buildStatusReport is a pure function that assembles the status dashboard from
@@ -245,6 +252,18 @@ func buildStatusReport(in statusInputs) statusReport {
 		}
 	}
 
+	// Effective account (best-effort).
+	if in.accountSeqErr != nil {
+		r.AccountSeqNote = "lookup failed: " + in.accountSeqErr.Error()
+	} else if in.accountSeq != 0 {
+		r.AccountSeq = in.accountSeq
+		if in.accountSeqConfigured {
+			r.AccountSeqNote = "from openapi.account_seq"
+		} else {
+			r.AccountSeqNote = "single account auto-resolved"
+		}
+	}
+
 	return r
 }
 
@@ -310,6 +329,9 @@ func renderStatusReport(w io.Writer, format output.Format, r statusReport) error
 	writeLine("prefer:", r.RoutingPrefer)
 	writeLine("fallback:", boolLabel(r.RoutingFallback, "enabled", "disabled"))
 	writeLine("official API-eligible ops:", fmt.Sprintf("%d", r.EligibleOpsCount))
+	if r.AccountSeq != 0 || r.AccountSeqNote != "" {
+		writeLine("account seq:", accountSeqLabel(r))
+	}
 
 	return nil
 }
@@ -319,6 +341,18 @@ func boolLabel(v bool, yes, no string) string {
 		return yes
 	}
 	return no
+}
+
+// accountSeqLabel renders the effective account line: the sequence plus how
+// it was chosen, or the lookup failure when resolution failed.
+func accountSeqLabel(r statusReport) string {
+	if r.AccountSeq != 0 && r.AccountSeqNote != "" {
+		return fmt.Sprintf("%d (%s)", r.AccountSeq, r.AccountSeqNote)
+	}
+	if r.AccountSeq != 0 {
+		return fmt.Sprintf("%d", r.AccountSeq)
+	}
+	return r.AccountSeqNote
 }
 
 // readTokenExpiry reads the expires_at field from the cached token file.
@@ -494,22 +528,37 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 			// Read config for routing info.
 			prefer := routing.Auto
 			fallback := true
+			accountSeq := 0
+			accountSeqConfigured := false
+			var accountSeqErr error
 			if app, appErr := newAppContext(opts); appErr == nil {
 				prefer = app.config.OpenAPI.Prefer
 				fallback = app.config.OpenAPI.Fallback
+				accountSeqConfigured = app.config.OpenAPI.AccountSeq != 0
+				seqClient := official.New(*creds, tokenFile, official.WithAccountSeq(app.config.OpenAPI.AccountSeq))
+				if seq, err := seqClient.ResolveAccountSeq(cmd.Context()); err != nil {
+					accountSeqErr = err
+				} else {
+					accountSeq = seq
+				}
+			} else {
+				accountSeqErr = appErr
 			}
 
 			report := buildStatusReport(statusInputs{
-				creds:          creds,
-				credsSource:    credsSource,
-				keyInfo:        keyInfo,
-				keyInfoErr:     keyInfoErr,
-				allowedIPs:     allowedIPs,
-				allowedIPsErr:  allowedIPsErr,
-				tokenExpiresAt: tokenExpiry,
-				probe:          probe,
-				prefer:         prefer,
-				fallback:       fallback,
+				creds:                creds,
+				credsSource:          credsSource,
+				keyInfo:              keyInfo,
+				keyInfoErr:           keyInfoErr,
+				allowedIPs:           allowedIPs,
+				allowedIPsErr:        allowedIPsErr,
+				tokenExpiresAt:       tokenExpiry,
+				probe:                probe,
+				prefer:               prefer,
+				fallback:             fallback,
+				accountSeq:           accountSeq,
+				accountSeqErr:        accountSeqErr,
+				accountSeqConfigured: accountSeqConfigured,
 			})
 
 			return renderStatusReport(cmd.OutOrStdout(), format, report)

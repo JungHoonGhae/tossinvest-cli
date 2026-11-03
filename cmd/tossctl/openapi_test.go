@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -623,5 +624,33 @@ func TestBuildStatusReportJSONFields(t *testing.T) {
 	// Masked key must not contain the full key
 	if strings.Contains(got, "9I24L3TIMVtestZJaVLA") {
 		t.Error("full API key must not appear in JSON output")
+	}
+}
+
+func TestBuildStatusReportAccountSeq(t *testing.T) {
+	t.Parallel()
+	in := statusInputs{
+		creds:                &official.Credentials{APIKey: "k", SecretKey: "s"},
+		probe:                probeResult{OK: true, Message: "ok"},
+		accountSeq:           55,
+		accountSeqConfigured: false,
+	}
+	r := buildStatusReport(in)
+	if r.AccountSeq != 55 || r.AccountSeqNote != "single account auto-resolved" {
+		t.Fatalf("unexpected account display: %+v", r)
+	}
+	if got := accountSeqLabel(r); got != "55 (single account auto-resolved)" {
+		t.Fatalf("unexpected account label: %q", got)
+	}
+
+	in.accountSeqConfigured = true
+	if got := accountSeqLabel(buildStatusReport(in)); got != "55 (from openapi.account_seq)" {
+		t.Fatalf("unexpected configured label: %q", got)
+	}
+
+	in.accountSeq, in.accountSeqErr = 0, errors.New("boom")
+	r = buildStatusReport(in)
+	if r.AccountSeq != 0 || r.AccountSeqNote != "lookup failed: boom" {
+		t.Fatalf("lookup failure must degrade gracefully: %+v", r)
 	}
 }

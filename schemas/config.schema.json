@@ -62,8 +62,11 @@
       "required": [
         "trading",
         "place",
+        "sell",
+        "fractional",
         "cancel",
         "amend",
+        "conditional",
         "allow_live_order_actions",
         "dangerous_automation"
       ]
@@ -95,6 +98,12 @@
         "fallback": {
           "type": "boolean",
           "default": true
+        },
+        "account_seq": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Pins the X-Tossinvest-Account sequence. 0 (default) resolves a single account automatically and refuses when several exist."
         }
       }
     },

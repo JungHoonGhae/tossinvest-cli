@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hiddenholding"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/history"
@@ -138,19 +139,35 @@ type rpcError struct {
 }
 
 const (
+	codeParseError     = -32700
+	codeInvalidRequest = -32600
 	codeMethodNotFound = -32601
 	codeInvalidParams  = -32602
+	codeInternalError  = -32603
 )
 
+// maxLineBytes caps a single newline-delimited frame. Tool results leaving
+// this server are capped at 30KB and requests are small parameter objects, so
+// anything bigger is a buggy or hostile host; the frame is rejected instead
+// of buffering it unboundedly.
+const maxLineBytes = 1 << 20
+
 // Serve reads newline-delimited JSON-RPC messages from in and writes responses
-// to out until in reaches EOF. Notifications (requests without an id) are
-// handled without producing a response, per the JSON-RPC spec.
+// to out until in reaches EOF (the host closing stdin is the shutdown signal;
+// a cancelled context is also honored between frames).
 func (s *Server) Serve(ctx context.Context, in io.Reader, out io.Writer) error {
 	r := bufio.NewReader(in)
 	enc := json.NewEncoder(out) // Encode appends '\n', giving newline framing.
 	for {
-		line, readErr := r.ReadBytes('\n')
-		if trimmed := bytes.TrimSpace(line); len(trimmed) > 0 {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		line, tooLong, readErr := readFrame(r)
+		if tooLong {
+			if err := enc.Encode(rpcResponse{JSONRPC: "2.0", Error: &rpcError{Code: codeParseError, Message: "frame exceeds size limit"}}); err != nil {
+				return err
+			}
+		} else if trimmed := bytes.TrimSpace(line); len(trimmed) > 0 {
 			if resp, ok := s.handle(ctx, trimmed); ok {
 				if err := enc.Encode(resp); err != nil {
 					return err
@@ -166,29 +183,70 @@ func (s *Server) Serve(ctx context.Context, in io.Reader, out io.Writer) error {
 	}
 }
 
+// readFrame reads one '\n'-terminated line of at most maxLineBytes (excluding
+// the terminator). A longer line is consumed chunk by chunk and discarded, so
+// memory stays bounded by maxLineBytes plus the bufio buffer; it reports tooLong.
+func readFrame(r *bufio.Reader) (line []byte, tooLong bool, err error) {
+	for {
+		chunk, err := r.ReadSlice('\n')
+		if !tooLong {
+			line = append(line, chunk...)
+			if len(bytes.TrimRight(line, "\r\n")) > maxLineBytes {
+				line, tooLong = nil, true
+			}
+		}
+		if err != bufio.ErrBufferFull {
+			return line, tooLong, err
+		}
+	}
+}
+
 // handle processes one raw JSON-RPC message. It returns (response, true) for
 // requests and (_, false) for notifications, which take no response.
-func (s *Server) handle(ctx context.Context, raw []byte) (rpcResponse, bool) {
+//
+// A frame without an id is a notification: it is ignored BEFORE dispatch, so
+// a host (or an injected prompt) can never fire a tool — especially a gated
+// mutation — without asking for, and receiving, a response.
+func (s *Server) handle(ctx context.Context, raw []byte) (resp rpcResponse, ok bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			resp = rpcResponse{JSONRPC: "2.0", ID: rawID(raw), Error: &rpcError{Code: codeInternalError, Message: fmt.Sprintf("internal error: %v", r)}}
+			ok = true
+		}
+	}()
 	var req rpcRequest
 	if err := json.Unmarshal(raw, &req); err != nil {
-		// Malformed frame with no recoverable id: drop it silently rather than
-		// guessing an id, matching lenient MCP host behaviour.
+		// Answer instead of dropping the frame and leaving the host hanging.
+		// Valid JSON of the wrong shape (batch array, non-string method) is
+		// -32600; only unparseable bytes are -32700 (null id per JSON-RPC 2.0).
+		if json.Valid(raw) {
+			return rpcResponse{JSONRPC: "2.0", ID: rawID(raw), Error: &rpcError{Code: codeInvalidRequest, Message: "invalid request"}}, true
+		}
+		return rpcResponse{JSONRPC: "2.0", Error: &rpcError{Code: codeParseError, Message: "parse error"}}, true
+	}
+	if len(req.ID) == 0 {
 		return rpcResponse{}, false
 	}
-	isNotification := len(req.ID) == 0
-
 	result, rerr := s.dispatch(ctx, req.Method, req.Params)
-
-	if isNotification {
-		return rpcResponse{}, false
-	}
-	resp := rpcResponse{JSONRPC: "2.0", ID: req.ID}
+	resp = rpcResponse{JSONRPC: "2.0", ID: req.ID}
 	if rerr != nil {
 		resp.Error = rerr
 	} else {
 		resp.Result = result
 	}
 	return resp, true
+}
+
+// rawID recovers the id of a frame that failed full parsing (for the panic
+// path): best-effort extraction, nil when the frame carries no usable id.
+func rawID(raw []byte) json.RawMessage {
+	var probe struct {
+		ID json.RawMessage `json:"id"`
+	}
+	if err := json.Unmarshal(raw, &probe); err != nil {
+		return nil
+	}
+	return probe.ID
 }
 
 // dispatch routes a method to its handler, returning either a result or an error.
@@ -338,10 +396,11 @@ func shrinkToCap(v any) any {
 		}
 		var (
 			best     []any
+			bestKey  string
 			bestSet  func(any)
 			bestSize int
 		)
-		walkSlices(holder, nil, func(s []any, set func(any)) {
+		walkSlices(holder, "", nil, func(s []any, key string, set func(any)) {
 			if keepable(s) == 0 {
 				return
 			}
@@ -349,7 +408,7 @@ func shrinkToCap(v any) any {
 			if err != nil || len(enc) <= bestSize {
 				return
 			}
-			best, bestSet, bestSize = s, set, len(enc)
+			best, bestKey, bestSet, bestSize = s, key, set, len(enc)
 		})
 		if bestSet == nil {
 			return map[string]any{
@@ -361,7 +420,11 @@ func shrinkToCap(v any) any {
 				),
 			}
 		}
-		bestSet(trim(best, bestSize, len(text)-maxResultBytes))
+		// Only chart candles (domain.Chart, oldest-first) drop from the front so
+		// the newest bars survive. Every other array — calendars, news, the
+		// newest-first indicator candles — keeps its head (status quo).
+		fromFront := bestKey == "candles" && ascendingByTime(best)
+		bestSet(trim(best, bestSize, len(text)-maxResultBytes, fromFront))
 	}
 }
 
@@ -375,11 +438,15 @@ func keepable(s []any) int {
 	return len(s)
 }
 
-// trim drops elements from the tail of s — roughly enough to shed `excess` bytes
-// given the array encodes to `size` bytes — and records the total number dropped
-// so far in a trailing placeholder. It always drops at least one element, so
+// trim drops elements from s — roughly enough to shed `excess` bytes given the
+// array encodes to `size` bytes — and records the total number dropped so far
+// in a trailing placeholder. It always drops at least one element, so
 // shrinkToCap's loop terminates; overshooting the cap only costs another pass.
-func trim(s []any, size, excess int) []any {
+//
+// fromFront drops from the FRONT (oldest-first chart candles keep their newest
+// bars); otherwise the tail is dropped. The placeholder stays trailing either
+// way and still counts every dropped row.
+func trim(s []any, size, excess int, fromFront bool) []any {
 	n, dropped := keepable(s), 0
 	if n < len(s) {
 		dropped = s[len(s)-1].(omittedItems).Count
@@ -405,34 +472,86 @@ func trim(s []any, size, excess int) []any {
 	if drop > n {
 		drop = n
 	}
-	keep := n - drop
 	dropped += drop
 	// drop is always at least one, so len(s) has room for the kept rows plus
 	// the omission marker. Using the existing length as capacity avoids an
 	// attacker-controlled addition in the allocation-size expression.
 	out := make([]any, 0, len(s))
-	out = append(out, s[:keep]...)
+	if fromFront {
+		out = append(out, s[drop:n]...)
+	} else {
+		out = append(out, s[:n-drop]...)
+	}
 	return append(out, omittedItems{
 		Count: dropped,
 		Note:  fmt.Sprintf("%d items omitted: result exceeded the %d-byte MCP limit. Narrow the request (see describe_operation params) or use the CLI for the full list.", dropped, maxResultBytes),
 	})
 }
 
-// walkSlices visits every array in a decoded JSON value, passing a setter that
-// replaces it in its parent.
-func walkSlices(v any, set func(any), visit func([]any, func(any))) {
+// ascendingByTime reports whether a candles array runs oldest-first: the first
+// and last rows' `time` (domain.Candle, RFC3339) compare ascending. Anything
+// unparseable, schemaless, or non-monotonic falls back to false (drop tail).
+func ascendingByTime(s []any) bool {
+	first, okFirst := edgeTime(s, true)
+	last, okLast := edgeTime(s, false)
+	return okFirst && okLast && first.Before(last)
+}
+
+// edgeTime finds the time of the first (front=true) or last time-bearing row,
+// skipping omission markers and schemaless rows (at most a few probes per edge
+// so a ragged head does not scan the whole array).
+func edgeTime(s []any, front bool) (time.Time, bool) {
+	probes := 0
+	if front {
+		for i := range s {
+			if probes >= 3 {
+				break
+			}
+			if t, ok := rowTime(s[i]); ok {
+				return t, true
+			}
+			probes++
+		}
+		return time.Time{}, false
+	}
+	for i := len(s) - 1; i >= 0 && probes < 3; i-- {
+		if t, ok := rowTime(s[i]); ok {
+			return t, true
+		}
+		probes++
+	}
+	return time.Time{}, false
+}
+
+// rowTime extracts domain.Candle's RFC3339 `time` from one decoded row.
+func rowTime(el any) (time.Time, bool) {
+	m, ok := el.(map[string]any)
+	if !ok {
+		return time.Time{}, false
+	}
+	str, ok := m["time"].(string)
+	if !ok {
+		return time.Time{}, false
+	}
+	t, err := time.Parse(time.RFC3339Nano, str)
+	return t, err == nil
+}
+
+// walkSlices visits every array in a decoded JSON value, passing its object key
+// ("" for array elements and the root) and a setter that replaces it in its parent.
+func walkSlices(v any, key string, set func(any), visit func([]any, string, func(any))) {
 	switch t := v.(type) {
 	case []any:
 		if set != nil {
-			visit(t, set)
+			visit(t, key, set)
 		}
 		for i := range t {
-			walkSlices(t[i], func(nv any) { t[i] = nv }, visit)
+			walkSlices(t[i], "", func(nv any) { t[i] = nv }, visit)
 		}
 	case map[string]any:
 		for k := range t {
 			k := k
-			walkSlices(t[k], func(nv any) { t[k] = nv }, visit)
+			walkSlices(t[k], k, func(nv any) { t[k] = nv }, visit)
 		}
 	}
 }

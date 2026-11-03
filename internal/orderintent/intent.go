@@ -24,6 +24,11 @@ type PlaceIntent struct {
 	// TimeInForce is the order's validity condition. Empty means DAY (the
 	// server default) and is what every order used before this field existed.
 	TimeInForce string `json:"time_in_force,omitempty"`
+	// ClientOrderID is the caller's optional idempotency key (official API
+	// only). Reusing it within 10 minutes makes the server return the first
+	// order instead of creating another — so it is never derived from the
+	// order fields: two deliberate identical orders must stay two orders.
+	ClientOrderID string `json:"client_order_id,omitempty"`
 }
 
 type CancelIntent struct {
@@ -52,7 +57,11 @@ type PlaceInput struct {
 	CurrencyMode string
 	Fractional   bool
 	TimeInForce  string
+	// ClientOrderID: optional idempotency key, see PlaceIntent.
+	ClientOrderID string
 }
+
+var clientOrderIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,36}$`)
 
 func NormalizePlace(input PlaceInput) (PlaceIntent, error) {
 	symbol := strings.TrimSpace(strings.ToUpper(input.Symbol))
@@ -80,16 +89,20 @@ func NormalizePlace(input PlaceInput) (PlaceIntent, error) {
 	}
 
 	intent := PlaceIntent{
-		Symbol:       symbol,
-		Market:       normalizeDefault(input.Market, "us"),
-		Side:         side,
-		OrderType:    orderType,
-		Quantity:     input.Quantity,
-		Price:        input.Price,
-		Amount:       input.Amount,
-		CurrencyMode: normalizeCurrencyMode(input.CurrencyMode),
-		Fractional:   fractional,
-		TimeInForce:  strings.ToUpper(strings.TrimSpace(input.TimeInForce)),
+		Symbol:        symbol,
+		Market:        normalizeDefault(input.Market, "us"),
+		Side:          side,
+		OrderType:     orderType,
+		Quantity:      input.Quantity,
+		Price:         input.Price,
+		Amount:        input.Amount,
+		CurrencyMode:  normalizeCurrencyMode(input.CurrencyMode),
+		Fractional:    fractional,
+		TimeInForce:   strings.ToUpper(strings.TrimSpace(input.TimeInForce)),
+		ClientOrderID: strings.TrimSpace(input.ClientOrderID),
+	}
+	if intent.ClientOrderID != "" && !clientOrderIDPattern.MatchString(intent.ClientOrderID) {
+		return PlaceIntent{}, fmt.Errorf("client order id must be 1-36 characters of letters, digits, '-' or '_'")
 	}
 
 	// A Korean stock code (6 digits, optionally A-prefixed) is never a valid US
@@ -257,6 +270,9 @@ func CanonicalPlace(intent PlaceIntent) string {
 	// 자기만의 토큰을 받는다 — DAY 로 미리보기해 얻은 토큰으로 OPG 를 낼 수 없다.
 	if intent.TimeInForce != "" && intent.TimeInForce != "DAY" {
 		fields["time_in_force"] = intent.TimeInForce
+	}
+	if intent.ClientOrderID != "" {
+		fields["client_order_id"] = intent.ClientOrderID
 	}
 	return canonicalString("place", fields)
 }

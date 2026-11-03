@@ -385,6 +385,46 @@ func TestLoadOpenAPIFromExistingConfig(t *testing.T) {
 	}
 }
 
+func TestLoadOpenAPIAccountSeq(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	data := []byte(`{
+  "schema_version": 3,
+  "trading": {},
+  "openapi": {
+    "enabled": true,
+    "prefer": "auto",
+    "fallback": true,
+    "account_seq": 42
+  }
+}`)
+	if err := os.WriteFile(configPath, data, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	cfg, err := NewService(configPath).Load(context.Background())
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.OpenAPI.AccountSeq != 42 {
+		t.Fatalf("expected account_seq=42, got %d", cfg.OpenAPI.AccountSeq)
+	}
+}
+
+func TestLoadOpenAPIRejectsNegativeAccountSeq(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	data := []byte(`{
+  "schema_version": 3,
+  "trading": {},
+  "openapi": {"account_seq": -1}
+}`)
+	if err := os.WriteFile(configPath, data, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	_, err := NewService(configPath).Load(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "openapi.account_seq") {
+		t.Fatalf("expected openapi.account_seq rejection, got %v", err)
+	}
+}
+
 func TestLoadOpenAPIRejectsInvalidPrefer(t *testing.T) {
 	for _, tt := range []struct {
 		name string
@@ -465,5 +505,55 @@ func TestDefaultPathsIncludesOpenAPIFiles(t *testing.T) {
 	}
 	if paths.TokenFile == "" {
 		t.Fatal("expected TokenFile to be set")
+	}
+}
+
+// TestLoadSurfacesUnknownKeys guards issue #19: keys the loader does not
+// recognize (typically typos the user believes took effect) are reported
+// instead of silently ignored. Keys differing only in case are known:
+// encoding/json matches them case-insensitively, so they do take effect.
+func TestLoadSurfacesUnknownKeys(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	data := []byte(`{
+  "schema_version": 3,
+  "trading": {"palce": true, "Place": true, "Dangerous_Automation": {"complete_trade_auth": true, "bogus_nested": 1}},
+  "OpenAPI": {"prefer": "auto", "bogus": 1},
+  "top_extra": 1
+}`)
+	if err := os.WriteFile(configPath, data, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	status, err := NewService(configPath).Status(context.Background())
+	if err != nil {
+		t.Fatalf("Status: %v", err)
+	}
+	want := map[string]bool{
+		"top_extra": true, "trading.palce": true,
+		"trading.Dangerous_Automation.bogus_nested": true,
+		"OpenAPI.bogus": true,
+	}
+	for _, got := range status.UnknownFields {
+		delete(want, got)
+	}
+	for missing := range want {
+		t.Errorf("unknown key %q not surfaced, got %v", missing, status.UnknownFields)
+	}
+	if len(status.UnknownFields) != 4 {
+		t.Errorf("unexpected unknown set: %v", status.UnknownFields)
+	}
+}
+
+// TestLoadRejectsFutureSchemaVersion: a file written by a newer tossctl may
+// carry semantics this binary cannot interpret — fail loudly instead of
+// running on misunderstood config.
+func TestLoadRejectsFutureSchemaVersion(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	data := []byte(`{"schema_version": 999, "trading": {}}`)
+	if err := os.WriteFile(configPath, data, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	_, err := NewService(configPath).Load(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "schema_version") {
+		t.Fatalf("expected schema_version rejection, got %v", err)
 	}
 }

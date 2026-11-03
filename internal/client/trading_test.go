@@ -29,8 +29,8 @@ func TestCancelPendingOrder(t *testing.T) {
 	var orderKeys []string
 	pendingCalls := 0
 	cancelCalled := false
-	today := time.Now().Format("2006-01-02")
-	now := time.Now().Format("2006-01-02 15:04:05.000")
+	today := time.Now().In(KoreaLocation).Format("2006-01-02")
+	now := time.Now().In(KoreaLocation).Format("2006-01-02 15:04:05.000")
 	preparePath := "/api/v2/wts/trading/order/cancel/prepare/" + today + "/14"
 	cancelPath := "/api/v3/wts/trading/order/cancel/" + today + "/14"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -225,8 +225,8 @@ func TestGetOrderAvailableActionsTreats400AsSoftFailure(t *testing.T) {
 func TestCancelPendingOrderReturnsCompletedHistoryRollover(t *testing.T) {
 	t.Parallel()
 
-	today := time.Now().Format("2006-01-02")
-	now := time.Now().Format("2006-01-02 15:04:05.000")
+	today := time.Now().In(KoreaLocation).Format("2006-01-02")
+	now := time.Now().In(KoreaLocation).Format("2006-01-02 15:04:05.000")
 	preparePath := "/api/v2/wts/trading/order/cancel/prepare/" + today + "/14"
 	cancelPath := "/api/v3/wts/trading/order/cancel/" + today + "/14"
 	pendingCalls := 0
@@ -764,8 +764,8 @@ func TestPlacePendingOrderSendsXOrderKeyOnCreate(t *testing.T) {
 func TestPlacePendingOrderReturnsFilledCompletedFromHistory(t *testing.T) {
 	t.Parallel()
 
-	today := time.Now().Format("2006-01-02")
-	now := time.Now().Format("2006-01-02 15:04:05.000")
+	today := time.Now().In(KoreaLocation).Format("2006-01-02")
+	now := time.Now().In(KoreaLocation).Format("2006-01-02 15:04:05.000")
 	created := false
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1134,7 +1134,7 @@ func TestPlacePendingOrderAutoAcceptsFXConsentWhenConfigured(t *testing.T) {
 	var orderKeys []string
 	var toggleBody map[string]any
 	created := false
-	today := time.Now().Format("2006-01-02")
+	today := time.Now().In(KoreaLocation).Format("2006-01-02")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -1415,8 +1415,8 @@ func TestAmendPendingOrderReturnsInteractiveAuthRequiredFromCorrect(t *testing.T
 func TestAmendPendingOrderReturnsCompletedOrderFromHistory(t *testing.T) {
 	t.Parallel()
 
-	today := time.Now().Format("2006-01-02")
-	now := time.Now().Format("2006-01-02 15:04:05.000")
+	today := time.Now().In(KoreaLocation).Format("2006-01-02")
+	now := time.Now().In(KoreaLocation).Format("2006-01-02 15:04:05.000")
 	corrected := false
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1697,5 +1697,16 @@ func TestBuildAmendBodyUSPricelessKeepsOrderUSDPrice(t *testing.T) {
 	}
 	if payload["price"] != 0.4753 {
 		t.Fatalf("priceless US amend must keep 0.4753, got %v", payload["price"])
+	}
+}
+
+// WTS has no idempotency field: a keyed order must be refused before any I/O
+// rather than placed without the dedup the caller relies on.
+func TestPlacePendingOrderRejectsClientOrderIDBeforeIO(t *testing.T) {
+	c := &Client{}
+	intent := orderintent.PlaceIntent{Symbol: "AAPL", Market: "us", Side: "buy",
+		OrderType: "limit", Quantity: 1, Price: 100, CurrencyMode: "USD", ClientOrderID: "retry-001"}
+	if _, err := c.PlacePendingOrder(context.Background(), intent); !errors.Is(err, tradingflow.ErrPlaceUnsupported) {
+		t.Fatalf("expected ErrPlaceUnsupported without I/O, got %v", err)
 	}
 }

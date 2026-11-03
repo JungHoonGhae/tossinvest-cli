@@ -210,6 +210,11 @@ func rejectNonDayTimeInForce(intent orderintent.PlaceIntent) error {
 	if tif := strings.ToUpper(strings.TrimSpace(intent.TimeInForce)); tif != "" && tif != "DAY" {
 		return fmt.Errorf("WTS path drops time-in-force %q (plain DAY order would execute): %w — place CLS/OPG through the official API", intent.TimeInForce, tradingflow.ErrPlaceUnsupported)
 	}
+	// Same shape for the idempotency key: WTS has no such field, so a retry
+	// the caller believes is deduplicated would place a second order.
+	if intent.ClientOrderID != "" {
+		return fmt.Errorf("WTS path has no client order id (a retry would not be deduplicated): %w — use the official API for idempotent orders", tradingflow.ErrPlaceUnsupported)
+	}
 	return nil
 }
 

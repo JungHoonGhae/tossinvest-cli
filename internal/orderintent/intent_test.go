@@ -2,6 +2,7 @@ package orderintent
 
 import (
 	"math"
+	"strings"
 	"testing"
 )
 
@@ -224,5 +225,33 @@ func TestNormalizePlaceFractionalDefaultsToMarket(t *testing.T) {
 	}
 	if intent.OrderType != "market" {
 		t.Fatalf("expected market, got %q", intent.OrderType)
+	}
+}
+
+// The idempotency key is caller-supplied only: without one the canonical form
+// (and so every existing confirm token) is unchanged, and two identical
+// orders stay two orders. With one, it is bound to the token.
+func TestPlaceClientOrderIDIsOptInAndBound(t *testing.T) {
+	in := PlaceInput{Symbol: "AAPL", Market: "us", Side: "buy", OrderType: "limit", Quantity: 1, Price: 100, CurrencyMode: "USD"}
+	plain, err := NormalizePlace(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(CanonicalPlace(plain), "client_order_id") {
+		t.Fatalf("no key given, canonical must not carry one: %s", CanonicalPlace(plain))
+	}
+	in.ClientOrderID = " retry-001 "
+	keyed, err := NormalizePlace(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if keyed.ClientOrderID != "retry-001" || !strings.Contains(CanonicalPlace(keyed), "client_order_id=retry-001") {
+		t.Fatalf("key must be trimmed and bound, got %q / %s", keyed.ClientOrderID, CanonicalPlace(keyed))
+	}
+	for _, bad := range []string{"has space", "slash/no", strings.Repeat("a", 37)} {
+		in.ClientOrderID = bad
+		if _, err := NormalizePlace(in); err == nil {
+			t.Fatalf("client order id %q must be rejected", bad)
+		}
 	}
 }
