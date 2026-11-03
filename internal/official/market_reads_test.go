@@ -2,6 +2,7 @@ package official
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -634,5 +635,23 @@ func TestMarketInvestorTradingIntegration(t *testing.T) {
 	}
 	if got.Records[0].Foreigner.NetAmount != 200000000000 {
 		t.Fatalf("foreigner net: %v", got.Records[0].Foreigner.NetAmount)
+	}
+}
+
+// TestParseDecimalMalformedStaysEncodable guards issue #14: garbage decimals
+// must not produce NaN, which encoding/json refuses — one bad field would fail
+// the whole JSON/MCP output.
+func TestParseDecimalMalformedStaysEncodable(t *testing.T) {
+	if got := parseDecimal(""); got != 0 {
+		t.Fatalf("empty must map to 0, got %v", got)
+	}
+	if got := parseDecimal("150.25"); got != 150.25 {
+		t.Fatalf("valid decimal must parse, got %v", got)
+	}
+	for _, bad := range []string{"N/A", "1,000", "abc", "--5", "NaN", "Inf"} {
+		got := parseDecimal(bad)
+		if _, err := json.Marshal(got); err != nil {
+			t.Fatalf("malformed %q must stay JSON-encodable, got %v: %v", bad, got, err)
+		}
 	}
 }
