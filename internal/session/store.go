@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"path/filepath"
 	"time"
+
+	"github.com/JungHoonGhae/tossinvest-cli/internal/atomicfile"
 )
 
 var ErrNoSession = errors.New("no stored session")
@@ -78,19 +79,10 @@ func (s *FileStore) Path() string {
 }
 
 func WriteFile(path string, sess *Session) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		return err
-	}
-
 	data, err := json.MarshalIndent(sess, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	tmpPath := path + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0o600); err != nil {
-		return err
-	}
-
-	return os.Rename(tmpPath, path)
+	return atomicfile.WriteFile(path, data, 0o600)
 }

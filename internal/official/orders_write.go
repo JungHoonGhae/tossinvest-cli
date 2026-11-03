@@ -28,6 +28,7 @@ type orderCreateV0 struct {
 	Quantity              string `json:"quantity"`
 	Price                 string `json:"price,omitempty"`
 	TimeInForce           string `json:"timeInForce,omitempty"`
+	ClientOrderID         string `json:"clientOrderId,omitempty"`
 	ConfirmHighValueOrder bool   `json:"confirmHighValueOrder"`
 }
 
@@ -41,6 +42,7 @@ type orderCreateV1 struct {
 	Side                  string `json:"side"`
 	OrderType             string `json:"orderType"`
 	OrderAmount           string `json:"orderAmount"`
+	ClientOrderID         string `json:"clientOrderId,omitempty"`
 	ConfirmHighValueOrder bool   `json:"confirmHighValueOrder"`
 }
 
@@ -84,6 +86,22 @@ type orderModifyRequest struct {
 //
 // side is uppercased from intent (intent.Side is lowercase "buy"/"sell").
 // All numeric values are formatted as shortest decimal strings.
+func isUSD(mode string) bool {
+	return strings.EqualFold(strings.TrimSpace(mode), "USD")
+}
+
+// requireUSDSettlement refuses to send a USD-denominated official field for a
+// non-USD intent. The official API prices US fractional-buy amounts and US
+// limit prices in dollars and converts nothing: a KRW number sent here would
+// execute ~1400x off intent with no server-side correction. Callers holding
+// KRW must convert via WTS instead (hybrid routes them there).
+func requireUSDSettlement(intent orderintent.PlaceIntent, what string) error {
+	if !isUSD(intent.CurrencyMode) {
+		return fmt.Errorf("official API prices %s in USD, got currency_mode %q — pass the price in USD or route via WTS", what, intent.CurrencyMode)
+	}
+	return nil
+}
+
 func buildOrderCreate(intent orderintent.PlaceIntent) (any, error) {
 	side := strings.ToUpper(intent.Side)
 
@@ -92,19 +110,23 @@ func buildOrderCreate(intent orderintent.PlaceIntent) (any, error) {
 		if intent.Amount <= 0 {
 			return nil, fmt.Errorf("fractional buy requires a positive amount, got %v", intent.Amount)
 		}
+		if err := requireUSDSettlement(intent, "US fractional-buy amounts"); err != nil {
+			return nil, err
+		}
 		return orderCreateV1{
 			Symbol:                intent.Symbol,
 			Side:                  side,
 			OrderType:             "MARKET",
 			OrderAmount:           formatDecimal(intent.Amount),
+			ClientOrderID:         intent.ClientOrderID,
 			ConfirmHighValueOrder: false,
 		}, nil
 	}
-
 	// variant0: quantity-based
 	v0 := orderCreateV0{
 		Symbol:                intent.Symbol,
 		Side:                  side,
+		ClientOrderID:         intent.ClientOrderID,
 		ConfirmHighValueOrder: false,
 	}
 
@@ -129,6 +151,11 @@ func buildOrderCreate(intent orderintent.PlaceIntent) (any, error) {
 	if orderType == "LIMIT" {
 		if intent.Price <= 0 {
 			return nil, fmt.Errorf("limit order requires a positive price, got %v", intent.Price)
+		}
+		if intent.Market == "us" {
+			if err := requireUSDSettlement(intent, "US limit prices"); err != nil {
+				return nil, err
+			}
 		}
 		v0.Price = formatDecimal(intent.Price)
 		v0.TimeInForce = "DAY"
@@ -202,8 +229,19 @@ func (c *Client) PlaceOrder(ctx context.Context, intent orderintent.PlaceIntent)
 // Response: OrderOperationResponse → orderId (new identifier issued for the cancel)
 // Sends X-Tossinvest-Account when accountSeq is set.
 // The orderId path segment is percent-encoded via url.PathEscape.
-func (c *Client) CancelOrder(ctx context.Context, orderID string) (trading.MutationResult, error) {
-	path := "/api/v1/orders/" + url.PathEscape(orderID) + "/cancel"
+//
+// The intent symbol is verified against the live order first: cancelling the
+// wrong order is silent and irreversible from the user's side. A mismatch is a
+// hard refusal; a lookup failure is not (the order may still be live — the
+// uncertainty is reported on the result instead of stranding the cancel).
+func (c *Client) CancelOrder(ctx context.Context, intent orderintent.CancelIntent) (trading.MutationResult, error) {
+	var warnings []string
+	if live, err := c.OrderByID(ctx, intent.OrderID); err != nil {
+		warnings = append(warnings, fmt.Sprintf("Could not verify order symbol before cancel (%v); proceeding with %q", err, intent.OrderID))
+	} else if !cancelSymbolsMatch(intent.Symbol, live.Symbol) {
+		return trading.MutationResult{}, fmt.Errorf("refusing to cancel order %q: it belongs to %q, not %q", intent.OrderID, live.Symbol, intent.Symbol)
+	}
+	path := "/api/v1/orders/" + url.PathEscape(intent.OrderID) + "/cancel"
 	hdrs, err := c.acctHeaders(ctx)
 	if err != nil {
 		return trading.MutationResult{}, err
@@ -213,10 +251,36 @@ func (c *Client) CancelOrder(ctx context.Context, orderID string) (trading.Mutat
 		return trading.MutationResult{}, err
 	}
 	return trading.MutationResult{
-		Kind:    "cancel",
-		Status:  "accepted",
-		OrderID: resp.OrderID,
+		Kind:     "cancel",
+		Status:   "accepted",
+		OrderID:  resp.OrderID,
+		Warnings: warnings,
 	}, nil
+}
+
+// cancelSymbolsMatch compares a user-asserted cancel symbol with the live
+// order's symbol. Comparison is case-insensitive and ignores the WTS-style
+// "A" prefix on 6-digit KR codes (A005930 vs 005930): the official API and CLI
+// input do not necessarily spell KR symbols the same way.
+func cancelSymbolsMatch(want, got string) bool {
+	normalize := func(s string) string {
+		s = strings.ToUpper(strings.TrimSpace(s))
+		if len(s) == 7 && s[0] == 'A' {
+			rest := s[1:]
+			allDigits := true
+			for i := range rest {
+				if rest[i] < '0' || rest[i] > '9' {
+					allDigits = false
+					break
+				}
+			}
+			if allDigits {
+				return rest
+			}
+		}
+		return s
+	}
+	return normalize(want) != "" && normalize(want) == normalize(got)
 }
 
 // ModifyOrder amends an existing order via the official Open API.
@@ -225,23 +289,17 @@ func (c *Client) CancelOrder(ctx context.Context, orderID string) (trading.Mutat
 // Response: OrderOperationResponse → orderId
 // Sends X-Tossinvest-Account when accountSeq is set.
 //
-// orderType inference:
-//   - intent.Price != nil → LIMIT (price is required for LIMIT)
-//   - intent.Price == nil → MARKET
+// The official modify schema requires orderType and takes price for LIMIT
+// only. Guessing MARKET when no price is given would silently convert a limit
+// order into a market order, so a missing price is rejected: pass the
+// (unchanged) limit price explicitly, or cancel and replace the order.
+// The WTS path preserves the existing price on its own and is unaffected.
 //
 // quantity is forwarded when set (required for KR stocks, forbidden for US).
 func (c *Client) ModifyOrder(ctx context.Context, intent orderintent.AmendIntent) (trading.MutationResult, error) {
-	body := orderModifyRequest{
-		ConfirmHighValueOrder: false,
-	}
-	if intent.Price != nil {
-		body.OrderType = "LIMIT"
-		body.Price = formatDecimal(*intent.Price)
-	} else {
-		body.OrderType = "MARKET"
-	}
-	if intent.Quantity != nil {
-		body.Quantity = formatDecimal(*intent.Quantity)
+	body, err := buildOrderModify(intent)
+	if err != nil {
+		return trading.MutationResult{}, err
 	}
 
 	path := "/api/v1/orders/" + url.PathEscape(intent.OrderID) + "/modify"
@@ -259,4 +317,22 @@ func (c *Client) ModifyOrder(ctx context.Context, intent orderintent.AmendIntent
 		OriginalOrderID: intent.OrderID,
 		CurrentOrderID:  resp.OrderID,
 	}, nil
+}
+
+// buildOrderModify renders the official modify body. Price is required: with
+// no price the API call would have to declare an orderType, and defaulting to
+// MARKET would flip a limit order into a market order (issue #2).
+func buildOrderModify(intent orderintent.AmendIntent) (orderModifyRequest, error) {
+	if intent.Price == nil {
+		return orderModifyRequest{}, fmt.Errorf("refusing to amend order %q without a price: the official API has no price-preserving amend, omitting it would send orderType MARKET and convert a limit order — pass the (unchanged) limit price explicitly, or cancel and replace", intent.OrderID)
+	}
+	body := orderModifyRequest{
+		OrderType:             "LIMIT",
+		Price:                 formatDecimal(*intent.Price),
+		ConfirmHighValueOrder: false,
+	}
+	if intent.Quantity != nil {
+		body.Quantity = formatDecimal(*intent.Quantity)
+	}
+	return body, nil
 }

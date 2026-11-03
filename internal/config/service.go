@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/atomicfile"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/version"
 )
@@ -353,18 +353,10 @@ func (s *Service) SetExperimentalPaperTrading(ctx context.Context, enabled bool)
 }
 
 func (s *Service) save(cfg File) error {
-	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
-		return err
-	}
-
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	tmpPath := s.path + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(tmpPath, s.path)
+	return atomicfile.WriteFile(s.path, data, 0o600)
 }

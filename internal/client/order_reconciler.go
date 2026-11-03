@@ -29,6 +29,16 @@ type reconciliationRequest struct {
 	side                        string
 	priceKRW, quantity          float64
 	startedAt                   time.Time
+	// excludeIDs holds pending/completed order ids seen before submit: only
+	// orders that appeared after this mutation are candidates. Without this,
+	// a repeated identical order (split buys) matches the pre-existing one —
+	// or goes ambiguous — and the new order is reported unknown.
+	excludeIDs map[string]bool
+	// matchLoose skips price/quantity equality for shapes whose wire values
+	// are not ledger-comparable: amount-based fractional buys (quantity and
+	// price are zeroed) and US orders (USD/KRW currency mismatch). Symbol,
+	// side, and market still match, and snapshot exclusion keeps it precise.
+	matchLoose bool
 }
 
 // orderReconciler owns history matching, bounded observation and result
@@ -107,15 +117,22 @@ func (r orderReconciler) observe(ctx context.Context, req reconciliationRequest,
 	} else {
 		var match *domain.Order
 		for _, order := range pending {
+			if req.excludeIDs[order.ID] {
+				continue
+			}
 			if req.originalOrderID != "" && (order.ID == req.originalOrderID || orderMatchesID(order.Raw, req.originalOrderID)) {
 				continue
 			}
-			if req.matchesOrder(order) && equalFloat(order.Quantity, req.quantity) {
-				if match != nil {
-					return orderObservation{ambiguous: true}, nil
-				}
-				match = &order
+			if !req.matchesOrder(order) {
+				continue
 			}
+			if !req.matchLoose && !equalFloat(order.Quantity, req.quantity) {
+				continue
+			}
+			if match != nil {
+				return orderObservation{ambiguous: true}, nil
+			}
+			match = &order
 		}
 		if match != nil {
 			return orderObservation{order: match}, nil
@@ -127,6 +144,9 @@ func (r orderReconciler) observe(ctx context.Context, req reconciliationRequest,
 	}
 	var match *domain.Order
 	for _, order := range completed {
+		if req.excludeIDs[order.ID] {
+			continue
+		}
 		if req.kind == "amend" && (order.ID == req.originalOrderID || orderMatchesID(order.Raw, req.originalOrderID)) {
 			continue
 		}
@@ -149,21 +169,34 @@ func (r orderReconciler) observe(ctx context.Context, req reconciliationRequest,
 		if req.kind == "amend" && orderStatusLooksCanceled(order.Status) {
 			continue
 		}
-		if equalFloat(order.Quantity, req.quantity) || equalFloat(order.FilledQuantity, req.quantity) {
-			if match != nil {
-				return orderObservation{ambiguous: true}, nil
-			}
-			match = &order
+		if !req.matchLoose && !equalFloat(order.Quantity, req.quantity) && !equalFloat(order.FilledQuantity, req.quantity) {
+			continue
 		}
+		if match != nil {
+			return orderObservation{ambiguous: true}, nil
+		}
+		match = &order
 	}
 	return orderObservation{order: match, completed: true}, nil
 }
 
 func (req reconciliationRequest) matchesOrder(order domain.Order) bool {
-	return matchesOrderSymbol(order, req.productCode, req.symbol) &&
-		(req.side == "" || strings.EqualFold(order.Side, req.side)) &&
-		(order.Market == "" || strings.EqualFold(order.Market, req.market)) &&
-		equalFloat(order.Price, req.priceKRW)
+	if !matchesOrderSymbol(order, req.productCode, req.symbol) {
+		return false
+	}
+	if req.side != "" && !strings.EqualFold(order.Side, req.side) {
+		return false
+	}
+	if order.Market != "" && !strings.EqualFold(order.Market, req.market) {
+		return false
+	}
+	// Amount/USD shapes carry no ledger-comparable price (fractional buys
+	// zero it; US inputs cross currencies): symbol/side/market plus snapshot
+	// newness identify them instead.
+	if req.matchLoose {
+		return true
+	}
+	return equalFloat(order.Price, req.priceKRW)
 }
 
 func (req reconciliationRequest) result(order domain.Order, completed bool) trading.MutationResult {
@@ -217,4 +250,32 @@ func matchesOrderSymbol(order domain.Order, productCode, symbol string) bool {
 
 func orderStatusLooksCanceled(status string) bool {
 	return strings.Contains(strings.TrimSpace(status), "취소")
+}
+
+// snapshotOrderIDs records the pending/completed ids visible before a mutation
+// is submitted, so reconcile only considers orders that appeared after it. A
+// snapshot failure returns a warning instead of an error: the mutation
+// proceeds with unfiltered matching (previous behavior) rather than stranding
+// the order on a read failure.
+func snapshotOrderIDs(ctx context.Context, history orderHistory, market string) (map[string]bool, string) {
+	ids := map[string]bool{}
+	pending, err := history.ListPendingOrders(ctx)
+	if err != nil {
+		return nil, fmt.Sprintf("Could not snapshot pending orders before submit (%v); matching may pick up pre-existing orders", err)
+	}
+	for i := range pending {
+		if pending[i].ID != "" {
+			ids[pending[i].ID] = true
+		}
+	}
+	completed, err := history.ListCompletedOrders(ctx, market)
+	if err != nil {
+		return nil, fmt.Sprintf("Could not snapshot completed orders before submit (%v); matching may pick up pre-existing orders", err)
+	}
+	for i := range completed {
+		if completed[i].ID != "" {
+			ids[completed[i].ID] = true
+		}
+	}
+	return ids, ""
 }

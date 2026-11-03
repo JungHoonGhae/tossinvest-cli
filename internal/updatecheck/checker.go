@@ -13,11 +13,11 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/atomicfile"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/version"
 )
 
@@ -187,14 +187,11 @@ func (c *Checker) readCache() (cacheEntry, error) {
 }
 
 func (c *Checker) writeCache(e cacheEntry) error {
-	if err := os.MkdirAll(filepath.Dir(c.cachePath), 0o700); err != nil {
-		return err
-	}
 	data, err := json.MarshalIndent(e, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(c.cachePath, data, 0o600)
+	return atomicfile.WriteFile(c.cachePath, data, 0o600)
 }
 
 // IsNewer reports whether `latest` is semantically newer than `current`.
