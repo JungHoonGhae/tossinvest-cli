@@ -74,6 +74,9 @@ func DefaultLoginConfig(cacheDir string) LoginConfig {
 	}
 
 	helperDir := os.Getenv("TOSSCTL_AUTH_HELPER_DIR")
+	// An explicit TOSSCTL_AUTH_HELPER_DIR is honored as-is (even relative):
+	// the user asked for that directory. The default resolution never yields
+	// a CWD-relative path (see resolveDefaultHelperDir).
 	if helperDir == "" {
 		helperDir = resolveDefaultHelperDir()
 	}
@@ -167,8 +170,15 @@ func exeDirs() []string {
 	return dirs
 }
 
+// resolveDefaultHelperDir picks the auth-helper directory when
+// TOSSCTL_AUTH_HELPER_DIR is unset. Every candidate is anchored at the
+// running binary — never at the current working directory: a bare
+// "auth-helper" CWD candidate would let any directory the user (or their
+// agent) happens to cd into supply the code that handles login cookies.
+// Developers running from a source checkout export TOSSCTL_AUTH_HELPER_DIR
+// explicitly instead.
 func resolveDefaultHelperDir() string {
-	candidates := []string{"auth-helper"}
+	var candidates []string
 
 	for _, exeDir := range exeDirs() {
 		candidates = append(candidates,
@@ -189,7 +199,13 @@ func resolveDefaultHelperDir() string {
 		}
 	}
 
-	return candidates[0]
+	if len(candidates) > 0 {
+		return candidates[0]
+	}
+	// os.Executable failed: no anchor to resolve against. Refuse with an
+	// empty dir (the runner errors clearly) rather than falling back to a
+	// CWD-relative path.
+	return ""
 }
 
 func NewService(store session.Store, sessionFile string, opts Options) *Service {

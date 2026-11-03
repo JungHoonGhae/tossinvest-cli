@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -290,6 +291,51 @@ func TestDefaultLoginConfigFallsBackToPlatformPython(t *testing.T) {
 	}
 	if cfg.PythonBin != want {
 		t.Fatalf("expected %q fallback, got %q", want, cfg.PythonBin)
+	}
+}
+
+// TestResolveDefaultHelperDirIgnoresCWD guards issue #16: a planted
+// ./auth-helper directory must never be picked up implicitly — the default
+// resolution only considers binary-anchored locations.
+func TestResolveDefaultHelperDirIgnoresCWD(t *testing.T) {
+	planted := filepath.Join(t.TempDir(), "auth-helper")
+	if err := os.MkdirAll(planted, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(filepath.Dir(planted)); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(cwd); err != nil {
+			t.Fatalf("restore cwd: %v", err)
+		}
+	})
+
+	got := resolveDefaultHelperDir()
+	if got == "auth-helper" || !filepath.IsAbs(got) {
+		t.Fatalf("default resolution must never be CWD-relative, got %q", got)
+	}
+	if got == planted {
+		t.Fatalf("planted CWD helper dir must not be selected implicitly, got %q", got)
+	}
+}
+
+// TestPythonLoginRunnerRejectsMissingModule: executing without verifying the
+// module lives in the configured directory would run whatever Python resolves
+// — including a planted package. Refuse with a pointer to the explicit env var.
+func TestPythonLoginRunnerRejectsMissingModule(t *testing.T) {
+	cfg := LoginConfig{
+		PythonBin:        "definitely-not-a-python",
+		HelperDir:        t.TempDir(), // no tossctl_auth_helper package inside
+		StorageStatePath: filepath.Join(t.TempDir(), "state.json"),
+	}
+	_, err := PythonLoginRunner{}.Login(context.Background(), cfg)
+	if err == nil || !strings.Contains(err.Error(), "TOSSCTL_AUTH_HELPER_DIR") {
+		t.Fatalf("expected missing-module refusal naming the env var, got %v", err)
 	}
 }
 
