@@ -1,6 +1,8 @@
 package orderintent
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"regexp"
 	"sort"
@@ -215,6 +217,22 @@ func validateTimeInForce(intent *PlaceIntent) error {
 }
 
 func CanonicalPlace(intent PlaceIntent) string {
+	fields := basePlaceFields(intent)
+	fields["client_order_id"] = IdempotencyKey(intent)
+	return canonicalString("place", fields)
+}
+
+// IdempotencyKey derives the official clientOrderId from the order's own
+// fields: the same inputs always yield the same key, so a retry after a
+// transport error deduplicates server-side instead of double-ordering, while
+// different inputs yield different keys. 36 lowercase hex chars satisfy the
+// official schema (`^[a-zA-Z0-9\-_]+$`, max 36).
+func IdempotencyKey(intent PlaceIntent) string {
+	sum := sha256.Sum256([]byte(canonicalString("place", basePlaceFields(intent))))
+	return hex.EncodeToString(sum[:])[:36]
+}
+
+func basePlaceFields(intent PlaceIntent) map[string]string {
 	fields := map[string]string{
 		"currency_mode": intent.CurrencyMode,
 		"fractional":    strconv.FormatBool(intent.Fractional),
@@ -232,7 +250,7 @@ func CanonicalPlace(intent PlaceIntent) string {
 	if intent.TimeInForce != "" && intent.TimeInForce != "DAY" {
 		fields["time_in_force"] = intent.TimeInForce
 	}
-	return canonicalString("place", fields)
+	return fields
 }
 
 func CanonicalCancel(intent CancelIntent) string {

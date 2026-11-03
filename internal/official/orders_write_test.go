@@ -497,3 +497,47 @@ func TestBuildOrderCreateCarriesTimeInForce(t *testing.T) {
 		})
 	}
 }
+
+// TestBuildOrderCreateCarriesIdempotencyKey guards issue #8: every official
+// order must carry the derived clientOrderId so a retry after a transport
+// error deduplicates server-side instead of double-ordering.
+func TestBuildOrderCreateCarriesIdempotencyKey(t *testing.T) {
+	limit := orderintent.PlaceIntent{Symbol: "AAPL", Market: "us", Side: "buy",
+		OrderType: "limit", Quantity: 1, Price: 10, CurrencyMode: "USD"}
+	got, err := buildOrderCreate(limit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v0, ok := got.(orderCreateV0)
+	if !ok {
+		t.Fatalf("expected quantity-based variant, got %T", got)
+	}
+	if v0.ClientOrderID != orderintent.IdempotencyKey(limit) {
+		t.Fatalf("missing derived clientOrderId, got %+v", v0)
+	}
+
+	fractional := orderintent.PlaceIntent{Symbol: "TSLA", Market: "us", Side: "buy",
+		OrderType: "market", Fractional: true, Amount: 100, CurrencyMode: "USD"}
+	got, err = buildOrderCreate(fractional)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v1, ok := got.(orderCreateV1)
+	if !ok {
+		t.Fatalf("expected amount-based variant, got %T", got)
+	}
+	if v1.ClientOrderID != orderintent.IdempotencyKey(fractional) {
+		t.Fatalf("missing derived clientOrderId, got %+v", v1)
+	}
+	if v0.ClientOrderID == v1.ClientOrderID {
+		t.Fatal("distinct orders must carry distinct keys")
+	}
+
+	raw, err := json.Marshal(v0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), `"clientOrderId":"`+v0.ClientOrderID+`"`) {
+		t.Fatalf("wire body must send clientOrderId, got %s", raw)
+	}
+}
