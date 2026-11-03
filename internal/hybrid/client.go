@@ -199,10 +199,26 @@ func (c *Client) GetTrades(ctx context.Context, symbol string, count int) (domai
 		func() (domain.TradeList, error) { return c.Client.GetTrades(ctx, symbol, count) })
 }
 
-// GetChart routes to off.Candles (no before-cursor, unadjusted).
+// officialSupportedChart reports whether the official candles endpoint can
+// serve this request: it accepts only the 1m/1d intervals with at most 200
+// bars. Anything else earns a 400, which is a domain error with no WTS
+// fallback — so those requests go straight to WTS instead of failing.
+func officialSupportedChart(interval string, count int) bool {
+	if interval != "1m" && interval != "1d" {
+		return false
+	}
+	return count <= 200
+}
+
+// GetChart routes to off.Candles when the official endpoint supports the
+// request (1m/1d, ≤200 bars, adjusted like the WTS path); otherwise straight
+// to WTS. No before-cursor is passed on the official path.
 func (c *Client) GetChart(ctx context.Context, symbol, interval string, count int) (domain.Chart, error) {
+	if !officialSupportedChart(interval, count) {
+		return c.Client.GetChart(ctx, symbol, interval, count)
+	}
 	return routeSymbol(c, symbol,
-		func() (domain.Chart, error) { return c.off.Candles(ctx, symbol, interval, count, "", false) },
+		func() (domain.Chart, error) { return c.off.Candles(ctx, symbol, interval, count, "", true) },
 		func() (domain.Chart, error) { return c.Client.GetChart(ctx, symbol, interval, count) })
 }
 
