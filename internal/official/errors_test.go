@@ -2,6 +2,7 @@ package official
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -52,5 +53,14 @@ func TestShouldFallback(t *testing.T) {
 	// APIError must not fallback
 	if ShouldFallback(&APIError{Code: 400, Body: "bad request"}) {
 		t.Fatal("APIError must not fallback")
+	}
+}
+
+// An ambiguous account is refused before any request, so reads may fall back
+// to the web session instead of failing outright for multi-account users.
+func TestShouldFallbackOnAmbiguousAccount(t *testing.T) {
+	err := fmt.Errorf("%w: 2 accounts found (1, 2)", ErrAccountAmbiguous)
+	if !ShouldFallback(err) {
+		t.Fatal("ambiguous account must allow read fallback")
 	}
 }

@@ -14,6 +14,10 @@ var (
 	ErrIPNotAllowed = errors.New("official: IP not allowed")
 	ErrRateLimited  = errors.New("official: rate limited")
 	ErrServer       = errors.New("official: server error")
+	// ErrAccountAmbiguous: several accounts and no openapi.account_seq. It is
+	// raised before any request, so reads may fall back to the web session
+	// (which uses its own primary account); orders never cross-fallback.
+	ErrAccountAmbiguous = errors.New("official: account ambiguous")
 )
 
 // APIError represents a non-retryable 4xx error from the official API.
@@ -63,5 +67,6 @@ func ShouldFallback(err error) bool {
 		errors.Is(err, ErrAuth) ||
 		errors.Is(err, ErrIPNotAllowed) ||
 		errors.Is(err, ErrRateLimited) ||
-		errors.Is(err, ErrServer)
+		errors.Is(err, ErrServer) ||
+		errors.Is(err, ErrAccountAmbiguous)
 }
