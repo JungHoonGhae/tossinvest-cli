@@ -225,8 +225,19 @@ func (c *Client) PlaceOrder(ctx context.Context, intent orderintent.PlaceIntent)
 // Response: OrderOperationResponse → orderId (new identifier issued for the cancel)
 // Sends X-Tossinvest-Account when accountSeq is set.
 // The orderId path segment is percent-encoded via url.PathEscape.
-func (c *Client) CancelOrder(ctx context.Context, orderID string) (trading.MutationResult, error) {
-	path := "/api/v1/orders/" + url.PathEscape(orderID) + "/cancel"
+//
+// The intent symbol is verified against the live order first: cancelling the
+// wrong order is silent and irreversible from the user's side. A mismatch is a
+// hard refusal; a lookup failure is not (the order may still be live — the
+// uncertainty is reported on the result instead of stranding the cancel).
+func (c *Client) CancelOrder(ctx context.Context, intent orderintent.CancelIntent) (trading.MutationResult, error) {
+	var warnings []string
+	if live, err := c.OrderByID(ctx, intent.OrderID); err != nil {
+		warnings = append(warnings, fmt.Sprintf("Could not verify order symbol before cancel (%v); proceeding with %q", err, intent.OrderID))
+	} else if !cancelSymbolsMatch(intent.Symbol, live.Symbol) {
+		return trading.MutationResult{}, fmt.Errorf("refusing to cancel order %q: it belongs to %q, not %q", intent.OrderID, live.Symbol, intent.Symbol)
+	}
+	path := "/api/v1/orders/" + url.PathEscape(intent.OrderID) + "/cancel"
 	hdrs, err := c.acctHeaders(ctx)
 	if err != nil {
 		return trading.MutationResult{}, err
@@ -236,10 +247,36 @@ func (c *Client) CancelOrder(ctx context.Context, orderID string) (trading.Mutat
 		return trading.MutationResult{}, err
 	}
 	return trading.MutationResult{
-		Kind:    "cancel",
-		Status:  "accepted",
-		OrderID: resp.OrderID,
+		Kind:     "cancel",
+		Status:   "accepted",
+		OrderID:  resp.OrderID,
+		Warnings: warnings,
 	}, nil
+}
+
+// cancelSymbolsMatch compares a user-asserted cancel symbol with the live
+// order's symbol. Comparison is case-insensitive and ignores the WTS-style
+// "A" prefix on 6-digit KR codes (A005930 vs 005930): the official API and CLI
+// input do not necessarily spell KR symbols the same way.
+func cancelSymbolsMatch(want, got string) bool {
+	normalize := func(s string) string {
+		s = strings.ToUpper(strings.TrimSpace(s))
+		if len(s) == 7 && s[0] == 'A' {
+			rest := s[1:]
+			allDigits := true
+			for i := range rest {
+				if rest[i] < '0' || rest[i] > '9' {
+					allDigits = false
+					break
+				}
+			}
+			if allDigits {
+				return rest
+			}
+		}
+		return s
+	}
+	return normalize(want) != "" && normalize(want) == normalize(got)
 }
 
 // ModifyOrder amends an existing order via the official Open API.

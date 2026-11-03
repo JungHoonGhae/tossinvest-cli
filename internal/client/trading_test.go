@@ -43,6 +43,11 @@ func TestCancelPendingOrder(t *testing.T) {
 			_, _ = w.Write([]byte(`{"result":[]}`))
 			return
 		}
+		// Symbol verification resolves the intent symbol before cancelling.
+		if r.URL.Path == "/api/v2/search/stocks" {
+			_, _ = w.Write([]byte(`{"result":{"stocks":[{"stockCode":"US20220809012","stockName":"TSLL"}]}}`))
+			return
+		}
 		// The pre-submit snapshot must not see the as-yet-uncancelled order
 		// and must not pollute the recorded request sequence below.
 		if r.URL.Path == "/api/v2/trading/my-orders/markets/us/by-date/completed" && !cancelCalled {
@@ -247,6 +252,8 @@ func TestCancelPendingOrderReturnsCompletedHistoryRollover(t *testing.T) {
 				return
 			}
 			_, _ = io.WriteString(w, `{"result":{"body":[{"orderedAt":"`+now+`","lastExecutedAt":"`+now+`","orderNo":15,"orderId":"completed-cancel-order-id","stockCode":"US20220809012","stockName":"TSLL","symbol":"TSLL","tradeType":"buy","status":"취소","orderQuantity":1,"executedQuantity":0,"userOrderDate":"`+today+`","orderPrice":{"krw":700},"averageExecutionPrice":{"krw":0}}]}}`)
+		case "/api/v2/search/stocks":
+			_, _ = w.Write([]byte(`{"result":{"stocks":[{"stockCode":"US20220809012","stockName":"TSLL"}]}}`))
 		default:
 			t.Fatalf("unexpected request path: %s", r.URL.Path)
 		}
@@ -309,6 +316,8 @@ func TestCancelPendingOrderDoesNotConfirmDisappearance(t *testing.T) {
 		case "/api/v2/trading/my-orders/markets/us/by-date/completed":
 			completedCalls++
 			_, _ = io.WriteString(w, `{"result":{"body":[]}}`)
+		case "/api/v2/search/stocks":
+			_, _ = w.Write([]byte(`{"result":{"stocks":[{"stockCode":"US20220809012","stockName":"TSLL"}]}}`))
 		default:
 			t.Errorf("unexpected request: %s", r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
@@ -386,6 +395,8 @@ func TestCancelPendingOrderReturnsInteractiveAuthRequired(t *testing.T) {
 			_, _ = w.Write([]byte(`{"result":{"delayCancelExchange":false,"orderKey":"trade::session::test::cancel","authRequired":{"required":false,"simpleTrade":true,"verifier":null}}}`))
 		case "/api/v3/wts/trading/order/cancel/2026-03-11/14":
 			_, _ = w.Write([]byte(`{"result":{"uuid":"challenge","modulus":"abc","exponent":"10001","keyboard":"<svg/>"}}`))
+		case "/api/v2/search/stocks":
+			_, _ = w.Write([]byte(`{"result":{"stocks":[{"stockCode":"US20220809012","stockName":"TSLL"}]}}`))
 		default:
 			_, _ = w.Write([]byte(`{}`))
 		}
@@ -1484,6 +1495,64 @@ func TestClassifyPlaceCreateFailurePassesThroughNonStatusError(t *testing.T) {
 	orig := fmt.Errorf("network down")
 	if got := classifyPlaceCreateFailure(orig); got != orig {
 		t.Fatalf("expected passthrough, got %v", got)
+	}
+}
+
+// TestCancelPendingOrderRejectsAmbiguousOrderNo guards issue #6: a bare order
+// number matching pending orders on different dates must refuse instead of
+// cancelling the first match.
+func TestCancelPendingOrderRejectsAmbiguousOrderNo(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/trading/orders/histories/all/pending" {
+			t.Errorf("no request beyond the pending list is expected, got %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		_, _ = io.WriteString(w, `{"result":[`+
+			`{"stockCode":"US20220809012","orderedDate":"2026-03-10","orderNo":14,"tradeType":"buy","orderPrice":700,"orderUsdPrice":0.4753,"quantity":1,"pendingQuantity":1,"orderPriceTypeCode":"00","status":"체결대기"},`+
+			`{"stockCode":"US20220809012","orderedDate":"2026-03-11","orderNo":14,"tradeType":"buy","orderPrice":700,"orderUsdPrice":0.4753,"quantity":1,"pendingQuantity":1,"orderPriceTypeCode":"00","status":"체결대기"}]}`)
+	}))
+	t.Cleanup(server.Close)
+	c := New(Config{
+		HTTPClient: server.Client(), APIBaseURL: server.URL, InfoBaseURL: server.URL, CertBaseURL: server.URL,
+		Session: &session.Session{
+			Cookies: map[string]string{"SESSION": "test-session"},
+			Headers: map[string]string{"App-Version": "test-build"},
+			Storage: map[string]string{"localStorage:qr-tabId": "test-tab"},
+		},
+	})
+	_, err := c.CancelPendingOrder(context.Background(), orderintent.CancelIntent{OrderID: "14", Symbol: "TSLL"})
+	if err == nil || !strings.Contains(err.Error(), "ambiguous") {
+		t.Fatalf("expected ambiguity refusal, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "2026-03-10") || !strings.Contains(err.Error(), "2026-03-11") {
+		t.Fatalf("ambiguity error must name both matches, got %v", err)
+	}
+}
+
+// TestVerifyCancelSymbol checks the WTS cancel guard without network for KR
+// (numeric symbols normalize locally) and proves mismatch/unresolvable fail.
+func TestVerifyCancelSymbol(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		if strings.Contains(string(body), "TSLL") {
+			_, _ = w.Write([]byte(`{"result":{"stocks":[{"stockCode":"US20220809012","stockName":"TSLL"}]}}`))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	t.Cleanup(srv.Close)
+	c := New(Config{HTTPClient: srv.Client(), APIBaseURL: srv.URL, InfoBaseURL: srv.URL, CertBaseURL: srv.URL})
+	kr := pendingOrderDetails{StockCode: "A005930"}
+	if err := c.verifyCancelSymbol(context.Background(), orderintent.CancelIntent{OrderID: "1", Symbol: "005930"}, kr); err != nil {
+		t.Fatalf("KR numeric symbol must match A-prefixed product code: %v", err)
+	}
+	if err := c.verifyCancelSymbol(context.Background(), orderintent.CancelIntent{OrderID: "1", Symbol: "TSLL"}, kr); err == nil {
+		t.Fatal("expected mismatch refusal for another symbol, got nil")
+	}
+	if err := c.verifyCancelSymbol(context.Background(), orderintent.CancelIntent{OrderID: "1", Symbol: "NOPE"}, kr); err == nil {
+		t.Fatal("expected refusal for unresolvable symbol, got nil")
 	}
 }
 

@@ -26,7 +26,7 @@ func (b OfficialBroker) PlacePendingOrder(ctx context.Context, intent orderinten
 }
 
 func (b OfficialBroker) CancelPendingOrder(ctx context.Context, intent orderintent.CancelIntent) (trading.MutationResult, error) {
-	return b.Client.CancelOrder(ctx, intent.OrderID)
+	return b.Client.CancelOrder(ctx, intent)
 }
 
 func (b OfficialBroker) AmendPendingOrder(ctx context.Context, intent orderintent.AmendIntent) (trading.MutationResult, error) {
