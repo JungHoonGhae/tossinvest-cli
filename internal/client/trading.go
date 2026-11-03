@@ -191,7 +191,9 @@ func (c *Client) PlacePendingOrder(ctx context.Context, intent orderintent.Place
 		// US wire values are not ledger-comparable (fractional buys zero
 		// quantity/price; KRW/USD inputs cross currencies): symbol, side,
 		// and snapshot newness identify the order instead.
-		matchLoose: intent.Market == "us",
+		// Only with a snapshot: without exclusion, loose matching could pick a
+		// pre-existing order on the same symbol/side and report its id.
+		matchLoose: intent.Market == "us" && excludeIDs != nil,
 	})
 	if err != nil {
 		return tradingflow.MutationResult{}, err
