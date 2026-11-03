@@ -118,7 +118,7 @@ func buildOrderCreate(intent orderintent.PlaceIntent) (any, error) {
 			Side:                  side,
 			OrderType:             "MARKET",
 			OrderAmount:           formatDecimal(intent.Amount),
-			ClientOrderID:         orderintent.IdempotencyKey(intent),
+			ClientOrderID:         intent.ClientOrderID,
 			ConfirmHighValueOrder: false,
 		}, nil
 	}
@@ -126,7 +126,7 @@ func buildOrderCreate(intent orderintent.PlaceIntent) (any, error) {
 	v0 := orderCreateV0{
 		Symbol:                intent.Symbol,
 		Side:                  side,
-		ClientOrderID:         orderintent.IdempotencyKey(intent),
+		ClientOrderID:         intent.ClientOrderID,
 		ConfirmHighValueOrder: false,
 	}
 

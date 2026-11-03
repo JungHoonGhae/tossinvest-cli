@@ -197,40 +197,30 @@ func TestConfirmTokenIsDeterministic(t *testing.T) {
 	}
 }
 
-// TestIdempotencyKeyFormat guards issue #8: the derived official clientOrderId
-// must satisfy the schema (`^[a-zA-Z0-9\-_]+$`, max 36) and be stable per
-// inputs — a retry after a transport error must carry the same key so the
-// server deduplicates instead of double-ordering.
-func TestIdempotencyKeyFormat(t *testing.T) {
-	intent := PlaceIntent{Symbol: "TSLL", Market: "us", Side: "buy",
-		OrderType: "limit", Quantity: 1, Price: 500, CurrencyMode: "KRW"}
-	first := IdempotencyKey(intent)
-	if len(first) != 36 {
-		t.Fatalf("key length = %d, want 36", len(first))
+// The idempotency key is caller-supplied only: without one the canonical form
+// (and so every existing confirm token) is unchanged, and two identical
+// orders stay two orders. With one, it is bound to the token.
+func TestPlaceClientOrderIDIsOptInAndBound(t *testing.T) {
+	in := PlaceInput{Symbol: "AAPL", Market: "us", Side: "buy", OrderType: "limit", Quantity: 1, Price: 100, CurrencyMode: "USD"}
+	plain, err := NormalizePlace(in)
+	if err != nil {
+		t.Fatal(err)
 	}
-	for i := range first {
-		c := first[i]
-		if !(c >= '0' && c <= '9' || c >= 'a' && c <= 'f') {
-			t.Fatalf("key must be lowercase hex, got %q", first)
+	if strings.Contains(CanonicalPlace(plain), "client_order_id") {
+		t.Fatalf("no key given, canonical must not carry one: %s", CanonicalPlace(plain))
+	}
+	in.ClientOrderID = " retry-001 "
+	keyed, err := NormalizePlace(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if keyed.ClientOrderID != "retry-001" || !strings.Contains(CanonicalPlace(keyed), "client_order_id=retry-001") {
+		t.Fatalf("key must be trimmed and bound, got %q / %s", keyed.ClientOrderID, CanonicalPlace(keyed))
+	}
+	for _, bad := range []string{"has space", "slash/no", strings.Repeat("a", 37)} {
+		in.ClientOrderID = bad
+		if _, err := NormalizePlace(in); err == nil {
+			t.Fatalf("client order id %q must be rejected", bad)
 		}
-	}
-	if second := IdempotencyKey(intent); second != first {
-		t.Fatalf("key must be deterministic, got %q then %q", first, second)
-	}
-	changed := intent
-	changed.Price = 501
-	if IdempotencyKey(changed) == first {
-		t.Fatal("different inputs must yield different keys")
-	}
-}
-
-// TestCanonicalPlaceBindsIdempotencyKey: the confirm token commits to the key
-// the server will enforce, mirroring the conditional-order precedent.
-func TestCanonicalPlaceBindsIdempotencyKey(t *testing.T) {
-	intent := PlaceIntent{Symbol: "TSLL", Market: "us", Side: "buy",
-		OrderType: "limit", Quantity: 1, Price: 500, CurrencyMode: "KRW"}
-	canonical := CanonicalPlace(intent)
-	if !strings.Contains(canonical, IdempotencyKey(intent)) {
-		t.Fatalf("canonical must carry the idempotency key, got %q", canonical)
 	}
 }
