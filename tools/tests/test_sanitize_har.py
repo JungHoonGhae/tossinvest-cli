@@ -1,5 +1,6 @@
 """Network-free regression tests for tools/sanitize_har.py."""
 
+import base64
 import json
 import os
 import sys
@@ -80,6 +81,87 @@ class TestResponseBody(unittest.TestCase):
         S.sanitize_har(doc)
         text = doc["log"]["entries"][0]["response"]["content"]["text"]
         self.assertNotIn("abcDEF123", text)
+
+
+class TestTossctlTraffic(unittest.TestCase):
+    """Fields tossctl actually sends/receives (dummy values only)."""
+
+    def test_account_and_user_json_keys_masked_case_insensitively(self):
+        body = json.dumps({
+            "result": {
+                "accountList": [{"accountNo": "000-00-000000", "AccountName": "DUMMY", "key": "k1"}],
+                "primaryKey": "dummy-primary",
+                "userName": "DUMMY USER",
+                "USERID": "dummy-user-id",
+                "accessToken": "dummy-access",
+                "totalAmount": 1234,
+            }
+        })
+        doc = entry_with(response={"content": {"mimeType": "application/json", "text": body}})
+        S.sanitize_har(doc)
+        text = doc["log"]["entries"][0]["response"]["content"]["text"]
+        for leaked in ("000-00-000000", "DUMMY", "dummy-primary", "dummy-user-id", "dummy-access"):
+            self.assertNotIn(leaked, text)
+        # Amounts are intentionally kept.
+        self.assertEqual(json.loads(text)["result"]["totalAmount"], 1234)
+
+    def test_tossctl_headers_redacted_case_insensitively(self):
+        doc = entry_with(request={"headers": [
+            {"name": "Browser-Tab-Id", "value": "dummy-tab"},
+            {"name": "accountKey", "value": "dummy-key"},
+            {"name": "ACCOUNTKEY", "value": "dummy-key2"},
+            {"name": "Accept", "value": "application/json"},
+        ]})
+        S.sanitize_har(doc)
+        headers = {h["name"]: h["value"] for h in doc["log"]["entries"][0]["request"]["headers"]}
+        self.assertEqual(headers["Browser-Tab-Id"], "<REDACTED>")
+        self.assertEqual(headers["accountKey"], "<REDACTED>")
+        self.assertEqual(headers["ACCOUNTKEY"], "<REDACTED>")
+        self.assertEqual(headers["Accept"], "application/json")
+
+    def test_account_no_query_key_redacted(self):
+        doc = entry_with(request={
+            "url": "https://x.test/api?AccountNo=000-00-000001&ok=1",
+            "queryString": [{"name": "accountNo", "value": "000-00-000001"}],
+        })
+        S.sanitize_har(doc)
+        request = doc["log"]["entries"][0]["request"]
+        self.assertNotIn("000-00-000001", request["url"])
+        self.assertIn("ok=1", request["url"])
+        self.assertEqual(request["queryString"][0]["value"], "<REDACTED>")
+
+    def test_base64_response_decoded_sanitized_reencoded(self):
+        raw = json.dumps({"accountNo": "000-00-000002", "balance": 5})
+        content = {"mimeType": "application/json", "encoding": "base64",
+                   "text": base64.b64encode(raw.encode()).decode()}
+        doc = entry_with(response={"content": content})
+        S.sanitize_har(doc)
+        decoded = json.loads(base64.b64decode(content["text"]))
+        self.assertEqual(decoded["accountNo"], "<REDACTED>")
+        self.assertEqual(decoded["balance"], 5)
+
+    def test_undecodable_base64_body_dropped(self):
+        content = {"mimeType": "image/png", "encoding": "base64",
+                   "text": base64.b64encode(b"\xff\xfe\x00binary").decode()}
+        doc = entry_with(response={"content": content})
+        S.sanitize_har(doc)
+        self.assertNotIn("text", content)
+
+    def test_post_body_json_by_mime_variant_or_content(self):
+        for mime in ("application/vnd.toss+json;charset=UTF-8", "text/plain", ""):
+            post = {"mimeType": mime, "text": json.dumps({"accountNo": "000-00-000003", "qty": 1})}
+            doc = entry_with(request={"postData": post})
+            S.sanitize_har(doc)
+            parsed = json.loads(post["text"])
+            self.assertEqual(parsed["accountNo"], "<REDACTED>", mime)
+            self.assertEqual(parsed["qty"], 1)
+
+    def test_redirect_url_sanitized(self):
+        doc = entry_with(response={"redirectURL": "https://x.test/cb?token=dummy-tok&accountNo=000-00-000004"})
+        S.sanitize_har(doc)
+        url = doc["log"]["entries"][0]["response"]["redirectURL"]
+        self.assertNotIn("dummy-tok", url)
+        self.assertNotIn("000-00-000004", url)
 
 
 if __name__ == "__main__":

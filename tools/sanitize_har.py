@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
-"""Sanitize HAR files before they are committed to the repository."""
+"""Sanitize HAR captures of tossctl/WTS traffic.
+
+Masks credentials (cookies, tokens, session/tab headers) and identifying JSON
+fields (account numbers/keys, names, user ids). Numeric amounts such as
+balances and prices are deliberately kept so captures stay useful for
+reverse engineering — sanitized HARs are local working material, not fixtures.
+"""
 
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 import re
 import sys
@@ -19,6 +27,9 @@ SENSITIVE_HEADERS = {
     "x-device-id",
     "x-session-id",
     "x-request-id",
+    # Sent by internal/client (account.go, account_scope.go).
+    "browser-tab-id",
+    "accountkey",
 }
 
 # Lowercase throughout: matching lowercases the key first, so Token=, TOKEN=
@@ -35,21 +46,37 @@ SENSITIVE_QUERY_KEYS = {
     "request_id",
     "sessionid",
     "session_id",
+    "accountno",
+    "accountkey",
 }
 
+# Lowercase: keys are matched case-insensitively.
 SENSITIVE_JSON_KEYS = {
     "authorization",
     "token",
-    "accessToken",
-    "refreshToken",
+    "accesstoken",
+    "access_token",
+    "refreshtoken",
+    "refresh_token",
     "cookie",
     "cookies",
-    "deviceId",
-    "sessionId",
+    "deviceid",
+    "sessionid",
+    "browsertabid",
     "name",
-    "phoneNumber",
-    "accountNumber",
-    "residentRegistrationNumber",
+    "nickname",
+    "username",
+    "userid",
+    "userprofileid",
+    "phonenumber",
+    "email",
+    "accountno",
+    "accountnumber",
+    "accountname",
+    "accountid",
+    "accountkey",
+    "primarykey",
+    "residentregistrationnumber",
 }
 
 TOKEN_PATTERNS = [
@@ -108,29 +135,46 @@ def sanitize_cookies(items: list[dict[str, Any]]) -> None:
         cookie["value"] = "<REDACTED>"
 
 
+def sanitize_body(text: str, mime_type: str) -> str:
+    """Key-mask a body that is JSON by mime type or by content; regex otherwise."""
+    try:
+        payload = json.loads(text)
+    except ValueError:
+        return redact_string(text)
+    if "json" not in mime_type.lower() and not isinstance(payload, (dict, list)):
+        # A bare scalar ("123", "true") in a non-JSON body is not JSON data.
+        return redact_string(text)
+    return json.dumps(sanitize_object(payload), ensure_ascii=False)
+
+
 def sanitize_post_data(post_data: dict[str, Any]) -> None:
     text = post_data.get("text")
-    mime_type = str(post_data.get("mimeType", ""))
+    if isinstance(text, str):
+        post_data["text"] = sanitize_body(text, str(post_data.get("mimeType", "")))
+
+
+def sanitize_content(content: dict[str, Any]) -> None:
+    text = content.get("text")
     if not isinstance(text, str):
         return
-
-    if "application/json" in mime_type:
-        try:
-            payload = json.loads(text)
-        except json.JSONDecodeError:
-            post_data["text"] = redact_string(text)
-            return
-        post_data["text"] = json.dumps(sanitize_object(payload), ensure_ascii=False)
+    mime = str(content.get("mimeType", ""))
+    if content.get("encoding") != "base64":
+        content["text"] = sanitize_body(text, mime)
         return
-
-    post_data["text"] = redact_string(text)
+    try:
+        decoded = base64.b64decode(text, validate=True).decode("utf-8")
+    except (binascii.Error, UnicodeDecodeError):
+        # Binary (or broken) payload we cannot inspect: drop it rather than leak it.
+        del content["text"]
+        return
+    content["text"] = base64.b64encode(sanitize_body(decoded, mime).encode("utf-8")).decode("ascii")
 
 
 def sanitize_object(value: Any) -> Any:
     if isinstance(value, dict):
         sanitized = {}
         for key, item in value.items():
-            if key in SENSITIVE_JSON_KEYS:
+            if isinstance(key, str) and key.lower() in SENSITIVE_JSON_KEYS:
                 sanitized[key] = "<REDACTED>"
             else:
                 sanitized[key] = sanitize_object(item)
@@ -165,19 +209,13 @@ def sanitize_entry(entry: dict[str, Any]) -> None:
         # Form posts duplicate fields in a params array.
         sanitize_query_params(request["postData"].get("params"))
 
-    content = response.get("content", {})
-    text = content.get("text") if isinstance(content, dict) else None
-    if isinstance(text, str):
-        mime = str(content.get("mimeType", ""))
-        if "json" in mime:
-            # Account/balance data lives in response bodies: apply the same
-            # key masking as request payloads instead of regex-only redaction.
-            try:
-                content["text"] = json.dumps(sanitize_object(json.loads(text)), ensure_ascii=False)
-            except json.JSONDecodeError:
-                content["text"] = redact_string(text)
-        else:
-            content["text"] = redact_string(text)
+    if isinstance(response.get("redirectURL"), str):
+        response["redirectURL"] = sanitize_url(response["redirectURL"])
+
+    # Account data lives in response bodies: apply the same key masking as
+    # request payloads instead of regex-only redaction.
+    if isinstance(response.get("content"), dict):
+        sanitize_content(response["content"])
 
 
 def sanitize_har(document: dict[str, Any]) -> dict[str, Any]:
