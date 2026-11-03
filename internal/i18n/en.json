@@ -46,6 +46,7 @@
   "config.short": "Inspect and initialize tossctl config",
   "config.show.short": "Show the effective config and config path",
   "doctor.check.authHelperFail": "auth helper module is not importable",
+  "doctor.check.authHelperNotFound": "auth helper not found; set TOSSCTL_AUTH_HELPER_DIR",
   "doctor.check.authHelperOk": "auth helper module is importable",
   "doctor.check.chromeAvailable": "Google Chrome is available",
   "doctor.check.chromeNotInstalled": "Google Chrome is not installed. Install from https://www.google.com/chrome/",
