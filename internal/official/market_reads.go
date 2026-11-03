@@ -3,6 +3,7 @@ package official
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/url"
 	"strconv"
 	"strings"
@@ -11,14 +12,17 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 )
 
-// parseDecimal parses a decimal string to float64. Returns 0 on empty/error.
-// Used by all official-API adapters that receive numeric fields as strings.
+// parseDecimal parses a decimal string to float64. Empty means null in the
+// official schema and maps to 0. A non-empty unparseable value also maps to 0:
+// NaN would be safer semantically, but encoding/json rejects NaN, so a single
+// garbage field would fail the whole JSON/MCP response. Used by all
+// official-API adapters that receive numeric fields as strings.
 func parseDecimal(s string) float64 {
 	if s == "" {
 		return 0
 	}
 	f, err := strconv.ParseFloat(s, 64)
-	if err != nil {
+	if err != nil || math.IsNaN(f) || math.IsInf(f, 0) { // ParseFloat accepts "NaN"/"Inf"
 		return 0
 	}
 	return f

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 type LoginResult struct {
@@ -27,6 +28,15 @@ type PythonLoginRunner struct{}
 func (PythonLoginRunner) Login(ctx context.Context, cfg LoginConfig) (*LoginResult, error) {
 	if cfg.HelperDir == "" {
 		return nil, fmt.Errorf("auth helper directory is not configured")
+	}
+	// Refuse to execute before checking the module actually lives in the
+	// configured directory: without this, a mis-pointed (or CWD-relative)
+	// HelperDir would run whatever `tossctl_auth_helper` Python happens to
+	// resolve — including a planted package in the current directory.
+	// Developers running from a source checkout point TOSSCTL_AUTH_HELPER_DIR
+	// at the repo's auth-helper directory explicitly.
+	if info, err := os.Stat(filepath.Join(cfg.HelperDir, "tossctl_auth_helper", "__main__.py")); err != nil || info.IsDir() {
+		return nil, fmt.Errorf("auth helper module not found in %q: set TOSSCTL_AUTH_HELPER_DIR to the auth-helper directory", cfg.HelperDir)
 	}
 	if cfg.StorageStatePath == "" {
 		return nil, fmt.Errorf("auth helper storage-state path is not configured")

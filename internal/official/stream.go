@@ -26,11 +26,21 @@ const (
 	// 스펙이 지정한 재연결 백오프 (1s → 2s → 4s …, REST 429 대응과 동일).
 	streamInitialBackoff = 1 * time.Second
 	streamMaxBackoff     = 60 * time.Second
+
+	// 이 시간 이상 유지된 연결 뒤의 절단은 일시 장애로 보고 백오프를 리셋한다.
+	// 짧게 깨지는 반복 장애만 백오프를 키운다.
+	streamHealthyThreshold = time.Minute
 )
 
 // ErrStreamShutdown 은 서버 배포 직전에 오는 server-shutdown 프레임이다. 장애가
 // 아니라 예고된 핸드오프라 백오프를 키우지 않고 곧바로 재연결한다.
 var ErrStreamShutdown = errors.New("official: server requested reconnect")
+
+// ErrStreamUnauthorized marks a websocket handshake the server refused for
+// credentials reasons (401 even after a token refresh, or 403). Refreshing or
+// retrying cannot fix it — the key is revoked, rotated, or the IP is not
+// allowed — so StreamWithRetry returns it instead of looping forever.
+var ErrStreamUnauthorized = errors.New("official: websocket handshake unauthorized")
 
 // Subscription 은 구독 선언 배열의 항목 하나다. Type 은 "trade:us" · "orderbook:kr" ·
 // "personal:order", Codes 는 심볼 목록(주문 채널은 accountSeq 를 문자열로).
@@ -77,15 +87,40 @@ func (c *Client) Stream(ctx context.Context, subs []Subscription, handler func(S
 	}
 	tok, err := c.tm.token(ctx)
 	if err != nil {
+		// 교체·폐기된 키는 토큰 교환 단계에서 이미 ErrAuth/ErrIPNotAllowed 로 온다.
+		if isPermanentAuth(err) {
+			return fmt.Errorf("%w: %w", ErrStreamUnauthorized, err)
+		}
 		return err
 	}
 
-	conn, resp, err := websocket.Dial(ctx, c.streamURLOrDefault(), &websocket.DialOptions{
-		HTTPClient: c.hc,
-		HTTPHeader: http.Header{"Authorization": {"Bearer " + tok}},
-	})
+	dial := func(tok string) (*websocket.Conn, *http.Response, error) {
+		return websocket.Dial(ctx, c.streamURLOrDefault(), &websocket.DialOptions{
+			HTTPClient: c.hc,
+			HTTPHeader: http.Header{"Authorization": {"Bearer " + tok}},
+		})
+	}
+	conn, resp, err := dial(tok)
+	if err != nil && resp != nil && resp.StatusCode == http.StatusUnauthorized {
+		// 캐시 토큰이 폐기·교체됐을 수 있다: refresh 후 한 번만 다시 다이얼한다.
+		// 그래도 401이면 자격증명 자체가 문제라 영원히 재시도해 봐야 소용없다.
+		refreshed, rerr := c.tm.refresh(ctx)
+		if rerr != nil {
+			// refresh 자체의 429·5xx·네트워크 장애는 일시적이다: 재시도 가능한
+			// 오류로 돌려주고, 자격증명 거부일 때만 영구 실패로 본다.
+			if isPermanentAuth(rerr) {
+				return fmt.Errorf("%w: token refresh: %w", ErrStreamUnauthorized, rerr)
+			}
+			return fmt.Errorf("official: websocket token refresh: %w", rerr)
+		}
+		tok = refreshed
+		conn, resp, err = dial(tok)
+	}
 	if err != nil {
 		// 인증·허용 IP 실패는 handshake 의 HTTP 상태로만 온다 (101 이 아니면 본문 없음).
+		if resp != nil && (resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden) {
+			return fmt.Errorf("official: websocket handshake HTTP %d (permanent, not retrying): %w", resp.StatusCode, ErrStreamUnauthorized)
+		}
 		if resp != nil {
 			return fmt.Errorf("official: websocket handshake HTTP %d: %w", resp.StatusCode, err)
 		}
@@ -155,13 +190,24 @@ func (c *Client) StreamWithRetry(ctx context.Context, subs []Subscription, handl
 	}
 	backoff := streamInitialBackoff
 	for {
+		started := time.Now()
 		err := c.Stream(ctx, subs, handler)
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
+		// 자격증명·허용 IP 거부는 재시도로 고쳐지지 않는다: 영원히
+		// 재연결하는 대신 호출자에게 반환한다 (logf 에만 남기고 묻지 않는다).
+		if errors.Is(err, ErrStreamUnauthorized) {
+			return err
+		}
 		if errors.Is(err, ErrStreamShutdown) {
 			// 예고된 배포 핸드오프 — 백오프를 키우지 않는다.
 			logf("stream: server requested reconnect")
+			backoff = streamInitialBackoff
+		} else if streamResetBackoff(time.Since(started)) {
+			// 오래 유지된 연결 뒤의 절단은 일시 장애다: 최대값에서
+			// 이어가지 않고 처음부터 다시 기다린다.
+			logf("stream: disconnected after %s, resetting backoff: %v", time.Since(started).Round(time.Second), err)
 			backoff = streamInitialBackoff
 		} else {
 			logf("stream: disconnected, reconnecting in %s: %v", backoff, err)
@@ -171,10 +217,23 @@ func (c *Client) StreamWithRetry(ctx context.Context, subs []Subscription, handl
 			return ctx.Err()
 		case <-time.After(backoff):
 		}
+		// 지금 값으로 기다린 뒤에 키운다: 1s → 2s → 4s … (로그와 실제 대기가 일치).
 		if backoff < streamMaxBackoff {
 			backoff *= 2
 		}
 	}
+}
+
+// isPermanentAuth reports a credentials rejection that retrying cannot fix.
+func isPermanentAuth(err error) bool {
+	return errors.Is(err, ErrAuth) || errors.Is(err, ErrIPNotAllowed)
+}
+
+// streamResetBackoff reports whether a disconnect after the given uptime is a
+// transient blip (reset to the initial backoff) rather than a flapping loop
+// (keep growing). Healthy connections reset; short-lived ones keep backing off.
+func streamResetBackoff(uptime time.Duration) bool {
+	return uptime >= streamHealthyThreshold
 }
 
 func (c *Client) streamURLOrDefault() string {

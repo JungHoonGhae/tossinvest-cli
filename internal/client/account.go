@@ -193,9 +193,12 @@ func parsePendingOrder(raw json.RawMessage) domain.Order {
 		OrderedAt       string  `json:"orderedAt"`
 	}
 
-	if err := json.Unmarshal(raw, &payload); err != nil {
-		return order
-	}
+	// Unmarshal errors are tolerated per-field: Go fills every decodable
+	// field before reporting e.g. UnmarshalTypeError, and the caller needs
+	// the surviving ID/symbol for matching. Dropping everything here turned
+	// one corrupt field into an unreferenceable phantom order. Raw is always
+	// kept, so ID-based lookup keeps working even on total garbage.
+	_ = json.Unmarshal(raw, &payload)
 
 	order.ID = referenceOrderIdentifier(payload.OrderedDate, payload.OrderNo, payload.OrderID)
 	order.Symbol = firstNonEmpty(payload.Symbol, payload.StockCode)
@@ -235,18 +238,22 @@ func referenceOrderIdentifier(orderDate string, orderNo any, fallback string) st
 	return strings.TrimSpace(orderDate) + "/" + normalized
 }
 
+// parseOrderTime parses ledger timestamps. Zone-less values are Korea time:
+// the ledger runs on KST and other call sites (e.g. completed-order
+// boundaries) already use KoreaLocation. time.Local would shift them on
+// machines outside KST.
 func parseOrderTime(values ...string) *time.Time {
 	for _, value := range values {
 		if value == "" {
 			continue
 		}
-		if parsed, err := time.ParseInLocation("2006-01-02T15:04:05.999999999", value, time.Local); err == nil {
+		if parsed, err := time.ParseInLocation("2006-01-02T15:04:05.999999999", value, KoreaLocation); err == nil {
 			return &parsed
 		}
-		if parsed, err := time.ParseInLocation("2006-01-02 15:04:05.000", value, time.Local); err == nil {
+		if parsed, err := time.ParseInLocation("2006-01-02 15:04:05.000", value, KoreaLocation); err == nil {
 			return &parsed
 		}
-		if parsed, err := time.ParseInLocation("2006-01-02 15:04:05", value, time.Local); err == nil {
+		if parsed, err := time.ParseInLocation("2006-01-02 15:04:05", value, KoreaLocation); err == nil {
 			return &parsed
 		}
 		if parsed, err := time.Parse(time.RFC3339Nano, value); err == nil {
