@@ -97,9 +97,12 @@ func (o SyncOptions) normalize(now time.Time) (SyncOptions, error) {
 	return o, nil
 }
 
-// Sync previews a local append, binding the account set, primary account,
-// exact collection intent, database path, and last committed snapshot. Only
-// execute with its fresh token fetches market data and writes the local store.
+// Sync previews a local append, binding the account set, exact collection
+// intent, database path, and last committed snapshot. The binding covers the
+// account SET, not the primary account: positions and transactions are
+// collected session-wide, so a primary-account change must not orphan the
+// database. Older databases stamped with the legacy (accounts+primary)
+// digest keep working; genuinely different account sets are still rejected.
 func (s *Service) Sync(ctx context.Context, o SyncOptions, execute bool, confirm string) (SyncResult, error) {
 	var result SyncResult
 	var err error
@@ -125,12 +128,8 @@ func (s *Service) Sync(ctx context.Context, o SyncOptions, execute bool, confirm
 		ids = append(ids, a.ID)
 	}
 	sort.Strings(ids)
-	identity, _ := json.Marshal(struct {
-		Accounts []string
-		Primary  string
-	}{ids, primary})
-	owner := digest(identity)
-	revision, err := s.Store.revision(ctx, owner)
+	owner, legacyOwner := ownerDigests(ids, primary)
+	revision, err := s.Store.revision(ctx, owner, legacyOwner)
 	if err != nil {
 		return result, err
 	}
@@ -172,7 +171,7 @@ func (s *Service) Sync(ctx context.Context, o SyncOptions, execute bool, confirm
 			data.Snapshot.Warnings = append(data.Snapshot.Warnings, market+": "+reason)
 		}
 	}
-	meta, err := s.Store.save(ctx, owner, revision, data)
+	meta, err := s.Store.save(ctx, owner, legacyOwner, revision, data)
 	if err != nil {
 		return result, err
 	}
@@ -181,6 +180,22 @@ func (s *Service) Sync(ctx context.Context, o SyncOptions, execute bool, confirm
 }
 
 func digest(b []byte) string { sum := sha256.Sum256(b); return hex.EncodeToString(sum[:]) }
+
+// ownerDigests binds a database to the sorted account ID set. The legacy
+// digest additionally mixed in the primary account, which orphans the
+// database whenever the primary changes even though the collected data is
+// identical. Both are accepted on read so old databases keep working; new
+// writes stamp the primary-free form.
+func ownerDigests(ids []string, primary string) (current, legacy string) {
+	identity, _ := json.Marshal(struct {
+		Accounts []string
+	}{ids})
+	legacyIdentity, _ := json.Marshal(struct {
+		Accounts []string
+		Primary  string
+	}{ids, primary})
+	return digest(identity), digest(legacyIdentity)
+}
 
 func transaction(t domain.Transaction) Transaction {
 	date := t.Date

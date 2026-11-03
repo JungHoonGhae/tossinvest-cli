@@ -467,3 +467,52 @@ func TestDefaultPathsIncludesOpenAPIFiles(t *testing.T) {
 		t.Fatal("expected TokenFile to be set")
 	}
 }
+
+// TestLoadSurfacesUnknownKeys guards issue #19: keys the loader does not
+// recognize (typically typos the user believes took effect) are reported
+// instead of silently ignored.
+func TestLoadSurfacesUnknownKeys(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	data := []byte(`{
+  "schema_version": 3,
+  "trading": {"palce": true, "place": true, "dangerous_automation": {"complete_trade_auth": true, "bogus_nested": 1}},
+  "openapi": {"prefer": "auto", "bogus": 1},
+  "top_extra": 1
+}`)
+	if err := os.WriteFile(configPath, data, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	status, err := NewService(configPath).Status(context.Background())
+	if err != nil {
+		t.Fatalf("Status: %v", err)
+	}
+	want := map[string]bool{
+		"top_extra": true, "trading.palce": true,
+		"trading.dangerous_automation.bogus_nested": true,
+		"openapi.bogus": true,
+	}
+	for _, got := range status.UnknownFields {
+		delete(want, got)
+	}
+	for missing := range want {
+		t.Errorf("unknown key %q not surfaced, got %v", missing, status.UnknownFields)
+	}
+	if len(status.UnknownFields) != 4 {
+		t.Errorf("unexpected unknown set: %v", status.UnknownFields)
+	}
+}
+
+// TestLoadRejectsFutureSchemaVersion: a file written by a newer tossctl may
+// carry semantics this binary cannot interpret — fail loudly instead of
+// running on misunderstood config.
+func TestLoadRejectsFutureSchemaVersion(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	data := []byte(`{"schema_version": 999, "trading": {}}`)
+	if err := os.WriteFile(configPath, data, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	_, err := NewService(configPath).Load(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "schema_version") {
+		t.Fatalf("expected schema_version rejection, got %v", err)
+	}
+}

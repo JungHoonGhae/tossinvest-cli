@@ -61,8 +61,11 @@
       },
       "required": [
         "place",
+        "sell",
+        "fractional",
         "cancel",
         "amend",
+        "conditional",
         "allow_live_order_actions",
         "dangerous_automation"
       ]
