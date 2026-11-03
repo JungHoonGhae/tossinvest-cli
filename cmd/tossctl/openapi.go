@@ -254,7 +254,7 @@ func buildStatusReport(in statusInputs) statusReport {
 
 	// Effective account (best-effort).
 	if in.accountSeqErr != nil {
-		r.AccountSeqNote = "lookup failed"
+		r.AccountSeqNote = "lookup failed: " + in.accountSeqErr.Error()
 	} else if in.accountSeq != 0 {
 		r.AccountSeq = in.accountSeq
 		if in.accountSeqConfigured {

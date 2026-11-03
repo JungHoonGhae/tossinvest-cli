@@ -149,7 +149,7 @@ func (c *Client) ensureAccountSeq(ctx context.Context) (int, error) {
 		for _, a := range accts {
 			ids = append(ids, a.ID)
 		}
-		return 0, fmt.Errorf("lazy account-seq resolution: %d accounts found (%s) — refusing to guess; set openapi.account_seq explicitly", len(accts), strings.Join(ids, ", "))
+		return 0, fmt.Errorf("%w: %d accounts found (%s) — refusing to guess; set openapi.account_seq explicitly", ErrAccountAmbiguous, len(accts), strings.Join(ids, ", "))
 	}
 	seq, err := strconv.Atoi(accts[0].ID)
 	if err != nil {

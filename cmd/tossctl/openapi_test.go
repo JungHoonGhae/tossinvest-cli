@@ -650,7 +650,7 @@ func TestBuildStatusReportAccountSeq(t *testing.T) {
 
 	in.accountSeq, in.accountSeqErr = 0, errors.New("boom")
 	r = buildStatusReport(in)
-	if r.AccountSeq != 0 || r.AccountSeqNote != "lookup failed" {
+	if r.AccountSeq != 0 || r.AccountSeqNote != "lookup failed: boom" {
 		t.Fatalf("lookup failure must degrade gracefully: %+v", r)
 	}
 }
