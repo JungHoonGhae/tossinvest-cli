@@ -6,6 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
+	"sort"
+	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/atomicfile"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
@@ -110,6 +113,7 @@ type Status struct {
 	SchemaVersion       int          `json:"schema_version"`
 	SourceSchemaVersion int          `json:"source_schema_version,omitempty"`
 	LegacyFields        []string     `json:"legacy_fields,omitempty"`
+	UnknownFields       []string     `json:"unknown_fields,omitempty"`
 	Trading             Trading      `json:"trading"`
 	UpdateCheck         UpdateCheck  `json:"update_check"`
 	OpenAPI             OpenAPI      `json:"openapi"`
@@ -128,6 +132,10 @@ type Service struct {
 type legacyMetadata struct {
 	SourceSchemaVersion int
 	LegacyFields        []string
+	// UnknownFields lists dotted config paths the loader does not recognize
+	// (typos or newer-version keys). They are ignored, so doctor surfaces
+	// them instead of letting the user believe they took effect.
+	UnknownFields []string
 }
 
 type rawTrading struct {
@@ -202,11 +210,65 @@ func (s *Service) Status(context.Context) (Status, error) {
 		SchemaVersion:       cfg.SchemaVersion,
 		SourceSchemaVersion: meta.SourceSchemaVersion,
 		LegacyFields:        meta.LegacyFields,
+		UnknownFields:       meta.UnknownFields,
 		Trading:             cfg.Trading,
 		UpdateCheck:         cfg.UpdateCheck,
 		OpenAPI:             cfg.OpenAPI,
 		Experimental:        cfg.Experimental,
 	}, nil
+}
+
+// unknownConfigKeys lists dotted paths present in the raw file that no loader
+// struct recognizes. The accepted sets derive from the raw structs' json tags
+// via reflection, so they cannot drift from what load() actually reads.
+func unknownConfigKeys(data []byte) []string {
+	var v any
+	if err := json.Unmarshal(data, &v); err != nil {
+		return nil
+	}
+	root, ok := v.(map[string]any)
+	if !ok {
+		return nil
+	}
+	var out []string
+	var walk func(prefix string, obj map[string]any, t reflect.Type)
+	walk = func(prefix string, obj map[string]any, t reflect.Type) {
+		for t.Kind() == reflect.Ptr {
+			t = t.Elem()
+		}
+		known := map[string]reflect.Type{}
+		if t.Kind() == reflect.Struct {
+			for i := range t.NumField() {
+				name, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ",")
+				if name == "" || name == "-" {
+					continue
+				}
+				known[strings.ToLower(name)] = t.Field(i).Type
+			}
+		}
+		for k, val := range obj {
+			path := prefix + k
+			ft, ok := known[strings.ToLower(k)] // encoding/json matches keys case-insensitively
+			if !ok {
+				out = append(out, path)
+				continue
+			}
+			sub, ok := val.(map[string]any)
+			if !ok {
+				continue
+			}
+			st := ft
+			for st.Kind() == reflect.Ptr {
+				st = st.Elem()
+			}
+			if st.Kind() == reflect.Struct {
+				walk(path+".", sub, st)
+			}
+		}
+	}
+	walk("", root, reflect.TypeOf(rawFile{}))
+	sort.Strings(out)
+	return out
 }
 
 func (s *Service) Init(context.Context) (InitResult, error) {
@@ -244,8 +306,11 @@ func (s *Service) load() (File, bool, legacyMetadata, error) {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return File{}, true, legacyMetadata{}, err
 	}
+	if raw.SchemaVersion > SchemaVersion {
+		return File{}, true, legacyMetadata{}, fmt.Errorf("config schema_version %d is newer than this tossctl supports (%d); update tossctl or fix the file", raw.SchemaVersion, SchemaVersion)
+	}
 	cfg := DefaultFile()
-	meta := legacyMetadata{}
+	meta := legacyMetadata{UnknownFields: unknownConfigKeys(data)}
 
 	if raw.Schema != "" {
 		cfg.Schema = raw.Schema

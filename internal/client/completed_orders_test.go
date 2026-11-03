@@ -59,8 +59,8 @@ func TestListCompletedOrdersParsesStructuredFields(t *testing.T) {
 		},
 	})
 
-	from := time.Date(2026, 3, 1, 0, 0, 0, 0, time.Local)
-	to := time.Date(2026, 3, 12, 0, 0, 0, 0, time.Local)
+	from := time.Date(2026, 3, 1, 0, 0, 0, 0, KoreaLocation)
+	to := time.Date(2026, 3, 12, 0, 0, 0, 0, KoreaLocation)
 	orders, err := client.ListCompletedOrdersRange(context.Background(), "us", from, to, 20, 1)
 	if err != nil {
 		t.Fatalf("ListCompletedOrdersRange returned error: %v", err)
@@ -258,7 +258,7 @@ func TestFindCompletedOrderFromLineageHintRecoversDelayedCancelRollover(t *testi
 		Quantity:  1,
 		Price:     500,
 		OrderDate: "2026-03-13",
-		UpdatedAt: time.Date(2026, 3, 13, 10, 0, 3, 0, time.Local),
+		UpdatedAt: time.Date(2026, 3, 13, 10, 0, 3, 0, KoreaLocation),
 	})
 	if err != nil {
 		t.Fatalf("FindCompletedOrderFromLineageHint returned error: %v", err)
@@ -342,7 +342,7 @@ func TestFindCompletedOrderFromLineageHintFailsWhenAmbiguous(t *testing.T) {
 		Quantity:  1,
 		Price:     500,
 		OrderDate: "2026-03-13",
-		UpdatedAt: time.Date(2026, 3, 13, 10, 0, 3, 0, time.Local),
+		UpdatedAt: time.Date(2026, 3, 13, 10, 0, 3, 0, KoreaLocation),
 	})
 	if err == nil {
 		t.Fatal("expected ambiguous recovery error")
@@ -405,7 +405,7 @@ func TestFindCompletedOrderFromLineageHintRecoversUsingVersionTimestampAndNameFa
 		Quantity:  1,
 		Price:     500,
 		OrderDate: "2026-03-13",
-		UpdatedAt: time.Date(2026, 3, 13, 15, 24, 18, 0, time.Local),
+		UpdatedAt: time.Date(2026, 3, 13, 15, 24, 18, 0, KoreaLocation),
 	})
 	if err != nil {
 		t.Fatalf("FindCompletedOrderFromLineageHint returned error: %v", err)
