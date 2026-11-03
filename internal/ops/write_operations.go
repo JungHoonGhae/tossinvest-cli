@@ -26,7 +26,7 @@ func (b OfficialBroker) PlacePendingOrder(ctx context.Context, intent orderinten
 }
 
 func (b OfficialBroker) CancelPendingOrder(ctx context.Context, intent orderintent.CancelIntent) (trading.MutationResult, error) {
-	return b.Client.CancelOrder(ctx, intent.OrderID)
+	return b.Client.CancelOrder(ctx, intent)
 }
 
 func (b OfficialBroker) AmendPendingOrder(ctx context.Context, intent orderintent.AmendIntent) (trading.MutationResult, error) {
@@ -108,9 +108,9 @@ func writeOperations() []Operation {
 				{Name: "quantity", Type: "number", Desc: "share count (required unless fractional buy)"},
 				{Name: "price", Type: "number", Desc: "limit price (required for limit orders)"},
 				{Name: "amount", Type: "number", Desc: "order amount for fractional US buy"},
-				{Name: "currency_mode", Type: "string", Desc: `"KRW" (default) or "USD" for US price input`},
+				{Name: "currency_mode", Type: "string", Desc: `"KRW" (default) or "USD". US fractional-buy amounts and US limit prices are USD-denominated on this official-only path: non-USD values are rejected, convert via WTS/CLI first`},
 				{Name: "fractional", Type: "boolean", Desc: "US fractional market order"},
-				{Name: "time_in_force", Type: "string", Desc: `"DAY" (default) | "CLS" (US limit-on-close) | "OPG" (KR opening single-price; limit or market). Rejected on other combinations and on fractional orders.`},
+				{Name: "time_in_force", Type: "string", Desc: `"DAY" (default) | "CLS" (US limit-on-close) | "OPG" (KR opening single-price, limit only — market orders are rejected). Rejected on other combinations and on fractional orders.`},
 			}, executeParams...),
 			handler: placeHandler,
 		},
@@ -133,7 +133,7 @@ func writeOperations() []Operation {
 			Params: append([]Param{
 				{Name: "order_id", Type: "string", Required: true},
 				{Name: "quantity", Type: "number", Desc: "new quantity (optional)"},
-				{Name: "price", Type: "number", Desc: "new limit price (optional; omit for market)"},
+				{Name: "price", Type: "number", Desc: "new limit price (required: omitting it is rejected — the official API would convert the order to MARKET)"},
 			}, executeParams...),
 			handler: modifyHandler,
 		},

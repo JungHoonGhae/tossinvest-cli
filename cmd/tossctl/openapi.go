@@ -356,13 +356,16 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 			if loginKey == "" || loginSecret == "" {
 				return fmt.Errorf("--key and --secret are both required; or run `tossctl init` wizard")
 			}
-			credFile, _, err := resolveOpenAPIPaths(opts)
+			credFile, tokenFile, err := resolveOpenAPIPaths(opts)
 			if err != nil {
 				return err
 			}
 			if err := saveOpenAPICredentials(credFile, loginKey, loginSecret); err != nil {
 				return err
 			}
+			// New credentials must never inherit the previous key's token:
+			// drop the cache (best-effort) so the next call exchanges fresh.
+			_ = os.Remove(tokenFile)
 			masked := official.Credentials{APIKey: loginKey}.MaskedKey()
 			_, err = fmt.Fprintf(cmd.OutOrStdout(), "saved: %s\nfile: %s\n", masked, credFile)
 			return err
