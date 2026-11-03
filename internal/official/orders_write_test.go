@@ -616,3 +616,28 @@ func TestBuildOrderCreateRejectsNonUSDCurrency(t *testing.T) {
 		})
 	}
 }
+
+// clientOrderId goes on the wire only when the caller supplied one.
+func TestBuildOrderCreateClientOrderIDOptIn(t *testing.T) {
+	base := orderintent.PlaceIntent{Symbol: "AAPL", Market: "us", Side: "buy", OrderType: "limit", Quantity: 1, Price: 100, CurrencyMode: "USD"}
+	frac := orderintent.PlaceIntent{Symbol: "AAPL", Market: "us", Side: "buy", OrderType: "market", Fractional: true, Amount: 10, CurrencyMode: "USD"}
+	for _, intent := range []orderintent.PlaceIntent{base, frac} {
+		body, err := buildOrderCreate(intent)
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, _ := json.Marshal(body)
+		if strings.Contains(string(raw), "clientOrderId") {
+			t.Fatalf("no key given, wire must omit clientOrderId: %s", raw)
+		}
+		intent.ClientOrderID = "retry-001"
+		body, err = buildOrderCreate(intent)
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, _ = json.Marshal(body)
+		if !strings.Contains(string(raw), `"clientOrderId":"retry-001"`) {
+			t.Fatalf("wire must send the caller's key: %s", raw)
+		}
+	}
+}
