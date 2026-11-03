@@ -95,6 +95,13 @@ type exchangeQuoteForBuyEnvelope struct {
 }
 
 func (c *Client) PlacePendingOrder(ctx context.Context, intent orderintent.PlaceIntent) (tradingflow.MutationResult, error) {
+	// The WTS web order API has no time-in-force field: buildPlaceBody always
+	// submits a plain limit/market order. Sending CLS/OPG through would
+	// silently execute a DAY order, so refuse before any network I/O.
+	// Official-API credentials route these via the hybrid broker instead.
+	if err := rejectNonDayTimeInForce(intent); err != nil {
+		return tradingflow.MutationResult{}, err
+	}
 	startedAt := time.Now()
 	if err := c.ensureTradingMetadata(ctx); err != nil {
 		return tradingflow.MutationResult{}, err
@@ -193,6 +200,17 @@ func (c *Client) PlacePendingOrder(ctx context.Context, intent orderintent.Place
 		res.Warnings = append(res.Warnings, snapshotWarn)
 	}
 	return res, nil
+}
+
+// rejectNonDayTimeInForce refuses CLS/OPG before any network I/O. The WTS web
+// order API has no time-in-force field — buildPlaceBody always submits a plain
+// limit/market order — so letting these through would silently execute a DAY
+// order. Official-API credentials route these via the hybrid broker instead.
+func rejectNonDayTimeInForce(intent orderintent.PlaceIntent) error {
+	if tif := strings.ToUpper(strings.TrimSpace(intent.TimeInForce)); tif != "" && tif != "DAY" {
+		return fmt.Errorf("WTS path drops time-in-force %q (plain DAY order would execute): %w — place CLS/OPG through the official API", intent.TimeInForce, tradingflow.ErrPlaceUnsupported)
+	}
+	return nil
 }
 
 func (c *Client) GetOrderAvailableActions(ctx context.Context, orderID string) (map[string]any, error) {
