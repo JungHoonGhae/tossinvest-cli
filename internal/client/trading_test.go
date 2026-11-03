@@ -43,6 +43,11 @@ func TestCancelPendingOrder(t *testing.T) {
 			_, _ = w.Write([]byte(`{"result":[]}`))
 			return
 		}
+		// Symbol verification resolves the intent symbol before cancelling.
+		if r.URL.Path == "/api/v2/search/stocks" {
+			_, _ = w.Write([]byte(`{"result":{"stocks":[{"stockCode":"US20220809012","stockName":"TSLL"}]}}`))
+			return
+		}
 		// The pre-submit snapshot must not see the as-yet-uncancelled order
 		// and must not pollute the recorded request sequence below.
 		if r.URL.Path == "/api/v2/trading/my-orders/markets/us/by-date/completed" && !cancelCalled {
@@ -247,6 +252,8 @@ func TestCancelPendingOrderReturnsCompletedHistoryRollover(t *testing.T) {
 				return
 			}
 			_, _ = io.WriteString(w, `{"result":{"body":[{"orderedAt":"`+now+`","lastExecutedAt":"`+now+`","orderNo":15,"orderId":"completed-cancel-order-id","stockCode":"US20220809012","stockName":"TSLL","symbol":"TSLL","tradeType":"buy","status":"취소","orderQuantity":1,"executedQuantity":0,"userOrderDate":"`+today+`","orderPrice":{"krw":700},"averageExecutionPrice":{"krw":0}}]}}`)
+		case "/api/v2/search/stocks":
+			_, _ = w.Write([]byte(`{"result":{"stocks":[{"stockCode":"US20220809012","stockName":"TSLL"}]}}`))
 		default:
 			t.Fatalf("unexpected request path: %s", r.URL.Path)
 		}
@@ -309,6 +316,8 @@ func TestCancelPendingOrderDoesNotConfirmDisappearance(t *testing.T) {
 		case "/api/v2/trading/my-orders/markets/us/by-date/completed":
 			completedCalls++
 			_, _ = io.WriteString(w, `{"result":{"body":[]}}`)
+		case "/api/v2/search/stocks":
+			_, _ = w.Write([]byte(`{"result":{"stocks":[{"stockCode":"US20220809012","stockName":"TSLL"}]}}`))
 		default:
 			t.Errorf("unexpected request: %s", r.URL.Path)
 			w.WriteHeader(http.StatusNotFound)
@@ -386,6 +395,8 @@ func TestCancelPendingOrderReturnsInteractiveAuthRequired(t *testing.T) {
 			_, _ = w.Write([]byte(`{"result":{"delayCancelExchange":false,"orderKey":"trade::session::test::cancel","authRequired":{"required":false,"simpleTrade":true,"verifier":null}}}`))
 		case "/api/v3/wts/trading/order/cancel/2026-03-11/14":
 			_, _ = w.Write([]byte(`{"result":{"uuid":"challenge","modulus":"abc","exponent":"10001","keyboard":"<svg/>"}}`))
+		case "/api/v2/search/stocks":
+			_, _ = w.Write([]byte(`{"result":{"stocks":[{"stockCode":"US20220809012","stockName":"TSLL"}]}}`))
 		default:
 			_, _ = w.Write([]byte(`{}`))
 		}
@@ -1487,6 +1498,129 @@ func TestClassifyPlaceCreateFailurePassesThroughNonStatusError(t *testing.T) {
 	}
 }
 
+// TestCancelPendingOrderRejectsAmbiguousOrderNo guards issue #6: a bare order
+// number matching pending orders on different dates must refuse instead of
+// cancelling the first match.
+func TestCancelPendingOrderRejectsAmbiguousOrderNo(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/trading/orders/histories/all/pending" {
+			t.Errorf("no request beyond the pending list is expected, got %s", r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		_, _ = io.WriteString(w, `{"result":[`+
+			`{"stockCode":"US20220809012","orderedDate":"2026-03-10","orderNo":14,"tradeType":"buy","orderPrice":700,"orderUsdPrice":0.4753,"quantity":1,"pendingQuantity":1,"orderPriceTypeCode":"00","status":"체결대기"},`+
+			`{"stockCode":"US20220809012","orderedDate":"2026-03-11","orderNo":14,"tradeType":"buy","orderPrice":700,"orderUsdPrice":0.4753,"quantity":1,"pendingQuantity":1,"orderPriceTypeCode":"00","status":"체결대기"}]}`)
+	}))
+	t.Cleanup(server.Close)
+	c := New(Config{
+		HTTPClient: server.Client(), APIBaseURL: server.URL, InfoBaseURL: server.URL, CertBaseURL: server.URL,
+		Session: &session.Session{
+			Cookies: map[string]string{"SESSION": "test-session"},
+			Headers: map[string]string{"App-Version": "test-build"},
+			Storage: map[string]string{"localStorage:qr-tabId": "test-tab"},
+		},
+	})
+	_, err := c.CancelPendingOrder(context.Background(), orderintent.CancelIntent{OrderID: "14", Symbol: "TSLL"})
+	if err == nil || !strings.Contains(err.Error(), "ambiguous") {
+		t.Fatalf("expected ambiguity refusal, got %v", err)
+	}
+	if !strings.Contains(err.Error(), "2026-03-10") || !strings.Contains(err.Error(), "2026-03-11") {
+		t.Fatalf("ambiguity error must name both matches, got %v", err)
+	}
+}
+
+// TestVerifyCancelSymbol checks the WTS cancel guard without network for KR
+// (numeric symbols normalize locally) and proves mismatch/unresolvable fail.
+func TestVerifyCancelSymbol(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		if strings.Contains(string(body), "TSLL") {
+			_, _ = w.Write([]byte(`{"result":{"stocks":[{"stockCode":"US20220809012","stockName":"TSLL"}]}}`))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	t.Cleanup(srv.Close)
+	c := New(Config{HTTPClient: srv.Client(), APIBaseURL: srv.URL, InfoBaseURL: srv.URL, CertBaseURL: srv.URL})
+	kr := pendingOrderDetails{StockCode: "A005930"}
+	if err := c.verifyCancelSymbol(context.Background(), orderintent.CancelIntent{OrderID: "1", Symbol: "005930"}, kr); err != nil {
+		t.Fatalf("KR numeric symbol must match A-prefixed product code: %v", err)
+	}
+	if err := c.verifyCancelSymbol(context.Background(), orderintent.CancelIntent{OrderID: "1", Symbol: "TSLL"}, kr); err == nil {
+		t.Fatal("expected mismatch refusal for another symbol, got nil")
+	}
+	if err := c.verifyCancelSymbol(context.Background(), orderintent.CancelIntent{OrderID: "1", Symbol: "NOPE"}, kr); err == nil {
+		t.Fatal("expected refusal for unresolvable symbol, got nil")
+	}
+}
+
+// TestBuildAmendBodyKRSendsKRWAsIs guards issue #5: KR amends must not divide
+// by the dollar rate (70000 KRW went out as ~50 USD).
+func TestBuildAmendBodyKRSendsKRWAsIs(t *testing.T) {
+	order := pendingOrderDetails{
+		OrderNo:            "21",
+		OrderedDate:        "2026-03-11",
+		StockCode:          "A005930",
+		TradeType:          "buy",
+		OrderPrice:         70000,
+		OrderUSDPrice:      0,
+		Quantity:           10,
+		PendingQuantity:    10,
+		OrderPriceTypeCode: "00",
+	}
+	price := 71000.0
+	body, expectedKRW, expectedQty, err := buildAmendBody(order, "KSP", 0, nil, &price, false)
+	if err != nil {
+		t.Fatalf("buildAmendBody returned error: %v", err)
+	}
+	if expectedKRW != 71000 || expectedQty != 10 {
+		t.Fatalf("expected (71000, 10), got (%v, %v)", expectedKRW, expectedQty)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["price"] != 71000.0 {
+		t.Fatalf("KR amend price must be KRW as-is, got %v", payload["price"])
+	}
+	if payload["market"] != "KSP" {
+		t.Fatalf("market must pass through, got %v", payload["market"])
+	}
+}
+
+// TestBuildAmendBodyDefaultsToPendingQuantity: on a partially filled order a
+// price-only amend must not re-request the filled shares.
+func TestBuildAmendBodyDefaultsToPendingQuantity(t *testing.T) {
+	order := pendingOrderDetails{
+		OrderNo:            "22",
+		OrderedDate:        "2026-03-11",
+		StockCode:          "US20220809012",
+		TradeType:          "buy",
+		OrderPrice:         700,
+		OrderUSDPrice:      0.4753,
+		Quantity:           10,
+		PendingQuantity:    7,
+		OrderPriceTypeCode: "00",
+	}
+	price := 700.0
+	body, _, expectedQty, err := buildAmendBody(order, "NSQ", 1472.8, nil, &price, true)
+	if err != nil {
+		t.Fatalf("buildAmendBody returned error: %v", err)
+	}
+	if expectedQty != 7 {
+		t.Fatalf("expected pending quantity 7, got %v", expectedQty)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["quantity"] != 7.0 {
+		t.Fatalf("wire quantity must be 7, got %v", payload["quantity"])
+	}
+}
+
 // TestRoundUSDPriceTickPrecision guards issue #4: venue ticks are 4dp below
 // $1 and 2dp at or above. The old round2 sent 0.48 for a captured 0.4753
 // order (>1% off).
@@ -1540,6 +1674,39 @@ func TestPlacePendingOrderRejectsTIFBeforeIO(t *testing.T) {
 		OrderType: "limit", Quantity: 1, Price: 100, CurrencyMode: "USD", TimeInForce: "CLS"}
 	_, err := c.PlacePendingOrder(context.Background(), intent)
 	if !errors.Is(err, tradingflow.ErrPlaceUnsupported) {
+		t.Fatalf("expected ErrPlaceUnsupported without I/O, got %v", err)
+	}
+}
+
+// A quantity-only amend on a US order must keep the order's own USD price,
+// not re-derive it from the KRW figure at the current rate.
+func TestBuildAmendBodyUSPricelessKeepsOrderUSDPrice(t *testing.T) {
+	order := pendingOrderDetails{
+		OrderNo: "23", OrderedDate: "2026-03-11", StockCode: "US20220809012",
+		TradeType: "buy", OrderPrice: 700, OrderUSDPrice: 0.4753,
+		Quantity: 10, PendingQuantity: 10, OrderPriceTypeCode: "00",
+	}
+	qty := 5.0
+	body, _, _, err := buildAmendBody(order, "NSQ", 1300, &qty, nil, true)
+	if err != nil {
+		t.Fatalf("buildAmendBody returned error: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["price"] != 0.4753 {
+		t.Fatalf("priceless US amend must keep 0.4753, got %v", payload["price"])
+	}
+}
+
+// WTS has no idempotency field: a keyed order must be refused before any I/O
+// rather than placed without the dedup the caller relies on.
+func TestPlacePendingOrderRejectsClientOrderIDBeforeIO(t *testing.T) {
+	c := &Client{}
+	intent := orderintent.PlaceIntent{Symbol: "AAPL", Market: "us", Side: "buy",
+		OrderType: "limit", Quantity: 1, Price: 100, CurrencyMode: "USD", ClientOrderID: "retry-001"}
+	if _, err := c.PlacePendingOrder(context.Background(), intent); !errors.Is(err, tradingflow.ErrPlaceUnsupported) {
 		t.Fatalf("expected ErrPlaceUnsupported without I/O, got %v", err)
 	}
 }

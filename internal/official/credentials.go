@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"path/filepath"
+
+	"github.com/JungHoonGhae/tossinvest-cli/internal/atomicfile"
 )
 
 // Credentials holds Toss Open API credentials.
@@ -49,17 +50,14 @@ func LoadCredentials(getenv func(string) string, file string) (*Credentials, err
 }
 
 // SaveCredentials writes c to file as JSON with 0600 permissions.
-// The parent directory is created with 0700 permissions if it does not exist.
+// The write is atomic (temp file + rename) and the parent directory is
+// created/kept at 0700, so an interrupted write cannot truncate the secret.
 func SaveCredentials(file string, c Credentials) error {
-	dir := filepath.Dir(file)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return err
-	}
 	data, err := json.Marshal(c)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(file, data, 0o600)
+	return atomicfile.WriteFile(file, data, 0o600)
 }
 
 // DeleteCredentials removes the credentials file.

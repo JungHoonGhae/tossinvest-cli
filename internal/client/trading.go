@@ -212,6 +212,11 @@ func rejectNonDayTimeInForce(intent orderintent.PlaceIntent) error {
 	if tif := strings.ToUpper(strings.TrimSpace(intent.TimeInForce)); tif != "" && tif != "DAY" {
 		return fmt.Errorf("WTS path drops time-in-force %q (plain DAY order would execute): %w — place CLS/OPG through the official API", intent.TimeInForce, tradingflow.ErrPlaceUnsupported)
 	}
+	// Same shape for the idempotency key: WTS has no such field, so a retry
+	// the caller believes is deduplicated would place a second order.
+	if intent.ClientOrderID != "" {
+		return fmt.Errorf("WTS path has no client order id (a retry would not be deduplicated): %w — use the official API for idempotent orders", tradingflow.ErrPlaceUnsupported)
+	}
 	return nil
 }
 
@@ -493,6 +498,21 @@ func containsAny(haystack string, needles ...string) bool {
 	return false
 }
 
+// verifyCancelSymbol checks the user-asserted symbol against the looked-up
+// order before mutating it. The intent symbol is required, so a mismatch is a
+// hard refusal; a resolution failure is too (fail-closed — a typo'd symbol
+// must not cancel an unchecked order).
+func (c *Client) verifyCancelSymbol(ctx context.Context, intent orderintent.CancelIntent, order pendingOrderDetails) error {
+	code, err := c.resolveProductCode(ctx, intent.Symbol)
+	if err != nil {
+		return fmt.Errorf("refusing to cancel order %q: cannot resolve symbol %q (%v)", intent.OrderID, intent.Symbol, err)
+	}
+	if code != order.StockCode {
+		return fmt.Errorf("refusing to cancel order %q: it belongs to product %q, not symbol %q", intent.OrderID, order.StockCode, intent.Symbol)
+	}
+	return nil
+}
+
 func (c *Client) CancelPendingOrder(ctx context.Context, intent orderintent.CancelIntent) (tradingflow.MutationResult, error) {
 	startedAt := time.Now()
 	if err := c.ensureTradingMetadata(ctx); err != nil {
@@ -500,6 +520,9 @@ func (c *Client) CancelPendingOrder(ctx context.Context, intent orderintent.Canc
 	}
 	order, err := c.lookupPendingOrder(ctx, intent.OrderID)
 	if err != nil {
+		return tradingflow.MutationResult{}, err
+	}
+	if err := c.verifyCancelSymbol(ctx, intent, order); err != nil {
 		return tradingflow.MutationResult{}, err
 	}
 
@@ -570,9 +593,14 @@ func (c *Client) AmendPendingOrder(ctx context.Context, intent orderintent.Amend
 		return tradingflow.MutationResult{}, err
 	}
 
-	rate, err := c.getUSDBaseExchangeRate(ctx)
-	if err != nil {
-		return tradingflow.MutationResult{}, err
+	// KR amends are KRW-denominated: no dollar rate is fetched (or billed as
+	// a failure mode) for them.
+	var rate float64
+	if orderintent.InferMarketFromStockCode(order.StockCode) != "kr" {
+		rate, err = c.getUSDBaseExchangeRate(ctx)
+		if err != nil {
+			return tradingflow.MutationResult{}, err
+		}
 	}
 
 	excludeIDs, snapshotWarn := snapshotOrderIDs(ctx, c, orderintent.InferMarketFromStockCode(order.StockCode))
@@ -741,14 +769,40 @@ func (c *Client) lookupPendingOrder(ctx context.Context, orderID string) (pendin
 		return pendingOrderDetails{}, err
 	}
 
+	var matched []pendingOrderDetails
+	var labels []string
 	for _, order := range orders {
 		if order.ID != orderID && !orderMatchesID(order.Raw, orderID) {
 			continue
 		}
-		return decodePendingOrderDetails(order.Raw)
+		decoded, err := decodePendingOrderDetails(order.Raw)
+		if err != nil {
+			return pendingOrderDetails{}, err
+		}
+		matched = append(matched, decoded)
+		labels = append(labels, pendingOrderLabel(decoded))
 	}
+	if len(matched) == 0 {
+		return pendingOrderDetails{}, fmt.Errorf("pending order %s was not found", orderID)
+	}
+	// A bare order number can repeat across dates: cancelling the first match
+	// could hit another day's order, so refuse instead of guessing.
+	if len(matched) > 1 {
+		return pendingOrderDetails{}, fmt.Errorf("ambiguous order id %q matches %d pending orders (%s) — use the full date/order identifier", orderID, len(matched), strings.Join(labels, ", "))
+	}
+	return matched[0], nil
+}
 
-	return pendingOrderDetails{}, fmt.Errorf("pending order %s was not found", orderID)
+// pendingOrderLabel renders a match for ambiguity errors: the date/orderNo
+// composite the user must pass to disambiguate, when present.
+func pendingOrderLabel(order pendingOrderDetails) string {
+	if strings.TrimSpace(order.OrderedDate) != "" && strings.TrimSpace(order.OrderNo) != "" {
+		return order.OrderedDate + "/" + order.OrderNo
+	}
+	if strings.TrimSpace(order.OrderID) != "" {
+		return order.OrderID
+	}
+	return order.StockCode
 }
 
 func orderMatchesID(raw json.RawMessage, orderID string) bool {
@@ -819,16 +873,34 @@ func decodePendingOrderDetails(raw json.RawMessage) (pendingOrderDetails, error)
 }
 
 func buildAmendBody(order pendingOrderDetails, marketCode string, usdRate float64, quantity *float64, priceKRW *float64, withOrderKey bool) ([]byte, float64, float64, error) {
-	targetQty := order.Quantity
+	// Amend applies to the surviving quantity: default to what is still
+	// pending (the cancel path uses PendingQuantity for the same reason).
+	// Falling back to the total only when pending is unset keeps a data
+	// quirk from producing a zero-quantity amend.
+	targetQty := order.PendingQuantity
+	if targetQty <= 0 {
+		targetQty = order.Quantity
+	}
 	if quantity != nil {
 		targetQty = *quantity
 	}
 
 	targetPriceKRW := order.OrderPrice
-	targetPriceUSD := order.OrderUSDPrice
 	if priceKRW != nil {
 		targetPriceKRW = *priceKRW
-		targetPriceUSD = roundUSDPrice(targetPriceKRW / usdRate)
+	}
+	// KR orders are KRW-denominated on the wire (same as buildPlaceBody): no
+	// FX conversion. US orders send USD: a new KRW price divides by the
+	// current rate; a priceless (quantity-only) amend keeps the order's own
+	// USD price instead of re-deriving it from KRW at today's rate.
+	var priceValue float64
+	switch {
+	case orderintent.InferMarketFromStockCode(order.StockCode) == "kr":
+		priceValue = targetPriceKRW
+	case priceKRW == nil:
+		priceValue = order.OrderUSDPrice
+	default:
+		priceValue = roundUSDPrice(targetPriceKRW / usdRate)
 	}
 
 	payload := map[string]any{
@@ -836,7 +908,7 @@ func buildAmendBody(order pendingOrderDetails, marketCode string, usdRate float6
 		"market":                 marketCode,
 		"currencyMode":           "KRW",
 		"tradeType":              order.TradeType,
-		"price":                  targetPriceUSD,
+		"price":                  priceValue,
 		"quantity":               targetQty,
 		"orderAmount":            0,
 		"orderPriceType":         order.OrderPriceTypeCode,
