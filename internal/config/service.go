@@ -85,6 +85,9 @@ type OpenAPI struct {
 	Enabled  bool               `json:"enabled"`
 	Prefer   routing.Preference `json:"prefer"`
 	Fallback bool               `json:"fallback"`
+	// AccountSeq pins the X-Tossinvest-Account sequence. 0 (default) means
+	// unset: a single account resolves automatically, several are refused.
+	AccountSeq int `json:"account_seq,omitempty"`
 }
 
 type Experimental struct {
@@ -152,9 +155,10 @@ type rawUpdateCheck struct {
 }
 
 type rawOpenAPI struct {
-	Enabled  *bool           `json:"enabled"`
-	Prefer   json.RawMessage `json:"prefer"`
-	Fallback *bool           `json:"fallback"`
+	Enabled    *bool           `json:"enabled"`
+	Prefer     json.RawMessage `json:"prefer"`
+	Fallback   *bool           `json:"fallback"`
+	AccountSeq *int            `json:"account_seq"`
 }
 
 type rawFile struct {
@@ -312,6 +316,12 @@ func (s *Service) load() (File, bool, legacyMetadata, error) {
 		}
 		if raw.OpenAPI.Fallback != nil {
 			cfg.OpenAPI.Fallback = *raw.OpenAPI.Fallback
+		}
+		if raw.OpenAPI.AccountSeq != nil {
+			if *raw.OpenAPI.AccountSeq < 0 {
+				return File{}, true, meta, fmt.Errorf("invalid openapi.account_seq value %d: must be 0 (unset) or positive", *raw.OpenAPI.AccountSeq)
+			}
+			cfg.OpenAPI.AccountSeq = *raw.OpenAPI.AccountSeq
 		}
 		if raw.OpenAPI.Prefer != nil {
 			var value *string
