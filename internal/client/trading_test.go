@@ -1437,6 +1437,7 @@ func TestClassifyPlaceCreateFailurePassesThroughNonStatusError(t *testing.T) {
 		t.Fatalf("expected passthrough, got %v", got)
 	}
 }
+
 // TestCancelPendingOrderRejectsAmbiguousOrderNo guards issue #6: a bare order
 // number matching pending orders on different dates must refuse instead of
 // cancelling the first match.
