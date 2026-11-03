@@ -84,6 +84,22 @@ type orderModifyRequest struct {
 //
 // side is uppercased from intent (intent.Side is lowercase "buy"/"sell").
 // All numeric values are formatted as shortest decimal strings.
+func isUSD(mode string) bool {
+	return strings.EqualFold(strings.TrimSpace(mode), "USD")
+}
+
+// requireUSDSettlement refuses to send a USD-denominated official field for a
+// non-USD intent. The official API prices US fractional-buy amounts and US
+// limit prices in dollars and converts nothing: a KRW number sent here would
+// execute ~1400x off intent with no server-side correction. Callers holding
+// KRW must convert via WTS instead (hybrid routes them there).
+func requireUSDSettlement(intent orderintent.PlaceIntent, what string) error {
+	if !isUSD(intent.CurrencyMode) {
+		return fmt.Errorf("official API prices %s in USD, got currency_mode %q — pass the price in USD or route via WTS", what, intent.CurrencyMode)
+	}
+	return nil
+}
+
 func buildOrderCreate(intent orderintent.PlaceIntent) (any, error) {
 	side := strings.ToUpper(intent.Side)
 
@@ -91,6 +107,9 @@ func buildOrderCreate(intent orderintent.PlaceIntent) (any, error) {
 		// variant1: amount-based (US MARKET fractional buy)
 		if intent.Amount <= 0 {
 			return nil, fmt.Errorf("fractional buy requires a positive amount, got %v", intent.Amount)
+		}
+		if err := requireUSDSettlement(intent, "US fractional-buy amounts"); err != nil {
+			return nil, err
 		}
 		return orderCreateV1{
 			Symbol:                intent.Symbol,
@@ -100,7 +119,6 @@ func buildOrderCreate(intent orderintent.PlaceIntent) (any, error) {
 			ConfirmHighValueOrder: false,
 		}, nil
 	}
-
 	// variant0: quantity-based
 	v0 := orderCreateV0{
 		Symbol:                intent.Symbol,
@@ -129,6 +147,11 @@ func buildOrderCreate(intent orderintent.PlaceIntent) (any, error) {
 	if orderType == "LIMIT" {
 		if intent.Price <= 0 {
 			return nil, fmt.Errorf("limit order requires a positive price, got %v", intent.Price)
+		}
+		if intent.Market == "us" {
+			if err := requireUSDSettlement(intent, "US limit prices"); err != nil {
+				return nil, err
+			}
 		}
 		v0.Price = formatDecimal(intent.Price)
 		v0.TimeInForce = "DAY"
