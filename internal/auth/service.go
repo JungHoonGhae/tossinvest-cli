@@ -230,6 +230,19 @@ func NewService(store session.Store, sessionFile string, opts Options) *Service 
 	}
 }
 
+// refreshAndSave reloads the session and applies update before persisting, so
+// a concurrent login/logout between our read and our write neither clobbers
+// fresh cookies nor resurrects a cleared session. A missing session (e.g. a
+// concurrent logout) is an error here: callers must not recreate it.
+func (s *Service) refreshAndSave(ctx context.Context, update func(*session.Session)) error {
+	fresh, err := s.store.Load(ctx)
+	if err != nil {
+		return err
+	}
+	update(fresh)
+	return s.store.Save(ctx, fresh)
+}
+
 func (s *Service) Login(ctx context.Context) (*session.Session, error) {
 	return s.LoginWith(ctx, s.loginConfig)
 }
@@ -306,8 +319,12 @@ func (s *Service) Status(ctx context.Context) (Status, error) {
 
 		if expiredAt, err := s.validator.GetServerExpiredAt(ctx); err == nil {
 			status.ServerExpiresAt = &expiredAt
-			sess.ServerExpiresAt = &expiredAt
-			_ = s.store.Save(ctx, sess) // best-effort persist; non-fatal on save error
+			// Best-effort persist; non-fatal on save error. The merge keeps
+			// cookies saved by a concurrent login and skips entirely when a
+			// concurrent logout cleared the file.
+			_ = s.refreshAndSave(ctx, func(fresh *session.Session) {
+				fresh.ServerExpiresAt = &expiredAt
+			})
 		}
 	}
 

@@ -1699,3 +1699,14 @@ func TestBuildAmendBodyUSPricelessKeepsOrderUSDPrice(t *testing.T) {
 		t.Fatalf("priceless US amend must keep 0.4753, got %v", payload["price"])
 	}
 }
+
+// WTS has no idempotency field: a keyed order must be refused before any I/O
+// rather than placed without the dedup the caller relies on.
+func TestPlacePendingOrderRejectsClientOrderIDBeforeIO(t *testing.T) {
+	c := &Client{}
+	intent := orderintent.PlaceIntent{Symbol: "AAPL", Market: "us", Side: "buy",
+		OrderType: "limit", Quantity: 1, Price: 100, CurrencyMode: "USD", ClientOrderID: "retry-001"}
+	if _, err := c.PlacePendingOrder(context.Background(), intent); !errors.Is(err, tradingflow.ErrPlaceUnsupported) {
+		t.Fatalf("expected ErrPlaceUnsupported without I/O, got %v", err)
+	}
+}

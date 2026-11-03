@@ -235,6 +235,69 @@ func TestStatusRefreshesServerExpiresAt(t *testing.T) {
 	}
 }
 
+// TestRefreshAndSaveMergesOntoFreshSession guards issue #17: a concurrent
+// login between our read and our write must not be clobbered — only the
+// caller's field is layered onto the newest stored session.
+func TestRefreshAndSaveMergesOntoFreshSession(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "session.json")
+	store := session.NewFileStore(path)
+	if err := store.Save(ctx, &session.Session{Cookies: map[string]string{"SESSION": "old"}}); err != nil {
+		t.Fatal(err)
+	}
+	svc := NewService(store, path, Options{})
+
+	// Concurrent login replaces the cookies after our read...
+	if err := store.Save(ctx, &session.Session{Cookies: map[string]string{"SESSION": "new"}}); err != nil {
+		t.Fatal(err)
+	}
+	expiry := mustTime(t, "2026-05-13T07:03:20+09:00")
+	if err := svc.refreshAndSave(ctx, func(fresh *session.Session) {
+		fresh.ServerExpiresAt = &expiry
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	stored, err := store.Load(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stored.Cookies["SESSION"] != "new" {
+		t.Fatalf("concurrent login cookies must survive, got %+v", stored)
+	}
+	if stored.ServerExpiresAt == nil || !stored.ServerExpiresAt.Equal(expiry) {
+		t.Fatalf("update must land on the fresh session, got %+v", stored)
+	}
+}
+
+// TestRefreshAndSaveDoesNotResurrectAfterClear guards issue #17: extending or
+// refreshing right after a concurrent logout must fail instead of recreating
+// a live-looking session file.
+func TestRefreshAndSaveDoesNotResurrectAfterClear(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "session.json")
+	store := session.NewFileStore(path)
+	if err := store.Save(ctx, &session.Session{Cookies: map[string]string{"SESSION": "s"}}); err != nil {
+		t.Fatal(err)
+	}
+	svc := NewService(store, path, Options{})
+
+	if err := store.Clear(ctx); err != nil {
+		t.Fatal(err)
+	}
+	expiry := mustTime(t, "2026-05-13T07:03:20+09:00")
+	if err := svc.refreshAndSave(ctx, func(fresh *session.Session) {
+		fresh.ServerExpiresAt = &expiry
+	}); !errors.Is(err, session.ErrNoSession) {
+		t.Fatalf("must refuse on missing session, got %v", err)
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatal("cleared session file must stay gone")
+	}
+}
+
 func TestDefaultLoginConfigHonorsExplicitPythonOverride(t *testing.T) {
 	t.Setenv("TOSSCTL_AUTH_HELPER_PYTHON", "/custom/path/to/python")
 	t.Setenv("UV_TOOL_DIR", "")

@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/JungHoonGhae/tossinvest-cli/internal/atomicfile"
 )
 
 type Entry struct {
@@ -178,18 +179,10 @@ func (s *Service) load() (File, error) {
 }
 
 func (s *Service) save(state File) error {
-	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
-		return err
-	}
-
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	tmpPath := s.path + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(tmpPath, s.path)
+	return atomicfile.WriteFile(s.path, data, 0o600)
 }
