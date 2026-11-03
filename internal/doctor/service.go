@@ -179,6 +179,7 @@ func redactReport(r *Report) {
 	if err != nil || home == "" {
 		return
 	}
+	home = filepath.Clean(home) // "$HOME/" would otherwise never match home+"/"
 	data, err := json.Marshal(r)
 	if err != nil {
 		return
@@ -361,6 +362,10 @@ func checkPythonBinary(pythonBin string) Check {
 const externalCheckTimeout = 60 * time.Second
 
 func checkPythonModule(ctx context.Context, cfg auth.LoginConfig, module, successSummary, failSummary string) Check {
+	if cfg.HelperDir == "" {
+		// An empty cmd.Dir means CWD, where a planted module would be imported.
+		return Check{Name: module, Status: CheckWarn, Summary: failSummary, Detail: i18n.T("doctor.check.authHelperNotFound")}
+	}
 	path, err := exec.LookPath(cfg.PythonBin)
 	if err != nil {
 		return Check{
@@ -375,13 +380,14 @@ func checkPythonModule(ctx context.Context, cfg auth.LoginConfig, module, succes
 	defer cancel()
 	cmd := exec.CommandContext(ctx, path, "-c", "import "+module)
 	cmd.Dir = cfg.HelperDir
+	cmd.WaitDelay = 5 * time.Second // a grandchild holding the pipe must not outlive the timeout
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return Check{
 			Name:    module,
 			Status:  CheckWarn,
 			Summary: failSummary,
-			Detail:  firstLine(strings.TrimSpace(string(output))),
+			Detail:  lastLine(string(output)),
 		}
 	}
 
@@ -393,6 +399,9 @@ func checkPythonModule(ctx context.Context, cfg auth.LoginConfig, module, succes
 }
 
 func checkChrome(ctx context.Context, cfg auth.LoginConfig) Check {
+	if cfg.HelperDir == "" {
+		return Check{Name: "chrome", Status: CheckWarn, Summary: i18n.T("doctor.check.chromeUnavailable"), Detail: i18n.T("doctor.check.authHelperNotFound")}
+	}
 	path, err := exec.LookPath(cfg.PythonBin)
 	if err != nil {
 		return Check{
@@ -420,6 +429,7 @@ finally:
 	defer cancel()
 	cmd := exec.CommandContext(ctx, path, "-c", script)
 	cmd.Dir = cfg.HelperDir
+	cmd.WaitDelay = 5 * time.Second // a grandchild holding the pipe must not outlive the timeout
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		detail := strings.TrimSpace(string(output))
@@ -430,7 +440,7 @@ finally:
 			Name:    "chrome",
 			Status:  CheckWarn,
 			Summary: i18n.T("doctor.check.chromeUnavailable"),
-			Detail:  firstLine(detail),
+			Detail:  lastLine(detail),
 		}
 	}
 
@@ -443,11 +453,11 @@ finally:
 	}
 }
 
-func firstLine(value string) string {
-	if idx := strings.IndexByte(value, '\n'); idx >= 0 {
-		return value[:idx]
-	}
-	return value
+// lastLine returns the last non-empty line: for a Python traceback that is the
+// actual error ("ModuleNotFoundError: ..."), not "Traceback (most recent call last):".
+func lastLine(value string) string {
+	lines := strings.Split(strings.TrimSpace(value), "\n")
+	return strings.TrimSpace(lines[len(lines)-1])
 }
 
 func checkSession(status auth.Status) Check {

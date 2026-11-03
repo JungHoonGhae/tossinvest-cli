@@ -193,3 +193,38 @@ func TestExternalCheckHonorsContextCancel(t *testing.T) {
 		t.Fatalf("cancelled check must warn, got %+v", got)
 	}
 }
+
+// TestLastLineSurfacesTracebackError: the useful part of a Python traceback is
+// the final exception line, not the "Traceback (most recent call last):" header.
+func TestLastLineSurfacesTracebackError(t *testing.T) {
+	tb := "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nModuleNotFoundError: No module named 'playwright'\n\n"
+	if got := lastLine(tb); got != "ModuleNotFoundError: No module named 'playwright'" {
+		t.Fatalf("lastLine = %q", got)
+	}
+}
+
+// TestHelperChecksSkipWithoutHelperDir: an empty HelperDir would run python in
+// the CWD (planted-import path), so the checks must not spawn it at all.
+func TestHelperChecksSkipWithoutHelperDir(t *testing.T) {
+	cfg := auth.LoginConfig{PythonBin: "sh"} // resolvable, so only the HelperDir guard can short-circuit
+	want := i18n.T("doctor.check.authHelperNotFound")
+	for _, got := range []Check{
+		checkPythonModule(context.Background(), cfg, "playwright", "ok", "fail"),
+		checkChrome(context.Background(), cfg),
+	} {
+		if got.Status != CheckWarn || got.Detail != want {
+			t.Errorf("empty HelperDir must skip with %q, got %+v", want, got)
+		}
+	}
+}
+
+// TestRedactReportTrailingSlashHome: HOME="/x/" must still redact "/x/y".
+func TestRedactReportTrailingSlashHome(t *testing.T) {
+	fakeHome := t.TempDir()
+	t.Setenv("HOME", fakeHome+"/")
+	r := Report{Checks: []Check{{Name: "x", Summary: filepath.Join(fakeHome, "y")}}}
+	redactReport(&r)
+	if r.Checks[0].Summary != filepath.Join("~", "y") {
+		t.Errorf("trailing-slash HOME not redacted: %q", r.Checks[0].Summary)
+	}
+}
