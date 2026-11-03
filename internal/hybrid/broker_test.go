@@ -319,6 +319,8 @@ func TestOfficialEligiblePlace(t *testing.T) {
 		{"KR limit KRW", orderintent.PlaceIntent{Market: "kr", OrderType: "limit", CurrencyMode: "KRW"}, true},
 		{"US fractional USD", orderintent.PlaceIntent{Market: "us", OrderType: "market", Fractional: true, CurrencyMode: "USD"}, true},
 		{"KRW fractional (WTS-unique)", krwFractionalIntent(), false},
+		{"US limit KRW converts via WTS", orderintent.PlaceIntent{Market: "us", OrderType: "limit", CurrencyMode: "KRW"}, false},
+		{"US market KRW carries no price", orderintent.PlaceIntent{Market: "us", OrderType: "market", CurrencyMode: "KRW"}, true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

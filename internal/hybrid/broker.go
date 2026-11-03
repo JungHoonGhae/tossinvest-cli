@@ -106,14 +106,20 @@ func (b *hybridBroker) GetOrderAvailableActions(ctx context.Context, orderID str
 
 // officialEligiblePlace reports whether the official Open API can serve this
 // place intent. It returns false (→ WTS) only for orders the official path
-// cannot do: KRW-settlement FRACTIONAL orders are a WTS-unique capability — the
-// official fractional buy endpoint takes a USD orderAmount, not a KRW amount.
-// Everything else — regular limit/market in KR or US, and USD-settled US
-// fractional orders — is eligible. When genuinely unsure, the safe default is
-// false (WTS is the proven path).
+// cannot do: KRW-settlement US orders are a WTS-unique capability — the
+// official API prices US fractional-buy amounts and US limit prices in USD
+// and converts nothing, while WTS converts KRW at request time. Everything
+// else — KR orders, USD-settled US orders, and share-quantity US market
+// orders (no currency value transmitted) — is eligible. When genuinely
+// unsure, the safe default is false (WTS is the proven path).
 func officialEligiblePlace(intent orderintent.PlaceIntent) bool {
-	if intent.Fractional && intent.CurrencyMode == "KRW" {
-		return false
+	if intent.CurrencyMode == "KRW" {
+		if intent.Fractional {
+			return false
+		}
+		if intent.Market == "us" && intent.OrderType == "limit" {
+			return false
+		}
 	}
 	return true
 }

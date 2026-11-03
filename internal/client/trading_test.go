@@ -28,6 +28,7 @@ func TestCancelPendingOrder(t *testing.T) {
 	var appVersions []string
 	var orderKeys []string
 	pendingCalls := 0
+	cancelCalled := false
 	today := time.Now().Format("2006-01-02")
 	now := time.Now().Format("2006-01-02 15:04:05.000")
 	preparePath := "/api/v2/wts/trading/order/cancel/prepare/" + today + "/14"
@@ -47,6 +48,12 @@ func TestCancelPendingOrder(t *testing.T) {
 			_, _ = w.Write([]byte(`{"result":{"stocks":[{"stockCode":"US20220809012","stockName":"TSLL"}]}}`))
 			return
 		}
+		// The pre-submit snapshot must not see the as-yet-uncancelled order
+		// and must not pollute the recorded request sequence below.
+		if r.URL.Path == "/api/v2/trading/my-orders/markets/us/by-date/completed" && !cancelCalled {
+			_, _ = io.WriteString(w, `{"result":{"body":[]}}`)
+			return
+		}
 		paths = append(paths, r.URL.Path)
 		browserTabIDs = append(browserTabIDs, r.Header.Get("Browser-Tab-Id"))
 		accountHeaders = append(accountHeaders, r.Header.Get("X-Tossinvest-Account"))
@@ -59,6 +66,7 @@ func TestCancelPendingOrder(t *testing.T) {
 		case preparePath:
 			_, _ = w.Write([]byte(`{"result":{"delayCancelExchange":false,"orderKey":"trade::session::test::cancel","authRequired":{"required":false,"simpleTrade":true,"verifier":null}}}`))
 		case cancelPath:
+			cancelCalled = true
 			_, _ = w.Write([]byte(`{"result":{"message":"취소 되었어요.","orderDate":"` + today + `","orderNo":14,"orderId":"test-order-id"}}`))
 		case "/api/v2/trading/my-orders/markets/us/by-date/completed":
 			_, _ = io.WriteString(w, `{"result":{"body":[{"orderedAt":"`+now+`","lastExecutedAt":"`+now+`","orderNo":15,"orderId":"completed-order-id","stockCode":"US20220809012","stockName":"TSLL","symbol":"TSLL","tradeType":"buy","status":"취소","orderQuantity":1,"executedQuantity":0,"userOrderDate":"`+today+`","orderPrice":{"krw":700},"averageExecutionPrice":{"krw":0}}]}}`)
@@ -222,6 +230,7 @@ func TestCancelPendingOrderReturnsCompletedHistoryRollover(t *testing.T) {
 	preparePath := "/api/v2/wts/trading/order/cancel/prepare/" + today + "/14"
 	cancelPath := "/api/v3/wts/trading/order/cancel/" + today + "/14"
 	pendingCalls := 0
+	cancelCalled := false
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -235,8 +244,13 @@ func TestCancelPendingOrderReturnsCompletedHistoryRollover(t *testing.T) {
 		case preparePath:
 			_, _ = w.Write([]byte(`{"result":{"delayCancelExchange":false,"orderKey":"trade::session::test::cancel","authRequired":{"required":false,"simpleTrade":true,"verifier":null}}}`))
 		case cancelPath:
+			cancelCalled = true
 			_, _ = w.Write([]byte(`{"result":{"message":"취소 되었어요.","orderDate":"` + today + `","orderNo":14,"orderId":"test-order-id"}}`))
 		case "/api/v2/trading/my-orders/markets/us/by-date/completed":
+			if !cancelCalled {
+				_, _ = io.WriteString(w, `{"result":{"body":[]}}`)
+				return
+			}
 			_, _ = io.WriteString(w, `{"result":{"body":[{"orderedAt":"`+now+`","lastExecutedAt":"`+now+`","orderNo":15,"orderId":"completed-cancel-order-id","stockCode":"US20220809012","stockName":"TSLL","symbol":"TSLL","tradeType":"buy","status":"취소","orderQuantity":1,"executedQuantity":0,"userOrderDate":"`+today+`","orderPrice":{"krw":700},"averageExecutionPrice":{"krw":0}}]}}`)
 		case "/api/v2/search/stocks":
 			_, _ = w.Write([]byte(`{"result":{"stocks":[{"stockCode":"US20220809012","stockName":"TSLL"}]}}`))
@@ -322,7 +336,7 @@ func TestCancelPendingOrderDoesNotConfirmDisappearance(t *testing.T) {
 	if err != nil || result.Status != "unknown" || result.OriginalOrderID != date+"/14" || len(result.Warnings) == 0 {
 		t.Fatalf("unconfirmed cancellation = %+v, %v", result, err)
 	}
-	if cancelCalls != 1 || pendingCalls != 1+mutationReconcileAttempts || completedCalls != mutationReconcileAttempts {
+	if cancelCalls != 1 || pendingCalls != 2+mutationReconcileAttempts || completedCalls != 1+mutationReconcileAttempts {
 		t.Fatalf("cancel/pending/completed calls = %d/%d/%d: only history reads may repeat", cancelCalls, pendingCalls, completedCalls)
 	}
 }
@@ -352,7 +366,7 @@ func TestBuildAmendBodyMatchesCapturedShape(t *testing.T) {
 		t.Fatalf("expected qty 1, got %v", expectedQty)
 	}
 
-	expected := `{"agreedOver100Million":false,"currencyMode":"KRW","isReservationOrder":false,"market":"NSQ","max":false,"openPriceSinglePriceYn":false,"orderAmount":0,"orderPriceType":"00","price":0.48,"quantity":1,"stockCode":"US20220809012","tradeType":"buy","withOrderKey":true}`
+	expected := `{"agreedOver100Million":false,"currencyMode":"KRW","isReservationOrder":false,"market":"NSQ","max":false,"openPriceSinglePriceYn":false,"orderAmount":0,"orderPriceType":"00","price":0.4753,"quantity":1,"stockCode":"US20220809012","tradeType":"buy","withOrderKey":true}`
 	if string(body) != expected {
 		t.Fatalf("unexpected amend prepare body:\nwant: %s\ngot:  %s", expected, string(body))
 	}
@@ -361,7 +375,7 @@ func TestBuildAmendBodyMatchesCapturedShape(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildAmendBody returned error: %v", err)
 	}
-	expected = `{"agreedOver100Million":false,"currencyMode":"KRW","isReservationOrder":false,"market":"NSQ","max":false,"openPriceSinglePriceYn":false,"orderAmount":0,"orderPriceType":"00","price":0.48,"quantity":1,"stockCode":"US20220809012","tradeType":"buy"}`
+	expected = `{"agreedOver100Million":false,"currencyMode":"KRW","isReservationOrder":false,"market":"NSQ","max":false,"openPriceSinglePriceYn":false,"orderAmount":0,"orderPriceType":"00","price":0.4753,"quantity":1,"stockCode":"US20220809012","tradeType":"buy"}`
 	if string(body) != expected {
 		t.Fatalf("unexpected amend body:\nwant: %s\ngot:  %s", expected, string(body))
 	}
@@ -439,7 +453,7 @@ func TestBuildPlaceBodyMatchesCapturedShape(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildPlaceBody returned error: %v", err)
 	}
-	expected := `{"agreedOver100Million":false,"allowAutoExchange":true,"currencyMode":"KRW","isReservationOrder":false,"marginTrading":false,"market":"NSQ","max":false,"openPriceSinglePriceYn":false,"orderAmount":0,"orderPriceType":"00","price":0.34,"quantity":1,"stockCode":"US20220809012","tradeType":"buy","withOrderKey":true}`
+	expected := `{"agreedOver100Million":false,"allowAutoExchange":true,"currencyMode":"KRW","isReservationOrder":false,"marginTrading":false,"market":"NSQ","max":false,"openPriceSinglePriceYn":false,"orderAmount":0,"orderPriceType":"00","price":0.3395,"quantity":1,"stockCode":"US20220809012","tradeType":"buy","withOrderKey":true}`
 	if string(body) != expected {
 		t.Fatalf("unexpected place prepare body:\nwant: %s\ngot:  %s", expected, string(body))
 	}
@@ -448,7 +462,7 @@ func TestBuildPlaceBodyMatchesCapturedShape(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildPlaceBody returned error: %v", err)
 	}
-	expected = `{"agreedOver100Million":false,"allowAutoExchange":true,"currencyMode":"KRW","extra":{"close":14.4,"closeKrw":21208,"exchangeRate":1472.8,"orderMethod":"종목상세__주문하기"},"isReservationOrder":false,"marginTrading":false,"market":"NSQ","max":false,"openPriceSinglePriceYn":false,"orderAmount":0,"orderPriceType":"00","price":0.34,"quantity":1,"stockCode":"US20220809012","tradeType":"buy"}`
+	expected = `{"agreedOver100Million":false,"allowAutoExchange":true,"currencyMode":"KRW","extra":{"close":14.4,"closeKrw":21208,"exchangeRate":1472.8,"orderMethod":"종목상세__주문하기"},"isReservationOrder":false,"marginTrading":false,"market":"NSQ","max":false,"openPriceSinglePriceYn":false,"orderAmount":0,"orderPriceType":"00","price":0.3395,"quantity":1,"stockCode":"US20220809012","tradeType":"buy"}`
 	if string(body) != expected {
 		t.Fatalf("unexpected place create body:\nwant: %s\ngot:  %s", expected, string(body))
 	}
@@ -505,7 +519,7 @@ func TestBuildPlaceBodySellTradeType(t *testing.T) {
 	if err != nil {
 		t.Fatalf("buildPlaceBody returned error: %v", err)
 	}
-	expected := `{"agreedOver100Million":false,"allowAutoExchange":true,"currencyMode":"KRW","isReservationOrder":false,"marginTrading":false,"market":"NSQ","max":false,"openPriceSinglePriceYn":false,"orderAmount":0,"orderPriceType":"00","price":0.34,"quantity":1,"stockCode":"US20220809012","tradeType":"sell","withOrderKey":true}`
+	expected := `{"agreedOver100Million":false,"allowAutoExchange":true,"currencyMode":"KRW","isReservationOrder":false,"marginTrading":false,"market":"NSQ","max":false,"openPriceSinglePriceYn":false,"orderAmount":0,"orderPriceType":"00","price":0.3395,"quantity":1,"stockCode":"US20220809012","tradeType":"sell","withOrderKey":true}`
 	if string(body) != expected {
 		t.Fatalf("unexpected sell prepare body:\nwant: %s\ngot:  %s", expected, string(body))
 	}
@@ -667,6 +681,7 @@ func TestPlacePendingOrderSendsXOrderKeyOnCreate(t *testing.T) {
 
 	var paths []string
 	var orderKeys []string
+	created := false
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v2/search/stocks":
@@ -684,9 +699,16 @@ func TestPlacePendingOrderSendsXOrderKeyOnCreate(t *testing.T) {
 		case "/api/v2/wts/trading/order/create":
 			paths = append(paths, r.URL.Path)
 			orderKeys = append(orderKeys, r.Header.Get("X-Order-Key"))
+			created = true
 			_, _ = w.Write([]byte(`{"result":{"message":"주문 접수 되었어요."}}`))
 		case "/api/v1/trading/orders/histories/all/pending":
+			if !created {
+				_, _ = w.Write([]byte(`{"result":[]}`))
+				return
+			}
 			_, _ = w.Write([]byte(`{"result":[{"stockCode":"US20220809012","orderedDate":"2026-03-11","orderNo":16,"tradeType":"buy","orderPrice":500,"orderUsdPrice":0.3395,"quantity":1,"pendingQuantity":1,"orderPriceTypeCode":"00","isFractionalOrder":false,"isAfterMarketOrder":false,"status":"체결대기"}]}`))
+		case "/api/v2/trading/my-orders/markets/us/by-date/completed":
+			_, _ = w.Write([]byte(`{"result":{"body":[]}}`))
 		default:
 			t.Fatalf("unexpected request path: %s", r.URL.Path)
 		}
@@ -744,6 +766,7 @@ func TestPlacePendingOrderReturnsFilledCompletedFromHistory(t *testing.T) {
 
 	today := time.Now().Format("2006-01-02")
 	now := time.Now().Format("2006-01-02 15:04:05.000")
+	created := false
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -758,10 +781,15 @@ func TestPlacePendingOrderReturnsFilledCompletedFromHistory(t *testing.T) {
 		case "/api/v2/wts/trading/order/prepare":
 			_, _ = w.Write([]byte(`{"result":{"delayCancelExchange":false,"orderKey":"trade::session::test::place","authRequired":{"required":false,"simpleTrade":true,"verifier":null}}}`))
 		case "/api/v2/wts/trading/order/create":
+			created = true
 			_, _ = w.Write([]byte(`{"result":{"message":"주문 접수 되었어요."}}`))
 		case "/api/v1/trading/orders/histories/all/pending":
 			_, _ = w.Write([]byte(`{"result":[]}`))
 		case "/api/v2/trading/my-orders/markets/us/by-date/completed":
+			if !created {
+				_, _ = io.WriteString(w, `{"result":{"body":[]}}`)
+				return
+			}
 			_, _ = io.WriteString(w, `{"result":{"body":[{"orderedAt":"`+now+`","lastExecutedAt":"`+now+`","orderNo":1,"orderId":"completed-order-id","stockCode":"US20220809012","stockName":"TSLL","symbol":"TSLL","tradeType":"buy","status":"체결완료","orderQuantity":1,"executedQuantity":1,"userOrderDate":"`+today+`","orderPrice":{"krw":21208},"averageExecutionPrice":{"krw":21208}}]}}`)
 		default:
 			t.Fatalf("unexpected request path: %s", r.URL.Path)
@@ -825,6 +853,10 @@ func TestPlacePendingOrderReturnsFundingRequiredFromPrepare(t *testing.T) {
 		case "/api/v2/wts/trading/order/prepare":
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			_, _ = w.Write([]byte(`{"title":"계좌 잔액이 부족해요","body":"구매를 위해 21,511원을 채울게요.","actions":["닫기","모바일에서 채우기"]}`))
+		case "/api/v1/trading/orders/histories/all/pending":
+			_, _ = w.Write([]byte(`{"result":[]}`))
+		case "/api/v2/trading/my-orders/markets/us/by-date/completed":
+			_, _ = w.Write([]byte(`{"result":{"body":[]}}`))
 		default:
 			t.Fatalf("unexpected request path: %s", r.URL.Path)
 		}
@@ -888,6 +920,10 @@ func TestPlacePendingOrderReturnsFundingRequiredFromFXFundingMessage(t *testing.
 		case "/api/v2/wts/trading/order/prepare":
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			_, _ = w.Write([]byte(`{"message":"환전에 필요한 원화 출금가능금액이 부족합니다."}`))
+		case "/api/v1/trading/orders/histories/all/pending":
+			_, _ = w.Write([]byte(`{"result":[]}`))
+		case "/api/v2/trading/my-orders/markets/us/by-date/completed":
+			_, _ = w.Write([]byte(`{"result":{"body":[]}}`))
 		default:
 			t.Fatalf("unexpected request path: %s", r.URL.Path)
 		}
@@ -945,6 +981,10 @@ func TestPlacePendingOrderReturnsFXConsentRequiredFromPrepare(t *testing.T) {
 		case "/api/v2/wts/trading/order/prepare":
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"message":"환전 후 주문하려면 외화 사용 동의가 필요해요."}`))
+		case "/api/v1/trading/orders/histories/all/pending":
+			_, _ = w.Write([]byte(`{"result":[]}`))
+		case "/api/v2/trading/my-orders/markets/us/by-date/completed":
+			_, _ = w.Write([]byte(`{"result":{"body":[]}}`))
 		default:
 			t.Fatalf("unexpected request path: %s", r.URL.Path)
 		}
@@ -1015,6 +1055,10 @@ func TestPlacePendingOrderReturnsFXConsentRequiredAfterPrepareNeedExchange(t *te
 		case "/api/v2/wts/trading/order/create":
 			createCalled = true
 			_, _ = w.Write([]byte(`{"result":{"message":"주문 접수 되었어요."}}`))
+		case "/api/v1/trading/orders/histories/all/pending":
+			_, _ = w.Write([]byte(`{"result":[]}`))
+		case "/api/v2/trading/my-orders/markets/us/by-date/completed":
+			_, _ = w.Write([]byte(`{"result":{"body":[]}}`))
 		default:
 			t.Fatalf("unexpected request path: %s", r.URL.Path)
 		}
@@ -1089,7 +1133,7 @@ func TestPlacePendingOrderAutoAcceptsFXConsentWhenConfigured(t *testing.T) {
 	var paths []string
 	var orderKeys []string
 	var toggleBody map[string]any
-	pendingCalls := 0
+	created := false
 	today := time.Now().Format("2006-01-02")
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1115,6 +1159,7 @@ func TestPlacePendingOrderAutoAcceptsFXConsentWhenConfigured(t *testing.T) {
 		case "/api/v2/wts/trading/order/create":
 			paths = append(paths, r.URL.Path)
 			orderKeys = append(orderKeys, r.Header.Get("X-Order-Key"))
+			created = true
 			_, _ = w.Write([]byte(`{"result":{"message":"주문 접수 되었어요."}}`))
 		case "/api/v1/trading/settings/toggle":
 			paths = append(paths, r.URL.Path)
@@ -1124,12 +1169,13 @@ func TestPlacePendingOrderAutoAcceptsFXConsentWhenConfigured(t *testing.T) {
 			}
 			_, _ = w.Write([]byte(`{"result":{"categoryName":"EXCHANGE_INFO_CHECK","turnedOn":true}}`))
 		case "/api/v1/trading/orders/histories/all/pending":
-			pendingCalls++
-			if pendingCalls == 1 {
-				_, _ = w.Write([]byte(`{"result":[{"stockCode":"US20220809012","orderedDate":"` + today + `","orderNo":16,"tradeType":"buy","orderPrice":1000,"orderUsdPrice":0.6758,"quantity":1,"pendingQuantity":1,"orderPriceTypeCode":"00","isFractionalOrder":false,"isAfterMarketOrder":false,"status":"체결대기"}]}`))
+			if !created {
+				_, _ = w.Write([]byte(`{"result":[]}`))
 				return
 			}
-			_, _ = w.Write([]byte(`{"result":[]}`))
+			_, _ = w.Write([]byte(`{"result":[{"stockCode":"US20220809012","orderedDate":"` + today + `","orderNo":16,"tradeType":"buy","orderPrice":1000,"orderUsdPrice":0.6758,"quantity":1,"pendingQuantity":1,"orderPriceTypeCode":"00","isFractionalOrder":false,"isAfterMarketOrder":false,"status":"체결대기"}]}`))
+		case "/api/v2/trading/my-orders/markets/us/by-date/completed":
+			_, _ = w.Write([]byte(`{"result":{"body":[]}}`))
 		default:
 			t.Fatalf("unexpected request path: %s", r.URL.Path)
 		}
@@ -1226,6 +1272,10 @@ func TestPlacePendingOrderReturnsGenericPrepareRejected(t *testing.T) {
 		case "/api/v2/wts/trading/order/prepare":
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			_, _ = w.Write([]byte(`{"message":"broker rejected the order"}`))
+		case "/api/v1/trading/orders/histories/all/pending":
+			_, _ = w.Write([]byte(`{"result":[]}`))
+		case "/api/v2/trading/my-orders/markets/us/by-date/completed":
+			_, _ = w.Write([]byte(`{"result":{"body":[]}}`))
 		default:
 			t.Fatalf("unexpected request path: %s", r.URL.Path)
 		}
@@ -1283,6 +1333,8 @@ func TestAmendPendingOrderReturnsInteractiveAuthRequiredFromPrepare(t *testing.T
 			_, _ = w.Write([]byte(`{"result":{"rate":1472.8}}`))
 		case "/api/v2/wts/trading/order/correct/prepare/2026-03-11/13":
 			_, _ = w.Write([]byte(`{"result":{"delayCancelExchange":false,"orderKey":"trade::session::test::correct","authRequired":{"required":true,"simpleTrade":false,"verifier":{"type":"interactive"}}}}`))
+		case "/api/v2/trading/my-orders/markets/us/by-date/completed":
+			_, _ = w.Write([]byte(`{"result":{"body":[]}}`))
 		default:
 			t.Fatalf("unexpected request path: %s", r.URL.Path)
 		}
@@ -1328,6 +1380,8 @@ func TestAmendPendingOrderReturnsInteractiveAuthRequiredFromCorrect(t *testing.T
 			_, _ = w.Write([]byte(`{"result":{"delayCancelExchange":false,"orderKey":"trade::session::test::correct","authRequired":{"required":false,"simpleTrade":true,"verifier":null}}}`))
 		case "/api/v2/wts/trading/order/correct/2026-03-11/13":
 			_, _ = w.Write([]byte(`{"result":{"uuid":"challenge","modulus":"abc","exponent":"10001","keyboard":"<svg/>"}}`))
+		case "/api/v2/trading/my-orders/markets/us/by-date/completed":
+			_, _ = w.Write([]byte(`{"result":{"body":[]}}`))
 		default:
 			t.Fatalf("unexpected request path: %s", r.URL.Path)
 		}
@@ -1363,6 +1417,7 @@ func TestAmendPendingOrderReturnsCompletedOrderFromHistory(t *testing.T) {
 
 	today := time.Now().Format("2006-01-02")
 	now := time.Now().Format("2006-01-02 15:04:05.000")
+	corrected := false
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -1375,8 +1430,13 @@ func TestAmendPendingOrderReturnsCompletedOrderFromHistory(t *testing.T) {
 		case "/api/v2/wts/trading/order/correct/prepare/2026-03-11/13":
 			_, _ = w.Write([]byte(`{"result":{"delayCancelExchange":false,"orderKey":"trade::session::test::correct","authRequired":{"required":false,"simpleTrade":true,"verifier":null}}}`))
 		case "/api/v2/wts/trading/order/correct/2026-03-11/13":
+			corrected = true
 			_, _ = w.Write([]byte(`{"result":{"message":"주문 수정 되었어요."}}`))
 		case "/api/v2/trading/my-orders/markets/us/by-date/completed":
+			if !corrected {
+				_, _ = io.WriteString(w, `{"result":{"body":[]}}`)
+				return
+			}
 			_, _ = io.WriteString(w, `{"result":{"body":[{"orderedAt":"`+now+`","lastExecutedAt":"`+now+`","orderNo":14,"orderId":"completed-amend-order-id","stockCode":"US20220809012","stockName":"TSLL","symbol":"TSLL","tradeType":"buy","status":"체결완료","orderQuantity":1,"executedQuantity":1,"userOrderDate":"`+today+`","orderPrice":{"krw":700},"averageExecutionPrice":{"krw":700}}]}}`)
 		default:
 			t.Fatalf("unexpected request path: %s", r.URL.Path)
@@ -1493,5 +1553,149 @@ func TestVerifyCancelSymbol(t *testing.T) {
 	}
 	if err := c.verifyCancelSymbol(context.Background(), orderintent.CancelIntent{OrderID: "1", Symbol: "NOPE"}, kr); err == nil {
 		t.Fatal("expected refusal for unresolvable symbol, got nil")
+	}
+}
+
+// TestBuildAmendBodyKRSendsKRWAsIs guards issue #5: KR amends must not divide
+// by the dollar rate (70000 KRW went out as ~50 USD).
+func TestBuildAmendBodyKRSendsKRWAsIs(t *testing.T) {
+	order := pendingOrderDetails{
+		OrderNo:            "21",
+		OrderedDate:        "2026-03-11",
+		StockCode:          "A005930",
+		TradeType:          "buy",
+		OrderPrice:         70000,
+		OrderUSDPrice:      0,
+		Quantity:           10,
+		PendingQuantity:    10,
+		OrderPriceTypeCode: "00",
+	}
+	price := 71000.0
+	body, expectedKRW, expectedQty, err := buildAmendBody(order, "KSP", 0, nil, &price, false)
+	if err != nil {
+		t.Fatalf("buildAmendBody returned error: %v", err)
+	}
+	if expectedKRW != 71000 || expectedQty != 10 {
+		t.Fatalf("expected (71000, 10), got (%v, %v)", expectedKRW, expectedQty)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["price"] != 71000.0 {
+		t.Fatalf("KR amend price must be KRW as-is, got %v", payload["price"])
+	}
+	if payload["market"] != "KSP" {
+		t.Fatalf("market must pass through, got %v", payload["market"])
+	}
+}
+
+// TestBuildAmendBodyDefaultsToPendingQuantity: on a partially filled order a
+// price-only amend must not re-request the filled shares.
+func TestBuildAmendBodyDefaultsToPendingQuantity(t *testing.T) {
+	order := pendingOrderDetails{
+		OrderNo:            "22",
+		OrderedDate:        "2026-03-11",
+		StockCode:          "US20220809012",
+		TradeType:          "buy",
+		OrderPrice:         700,
+		OrderUSDPrice:      0.4753,
+		Quantity:           10,
+		PendingQuantity:    7,
+		OrderPriceTypeCode: "00",
+	}
+	price := 700.0
+	body, _, expectedQty, err := buildAmendBody(order, "NSQ", 1472.8, nil, &price, true)
+	if err != nil {
+		t.Fatalf("buildAmendBody returned error: %v", err)
+	}
+	if expectedQty != 7 {
+		t.Fatalf("expected pending quantity 7, got %v", expectedQty)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["quantity"] != 7.0 {
+		t.Fatalf("wire quantity must be 7, got %v", payload["quantity"])
+	}
+}
+
+// TestRoundUSDPriceTickPrecision guards issue #4: venue ticks are 4dp below
+// $1 and 2dp at or above. The old round2 sent 0.48 for a captured 0.4753
+// order (>1% off).
+func TestRoundUSDPriceTickPrecision(t *testing.T) {
+	cases := []struct {
+		in   float64
+		want float64
+	}{
+		{700.0 / 1472.8, 0.4753}, // captured browser quote
+		{500.0 / 1472.8, 0.3395}, // captured browser quote
+		{0.99995, 1},             // rounds up across the boundary
+		{0.99994, 0.9999},
+		{1.0, 1},
+		{158.01, 158.01},
+		{70000, 70000},
+	}
+	for _, tc := range cases {
+		if got := roundUSDPrice(tc.in); got != tc.want {
+			t.Fatalf("roundUSDPrice(%v) = %v, want %v", tc.in, got, tc.want)
+		}
+	}
+}
+
+// TestRejectNonDayTimeInForce guards issue #3: the WTS web order API has no
+// time-in-force field, so CLS/OPG must be refused instead of silently
+// executing as DAY orders.
+func TestRejectNonDayTimeInForce(t *testing.T) {
+	base := orderintent.PlaceIntent{Symbol: "AAPL", Market: "us", Side: "buy",
+		OrderType: "limit", Quantity: 1, Price: 100, CurrencyMode: "USD"}
+	for _, tif := range []string{"CLS", "OPG", "cls"} {
+		intent := base
+		intent.TimeInForce = tif
+		if err := rejectNonDayTimeInForce(intent); !errors.Is(err, tradingflow.ErrPlaceUnsupported) {
+			t.Fatalf("TIF %q: expected ErrPlaceUnsupported, got %v", tif, err)
+		}
+	}
+	for _, tif := range []string{"", "DAY", "day"} {
+		intent := base
+		intent.TimeInForce = tif
+		if err := rejectNonDayTimeInForce(intent); err != nil {
+			t.Fatalf("TIF %q must pass the guard, got %v", tif, err)
+		}
+	}
+}
+
+// TestPlacePendingOrderRejectsTIFBeforeIO proves the guard sits before any
+// network call: a zero Client rejects CLS without touching the network.
+func TestPlacePendingOrderRejectsTIFBeforeIO(t *testing.T) {
+	c := &Client{}
+	intent := orderintent.PlaceIntent{Symbol: "AAPL", Market: "us", Side: "buy",
+		OrderType: "limit", Quantity: 1, Price: 100, CurrencyMode: "USD", TimeInForce: "CLS"}
+	_, err := c.PlacePendingOrder(context.Background(), intent)
+	if !errors.Is(err, tradingflow.ErrPlaceUnsupported) {
+		t.Fatalf("expected ErrPlaceUnsupported without I/O, got %v", err)
+	}
+}
+
+// A quantity-only amend on a US order must keep the order's own USD price,
+// not re-derive it from the KRW figure at the current rate.
+func TestBuildAmendBodyUSPricelessKeepsOrderUSDPrice(t *testing.T) {
+	order := pendingOrderDetails{
+		OrderNo: "23", OrderedDate: "2026-03-11", StockCode: "US20220809012",
+		TradeType: "buy", OrderPrice: 700, OrderUSDPrice: 0.4753,
+		Quantity: 10, PendingQuantity: 10, OrderPriceTypeCode: "00",
+	}
+	qty := 5.0
+	body, _, _, err := buildAmendBody(order, "NSQ", 1300, &qty, nil, true)
+	if err != nil {
+		t.Fatalf("buildAmendBody returned error: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["price"] != 0.4753 {
+		t.Fatalf("priceless US amend must keep 0.4753, got %v", payload["price"])
 	}
 }
