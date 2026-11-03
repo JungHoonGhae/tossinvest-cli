@@ -10,8 +10,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
+
+	"github.com/JungHoonGhae/tossinvest-cli/internal/atomicfile"
 	"sync"
 	"time"
 )
@@ -187,13 +188,9 @@ func (m *tokenManager) loadCache() (*cachedToken, error) {
 // refuses the entry.
 func (m *tokenManager) saveCache(ct *cachedToken) error {
 	ct.KeyFingerprint = m.fingerprint()
-	dir := filepath.Dir(m.cacheFile)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return err
-	}
 	data, err := json.Marshal(ct)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(m.cacheFile, data, 0o600)
+	return atomicfile.WriteFile(m.cacheFile, data, 0o600)
 }
