@@ -86,6 +86,28 @@ func TestOpenAPILoginSavesCredentialsAndMasksKey(t *testing.T) {
 	}
 }
 
+// TestOpenAPILoginDropsTokenCache guards issue #10: new credentials must never
+// inherit the previous key's token.
+func TestOpenAPILoginDropsTokenCache(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	tokenFile := filepath.Join(dir, "openapi-token.json")
+	if err := os.WriteFile(tokenFile, []byte(`{"access_token":"OLD"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	opts := &rootOptions{configDir: dir}
+	cmd := newOpenAPICmd(opts)
+	cmd.SetArgs([]string{"login", "--key", "k", "--secret", "s"})
+	cmd.SetOut(&bytes.Buffer{})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := os.Stat(tokenFile); !os.IsNotExist(err) {
+		t.Fatal("login must delete the previous token cache")
+	}
+}
+
 // ── logout: removes credential and token files ──────────────────────────────
 
 func TestOpenAPILogoutRemovesFiles(t *testing.T) {
