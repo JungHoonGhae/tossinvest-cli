@@ -128,8 +128,8 @@ func (s *Service) Sync(ctx context.Context, o SyncOptions, execute bool, confirm
 		ids = append(ids, a.ID)
 	}
 	sort.Strings(ids)
-	owner, legacyOwner := ownerDigests(ids, primary)
-	revision, err := s.Store.revision(ctx, owner, legacyOwner)
+	owner, legacyOwners := ownerDigests(ids)
+	revision, err := s.Store.revision(ctx, owner, legacyOwners)
 	if err != nil {
 		return result, err
 	}
@@ -171,7 +171,7 @@ func (s *Service) Sync(ctx context.Context, o SyncOptions, execute bool, confirm
 			data.Snapshot.Warnings = append(data.Snapshot.Warnings, market+": "+reason)
 		}
 	}
-	meta, err := s.Store.save(ctx, owner, legacyOwner, revision, data)
+	meta, err := s.Store.save(ctx, owner, legacyOwners, revision, data)
 	if err != nil {
 		return result, err
 	}
@@ -184,17 +184,21 @@ func digest(b []byte) string { sum := sha256.Sum256(b); return hex.EncodeToStrin
 // ownerDigests binds a database to the sorted account ID set. The legacy
 // digest additionally mixed in the primary account, which orphans the
 // database whenever the primary changes even though the collected data is
-// identical. Both are accepted on read so old databases keep working; new
-// writes stamp the primary-free form.
-func ownerDigests(ids []string, primary string) (current, legacy string) {
+// identical. The legacy form is returned for every account in the set, not
+// just the current primary, so a database whose primary changed before the
+// upgrade is still recognised; the next write re-stamps the primary-free form.
+func ownerDigests(ids []string) (current string, legacy []string) {
 	identity, _ := json.Marshal(struct {
 		Accounts []string
 	}{ids})
-	legacyIdentity, _ := json.Marshal(struct {
-		Accounts []string
-		Primary  string
-	}{ids, primary})
-	return digest(identity), digest(legacyIdentity)
+	for _, primary := range ids {
+		legacyIdentity, _ := json.Marshal(struct {
+			Accounts []string
+			Primary  string
+		}{ids, primary})
+		legacy = append(legacy, digest(legacyIdentity))
+	}
+	return digest(identity), legacy
 }
 
 func transaction(t domain.Transaction) Transaction {

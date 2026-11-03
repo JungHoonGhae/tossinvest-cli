@@ -2,6 +2,7 @@ package history
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -15,6 +16,7 @@ import (
 
 type fakeReader struct {
 	owner         string
+	accounts      []string // optional account set; defaults to {owner}
 	key           []byte
 	positions     []domain.Position
 	pages         []domain.TransactionPage
@@ -24,7 +26,14 @@ type fakeReader struct {
 }
 
 func (f *fakeReader) ListAccounts(context.Context) ([]domain.Account, string, error) {
-	return []domain.Account{{ID: f.owner}}, f.owner, nil
+	if len(f.accounts) == 0 {
+		return []domain.Account{{ID: f.owner}}, f.owner, nil
+	}
+	out := make([]domain.Account, 0, len(f.accounts))
+	for _, id := range f.accounts {
+		out = append(out, domain.Account{ID: id})
+	}
+	return out, f.owner, nil
 }
 func (f *fakeReader) ConfirmationKey(string) []byte { return f.key }
 func (f *fakeReader) ListPositions(context.Context) ([]domain.Position, error) {
@@ -236,14 +245,14 @@ func TestConcurrentCommitsRejectStaleRevision(t *testing.T) {
 	s, _ := testService(t)
 	ctx := context.Background()
 	data := Data{Snapshot: Snapshot{CollectedAt: "2026-09-11T00:00:00Z", Markets: []string{"kr"}, Warnings: []string{}}, Positions: []domain.Position{}, Transactions: []Transaction{}}
-	if _, err := s.Store.save(ctx, "owner", "", 0, data); err != nil {
+	if _, err := s.Store.save(ctx, "owner", nil, 0, data); err != nil {
 		t.Fatal(err)
 	}
 	var wg sync.WaitGroup
 	ch := make(chan error, 2)
 	for range 2 {
 		wg.Add(1)
-		go func() { defer wg.Done(); _, err := s.Store.save(ctx, "owner", "", 1, data); ch <- err }()
+		go func() { defer wg.Done(); _, err := s.Store.save(ctx, "owner", nil, 1, data); ch <- err }()
 	}
 	wg.Wait()
 	close(ch)
@@ -281,20 +290,18 @@ func TestInterruptedInitializationCanBeRetried(t *testing.T) {
 // are collected session-wide, so a primary-account change must not orphan the
 // database — only a genuinely different account set does.
 func TestOwnerDigestsIgnorePrimary(t *testing.T) {
-	cur1, leg1 := ownerDigests([]string{"a", "b"}, "a")
-	cur2, leg2 := ownerDigests([]string{"a", "b"}, "b")
-	if cur1 != cur2 {
-		t.Fatal("same account set with different primary must share the digest")
+	cur1, leg1 := ownerDigests([]string{"a", "b"})
+	if len(leg1) != 2 || leg1[0] == leg1[1] {
+		t.Fatalf("one distinct legacy digest per possible primary: %v", leg1)
 	}
-	if leg1 == cur1 {
-		t.Fatal("legacy digest must differ (it mixed in the primary)")
+	for _, l := range leg1 {
+		if l == cur1 {
+			t.Fatal("current digest must not collide with legacy form")
+		}
 	}
-	cur3, _ := ownerDigests([]string{"a", "c"}, "a")
+	cur3, _ := ownerDigests([]string{"a", "c"})
 	if cur3 == cur1 {
 		t.Fatal("different account sets must digest differently")
-	}
-	if cur2 == leg2 {
-		t.Fatal("current digest must not collide with legacy form")
 	}
 }
 
@@ -304,16 +311,49 @@ func TestRevisionAcceptsLegacyDigest(t *testing.T) {
 	s, _ := testService(t)
 	ctx := context.Background()
 	data := Data{Snapshot: Snapshot{CollectedAt: "2026-09-11T00:00:00Z", Markets: []string{"kr"}}, Positions: []domain.Position{}, Transactions: []Transaction{}}
-	if _, err := s.Store.save(ctx, "legacy-owner", "", 0, data); err != nil {
+	if _, err := s.Store.save(ctx, "legacy-owner", nil, 0, data); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Store.revision(ctx, "current-owner", "legacy-owner"); err != nil {
+	if _, err := s.Store.revision(ctx, "current-owner", []string{"legacy-owner"}); err != nil {
 		t.Fatalf("legacy digest must be accepted: %v", err)
 	}
-	if _, err := s.Store.revision(ctx, "legacy-owner", "anything"); err != nil {
+	if _, err := s.Store.revision(ctx, "legacy-owner", []string{"anything"}); err != nil {
 		t.Fatalf("exact digest must be accepted: %v", err)
 	}
-	if _, err := s.Store.revision(ctx, "current-owner", "other-owner"); err == nil {
+	if _, err := s.Store.revision(ctx, "current-owner", []string{"other-owner"}); err == nil {
 		t.Fatal("different scope must be rejected")
+	}
+}
+
+// TestLegacyStampedDatabaseSurvivesPrimarySwitch: a database written by the
+// primary-bound version must keep syncing after upgrade even when the primary
+// changes within the same account set — before or after the first new sync.
+func TestLegacyStampedDatabaseSurvivesPrimarySwitch(t *testing.T) {
+	s, f := testService(t)
+	f.accounts = []string{"account-one", "account-two"}
+	ctx := context.Background()
+	legacyIdentity, _ := json.Marshal(struct {
+		Accounts []string
+		Primary  string
+	}{f.accounts, "account-one"})
+	data := Data{Snapshot: Snapshot{CollectedAt: "2026-09-11T00:00:00Z", Markets: []string{"kr"}, Warnings: []string{}}, Positions: []domain.Position{}, Transactions: []Transaction{}}
+	if _, err := s.Store.save(ctx, digest(legacyIdentity), nil, 0, data); err != nil {
+		t.Fatal(err)
+	}
+	// Primary already changed before the upgraded binary first syncs.
+	f.owner = "account-two"
+	syncOnce(t, s, SyncOptions{Market: "kr"})
+	// The stamp was migrated to the primary-free form.
+	current, _ := ownerDigests(f.accounts)
+	if _, err := s.Store.revision(ctx, current, nil); err != nil {
+		t.Fatalf("owner stamp not migrated: %v", err)
+	}
+	f.owner = "account-one"
+	if r := syncOnce(t, s, SyncOptions{Market: "kr"}); r.Snapshot.ID != 3 {
+		t.Fatalf("snapshot id = %d, want 3", r.Snapshot.ID)
+	}
+	f.accounts = []string{"account-one", "account-three"}
+	if _, err := s.Sync(ctx, SyncOptions{Market: "kr"}, false, ""); err == nil {
+		t.Fatal("a different account set must still be rejected")
 	}
 }

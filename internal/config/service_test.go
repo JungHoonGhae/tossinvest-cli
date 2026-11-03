@@ -510,13 +510,14 @@ func TestDefaultPathsIncludesOpenAPIFiles(t *testing.T) {
 
 // TestLoadSurfacesUnknownKeys guards issue #19: keys the loader does not
 // recognize (typically typos the user believes took effect) are reported
-// instead of silently ignored.
+// instead of silently ignored. Keys differing only in case are known:
+// encoding/json matches them case-insensitively, so they do take effect.
 func TestLoadSurfacesUnknownKeys(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "config.json")
 	data := []byte(`{
   "schema_version": 3,
-  "trading": {"palce": true, "place": true, "dangerous_automation": {"complete_trade_auth": true, "bogus_nested": 1}},
-  "openapi": {"prefer": "auto", "bogus": 1},
+  "trading": {"palce": true, "Place": true, "Dangerous_Automation": {"complete_trade_auth": true, "bogus_nested": 1}},
+  "OpenAPI": {"prefer": "auto", "bogus": 1},
   "top_extra": 1
 }`)
 	if err := os.WriteFile(configPath, data, 0o600); err != nil {
@@ -528,8 +529,8 @@ func TestLoadSurfacesUnknownKeys(t *testing.T) {
 	}
 	want := map[string]bool{
 		"top_extra": true, "trading.palce": true,
-		"trading.dangerous_automation.bogus_nested": true,
-		"openapi.bogus": true,
+		"trading.Dangerous_Automation.bogus_nested": true,
+		"OpenAPI.bogus": true,
 	}
 	for _, got := range status.UnknownFields {
 		delete(want, got)

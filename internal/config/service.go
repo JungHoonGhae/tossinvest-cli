@@ -243,12 +243,12 @@ func unknownConfigKeys(data []byte) []string {
 				if name == "" || name == "-" {
 					continue
 				}
-				known[name] = t.Field(i).Type
+				known[strings.ToLower(name)] = t.Field(i).Type
 			}
 		}
 		for k, val := range obj {
 			path := prefix + k
-			ft, ok := known[k]
+			ft, ok := known[strings.ToLower(k)] // encoding/json matches keys case-insensitively
 			if !ok {
 				out = append(out, path)
 				continue
