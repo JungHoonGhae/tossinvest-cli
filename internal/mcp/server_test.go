@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
@@ -657,5 +659,175 @@ func TestToolResultCapsLargeScalarPayload(t *testing.T) {
 	}
 	if !strings.Contains(got, omittedResultKey) {
 		t.Fatalf("scalar omission must be explicit: %s", got[:min(len(got), 300)])
+	}
+}
+
+// TestToolsCallNotificationExecutesNothing guards issue #13: an id-less
+// tools/call must be ignored BEFORE dispatch — the backend must see zero
+// requests even though the operation and params are valid.
+func TestToolsCallNotificationExecutesNothing(t *testing.T) {
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/oauth2/token" {
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+			return
+		}
+		calls.Add(1)
+		http.NotFound(w, r)
+	}))
+	t.Cleanup(srv.Close)
+	c := official.New(official.Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		official.WithBaseURL(srv.URL), official.WithHTTPClient(srv.Client()))
+	resps := runServer(t, c,
+		`{"jsonrpc":"2.0","method":"tools/call","params":{"name":"call_operation","arguments":{"operation":"accounts"}}}`,
+		`{"jsonrpc":"2.0","id":9,"method":"ping"}`,
+	)
+	if calls.Load() != 0 {
+		t.Fatalf("notification must not reach any backend, got %d calls", calls.Load())
+	}
+	if len(resps) != 1 || resps[0]["id"].(float64) != 9 {
+		t.Fatalf("only the ping should be answered, got %v", resps)
+	}
+}
+
+// TestMalformedFrameReturnsParseError guards issue #13: an unparseable frame
+// answers -32700 with a null id instead of leaving the host hanging.
+func TestMalformedFrameReturnsParseError(t *testing.T) {
+	c := dummyClient(t, nil)
+	resps := runServer(t, c,
+		`{"jsonrpc":"2.0","id":1, BROKEN`,
+		`{"jsonrpc":"2.0","id":2,"method":"ping"}`,
+	)
+	if len(resps) != 2 {
+		t.Fatalf("want 2 responses (parse error + ping), got %d: %v", len(resps), resps)
+	}
+	errObj, ok := resps[0]["error"].(map[string]any)
+	if !ok || errObj["code"].(float64) != -32700 {
+		t.Fatalf("want -32700 parse error, got %v", resps[0])
+	}
+	if _, hasID := resps[0]["id"]; hasID && resps[0]["id"] != nil {
+		t.Fatalf("parse error id must be null, got %v", resps[0]["id"])
+	}
+}
+
+// TestHandleRecoversFromPanic guards issue #13: one bad handler must not take
+// down the server process — the host gets -32603 and the loop continues.
+func TestHandleRecoversFromPanic(t *testing.T) {
+	var s *Server // nil receiver panics inside dispatch
+	resp, ok := s.handle(context.Background(),
+		[]byte(`{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"call_operation","arguments":{"operation":"accounts"}}}`))
+	if !ok {
+		t.Fatal("panic must still produce a response for requests with an id")
+	}
+	if resp.Error == nil || resp.Error.Code != -32603 {
+		t.Fatalf("want -32603 internal error, got %+v", resp)
+	}
+	var id float64
+	if err := json.Unmarshal(resp.ID, &id); err != nil || id != 7 {
+		t.Fatalf("panic response must echo id 7, got %s", string(resp.ID))
+	}
+}
+
+// TestOversizedFrameIsRejected: a frame past the line cap gets -32700 and the
+// server keeps serving the next line.
+func TestOversizedFrameIsRejected(t *testing.T) {
+	c := dummyClient(t, nil)
+	big := `{"jsonrpc":"2.0","id":1,"method":"ping","params":` + strings.Repeat(`"x",`, maxLineBytes) + `"y"}`
+	resps := runServer(t, c, big, `{"jsonrpc":"2.0","id":2,"method":"ping"}`)
+	if len(resps) != 2 {
+		t.Fatalf("want 2 responses (oversize error + ping), got %d", len(resps))
+	}
+	errObj, ok := resps[0]["error"].(map[string]any)
+	if !ok || errObj["code"].(float64) != -32700 {
+		t.Fatalf("want -32700 for oversize frame, got %v", resps[0])
+	}
+}
+
+// TestTrimKeepsNewestForAscendingCandles guards issue #13: chart candles
+// (oldest-first) drop from the front so the newest bars survive; everything
+// else keeps the status quo (drop tail).
+func TestTrimKeepsNewestForAscendingCandles(t *testing.T) {
+	row := func(ts string) map[string]any { return map[string]any{"time": ts, "close": 1.0} }
+	ascending := []any{row("2026-03-11T09:00:00+09:00"), row("2026-03-11T09:01:00+09:00"), row("2026-03-11T09:02:00+09:00")}
+	got := trim(ascending, 1000, 100, true)
+	lastReal := got[len(got)-2].(map[string]any)
+	if lastReal["time"] != "2026-03-11T09:02:00+09:00" {
+		t.Fatalf("front trim must keep the newest tail, got %v", got)
+	}
+	got = trim(ascending, 1000, 100, false)
+	if got[0].(map[string]any)["time"] != "2026-03-11T09:00:00+09:00" {
+		t.Fatalf("tail trim must keep the head, got %v", got)
+	}
+	if _, ok := got[len(got)-1].(omittedItems); !ok {
+		t.Fatalf("trim must end with an omission marker, got %v", got)
+	}
+	if !ascendingByTime(ascending) {
+		t.Fatal("ascending candles must be detected")
+	}
+	descending := []any{row("2026-03-11T09:02:00+09:00"), row("2026-03-11T09:01:00+09:00"), row("2026-03-11T09:00:00+09:00")}
+	if ascendingByTime(descending) {
+		t.Fatal("newest-first candles must not drop from the front")
+	}
+}
+
+// shrinkWith builds a payload with one oversized dated array under key, rows
+// ascending by both `time` and `date`.
+func shrinkWith(key string) []any {
+	rows := make([]any, 0, 400)
+	for i := range 400 {
+		ts := fmt.Sprintf("2026-03-%02dT%02d:%02d:00+09:00", 1+i/96, (i/4)%24, (i%4)*15)
+		rows = append(rows, map[string]any{"time": ts, "date": ts[:10], "title": strings.Repeat("x", 200)})
+	}
+	out := shrinkToCap(map[string]any{key: rows}).(map[string]any)[key].([]any)
+	return out
+}
+
+// A non-candle dated array (e.g. a market calendar) over the cap must keep its
+// head — the earliest, most relevant events — even when rows ascend by time.
+func TestShrinkKeepsHeadForNonCandleDatedArray(t *testing.T) {
+	got := shrinkWith("events")
+	if _, ok := got[len(got)-1].(omittedItems); !ok {
+		t.Fatal("expected the array to be trimmed")
+	}
+	if first := got[0].(map[string]any)["time"]; first != "2026-03-01T00:00:00+09:00" {
+		t.Fatalf("non-candle array must keep the head, first row = %v", first)
+	}
+	got = shrinkWith("candles")
+	if first := got[0].(map[string]any)["time"]; first == "2026-03-01T00:00:00+09:00" {
+		t.Fatal("ascending candles must drop the oldest bars")
+	}
+}
+
+// Valid JSON with the wrong shape is Invalid Request (-32600), not a parse error.
+func TestWrongShapeFrameReturnsInvalidRequest(t *testing.T) {
+	c := dummyClient(t, nil)
+	resps := runServer(t, c,
+		`[{"jsonrpc":"2.0","id":1,"method":"ping"}]`,
+		`{"jsonrpc":"2.0","id":3,"method":42}`,
+	)
+	if len(resps) != 2 {
+		t.Fatalf("want 2 responses, got %d: %v", len(resps), resps)
+	}
+	for _, r := range resps {
+		if errObj, ok := r["error"].(map[string]any); !ok || errObj["code"].(float64) != -32600 {
+			t.Fatalf("want -32600 invalid request, got %v", r)
+		}
+	}
+	if resps[1]["id"] != float64(3) {
+		t.Fatalf("invalid request must echo a recoverable id, got %v", resps[1]["id"])
+	}
+}
+
+// A request right at the line cap still works; the bounded reader only rejects
+// what is past it.
+func TestFrameAtCapIsServed(t *testing.T) {
+	c := dummyClient(t, nil)
+	head := `{"jsonrpc":"2.0","id":1,"method":"ping","params":{"pad":"`
+	tail := `"}}`
+	line := head + strings.Repeat("x", maxLineBytes-len(head)-len(tail)) + tail
+	resps := runServer(t, c, line)
+	if len(resps) != 1 || resps[0]["error"] != nil {
+		t.Fatalf("frame at the cap must be served, got %v", resps)
 	}
 }
