@@ -95,6 +95,13 @@ type exchangeQuoteForBuyEnvelope struct {
 }
 
 func (c *Client) PlacePendingOrder(ctx context.Context, intent orderintent.PlaceIntent) (tradingflow.MutationResult, error) {
+	// The WTS web order API has no time-in-force field: buildPlaceBody always
+	// submits a plain limit/market order. Sending CLS/OPG through would
+	// silently execute a DAY order, so refuse before any network I/O.
+	// Official-API credentials route these via the hybrid broker instead.
+	if err := rejectNonDayTimeInForce(intent); err != nil {
+		return tradingflow.MutationResult{}, err
+	}
 	startedAt := time.Now()
 	if err := c.ensureTradingMetadata(ctx); err != nil {
 		return tradingflow.MutationResult{}, err
@@ -131,6 +138,9 @@ func (c *Client) PlacePendingOrder(ctx context.Context, intent orderintent.Place
 			ExchangeRate: usdRate,
 		}
 	}
+	// Snapshot before submit: reconcile must only consider orders that appear
+	// after this mutation, or a repeated identical order matches the old one.
+	excludeIDs, snapshotWarn := snapshotOrderIDs(ctx, c, intent.Market)
 	bodyPrepare, err := buildPlaceBody(productCode, info.Market.Code, intent, meta, true)
 	if err != nil {
 		return tradingflow.MutationResult{}, err
@@ -174,10 +184,40 @@ func (c *Client) PlacePendingOrder(ctx context.Context, intent orderintent.Place
 		return tradingflow.MutationResult{}, tradingflow.ErrInteractiveAuthRequired
 	}
 
-	return newOrderReconciler(c).reconcile(ctx, reconciliationRequest{
+	res, err := newOrderReconciler(c).reconcile(ctx, reconciliationRequest{
 		kind: "place", productCode: productCode, symbol: info.Symbol, market: intent.Market,
 		priceKRW: intent.Price, quantity: intent.Quantity, side: intent.Side, startedAt: startedAt,
+		excludeIDs: excludeIDs,
+		// US wire values are not ledger-comparable (fractional buys zero
+		// quantity/price; KRW/USD inputs cross currencies): symbol, side,
+		// and snapshot newness identify the order instead.
+		// Only with a snapshot: without exclusion, loose matching could pick a
+		// pre-existing order on the same symbol/side and report its id.
+		matchLoose: intent.Market == "us" && excludeIDs != nil,
 	})
+	if err != nil {
+		return tradingflow.MutationResult{}, err
+	}
+	if snapshotWarn != "" {
+		res.Warnings = append(res.Warnings, snapshotWarn)
+	}
+	return res, nil
+}
+
+// rejectNonDayTimeInForce refuses CLS/OPG before any network I/O. The WTS web
+// order API has no time-in-force field — buildPlaceBody always submits a plain
+// limit/market order — so letting these through would silently execute a DAY
+// order. Official-API credentials route these via the hybrid broker instead.
+func rejectNonDayTimeInForce(intent orderintent.PlaceIntent) error {
+	if tif := strings.ToUpper(strings.TrimSpace(intent.TimeInForce)); tif != "" && tif != "DAY" {
+		return fmt.Errorf("WTS path drops time-in-force %q (plain DAY order would execute): %w — place CLS/OPG through the official API", intent.TimeInForce, tradingflow.ErrPlaceUnsupported)
+	}
+	// Same shape for the idempotency key: WTS has no such field, so a retry
+	// the caller believes is deduplicated would place a second order.
+	if intent.ClientOrderID != "" {
+		return fmt.Errorf("WTS path has no client order id (a retry would not be deduplicated): %w — use the official API for idempotent orders", tradingflow.ErrPlaceUnsupported)
+	}
+	return nil
 }
 
 func (c *Client) GetOrderAvailableActions(ctx context.Context, orderID string) (map[string]any, error) {
@@ -458,6 +498,21 @@ func containsAny(haystack string, needles ...string) bool {
 	return false
 }
 
+// verifyCancelSymbol checks the user-asserted symbol against the looked-up
+// order before mutating it. The intent symbol is required, so a mismatch is a
+// hard refusal; a resolution failure is too (fail-closed — a typo'd symbol
+// must not cancel an unchecked order).
+func (c *Client) verifyCancelSymbol(ctx context.Context, intent orderintent.CancelIntent, order pendingOrderDetails) error {
+	code, err := c.resolveProductCode(ctx, intent.Symbol)
+	if err != nil {
+		return fmt.Errorf("refusing to cancel order %q: cannot resolve symbol %q (%v)", intent.OrderID, intent.Symbol, err)
+	}
+	if code != order.StockCode {
+		return fmt.Errorf("refusing to cancel order %q: it belongs to product %q, not symbol %q", intent.OrderID, order.StockCode, intent.Symbol)
+	}
+	return nil
+}
+
 func (c *Client) CancelPendingOrder(ctx context.Context, intent orderintent.CancelIntent) (tradingflow.MutationResult, error) {
 	startedAt := time.Now()
 	if err := c.ensureTradingMetadata(ctx); err != nil {
@@ -467,7 +522,11 @@ func (c *Client) CancelPendingOrder(ctx context.Context, intent orderintent.Canc
 	if err != nil {
 		return tradingflow.MutationResult{}, err
 	}
+	if err := c.verifyCancelSymbol(ctx, intent, order); err != nil {
+		return tradingflow.MutationResult{}, err
+	}
 
+	excludeIDs, snapshotWarn := snapshotOrderIDs(ctx, c, orderintent.InferMarketFromStockCode(order.StockCode))
 	bodyPrepare, bodyCancel, err := buildCancelBodies(order)
 	if err != nil {
 		return tradingflow.MutationResult{}, err
@@ -504,11 +563,19 @@ func (c *Client) CancelPendingOrder(ctx context.Context, intent orderintent.Canc
 		expectedQty = order.Quantity
 	}
 
-	return newOrderReconciler(c).reconcile(ctx, reconciliationRequest{
+	res, err := newOrderReconciler(c).reconcile(ctx, reconciliationRequest{
 		kind: "cancel", originalOrderID: intent.OrderID, productCode: order.StockCode,
 		symbol: intent.Symbol, market: orderintent.InferMarketFromStockCode(order.StockCode),
 		priceKRW: order.OrderPrice, quantity: expectedQty, side: order.TradeType, startedAt: startedAt,
+		excludeIDs: excludeIDs,
 	})
+	if err != nil {
+		return tradingflow.MutationResult{}, err
+	}
+	if snapshotWarn != "" {
+		res.Warnings = append(res.Warnings, snapshotWarn)
+	}
+	return res, nil
 }
 
 func (c *Client) AmendPendingOrder(ctx context.Context, intent orderintent.AmendIntent) (tradingflow.MutationResult, error) {
@@ -526,11 +593,17 @@ func (c *Client) AmendPendingOrder(ctx context.Context, intent orderintent.Amend
 		return tradingflow.MutationResult{}, err
 	}
 
-	rate, err := c.getUSDBaseExchangeRate(ctx)
-	if err != nil {
-		return tradingflow.MutationResult{}, err
+	// KR amends are KRW-denominated: no dollar rate is fetched (or billed as
+	// a failure mode) for them.
+	var rate float64
+	if orderintent.InferMarketFromStockCode(order.StockCode) != "kr" {
+		rate, err = c.getUSDBaseExchangeRate(ctx)
+		if err != nil {
+			return tradingflow.MutationResult{}, err
+		}
 	}
 
+	excludeIDs, snapshotWarn := snapshotOrderIDs(ctx, c, orderintent.InferMarketFromStockCode(order.StockCode))
 	bodyPrepare, expectedPriceKRW, expectedQty, err := buildAmendBody(order, info.Market.Code, rate, intent.Quantity, intent.Price, true)
 	if err != nil {
 		return tradingflow.MutationResult{}, err
@@ -558,11 +631,19 @@ func (c *Client) AmendPendingOrder(ctx context.Context, intent orderintent.Amend
 		return tradingflow.MutationResult{}, tradingflow.ErrInteractiveAuthRequired
 	}
 
-	return newOrderReconciler(c).reconcile(ctx, reconciliationRequest{
+	res, err := newOrderReconciler(c).reconcile(ctx, reconciliationRequest{
 		kind: "amend", originalOrderID: intent.OrderID, productCode: order.StockCode,
 		symbol: info.Symbol, market: orderintent.InferMarketFromStockCode(order.StockCode),
 		priceKRW: expectedPriceKRW, quantity: expectedQty, side: order.TradeType, startedAt: startedAt,
+		excludeIDs: excludeIDs,
 	})
+	if err != nil {
+		return tradingflow.MutationResult{}, err
+	}
+	if snapshotWarn != "" {
+		res.Warnings = append(res.Warnings, snapshotWarn)
+	}
+	return res, nil
 }
 
 func (c *Client) HasPendingOrder(ctx context.Context, orderID string) (bool, error) {
@@ -688,14 +769,40 @@ func (c *Client) lookupPendingOrder(ctx context.Context, orderID string) (pendin
 		return pendingOrderDetails{}, err
 	}
 
+	var matched []pendingOrderDetails
+	var labels []string
 	for _, order := range orders {
 		if order.ID != orderID && !orderMatchesID(order.Raw, orderID) {
 			continue
 		}
-		return decodePendingOrderDetails(order.Raw)
+		decoded, err := decodePendingOrderDetails(order.Raw)
+		if err != nil {
+			return pendingOrderDetails{}, err
+		}
+		matched = append(matched, decoded)
+		labels = append(labels, pendingOrderLabel(decoded))
 	}
+	if len(matched) == 0 {
+		return pendingOrderDetails{}, fmt.Errorf("pending order %s was not found", orderID)
+	}
+	// A bare order number can repeat across dates: cancelling the first match
+	// could hit another day's order, so refuse instead of guessing.
+	if len(matched) > 1 {
+		return pendingOrderDetails{}, fmt.Errorf("ambiguous order id %q matches %d pending orders (%s) — use the full date/order identifier", orderID, len(matched), strings.Join(labels, ", "))
+	}
+	return matched[0], nil
+}
 
-	return pendingOrderDetails{}, fmt.Errorf("pending order %s was not found", orderID)
+// pendingOrderLabel renders a match for ambiguity errors: the date/orderNo
+// composite the user must pass to disambiguate, when present.
+func pendingOrderLabel(order pendingOrderDetails) string {
+	if strings.TrimSpace(order.OrderedDate) != "" && strings.TrimSpace(order.OrderNo) != "" {
+		return order.OrderedDate + "/" + order.OrderNo
+	}
+	if strings.TrimSpace(order.OrderID) != "" {
+		return order.OrderID
+	}
+	return order.StockCode
 }
 
 func orderMatchesID(raw json.RawMessage, orderID string) bool {
@@ -766,16 +873,34 @@ func decodePendingOrderDetails(raw json.RawMessage) (pendingOrderDetails, error)
 }
 
 func buildAmendBody(order pendingOrderDetails, marketCode string, usdRate float64, quantity *float64, priceKRW *float64, withOrderKey bool) ([]byte, float64, float64, error) {
-	targetQty := order.Quantity
+	// Amend applies to the surviving quantity: default to what is still
+	// pending (the cancel path uses PendingQuantity for the same reason).
+	// Falling back to the total only when pending is unset keeps a data
+	// quirk from producing a zero-quantity amend.
+	targetQty := order.PendingQuantity
+	if targetQty <= 0 {
+		targetQty = order.Quantity
+	}
 	if quantity != nil {
 		targetQty = *quantity
 	}
 
 	targetPriceKRW := order.OrderPrice
-	targetPriceUSD := order.OrderUSDPrice
 	if priceKRW != nil {
 		targetPriceKRW = *priceKRW
-		targetPriceUSD = round2(targetPriceKRW / usdRate)
+	}
+	// KR orders are KRW-denominated on the wire (same as buildPlaceBody): no
+	// FX conversion. US orders send USD: a new KRW price divides by the
+	// current rate; a priceless (quantity-only) amend keeps the order's own
+	// USD price instead of re-deriving it from KRW at today's rate.
+	var priceValue float64
+	switch {
+	case orderintent.InferMarketFromStockCode(order.StockCode) == "kr":
+		priceValue = targetPriceKRW
+	case priceKRW == nil:
+		priceValue = order.OrderUSDPrice
+	default:
+		priceValue = roundUSDPrice(targetPriceKRW / usdRate)
 	}
 
 	payload := map[string]any{
@@ -783,7 +908,7 @@ func buildAmendBody(order pendingOrderDetails, marketCode string, usdRate float6
 		"market":                 marketCode,
 		"currencyMode":           "KRW",
 		"tradeType":              order.TradeType,
-		"price":                  targetPriceUSD,
+		"price":                  priceValue,
 		"quantity":               targetQty,
 		"orderAmount":            0,
 		"orderPriceType":         order.OrderPriceTypeCode,
@@ -864,12 +989,13 @@ func buildPlaceBody(productCode, marketCode string, intent orderintent.PlaceInte
 		priceValue = intent.Price
 		quantityValue = intent.Quantity
 	case intent.Market == "us" && intent.CurrencyMode == "USD":
-		// US limit + USD input: price field carries USD as-is.
-		priceValue = round2(intent.Price)
+		// US limit + USD input: price field carries USD rounded to tick
+		// precision (4dp below $1, 2dp at or above).
+		priceValue = roundUSDPrice(intent.Price)
 		quantityValue = intent.Quantity
 	default:
 		// US limit + KRW input: convert to USD using server-provided rate.
-		priceValue = round2(intent.Price / meta.ExchangeRate)
+		priceValue = roundUSDPrice(intent.Price / meta.ExchangeRate)
 		quantityValue = intent.Quantity
 	}
 
@@ -918,7 +1044,14 @@ func buildPlaceBody(productCode, marketCode string, intent orderintent.PlaceInte
 	return json.Marshal(payload)
 }
 
-func round2(value float64) float64 {
+// roundUSDPrice rounds a USD wire price to the venue tick precision: 4 decimals
+// below $1, 2 decimals at or above (nearest, half away from zero). The old
+// round2 truncated sub-$1 quotes to cents — e.g. a captured 700/1472.8 order
+// went out as 0.48 instead of the browser's 0.4753 (issue #4).
+func roundUSDPrice(value float64) float64 {
+	if value < 1 {
+		return math.Round(value*10000) / 10000
+	}
 	return math.Round(value*100) / 100
 }
 

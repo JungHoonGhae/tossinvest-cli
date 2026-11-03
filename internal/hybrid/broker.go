@@ -30,7 +30,7 @@ import (
 // only reason the double-order guard is unit-testable.
 type officialOrderer interface {
 	PlaceOrder(ctx context.Context, intent orderintent.PlaceIntent) (trading.MutationResult, error)
-	CancelOrder(ctx context.Context, orderID string) (trading.MutationResult, error)
+	CancelOrder(ctx context.Context, intent orderintent.CancelIntent) (trading.MutationResult, error)
 	ModifyOrder(ctx context.Context, intent orderintent.AmendIntent) (trading.MutationResult, error)
 }
 
@@ -79,7 +79,7 @@ func (b *hybridBroker) CancelPendingOrder(ctx context.Context, intent orderinten
 	if b.pol.mutationPath(b.off != nil, nil) == mutationWTS {
 		return b.wts.CancelPendingOrder(ctx, intent)
 	}
-	res, err := b.off.CancelOrder(ctx, intent.OrderID)
+	res, err := b.off.CancelOrder(ctx, intent)
 	if err != nil {
 		return trading.MutationResult{}, fmt.Errorf("공식 경로 취소 실패 — 중복 처리 방지를 위해 웹 세션으로 자동 재시도하지 않습니다. `tossctl orders` 로 상태를 확인한 뒤 다시 시도하세요: %w", err)
 	}
@@ -106,14 +106,20 @@ func (b *hybridBroker) GetOrderAvailableActions(ctx context.Context, orderID str
 
 // officialEligiblePlace reports whether the official Open API can serve this
 // place intent. It returns false (→ WTS) only for orders the official path
-// cannot do: KRW-settlement FRACTIONAL orders are a WTS-unique capability — the
-// official fractional buy endpoint takes a USD orderAmount, not a KRW amount.
-// Everything else — regular limit/market in KR or US, and USD-settled US
-// fractional orders — is eligible. When genuinely unsure, the safe default is
-// false (WTS is the proven path).
+// cannot do: KRW-settlement US orders are a WTS-unique capability — the
+// official API prices US fractional-buy amounts and US limit prices in USD
+// and converts nothing, while WTS converts KRW at request time. Everything
+// else — KR orders, USD-settled US orders, and share-quantity US market
+// orders (no currency value transmitted) — is eligible. When genuinely
+// unsure, the safe default is false (WTS is the proven path).
 func officialEligiblePlace(intent orderintent.PlaceIntent) bool {
-	if intent.Fractional && intent.CurrencyMode == "KRW" {
-		return false
+	if intent.CurrencyMode == "KRW" {
+		if intent.Fractional {
+			return false
+		}
+		if intent.Market == "us" && intent.OrderType == "limit" {
+			return false
+		}
 	}
 	return true
 }
