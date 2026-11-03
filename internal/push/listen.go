@@ -146,6 +146,8 @@ func (l *Listener) ListenWithRetry(ctx context.Context, handler func(Event)) err
 		// really down the re-dial fails fast and the normal backoff applies.
 		graceful := errors.Is(err, errConnectionClose) || errors.Is(err, errIdleTimeout)
 		switch {
+		case errors.Is(err, errIdleTimeout):
+			l.logf("push: no data for %s, reconnecting (stalled stream)", l.idleTimeout)
 		case graceful:
 			l.logf("push: server requested graceful reconnect")
 		case err != nil:

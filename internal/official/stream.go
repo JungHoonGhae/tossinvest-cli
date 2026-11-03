@@ -87,6 +87,10 @@ func (c *Client) Stream(ctx context.Context, subs []Subscription, handler func(S
 	}
 	tok, err := c.tm.token(ctx)
 	if err != nil {
+		// 교체·폐기된 키는 토큰 교환 단계에서 이미 ErrAuth/ErrIPNotAllowed 로 온다.
+		if isPermanentAuth(err) {
+			return fmt.Errorf("%w: %w", ErrStreamUnauthorized, err)
+		}
 		return err
 	}
 
@@ -100,10 +104,17 @@ func (c *Client) Stream(ctx context.Context, subs []Subscription, handler func(S
 	if err != nil && resp != nil && resp.StatusCode == http.StatusUnauthorized {
 		// 캐시 토큰이 폐기·교체됐을 수 있다: refresh 후 한 번만 다시 다이얼한다.
 		// 그래도 401이면 자격증명 자체가 문제라 영원히 재시도해 봐야 소용없다.
-		if refreshed, rerr := c.tm.refresh(ctx); rerr == nil {
-			tok = refreshed
-			conn, resp, err = dial(tok)
+		refreshed, rerr := c.tm.refresh(ctx)
+		if rerr != nil {
+			// refresh 자체의 429·5xx·네트워크 장애는 일시적이다: 재시도 가능한
+			// 오류로 돌려주고, 자격증명 거부일 때만 영구 실패로 본다.
+			if isPermanentAuth(rerr) {
+				return fmt.Errorf("%w: token refresh: %w", ErrStreamUnauthorized, rerr)
+			}
+			return fmt.Errorf("official: websocket token refresh: %w", rerr)
 		}
+		tok = refreshed
+		conn, resp, err = dial(tok)
 	}
 	if err != nil {
 		// 인증·허용 IP 실패는 handshake 의 HTTP 상태로만 온다 (101 이 아니면 본문 없음).
@@ -200,16 +211,22 @@ func (c *Client) StreamWithRetry(ctx context.Context, subs []Subscription, handl
 			backoff = streamInitialBackoff
 		} else {
 			logf("stream: disconnected, reconnecting in %s: %v", backoff, err)
-			if backoff < streamMaxBackoff {
-				backoff *= 2
-			}
 		}
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-time.After(backoff):
 		}
+		// 지금 값으로 기다린 뒤에 키운다: 1s → 2s → 4s … (로그와 실제 대기가 일치).
+		if backoff < streamMaxBackoff {
+			backoff *= 2
+		}
 	}
+}
+
+// isPermanentAuth reports a credentials rejection that retrying cannot fix.
+func isPermanentAuth(err error) bool {
+	return errors.Is(err, ErrAuth) || errors.Is(err, ErrIPNotAllowed)
 }
 
 // streamResetBackoff reports whether a disconnect after the given uptime is a

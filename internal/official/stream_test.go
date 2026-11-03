@@ -207,3 +207,98 @@ func TestStreamResetBackoff(t *testing.T) {
 		t.Error("uptime at/above the threshold must reset the backoff")
 	}
 }
+
+// tokenThenDialServer answers the token endpoint with tokenStatus(n) for the
+// n-th token call (1-based) and every handshake with dialStatus.
+func tokenThenDialServer(t *testing.T, tokenStatus func(n int) int, dialStatus int, onDial func()) *httptest.Server {
+	t.Helper()
+	var tokenCalls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/oauth2/token" {
+			tokenCalls++
+			if st := tokenStatus(tokenCalls); st != http.StatusOK {
+				w.WriteHeader(st)
+				return
+			}
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+			return
+		}
+		if onDial != nil {
+			onDial()
+		}
+		w.WriteHeader(dialStatus)
+	}))
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+// A transient failure of the refresh after a 401 must stay retryable.
+func TestStreamRefreshTransientFailureIsRetryable(t *testing.T) {
+	srv := tokenThenDialServer(t, func(n int) int {
+		if n == 1 {
+			return http.StatusOK
+		}
+		return http.StatusInternalServerError
+	}, http.StatusUnauthorized, nil)
+	err := streamClient(t, srv).Stream(context.Background(),
+		[]Subscription{{Type: "trade:us", Codes: []string{"AAPL"}}}, func(StreamFrame) {})
+	if errors.Is(err, ErrStreamUnauthorized) {
+		t.Fatalf("transient refresh failure must not be permanent: %v", err)
+	}
+	if !errors.Is(err, ErrServer) {
+		t.Fatalf("want ErrServer from refresh, got %v", err)
+	}
+}
+
+// A refresh rejected for credentials is permanent.
+func TestStreamRefreshAuthFailureIsPermanent(t *testing.T) {
+	srv := tokenThenDialServer(t, func(n int) int {
+		if n == 1 {
+			return http.StatusOK
+		}
+		return http.StatusUnauthorized
+	}, http.StatusUnauthorized, nil)
+	err := streamClient(t, srv).Stream(context.Background(),
+		[]Subscription{{Type: "trade:us", Codes: []string{"AAPL"}}}, func(StreamFrame) {})
+	if !errors.Is(err, ErrStreamUnauthorized) || !errors.Is(err, ErrAuth) {
+		t.Fatalf("want ErrStreamUnauthorized wrapping ErrAuth, got %v", err)
+	}
+}
+
+// A rotated/revoked key fails at the initial token exchange; StreamWithRetry
+// must stop instead of looping.
+func TestStreamWithRetryStopsOnTokenExchangeAuth(t *testing.T) {
+	var dials int
+	srv := tokenThenDialServer(t, func(int) int { return http.StatusUnauthorized }, http.StatusOK, func() { dials++ })
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	err := streamClient(t, srv).StreamWithRetry(ctx,
+		[]Subscription{{Type: "trade:us", Codes: []string{"AAPL"}}}, func(StreamFrame) {}, nil)
+	if !errors.Is(err, ErrStreamUnauthorized) || !errors.Is(err, ErrAuth) {
+		t.Fatalf("want ErrStreamUnauthorized wrapping ErrAuth, got %v", err)
+	}
+	if dials != 0 {
+		t.Fatalf("must not dial without a token, got %d dials", dials)
+	}
+}
+
+// The first reconnect waits the initial 1s backoff, not an already-doubled 2s.
+func TestStreamWithRetryFirstBackoffIsInitial(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	var dialTimes []time.Time
+	srv := tokenThenDialServer(t, func(int) int { return http.StatusOK }, http.StatusInternalServerError, func() {
+		dialTimes = append(dialTimes, time.Now())
+		if len(dialTimes) == 2 {
+			cancel()
+		}
+	})
+	_ = streamClient(t, srv).StreamWithRetry(ctx,
+		[]Subscription{{Type: "trade:us", Codes: []string{"AAPL"}}}, func(StreamFrame) {}, nil)
+	if len(dialTimes) != 2 {
+		t.Fatalf("want 2 dials, got %d", len(dialTimes))
+	}
+	if gap := dialTimes[1].Sub(dialTimes[0]); gap < streamInitialBackoff || gap >= 2*streamInitialBackoff {
+		t.Fatalf("first reconnect gap = %s, want [%s, %s)", gap, streamInitialBackoff, 2*streamInitialBackoff)
+	}
+}
