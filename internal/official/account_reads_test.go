@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -146,5 +147,65 @@ func TestBuyingPowerResolvesAccountSeqLazy(t *testing.T) {
 	}
 	if gotHeader != "55" {
 		t.Fatalf("X-Tossinvest-Account: want %q (resolved via lazy fetch), got %q", "55", gotHeader)
+	}
+}
+
+// TestBuyingPowerRefusesMultipleAccounts guards issue #11: with several
+// accounts and no explicit openapi.account_seq, the client must refuse
+// instead of silently using the first one (which may differ from the WTS
+// primary account).
+func TestBuyingPowerRefusesMultipleAccounts(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/accounts":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"result":[{"accountNo":"111-11","accountSeq":11,"accountType":"BROKERAGE"},{"accountNo":"222-22","accountSeq":22,"accountType":"ISA"}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+	)
+
+	if _, err := c.BuyingPower(context.Background(), "KRW"); err == nil {
+		t.Fatal("expected refusal with multiple accounts and no explicit seq, got nil")
+	} else if !strings.Contains(err.Error(), "openapi.account_seq") {
+		t.Fatalf("error must point at openapi.account_seq, got %v", err)
+	}
+
+	explicitHeader := ""
+	muxSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/buying-power":
+			explicitHeader = r.Header.Get("X-Tossinvest-Account")
+			_, _ = w.Write([]byte(`{"result":{"cashBuyingPower":"100","currency":"KRW"}}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer muxSrv.Close()
+
+	explicit := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(muxSrv.URL),
+		WithHTTPClient(muxSrv.Client()),
+		WithAccountSeq(22),
+	)
+	if _, err := explicit.BuyingPower(context.Background(), "KRW"); err != nil {
+		t.Fatalf("explicit seq must skip resolution, got %v", err)
+	}
+	if explicitHeader != "22" {
+		t.Fatalf("X-Tossinvest-Account: want 22, got %q", explicitHeader)
 	}
 }

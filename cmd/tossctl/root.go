@@ -640,7 +640,7 @@ func newAppContext(opts *rootOptions) (*appContext, error) {
 
 	var off *official.Client
 	if creds != nil && cfg.OpenAPI.Enabled && prefer != routing.WTS {
-		off = official.New(*creds, tokenFile)
+		off = official.New(*creds, tokenFile, official.WithAccountSeq(cfg.OpenAPI.AccountSeq))
 	}
 
 	h := hybrid.New(wtsClient, off, hybrid.Policy{Prefer: prefer, Fallback: cfg.OpenAPI.Fallback}, os.Stderr)

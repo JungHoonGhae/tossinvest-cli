@@ -28,6 +28,7 @@ type orderCreateV0 struct {
 	Quantity              string `json:"quantity"`
 	Price                 string `json:"price,omitempty"`
 	TimeInForce           string `json:"timeInForce,omitempty"`
+	ClientOrderID         string `json:"clientOrderId,omitempty"`
 	ConfirmHighValueOrder bool   `json:"confirmHighValueOrder"`
 }
 
@@ -41,6 +42,7 @@ type orderCreateV1 struct {
 	Side                  string `json:"side"`
 	OrderType             string `json:"orderType"`
 	OrderAmount           string `json:"orderAmount"`
+	ClientOrderID         string `json:"clientOrderId,omitempty"`
 	ConfirmHighValueOrder bool   `json:"confirmHighValueOrder"`
 }
 
@@ -116,6 +118,7 @@ func buildOrderCreate(intent orderintent.PlaceIntent) (any, error) {
 			Side:                  side,
 			OrderType:             "MARKET",
 			OrderAmount:           formatDecimal(intent.Amount),
+			ClientOrderID:         intent.ClientOrderID,
 			ConfirmHighValueOrder: false,
 		}, nil
 	}
@@ -123,6 +126,7 @@ func buildOrderCreate(intent orderintent.PlaceIntent) (any, error) {
 	v0 := orderCreateV0{
 		Symbol:                intent.Symbol,
 		Side:                  side,
+		ClientOrderID:         intent.ClientOrderID,
 		ConfirmHighValueOrder: false,
 	}
 
