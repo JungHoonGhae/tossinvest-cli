@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"strings"
 	"testing"
@@ -148,5 +149,22 @@ func TestOrderShowNonTTYNoArgsError(t *testing.T) {
 	}
 	if !strings.Contains(gotErr.Error(), "order-id") {
 		t.Fatalf("error should mention order-id, got: %v", gotErr)
+	}
+}
+
+// `--type` defaults to "limit"; an unflagged `--fractional` preview must not
+// trip NormalizePlace's explicit fractional+limit rejection (place already
+// handled this; preview did not, so the preview→confirm flow broke).
+func TestOrderPreviewFractionalWithoutTypeDefaultsToMarket(t *testing.T) {
+	cmd := newRootCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&out)
+	cmd.SetArgs([]string{"--config-dir", t.TempDir(), "order", "preview", "--symbol", "TSLL", "--side", "buy", "--fractional", "--amount", "10000"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("fractional preview without --type must succeed: %v", err)
+	}
+	if !strings.Contains(strings.ToLower(out.String()), "market") {
+		t.Fatalf("expected a market preview, got %s", out.String())
 	}
 }

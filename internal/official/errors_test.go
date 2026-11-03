@@ -1,9 +1,13 @@
 package official
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestClassifyStatus(t *testing.T) {
@@ -62,5 +66,25 @@ func TestShouldFallbackOnAmbiguousAccount(t *testing.T) {
 	err := fmt.Errorf("%w: 2 accounts found (1, 2)", ErrAccountAmbiguous)
 	if !ShouldFallback(err) {
 		t.Fatal("ambiguous account must allow read fallback")
+	}
+}
+
+// A hung official server surfaces as an http.Client.Timeout error, which
+// errors.Is-matches context.DeadlineExceeded once wrapped with %w. That is an
+// availability failure and must still fall back to WTS; only caller
+// cancellation must not.
+func TestShouldFallbackOnClientTimeoutButNotCancel(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+	}))
+	defer srv.Close()
+	c := &Client{hc: &http.Client{Timeout: 20 * time.Millisecond}}
+	req, _ := http.NewRequest(http.MethodGet, srv.URL, nil)
+	_, _, err := c.doRequest(req)
+	if err == nil || !ShouldFallback(err) {
+		t.Fatalf("client timeout must fall back, got %v", err)
+	}
+	if ShouldFallback(fmt.Errorf("%w: %w", ErrTransport, context.Canceled)) {
+		t.Fatal("caller cancellation must not fall back")
 	}
 }

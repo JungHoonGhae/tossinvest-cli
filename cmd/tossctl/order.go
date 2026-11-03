@@ -181,7 +181,7 @@ func newOrderPreviewCmd(opts *rootOptions) *cobra.Command {
 				Symbol:        flags.symbol,
 				Market:        flags.market,
 				Side:          flags.side,
-				OrderType:     flags.orderType,
+				OrderType:     placeOrderType(cmd, flags),
 				Quantity:      flags.quantity,
 				Price:         flags.price,
 				Amount:        flags.amount,
@@ -216,19 +216,11 @@ func newOrderPlaceCmd(opts *rootOptions) *cobra.Command {
 				return err
 			}
 
-			// The --type flag defaults to "limit", which is indistinguishable
-			// from an explicit --type limit downstream — and NormalizePlace
-			// rejects explicit fractional+limit. An unflagged fractional
-			// order means market (fractional has no limit form).
-			orderType := place.orderType
-			if place.fractional && !cmd.Flags().Changed("type") {
-				orderType = "market"
-			}
 			intent, err := orderintent.NormalizePlace(orderintent.PlaceInput{
 				Symbol:        place.symbol,
 				Market:        place.market,
 				Side:          place.side,
-				OrderType:     orderType,
+				OrderType:     placeOrderType(cmd, place),
 				Quantity:      place.quantity,
 				Price:         place.price,
 				Amount:        place.amount,
@@ -383,6 +375,17 @@ func newOrderAmendCmd(opts *rootOptions) *cobra.Command {
 	cmd.Flags().Float64Var(&flags.price, "price", 0, "Updated limit price — required (omitting it is rejected: the official API would convert a limit order to MARKET). Must land on a tick (US: 0.0001 below $1, 0.01 at or above)")
 	bindExecuteFlags(cmd, exec)
 	return cmd
+}
+
+// placeOrderType resolves --type for preview and place alike (their confirm
+// tokens must match). The flag defaults to "limit", indistinguishable from an
+// explicit --type limit downstream — and NormalizePlace rejects explicit
+// fractional+limit. An unflagged fractional order means market.
+func placeOrderType(cmd *cobra.Command, flags *placeFlags) string {
+	if flags.fractional && !cmd.Flags().Changed("type") {
+		return "market"
+	}
+	return flags.orderType
 }
 
 func defaultPlaceFlags() *placeFlags {

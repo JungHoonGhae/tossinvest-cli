@@ -62,7 +62,10 @@ func classifyStatus(code int, body []byte) error {
 func ShouldFallback(err error) bool {
 	// Cancellation is not an availability signal: falling back to WTS on
 	// a canceled context wastes work and masks the caller's cancellation.
-	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+	// DeadlineExceeded is deliberately NOT here: http.Client.Timeout errors
+	// match it (net/http timeoutError.Is), and a hung official server is
+	// exactly when the WTS fallback should run.
+	if errors.Is(err, context.Canceled) {
 		return false
 	}
 	var apiErr *APIError
