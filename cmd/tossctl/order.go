@@ -369,7 +369,7 @@ func newOrderAmendCmd(opts *rootOptions) *cobra.Command {
 
 	cmd.Flags().StringVar(&flags.orderID, "order-id", "", "Pending order identifier")
 	cmd.Flags().Float64Var(&flags.quantity, "quantity", 0, "Updated quantity")
-	cmd.Flags().Float64Var(&flags.price, "price", 0, "Updated limit price — must land on a tick (US: 0.0001 below $1, 0.01 at or above)")
+	cmd.Flags().Float64Var(&flags.price, "price", 0, "Updated limit price — required (omitting it is rejected: the official API would convert a limit order to MARKET). Must land on a tick (US: 0.0001 below $1, 0.01 at or above)")
 	bindExecuteFlags(cmd, exec)
 	return cmd
 }

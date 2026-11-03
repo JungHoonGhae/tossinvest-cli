@@ -133,7 +133,7 @@ func writeOperations() []Operation {
 			Params: append([]Param{
 				{Name: "order_id", Type: "string", Required: true},
 				{Name: "quantity", Type: "number", Desc: "new quantity (optional)"},
-				{Name: "price", Type: "number", Desc: "new limit price (optional; omit for market)"},
+				{Name: "price", Type: "number", Desc: "new limit price (required: omitting it is rejected — the official API would convert the order to MARKET)"},
 			}, executeParams...),
 			handler: modifyHandler,
 		},
