@@ -21,17 +21,19 @@ SENSITIVE_HEADERS = {
     "x-request-id",
 }
 
+# Lowercase throughout: matching lowercases the key first, so Token=, TOKEN=
+# etc. are all caught (the old set missed case variants).
 SENSITIVE_QUERY_KEYS = {
     "authorization",
     "token",
     "access_token",
     "refresh_token",
-    "tabId",
-    "deviceId",
+    "tabid",
+    "deviceid",
     "device_id",
-    "requestId",
+    "requestid",
     "request_id",
-    "sessionId",
+    "sessionid",
     "session_id",
 }
 
@@ -51,8 +53,10 @@ SENSITIVE_JSON_KEYS = {
 }
 
 TOKEN_PATTERNS = [
-    (re.compile(r"Bearer\s+[A-Za-z0-9._-]+"), "Bearer <REDACTED_TOKEN>"),
-    (re.compile(r"(tabId=)[A-Za-z0-9-]+"), r"\1<REDACTED_TAB_ID>"),
+    # Base64 and base64url alphabets plus padding: the old [A-Za-z0-9._-]
+    # stopped at +/= and leaked the token tail.
+    (re.compile(r"Bearer\s+[A-Za-z0-9._~+\-/=]+"), "Bearer <REDACTED_TOKEN>"),
+    (re.compile(r"(tabId=)[A-Za-z0-9._~+\-/=]+"), r"\1<REDACTED_TAB_ID>"),
 ]
 
 
@@ -67,13 +71,27 @@ def sanitize_url(url: str) -> str:
     split = urlsplit(url)
     query_items = []
     for key, value in parse_qsl(split.query, keep_blank_values=True):
-        if key in SENSITIVE_QUERY_KEYS:
+        if key.lower() in SENSITIVE_QUERY_KEYS:
             query_items.append((key, "<REDACTED>"))
         else:
             query_items.append((key, redact_string(value)))
     return urlunsplit(
         (split.scheme, split.netloc, split.path, urlencode(query_items, doseq=True), split.fragment)
     )
+
+
+def sanitize_query_params(items: Any) -> None:
+    """Sanitize a HAR queryString/params array in place (mirrors the URL query)."""
+    if not isinstance(items, list):
+        return
+    for param in items:
+        if not isinstance(param, dict):
+            continue
+        name = param.get("name", "")
+        if isinstance(name, str) and name.lower() in SENSITIVE_QUERY_KEYS:
+            param["value"] = "<REDACTED>"
+        elif isinstance(param.get("value"), str):
+            param["value"] = redact_string(param["value"])
 
 
 def sanitize_headers(items: list[dict[str, Any]]) -> None:
@@ -134,6 +152,9 @@ def sanitize_entry(entry: dict[str, Any]) -> None:
     if isinstance(request.get("url"), str):
         request["url"] = sanitize_url(request["url"])
 
+    # queryString duplicates the URL query as an array; sanitize it the same way.
+    sanitize_query_params(request.get("queryString"))
+
     sanitize_headers(request.get("headers", []))
     sanitize_headers(response.get("headers", []))
     sanitize_cookies(request.get("cookies", []))
@@ -141,9 +162,22 @@ def sanitize_entry(entry: dict[str, Any]) -> None:
 
     if isinstance(request.get("postData"), dict):
         sanitize_post_data(request["postData"])
+        # Form posts duplicate fields in a params array.
+        sanitize_query_params(request["postData"].get("params"))
 
-    if isinstance(response.get("content", {}).get("text"), str):
-        response["content"]["text"] = redact_string(response["content"]["text"])
+    content = response.get("content", {})
+    text = content.get("text") if isinstance(content, dict) else None
+    if isinstance(text, str):
+        mime = str(content.get("mimeType", ""))
+        if "json" in mime:
+            # Account/balance data lives in response bodies: apply the same
+            # key masking as request payloads instead of regex-only redaction.
+            try:
+                content["text"] = json.dumps(sanitize_object(json.loads(text)), ensure_ascii=False)
+            except json.JSONDecodeError:
+                content["text"] = redact_string(text)
+        else:
+            content["text"] = redact_string(text)
 
 
 def sanitize_har(document: dict[str, Any]) -> dict[str, Any]:
