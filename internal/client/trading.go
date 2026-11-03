@@ -775,7 +775,7 @@ func buildAmendBody(order pendingOrderDetails, marketCode string, usdRate float6
 	targetPriceUSD := order.OrderUSDPrice
 	if priceKRW != nil {
 		targetPriceKRW = *priceKRW
-		targetPriceUSD = round2(targetPriceKRW / usdRate)
+		targetPriceUSD = roundUSDPrice(targetPriceKRW / usdRate)
 	}
 
 	payload := map[string]any{
@@ -864,12 +864,13 @@ func buildPlaceBody(productCode, marketCode string, intent orderintent.PlaceInte
 		priceValue = intent.Price
 		quantityValue = intent.Quantity
 	case intent.Market == "us" && intent.CurrencyMode == "USD":
-		// US limit + USD input: price field carries USD as-is.
-		priceValue = round2(intent.Price)
+		// US limit + USD input: price field carries USD rounded to tick
+		// precision (4dp below $1, 2dp at or above).
+		priceValue = roundUSDPrice(intent.Price)
 		quantityValue = intent.Quantity
 	default:
 		// US limit + KRW input: convert to USD using server-provided rate.
-		priceValue = round2(intent.Price / meta.ExchangeRate)
+		priceValue = roundUSDPrice(intent.Price / meta.ExchangeRate)
 		quantityValue = intent.Quantity
 	}
 
@@ -918,7 +919,14 @@ func buildPlaceBody(productCode, marketCode string, intent orderintent.PlaceInte
 	return json.Marshal(payload)
 }
 
-func round2(value float64) float64 {
+// roundUSDPrice rounds a USD wire price to the venue tick precision: 4 decimals
+// below $1, 2 decimals at or above (nearest, half away from zero). The old
+// round2 truncated sub-$1 quotes to cents — e.g. a captured 700/1472.8 order
+// went out as 0.48 instead of the browser's 0.4753 (issue #4).
+func roundUSDPrice(value float64) float64 {
+	if value < 1 {
+		return math.Round(value*10000) / 10000
+	}
 	return math.Round(value*100) / 100
 }
 
