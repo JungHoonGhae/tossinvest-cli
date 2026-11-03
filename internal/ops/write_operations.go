@@ -110,7 +110,7 @@ func writeOperations() []Operation {
 				{Name: "amount", Type: "number", Desc: "order amount for fractional US buy"},
 				{Name: "currency_mode", Type: "string", Desc: `"KRW" (default) or "USD" for US price input`},
 				{Name: "fractional", Type: "boolean", Desc: "US fractional market order"},
-				{Name: "time_in_force", Type: "string", Desc: `"DAY" (default) | "CLS" (US limit-on-close) | "OPG" (KR opening single-price; limit or market). Rejected on other combinations and on fractional orders.`},
+				{Name: "time_in_force", Type: "string", Desc: `"DAY" (default) | "CLS" (US limit-on-close) | "OPG" (KR opening single-price, limit only — market orders are rejected). Rejected on other combinations and on fractional orders.`},
 			}, executeParams...),
 			handler: placeHandler,
 		},

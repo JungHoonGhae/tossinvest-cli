@@ -1426,3 +1426,37 @@ func TestClassifyPlaceCreateFailurePassesThroughNonStatusError(t *testing.T) {
 		t.Fatalf("expected passthrough, got %v", got)
 	}
 }
+
+// TestRejectNonDayTimeInForce guards issue #3: the WTS web order API has no
+// time-in-force field, so CLS/OPG must be refused instead of silently
+// executing as DAY orders.
+func TestRejectNonDayTimeInForce(t *testing.T) {
+	base := orderintent.PlaceIntent{Symbol: "AAPL", Market: "us", Side: "buy",
+		OrderType: "limit", Quantity: 1, Price: 100, CurrencyMode: "USD"}
+	for _, tif := range []string{"CLS", "OPG", "cls"} {
+		intent := base
+		intent.TimeInForce = tif
+		if err := rejectNonDayTimeInForce(intent); !errors.Is(err, tradingflow.ErrPlaceUnsupported) {
+			t.Fatalf("TIF %q: expected ErrPlaceUnsupported, got %v", tif, err)
+		}
+	}
+	for _, tif := range []string{"", "DAY", "day"} {
+		intent := base
+		intent.TimeInForce = tif
+		if err := rejectNonDayTimeInForce(intent); err != nil {
+			t.Fatalf("TIF %q must pass the guard, got %v", tif, err)
+		}
+	}
+}
+
+// TestPlacePendingOrderRejectsTIFBeforeIO proves the guard sits before any
+// network call: a zero Client rejects CLS without touching the network.
+func TestPlacePendingOrderRejectsTIFBeforeIO(t *testing.T) {
+	c := &Client{}
+	intent := orderintent.PlaceIntent{Symbol: "AAPL", Market: "us", Side: "buy",
+		OrderType: "limit", Quantity: 1, Price: 100, CurrencyMode: "USD", TimeInForce: "CLS"}
+	_, err := c.PlacePendingOrder(context.Background(), intent)
+	if !errors.Is(err, tradingflow.ErrPlaceUnsupported) {
+		t.Fatalf("expected ErrPlaceUnsupported without I/O, got %v", err)
+	}
+}

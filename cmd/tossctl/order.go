@@ -426,7 +426,7 @@ func bindPlaceFlags(cmd *cobra.Command, flags *placeFlags) {
 	cmd.Flags().StringVar(&flags.currencyMode, "currency-mode", flags.currencyMode, "Currency mode")
 	// 조합 규칙이 시장별로 갈린다 — CLS 는 미국+지정가, OPG 는 국내 전용.
 	// NormalizePlace 가 거절하므로 여기서는 안내만 한다.
-	cmd.Flags().StringVar(&flags.timeInForce, "time-in-force", "", "Order validity: DAY (default) | CLS (US limit-on-close) | OPG (KR 시가단일가). OPG accepts limit or market; off-session submissions may be rejected by the ledger")
+	cmd.Flags().StringVar(&flags.timeInForce, "time-in-force", "", "Order validity: DAY (default) | CLS (US limit-on-close) | OPG (KR 시가단일가, limit only — this tool rejects market orders). CLS/OPG need official API credentials (rejected on the WTS web path); off-session submissions may be rejected by the ledger")
 	// 접수 마감은 정규장 종료가 아니라 그 1시간 전이다 (공식 spec 1.2.9, 2026-08-04).
 	// 서버는 422 amount-order-outside-regular-hours /
 	// fractional-quantity-outside-regular-hours 로 거절한다.
