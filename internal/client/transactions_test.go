@@ -90,8 +90,8 @@ func TestListTransactionsParsesTradeAndCashEntries(t *testing.T) {
 		},
 	})
 
-	from := time.Date(2024, 1, 1, 0, 0, 0, 0, time.Local)
-	to := time.Date(2024, 1, 15, 0, 0, 0, 0, time.Local)
+	from := time.Date(2024, 1, 1, 0, 0, 0, 0, KoreaLocation)
+	to := time.Date(2024, 1, 15, 0, 0, 0, 0, KoreaLocation)
 	page, err := client.ListTransactions(context.Background(), "kr", from, to, "all", 0, 0)
 	if err != nil {
 		t.Fatalf("ListTransactions returned error: %v", err)
@@ -196,8 +196,8 @@ func TestListAllTransactionsPagesUntilLastPage(t *testing.T) {
 
 	items, err := client.ListAllTransactions(
 		context.Background(), "kr",
-		time.Date(2026, 1, 1, 0, 0, 0, 0, time.Local),
-		time.Date(2026, 4, 19, 0, 0, 0, 0, time.Local),
+		time.Date(2026, 1, 1, 0, 0, 0, 0, KoreaLocation),
+		time.Date(2026, 4, 19, 0, 0, 0, 0, KoreaLocation),
 		"all", 0, 5,
 	)
 	if err != nil {

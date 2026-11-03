@@ -13,18 +13,17 @@ import (
 )
 
 // parseDecimal parses a decimal string to float64. Empty means null in the
-// official schema and maps to 0. A non-empty unparseable value maps to NaN —
-// never a plausible 0 — so corrupted server data fails loudly downstream
-// (no match, no silent zero-price display) instead of looking like a valid
-// zero quantity or price. Used by all official-API adapters that receive
-// numeric fields as strings.
+// official schema and maps to 0. A non-empty unparseable value also maps to 0:
+// NaN would be safer semantically, but encoding/json rejects NaN, so a single
+// garbage field would fail the whole JSON/MCP response. Used by all
+// official-API adapters that receive numeric fields as strings.
 func parseDecimal(s string) float64 {
 	if s == "" {
 		return 0
 	}
 	f, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		return math.NaN()
+	if err != nil || math.IsNaN(f) || math.IsInf(f, 0) { // ParseFloat accepts "NaN"/"Inf"
+		return 0
 	}
 	return f
 }
