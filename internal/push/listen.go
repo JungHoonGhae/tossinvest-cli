@@ -21,9 +21,22 @@ const (
 	defaultStreamURL = "https://sse-message.tossinvest.com/api/v1/wts-notification"
 	initialBackoff   = 2 * time.Second
 	maxBackoff       = 60 * time.Second
+	// 서버는 ~2초 간격으로 하트비트 코멘트를 보내므로, 이 시간 동안 한 바이트도
+	// 오지 않으면 반개방(half-open) stall 로 보고 재연결한다. 넉넉히 30배수.
+	defaultIdleTimeout = 60 * time.Second
 )
 
 var ErrNoSession = errors.New("push: no active session cookies")
+
+// ErrPushUnauthorized marks an SSE open the server refused for credentials
+// reasons (401/403: expired session or unlisted IP). Reconnecting with the
+// same cookies cannot fix it, so ListenWithRetry returns it instead of
+// looping forever on a 60s cadence.
+var ErrPushUnauthorized = errors.New("push: stream unauthorized")
+
+// errIdleTimeout fires when the SSE wire goes silent past idleTimeout:
+// typically a half-open TCP stall where scanner.Scan would block forever.
+var errIdleTimeout = errors.New("push: stream idle timeout")
 
 // errConnectionClose signals Toss's graceful `event: connection-close` frame,
 // emitted every few minutes. The retry loop reconnects immediately without
@@ -40,10 +53,11 @@ type Event struct {
 }
 
 type Listener struct {
-	session    *session.Session
-	streamURL  string
-	httpClient *http.Client
-	logf       func(format string, args ...any)
+	session     *session.Session
+	streamURL   string
+	httpClient  *http.Client
+	logf        func(format string, args ...any)
+	idleTimeout time.Duration
 }
 
 type Option func(*Listener)
@@ -64,13 +78,17 @@ func WithLogger(logf func(string, ...any)) Option {
 
 func NewListener(sess *session.Session, opts ...Option) *Listener {
 	l := &Listener{
-		session:    sess,
-		streamURL:  defaultStreamURL,
-		httpClient: &http.Client{},
-		logf:       func(string, ...any) {},
+		session:     sess,
+		streamURL:   defaultStreamURL,
+		httpClient:  &http.Client{},
+		logf:        func(string, ...any) {},
+		idleTimeout: defaultIdleTimeout,
 	}
 	for _, opt := range opts {
 		opt(l)
+	}
+	if l.idleTimeout <= 0 {
+		l.idleTimeout = defaultIdleTimeout
 	}
 	return l
 }
@@ -99,6 +117,9 @@ func (l *Listener) Listen(ctx context.Context, handler func(Event)) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		return fmt.Errorf("%w: HTTP %d (session expired or IP not allowed)", ErrPushUnauthorized, resp.StatusCode)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("push: stream returned HTTP %d", resp.StatusCode)
 	}
@@ -106,7 +127,7 @@ func (l *Listener) Listen(ctx context.Context, handler func(Event)) error {
 		return fmt.Errorf("push: unexpected content-type %q", ct)
 	}
 
-	return parseStream(resp.Body, handler)
+	return parseStream(newIdleReader(resp.Body, l.idleTimeout), handler)
 }
 
 func (l *Listener) ListenWithRetry(ctx context.Context, handler func(Event)) error {
@@ -116,11 +137,14 @@ func (l *Listener) ListenWithRetry(ctx context.Context, handler func(Event)) err
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		if errors.Is(err, ErrNoSession) {
+		if errors.Is(err, ErrNoSession) || errors.Is(err, ErrPushUnauthorized) {
 			return err
 		}
 
-		graceful := errors.Is(err, errConnectionClose)
+		// An idle stall means unknown stream state: re-establish now without
+		// growing the backoff (like a graceful handoff). If the network is
+		// really down the re-dial fails fast and the normal backoff applies.
+		graceful := errors.Is(err, errConnectionClose) || errors.Is(err, errIdleTimeout)
 		switch {
 		case graceful:
 			l.logf("push: server requested graceful reconnect")
@@ -144,6 +168,40 @@ func (l *Listener) ListenWithRetry(ctx context.Context, handler func(Event)) err
 		}
 
 		backoff = initialBackoff
+	}
+}
+
+// idleReader errors when the wrapped stream delivers no bytes within timeout.
+// SSE heartbeats arrive every couple of seconds, so a silent wire is a
+// half-open stall where scanner.Scan would otherwise block forever. Each
+// successful Read restarts the deadline; the reader is abandoned on timeout
+// (the caller closes the body, which unblocks the in-flight Read).
+type idleReader struct {
+	r       io.Reader
+	timeout time.Duration
+}
+
+func newIdleReader(r io.Reader, timeout time.Duration) *idleReader {
+	return &idleReader{r: r, timeout: timeout}
+}
+
+func (w *idleReader) Read(p []byte) (int, error) {
+	type result struct {
+		n   int
+		err error
+	}
+	ch := make(chan result, 1)
+	go func() {
+		n, err := w.r.Read(p)
+		ch <- result{n, err}
+	}()
+	timer := time.NewTimer(w.timeout)
+	defer timer.Stop()
+	select {
+	case res := <-ch:
+		return res.n, res.err
+	case <-timer.C:
+		return 0, errIdleTimeout
 	}
 }
 

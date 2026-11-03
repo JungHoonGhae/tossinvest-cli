@@ -3,6 +3,7 @@ package official
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -129,5 +130,80 @@ func TestStreamSubscriptionsGroupsByMarket(t *testing.T) {
 		if subs[i].Type != want[i].Type || strings.Join(subs[i].Codes, ",") != strings.Join(want[i].Codes, ",") {
 			t.Fatalf("subscription %d: want %+v, got %+v", i, want[i], subs[i])
 		}
+	}
+}
+
+// TestStreamWithRetryStopsOnPersistent401 guards issue #12: a revoked key must
+// not spin the reconnect loop forever. The client refreshes the token once
+// (2 dials, 2 token calls) and then returns the permanent error.
+func TestStreamWithRetryStopsOnPersistent401(t *testing.T) {
+	var tokenCalls, dialCalls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			tokenCalls++
+			_, _ = w.Write([]byte(`{"access_token":"AT` + strings.Repeat("X", tokenCalls) + `","expires_in":3600,"token_type":"Bearer"}`))
+		default:
+			dialCalls++
+			w.WriteHeader(http.StatusUnauthorized)
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	c := streamClient(t, srv)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	err := c.StreamWithRetry(ctx,
+		[]Subscription{{Type: "trade:us", Codes: []string{"AAPL"}}},
+		func(StreamFrame) {}, nil)
+	if !errors.Is(err, ErrStreamUnauthorized) {
+		t.Fatalf("want permanent unauthorized error, got %v", err)
+	}
+	if dialCalls != 2 {
+		t.Fatalf("want exactly 1 refresh retry (2 dials), got %d", dialCalls)
+	}
+	if tokenCalls != 2 {
+		t.Fatalf("want initial + refresh token calls, got %d", tokenCalls)
+	}
+}
+
+// TestStreamWithRetryStopsOn403: forbidden (e.g. unlisted IP) is permanent on
+// the first handshake — no refresh retry, single dial.
+func TestStreamWithRetryStopsOn403(t *testing.T) {
+	var tokenCalls, dialCalls int
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			tokenCalls++
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		default:
+			dialCalls++
+			w.WriteHeader(http.StatusForbidden)
+		}
+	}))
+	t.Cleanup(srv.Close)
+
+	c := streamClient(t, srv)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	err := c.StreamWithRetry(ctx,
+		[]Subscription{{Type: "trade:us", Codes: []string{"AAPL"}}},
+		func(StreamFrame) {}, nil)
+	if !errors.Is(err, ErrStreamUnauthorized) {
+		t.Fatalf("want permanent unauthorized error, got %v", err)
+	}
+	if dialCalls != 1 || tokenCalls != 1 {
+		t.Fatalf("403 must not refresh or redial: dials=%d tokens=%d", dialCalls, tokenCalls)
+	}
+}
+
+// TestStreamResetBackoff pins the healthy-connection rule: long-lived
+// connections reset the backoff, flapping ones keep growing it.
+func TestStreamResetBackoff(t *testing.T) {
+	if streamResetBackoff(59 * time.Second) {
+		t.Error("59s uptime must keep backing off")
+	}
+	if !streamResetBackoff(time.Minute) || !streamResetBackoff(10*time.Minute) {
+		t.Error("uptime at/above the threshold must reset the backoff")
 	}
 }
