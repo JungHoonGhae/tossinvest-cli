@@ -100,7 +100,7 @@ class TestTossctlTraffic(unittest.TestCase):
         doc = entry_with(response={"content": {"mimeType": "application/json", "text": body}})
         S.sanitize_har(doc)
         text = doc["log"]["entries"][0]["response"]["content"]["text"]
-        for leaked in ("000-00-000000", "DUMMY", "dummy-primary", "dummy-user-id", "dummy-access"):
+        for leaked in ("000-00-000000", "DUMMY", "dummy-primary", "dummy-user-id", "dummy-access", '"k1"'):
             self.assertNotIn(leaked, text)
         # Amounts are intentionally kept.
         self.assertEqual(json.loads(text)["result"]["totalAmount"], 1234)
@@ -162,6 +162,33 @@ class TestTossctlTraffic(unittest.TestCase):
         url = doc["log"]["entries"][0]["response"]["redirectURL"]
         self.assertNotIn("dummy-tok", url)
         self.assertNotIn("000-00-000004", url)
+
+
+class TestSiblingLeaks(unittest.TestCase):
+    """Paths beside the URL and JSON bodies (dummy values only)."""
+
+    def test_form_urlencoded_body_masked(self):
+        doc = entry_with(request={"postData": {"mimeType": "application/x-www-form-urlencoded",
+                                               "text": "accountNo=000-00-000009&token=dummy-tok&side=buy"}})
+        S.sanitize_har(doc)
+        text = doc["log"]["entries"][0]["request"]["postData"]["text"]
+        self.assertNotIn("000-00-000009", text)
+        self.assertNotIn("dummy-tok", text)
+        self.assertIn("side=buy", text)
+
+    def test_form_shaped_text_plain_body_masked(self):
+        doc = entry_with(request={"postData": {"mimeType": "text/plain", "text": "accountKey=dummy-ak&x=1"}})
+        S.sanitize_har(doc)
+        self.assertNotIn("dummy-ak", doc["log"]["entries"][0]["request"]["postData"]["text"])
+
+    def test_url_headers_and_page_titles_sanitized(self):
+        doc = entry_with(response={"headers": [{"name": "Location", "value": "https://x.test/cb?token=dummy-loc"}]},
+                         request={"headers": [{"name": "Referer", "value": "https://x.test/p?accountNo=000-00-000008"}]})
+        doc["log"]["pages"] = [{"title": "https://x.test/a?access_token=dummy-page"}]
+        S.sanitize_har(doc)
+        dumped = json.dumps(doc)
+        for leaked in ("dummy-loc", "000-00-000008", "dummy-page"):
+            self.assertNotIn(leaked, dumped)
 
 
 if __name__ == "__main__":

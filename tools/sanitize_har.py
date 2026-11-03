@@ -76,6 +76,8 @@ SENSITIVE_JSON_KEYS = {
     "accountid",
     "accountkey",
     "primarykey",
+    # accountList entries carry the account key as a bare "key".
+    "key",
     "residentregistrationnumber",
 }
 
@@ -121,11 +123,18 @@ def sanitize_query_params(items: Any) -> None:
             param["value"] = redact_string(param["value"])
 
 
+# Headers whose value is a URL: their query strings leak the same keys as the
+# request URL does.
+URL_HEADERS = {"location", "referer", "origin", "content-location"}
+
+
 def sanitize_headers(items: list[dict[str, Any]]) -> None:
     for header in items:
         name = str(header.get("name", "")).lower()
         if name in SENSITIVE_HEADERS:
             header["value"] = "<REDACTED>"
+        elif name in URL_HEADERS and isinstance(header.get("value"), str):
+            header["value"] = sanitize_url(header["value"])
         elif isinstance(header.get("value"), str):
             header["value"] = redact_string(header["value"])
 
@@ -135,11 +144,28 @@ def sanitize_cookies(items: list[dict[str, Any]]) -> None:
         cookie["value"] = "<REDACTED>"
 
 
+FORM_BODY = re.compile(r"[^\s=&<>{}]+=[^\s&]*(?:&[^\s=&]+=[^\s&]*)*")
+
+
+def sanitize_form(text: str) -> str:
+    items = []
+    for key, value in parse_qsl(text, keep_blank_values=True):
+        lowered = key.lower()
+        if lowered in SENSITIVE_QUERY_KEYS or lowered in SENSITIVE_JSON_KEYS:
+            items.append((key, "<REDACTED>"))
+        else:
+            items.append((key, redact_string(value)))
+    return urlencode(items)
+
+
 def sanitize_body(text: str, mime_type: str) -> str:
-    """Key-mask a body that is JSON by mime type or by content; regex otherwise."""
+    """Key-mask a body that is JSON or form-encoded (by mime type or by shape);
+    regex-only redaction otherwise."""
     try:
         payload = json.loads(text)
     except ValueError:
+        if "x-www-form-urlencoded" in mime_type.lower() or FORM_BODY.fullmatch(text.strip()):
+            return sanitize_form(text)
         return redact_string(text)
     if "json" not in mime_type.lower() and not isinstance(payload, (dict, list)):
         # A bare scalar ("123", "true") in a non-JSON body is not JSON data.
@@ -222,6 +248,10 @@ def sanitize_har(document: dict[str, Any]) -> dict[str, Any]:
     log = document.get("log", {})
     for entry in log.get("entries", []):
         sanitize_entry(entry)
+    # Page titles are often the page URL, query string included.
+    for page in log.get("pages", []):
+        if isinstance(page, dict) and isinstance(page.get("title"), str) and "://" in page["title"]:
+            page["title"] = sanitize_url(page["title"])
     return document
 
 
