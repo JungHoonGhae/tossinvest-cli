@@ -458,6 +458,21 @@ func containsAny(haystack string, needles ...string) bool {
 	return false
 }
 
+// verifyCancelSymbol checks the user-asserted symbol against the looked-up
+// order before mutating it. The intent symbol is required, so a mismatch is a
+// hard refusal; a resolution failure is too (fail-closed — a typo'd symbol
+// must not cancel an unchecked order).
+func (c *Client) verifyCancelSymbol(ctx context.Context, intent orderintent.CancelIntent, order pendingOrderDetails) error {
+	code, err := c.resolveProductCode(ctx, intent.Symbol)
+	if err != nil {
+		return fmt.Errorf("refusing to cancel order %q: cannot resolve symbol %q (%v)", intent.OrderID, intent.Symbol, err)
+	}
+	if code != order.StockCode {
+		return fmt.Errorf("refusing to cancel order %q: it belongs to product %q, not symbol %q", intent.OrderID, order.StockCode, intent.Symbol)
+	}
+	return nil
+}
+
 func (c *Client) CancelPendingOrder(ctx context.Context, intent orderintent.CancelIntent) (tradingflow.MutationResult, error) {
 	startedAt := time.Now()
 	if err := c.ensureTradingMetadata(ctx); err != nil {
@@ -465,6 +480,9 @@ func (c *Client) CancelPendingOrder(ctx context.Context, intent orderintent.Canc
 	}
 	order, err := c.lookupPendingOrder(ctx, intent.OrderID)
 	if err != nil {
+		return tradingflow.MutationResult{}, err
+	}
+	if err := c.verifyCancelSymbol(ctx, intent, order); err != nil {
 		return tradingflow.MutationResult{}, err
 	}
 
@@ -688,14 +706,40 @@ func (c *Client) lookupPendingOrder(ctx context.Context, orderID string) (pendin
 		return pendingOrderDetails{}, err
 	}
 
+	var matched []pendingOrderDetails
+	var labels []string
 	for _, order := range orders {
 		if order.ID != orderID && !orderMatchesID(order.Raw, orderID) {
 			continue
 		}
-		return decodePendingOrderDetails(order.Raw)
+		decoded, err := decodePendingOrderDetails(order.Raw)
+		if err != nil {
+			return pendingOrderDetails{}, err
+		}
+		matched = append(matched, decoded)
+		labels = append(labels, pendingOrderLabel(decoded))
 	}
+	if len(matched) == 0 {
+		return pendingOrderDetails{}, fmt.Errorf("pending order %s was not found", orderID)
+	}
+	// A bare order number can repeat across dates: cancelling the first match
+	// could hit another day's order, so refuse instead of guessing.
+	if len(matched) > 1 {
+		return pendingOrderDetails{}, fmt.Errorf("ambiguous order id %q matches %d pending orders (%s) — use the full date/order identifier", orderID, len(matched), strings.Join(labels, ", "))
+	}
+	return matched[0], nil
+}
 
-	return pendingOrderDetails{}, fmt.Errorf("pending order %s was not found", orderID)
+// pendingOrderLabel renders a match for ambiguity errors: the date/orderNo
+// composite the user must pass to disambiguate, when present.
+func pendingOrderLabel(order pendingOrderDetails) string {
+	if strings.TrimSpace(order.OrderedDate) != "" && strings.TrimSpace(order.OrderNo) != "" {
+		return order.OrderedDate + "/" + order.OrderNo
+	}
+	if strings.TrimSpace(order.OrderID) != "" {
+		return order.OrderID
+	}
+	return order.StockCode
 }
 
 func orderMatchesID(raw json.RawMessage, orderID string) bool {

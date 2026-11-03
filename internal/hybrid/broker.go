@@ -30,7 +30,7 @@ import (
 // only reason the double-order guard is unit-testable.
 type officialOrderer interface {
 	PlaceOrder(ctx context.Context, intent orderintent.PlaceIntent) (trading.MutationResult, error)
-	CancelOrder(ctx context.Context, orderID string) (trading.MutationResult, error)
+	CancelOrder(ctx context.Context, intent orderintent.CancelIntent) (trading.MutationResult, error)
 	ModifyOrder(ctx context.Context, intent orderintent.AmendIntent) (trading.MutationResult, error)
 }
 
@@ -79,7 +79,7 @@ func (b *hybridBroker) CancelPendingOrder(ctx context.Context, intent orderinten
 	if b.pol.mutationPath(b.off != nil, nil) == mutationWTS {
 		return b.wts.CancelPendingOrder(ctx, intent)
 	}
-	res, err := b.off.CancelOrder(ctx, intent.OrderID)
+	res, err := b.off.CancelOrder(ctx, intent)
 	if err != nil {
 		return trading.MutationResult{}, fmt.Errorf("공식 경로 취소 실패 — 중복 처리 방지를 위해 웹 세션으로 자동 재시도하지 않습니다. `tossctl orders` 로 상태를 확인한 뒤 다시 시도하세요: %w", err)
 	}

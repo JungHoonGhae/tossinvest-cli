@@ -54,16 +54,24 @@ type LineageRecorder interface {
 	Record(originalOrderID string, entry orderlineage.Entry) error
 }
 
+// LineageResolver maps a possibly-stale order id to the live one (e.g. after
+// an amend issued a replacement id). *orderlineage.Service implements it; a
+// recorder that does not is simply never consulted.
+type LineageResolver interface {
+	Resolve(orderID string) (string, bool, error)
+}
+
 type Service struct {
 	policy      config.Trading
 	broker      Broker
 	conditional ConditionalBroker
 	lineage     LineageRecorder // optional; nil disables recording
+	resolver    LineageResolver // optional; nil disables stale-id resolution
 }
 
 // WithConditionalBroker attaches the official-only conditional-order adapter.
-func (s *Service) WithConditionalBroker(b ConditionalBroker) *Service {
-	s.conditional = b
+func (s *Service) WithConditionalBroker(c ConditionalBroker) *Service {
+	s.conditional = c
 	return s
 }
 
@@ -76,10 +84,33 @@ func NewService(policy config.Trading, broker Broker) *Service {
 
 // WithLineage attaches the recorder. Optional: a Service without one behaves
 // exactly as before, which keeps the many tests that construct a bare Service
-// working and lets read-only callers skip the dependency.
+// working and lets read-only callers skip the dependency. A recorder that
+// also resolves ids (like *orderlineage.Service) is picked up for
+// cancel/amend automatically.
 func (s *Service) WithLineage(r LineageRecorder) *Service {
 	s.lineage = r
+	if res, ok := r.(LineageResolver); ok {
+		s.resolver = res
+	}
 	return s
+}
+
+// resolveLiveOrderID maps a user-supplied order id through lineage. A hit
+// returns the live id; a miss returns the input unchanged. A backend failure
+// (e.g. corrupt cache file) never strands a cancel/amend: the original id is
+// used and the uncertainty is reported as a warning.
+func (s *Service) resolveLiveOrderID(orderID string) (string, string) {
+	if s.resolver == nil {
+		return orderID, ""
+	}
+	live, ok, err := s.resolver.Resolve(orderID)
+	if err != nil {
+		return orderID, fmt.Sprintf("Could not consult the order-lineage cache (%v); using %q as-is", err, orderID)
+	}
+	if !ok {
+		return orderID, ""
+	}
+	return live, ""
 }
 
 // recordLineage is called after a successful mutation. A recording failure is
@@ -154,8 +185,17 @@ func (s *Service) PreviewPlace(intent orderintent.PlaceIntent) Preview {
 }
 
 func (s *Service) PreviewCancel(intent orderintent.CancelIntent) Preview {
+	original := intent.OrderID
+	liveID, resolveWarn := s.resolveLiveOrderID(original)
+	intent.OrderID = liveID
 	canonical := orderintent.CanonicalCancel(intent)
 	warnings := []string{"A transport error can leave cancellation outcome unknown; inspect pending and completed orders before retrying."}
+	if liveID != original {
+		warnings = append(warnings, fmt.Sprintf("Order %q was replaced by an earlier amend/cancel; acting on live order %q", original, liveID))
+	}
+	if resolveWarn != "" {
+		warnings = append(warnings, resolveWarn)
+	}
 	if !s.policy.Cancel {
 		warnings = append(warnings, "Config currently disables `order cancel`.")
 	}
@@ -173,10 +213,19 @@ func (s *Service) PreviewCancel(intent orderintent.CancelIntent) Preview {
 }
 
 func (s *Service) PreviewAmend(intent orderintent.AmendIntent) Preview {
+	original := intent.OrderID
+	liveID, resolveWarn := s.resolveLiveOrderID(original)
+	intent.OrderID = liveID
 	canonical := orderintent.CanonicalAmend(intent)
 	warnings := []string{
 		"A transport error can leave amendment outcome unknown; inspect pending and completed orders before retrying.",
 		"Amend wiring exists, but the current beta slice still needs more live verification.",
+	}
+	if liveID != original {
+		warnings = append(warnings, fmt.Sprintf("Order %q was replaced by an earlier amend/cancel; acting on live order %q", original, liveID))
+	}
+	if resolveWarn != "" {
+		warnings = append(warnings, resolveWarn)
 	}
 	if !s.policy.Amend {
 		warnings = append(warnings, "Config currently disables `order amend`.")
@@ -252,6 +301,8 @@ func (s *Service) Place(ctx context.Context, intent orderintent.PlaceIntent, opt
 }
 
 func (s *Service) Cancel(ctx context.Context, intent orderintent.CancelIntent, opts ExecuteOptions) (MutationResult, error) {
+	liveID, resolveWarn := s.resolveLiveOrderID(intent.OrderID)
+	intent.OrderID = liveID
 	if err := s.guard(ctx, ActionCancel, s.PreviewCancel(intent), opts); err != nil {
 		return MutationResult{}, err
 	}
@@ -262,10 +313,19 @@ func (s *Service) Cancel(ctx context.Context, intent orderintent.CancelIntent, o
 	if _, err := s.broker.GetOrderAvailableActions(ctx, intent.OrderID); err != nil {
 		return MutationResult{}, err
 	}
-	return s.withLineage(s.broker.CancelPendingOrder(ctx, intent))
+	res, err := s.withLineage(s.broker.CancelPendingOrder(ctx, intent))
+	if err != nil {
+		return res, err
+	}
+	if resolveWarn != "" {
+		res.Warnings = append(res.Warnings, resolveWarn)
+	}
+	return res, nil
 }
 
 func (s *Service) Amend(ctx context.Context, intent orderintent.AmendIntent, opts ExecuteOptions) (MutationResult, error) {
+	liveID, resolveWarn := s.resolveLiveOrderID(intent.OrderID)
+	intent.OrderID = liveID
 	if err := s.guard(ctx, ActionAmend, s.PreviewAmend(intent), opts); err != nil {
 		return MutationResult{}, err
 	}
@@ -275,7 +335,14 @@ func (s *Service) Amend(ctx context.Context, intent orderintent.AmendIntent, opt
 	if _, err := s.broker.GetOrderAvailableActions(ctx, intent.OrderID); err != nil {
 		return MutationResult{}, err
 	}
-	return s.withLineage(s.broker.AmendPendingOrder(ctx, intent))
+	res, err := s.withLineage(s.broker.AmendPendingOrder(ctx, intent))
+	if err != nil {
+		return res, err
+	}
+	if resolveWarn != "" {
+		res.Warnings = append(res.Warnings, resolveWarn)
+	}
+	return res, nil
 }
 
 func (s *Service) PlaceConditional(ctx context.Context, intent orderintent.ConditionalPlaceIntent, opts ExecuteOptions) (domain.ConditionalOrderRef, error) {

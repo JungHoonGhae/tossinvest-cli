@@ -68,7 +68,7 @@ func (f *fakeOfficial) PlaceOrder(_ context.Context, _ orderintent.PlaceIntent) 
 	return f.placeRes, f.placeErr
 }
 
-func (f *fakeOfficial) CancelOrder(_ context.Context, _ string) (trading.MutationResult, error) {
+func (f *fakeOfficial) CancelOrder(_ context.Context, _ orderintent.CancelIntent) (trading.MutationResult, error) {
 	f.cancelCalls++
 	return f.cancelRes, f.cancelErr
 }
