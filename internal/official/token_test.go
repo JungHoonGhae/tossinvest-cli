@@ -63,7 +63,8 @@ func TestTokenColdLoadFromDiskCache(t *testing.T) {
 	defer srv.Close()
 
 	cacheFile := filepath.Join(t.TempDir(), "t.json")
-	ct := cachedToken{AccessToken: "DISK", ExpiresAt: time.Now().Add(time.Hour)}
+	stamper := newTokenManager(Credentials{APIKey: "k", SecretKey: "s"}, srv.URL, cacheFile, srv.Client())
+	ct := cachedToken{AccessToken: "DISK", ExpiresAt: time.Now().Add(time.Hour), KeyFingerprint: stamper.fingerprint()}
 	data, _ := json.Marshal(ct)
 	if err := os.WriteFile(cacheFile, data, 0o600); err != nil {
 		t.Fatal(err)
@@ -74,6 +75,72 @@ func TestTokenColdLoadFromDiskCache(t *testing.T) {
 	tok, err := m.token(context.Background())
 	if err != nil || tok != "DISK" {
 		t.Fatalf("got %q,%v", tok, err)
+	}
+}
+
+// TestTokenRejectsForeignCache guards issue #10: a disk entry stamped for
+// other credentials (rotated key, env/file switching) must not be reused —
+// the manager exchanges fresh instead.
+func TestTokenRejectsForeignCache(t *testing.T) {
+	exchanges := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		exchanges++
+		_, _ = w.Write([]byte(`{"access_token":"NEW","expires_in":3600,"token_type":"Bearer"}`))
+	}))
+	defer srv.Close()
+
+	cacheFile := filepath.Join(t.TempDir(), "t.json")
+	other := newTokenManager(Credentials{APIKey: "other", SecretKey: "s"}, srv.URL, cacheFile, srv.Client())
+	ct := cachedToken{AccessToken: "OLD-KEY-TOKEN", ExpiresAt: time.Now().Add(time.Hour), KeyFingerprint: other.fingerprint()}
+	data, _ := json.Marshal(ct)
+	if err := os.WriteFile(cacheFile, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	m := newTokenManager(Credentials{APIKey: "k", SecretKey: "s"}, srv.URL, cacheFile, srv.Client())
+	tok, err := m.token(context.Background())
+	if err != nil || tok != "NEW" {
+		t.Fatalf("foreign cache must be discarded, got %q,%v", tok, err)
+	}
+	if exchanges != 1 {
+		t.Fatalf("expected a fresh exchange, got %d", exchanges)
+	}
+	// The re-exchange must stamp the new credentials on disk.
+	saved, err := os.ReadFile(cacheFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var stamped cachedToken
+	if err := json.Unmarshal(saved, &stamped); err != nil {
+		t.Fatal(err)
+	}
+	if stamped.KeyFingerprint != m.fingerprint() {
+		t.Fatalf("saved cache must carry the current fingerprint, got %+v", stamped)
+	}
+}
+
+// TestTokenOldCacheFormatTriggersExchange: entries written before
+// fingerprinting carry no fingerprint and never match — one re-exchange
+// self-heals the format.
+func TestTokenOldCacheFormatTriggersExchange(t *testing.T) {
+	exchanges := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		exchanges++
+		_, _ = w.Write([]byte(`{"access_token":"NEW","expires_in":3600,"token_type":"Bearer"}`))
+	}))
+	defer srv.Close()
+
+	cacheFile := filepath.Join(t.TempDir(), "t.json")
+	ct := cachedToken{AccessToken: "LEGACY", ExpiresAt: time.Now().Add(time.Hour)}
+	data, _ := json.Marshal(ct)
+	if err := os.WriteFile(cacheFile, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	m := newTokenManager(Credentials{APIKey: "k", SecretKey: "s"}, srv.URL, cacheFile, srv.Client())
+	tok, err := m.token(context.Background())
+	if err != nil || tok != "NEW" || exchanges != 1 {
+		t.Fatalf("legacy cache must trigger one exchange, got %q,%v (%d exchanges)", tok, err, exchanges)
 	}
 }
 
