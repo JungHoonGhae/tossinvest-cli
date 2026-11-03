@@ -11,10 +11,10 @@ import (
 	"net/url"
 	"os"
 	"strings"
-
-	"github.com/JungHoonGhae/tossinvest-cli/internal/atomicfile"
 	"sync"
 	"time"
+
+	"github.com/JungHoonGhae/tossinvest-cli/internal/atomicfile"
 )
 
 // tokenResponse is the JSON payload returned by POST /oauth2/token.

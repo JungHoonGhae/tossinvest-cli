@@ -87,7 +87,7 @@ func TestWriteFileEnforcesPermissions(t *testing.T) {
 	}
 	if fi, err := os.Stat(dir); err != nil {
 		t.Fatal(err)
-	} else if fi.Mode().Perm() != 0o700 {
-		t.Fatalf("dir perm = %o, want 700", fi.Mode().Perm())
+	} else if fi.Mode().Perm() != 0o755 {
+		t.Fatalf("existing dir perm must be left alone, got %o", fi.Mode().Perm())
 	}
 }

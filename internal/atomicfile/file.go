@@ -12,16 +12,14 @@ import (
 )
 
 // WriteFile writes data to path atomically with the given permissions.
-// The parent directory is created 0700 and chmodded to 0700 when present, so
-// pre-existing wide directories (or umask effects) cannot leave secrets
-// world-readable.
+// A missing parent directory is created 0700. An existing one is left as is:
+// --session-file / --config-dir may point into a shared directory (cwd,
+// /tmp) whose mode is not ours to change — chmod there fails or surprises.
+// The file itself always ends up with perm.
 func WriteFile(path string, data []byte, perm os.FileMode) error {
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
-	}
-	if err := os.Chmod(dir, 0o700); err != nil {
-		return fmt.Errorf("atomicfile: chmod dir %q: %w", dir, err)
 	}
 
 	tmp, err := os.CreateTemp(dir, ".tmp-*")

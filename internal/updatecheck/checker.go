@@ -14,11 +14,10 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-
-	"github.com/JungHoonGhae/tossinvest-cli/internal/atomicfile"
 	"strings"
 	"time"
 
+	"github.com/JungHoonGhae/tossinvest-cli/internal/atomicfile"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/version"
 )
 

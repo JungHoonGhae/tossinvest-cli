@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/atomicfile"
-
 	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/version"
 )
