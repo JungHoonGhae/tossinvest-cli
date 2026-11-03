@@ -16,6 +16,7 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/orderintent"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 )
 
 // route is the keystone: it decides official-vs-WTS and emits a fallback notice
@@ -406,5 +407,114 @@ func TestModifyConditionalOrderExplainsModifyRestricted(t *testing.T) {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("error lacks %q: %v", want, err)
 		}
+	}
+}
+
+// TestOfficialSupportedChart guards issue #9: the official candles endpoint
+// serves only 1m/1d up to 200 bars. Anything else must go straight to WTS —
+// the official 400 is a domain error with no fallback.
+func TestOfficialSupportedChart(t *testing.T) {
+	cases := []struct {
+		interval string
+		count    int
+		want     bool
+	}{
+		{"1m", 30, true},
+		{"1d", 200, true},
+		{"1m", 0, true}, // 0 means server default: within cap
+		{"3m", 30, false},
+		{"5m", 30, false},
+		{"60m", 30, false},
+		{"1m", 201, false},
+		{"1d", 1000, false},
+		{"1h", 30, false},
+		{"", 30, false},
+	}
+	for _, tc := range cases {
+		if got := officialSupportedChart(tc.interval, tc.count); got != tc.want {
+			t.Errorf("officialSupportedChart(%q, %d) = %v, want %v", tc.interval, tc.count, got, tc.want)
+		}
+	}
+}
+
+// TestGetChartSkipsOfficialForUnsupportedInterval proves a 3m request never
+// touches the official endpoint: the official mock fails the test on any hit
+// while the WTS mock serves search, stock-info, and chart data.
+func TestGetChartSkipsOfficialForUnsupportedInterval(t *testing.T) {
+	offSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("official must not be called for 3m, got %s", r.URL.Path)
+	}))
+	t.Cleanup(offSrv.Close)
+	wtsSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/api/v2/search/stocks":
+			_, _ = w.Write([]byte(`{"result":{"stocks":[{"stockCode":"US20220809012","stockName":"TSLL"}]}}`))
+		case r.URL.Path == "/api/v2/stock-infos/US20220809012":
+			_, _ = w.Write([]byte(`{"result":{"symbol":"TSLL","name":"TSLL","currency":"USD","status":"N","market":{"code":"NSQ","displayName":"NASDAQ"}}}`))
+		case r.URL.Path == "/api/v1/c-chart/us-s/US20220809012/min:3":
+			_, _ = w.Write([]byte(`{"result":{"code":"US20220809012","exchange":"NSQ","candles":[{"dt":"2026-03-11T09:30:00+09:00","base":14.4,"open":14.4,"high":14.5,"low":14.3,"close":14.45,"volume":1000}]}}`))
+		default:
+			t.Fatalf("unexpected WTS request: %s", r.URL.Path)
+		}
+	}))
+	t.Cleanup(wtsSrv.Close)
+
+	off := official.New(official.Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		official.WithBaseURL(offSrv.URL), official.WithHTTPClient(offSrv.Client()))
+	wts := client.New(client.Config{HTTPClient: wtsSrv.Client(),
+		APIBaseURL: wtsSrv.URL, InfoBaseURL: wtsSrv.URL, CertBaseURL: wtsSrv.URL,
+		Session: &session.Session{Cookies: map[string]string{"SESSION": "x"},
+			Headers: map[string]string{"App-Version": "test"},
+			Storage: map[string]string{"localStorage:qr-tabId": "tab"}}})
+	h := New(wts, off, Policy{Prefer: "auto", Fallback: true}, io.Discard)
+
+	chart, err := h.GetChart(context.Background(), "AAPL", "3m", 30)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(chart.Candles) != 1 || chart.Interval != "3m" || chart.Symbol != "TSLL" {
+		t.Fatalf("unexpected WTS chart: %+v", chart)
+	}
+}
+
+// TestGetChartUsesOfficialForSupportedInterval proves 1m still prefers the
+// official endpoint (adjusted like the WTS path) when credentials exist.
+func TestGetChartUsesOfficialForSupportedInterval(t *testing.T) {
+	offSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/candles":
+			if got := r.URL.Query().Get("adjusted"); got != "true" {
+				t.Fatalf("official chart must request adjusted candles, got adjusted=%q", got)
+			}
+			_, _ = w.Write([]byte(`{"result":{"candles":[{"timestamp":"2026-03-11T09:31:00+09:00","openPrice":"100","highPrice":"101","lowPrice":"99","closePrice":"100.5","volume":"10","currency":"USD"}],"nextBefore":""}}`))
+		default:
+			t.Fatalf("unexpected official request: %s", r.URL.Path)
+		}
+	}))
+	t.Cleanup(offSrv.Close)
+	wtsSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("WTS must not be called for supported 1m, got %s", r.URL.Path)
+	}))
+	t.Cleanup(wtsSrv.Close)
+
+	off := official.New(official.Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		official.WithBaseURL(offSrv.URL), official.WithHTTPClient(offSrv.Client()))
+	wts := client.New(client.Config{HTTPClient: wtsSrv.Client(),
+		APIBaseURL: wtsSrv.URL, InfoBaseURL: wtsSrv.URL, CertBaseURL: wtsSrv.URL,
+		Session: &session.Session{Cookies: map[string]string{"SESSION": "x"},
+			Headers: map[string]string{"App-Version": "test"},
+			Storage: map[string]string{"localStorage:qr-tabId": "tab"}}})
+	h := New(wts, off, Policy{Prefer: "auto", Fallback: true}, io.Discard)
+
+	chart, err := h.GetChart(context.Background(), "AAPL", "1m", 30)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(chart.Candles) != 1 || chart.Interval != "1m" {
+		t.Fatalf("unexpected official chart: %+v", chart)
 	}
 }
