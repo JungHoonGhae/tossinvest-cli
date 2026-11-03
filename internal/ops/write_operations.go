@@ -108,7 +108,7 @@ func writeOperations() []Operation {
 				{Name: "quantity", Type: "number", Desc: "share count (required unless fractional buy)"},
 				{Name: "price", Type: "number", Desc: "limit price (required for limit orders)"},
 				{Name: "amount", Type: "number", Desc: "order amount for fractional US buy"},
-				{Name: "currency_mode", Type: "string", Desc: `"KRW" (default) or "USD" for US price input`},
+				{Name: "currency_mode", Type: "string", Desc: `"KRW" (default) or "USD". US fractional-buy amounts and US limit prices are USD-denominated on this official-only path: non-USD values are rejected, convert via WTS/CLI first`},
 				{Name: "fractional", Type: "boolean", Desc: "US fractional market order"},
 				{Name: "time_in_force", Type: "string", Desc: `"DAY" (default) | "CLS" (US limit-on-close) | "OPG" (KR opening single-price; limit or market). Rejected on other combinations and on fractional orders.`},
 			}, executeParams...),
