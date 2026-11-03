@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -124,7 +125,7 @@ func (s Store) open(ctx context.Context, write bool) (*sql.DB, error) {
 	return db, nil
 }
 
-func (s Store) revision(ctx context.Context, owner string) (int64, error) {
+func (s Store) revision(ctx context.Context, owner string, legacyOwners []string) (int64, error) {
 	db, err := s.open(ctx, false)
 	if errors.Is(err, os.ErrNotExist) || errors.Is(err, errEmptyHistory) {
 		return 0, nil
@@ -133,20 +134,24 @@ func (s Store) revision(ctx context.Context, owner string) (int64, error) {
 		return 0, err
 	}
 	defer db.Close()
-	return revision(ctx, db, owner)
+	return revision(ctx, db, owner, legacyOwners)
 }
 
 type rowReader interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
 }
 
-func revision(ctx context.Context, db rowReader, owner string) (int64, error) {
+func revision(ctx context.Context, db rowReader, owner string, legacyOwners []string) (int64, error) {
 	var stored string
 	err := db.QueryRowContext(ctx, "SELECT value FROM metadata WHERE key='owner'").Scan(&stored)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return 0, err
 	}
-	if stored != "" && stored != owner {
+	// The binding covers the account set, not the primary account: positions
+	// and transactions are collected session-wide. Databases stamped with the
+	// legacy (accounts+primary) digest keep working; a genuinely different
+	// account set is still rejected — point it at a separate --config-dir.
+	if stored != "" && stored != owner && !slices.Contains(legacyOwners, stored) {
 		return 0, fmt.Errorf("history belongs to a different WTS account scope; use a separate --config-dir")
 	}
 	var id int64
@@ -156,7 +161,7 @@ func revision(ctx context.Context, db rowReader, owner string) (int64, error) {
 
 // save commits a whole observation atomically and rejects a stale preview even
 // when another tossctl process synced during the network fetch.
-func (s Store) save(ctx context.Context, owner string, expected int64, data Data) (Snapshot, error) {
+func (s Store) save(ctx context.Context, owner string, legacyOwners []string, expected int64, data Data) (Snapshot, error) {
 	// JSON validation rejects NaN/Inf before opening or creating the database.
 	if _, err := json.Marshal(data); err != nil {
 		return Snapshot{}, err
@@ -171,14 +176,17 @@ func (s Store) save(ctx context.Context, owner string, expected int64, data Data
 		return Snapshot{}, err
 	}
 	defer tx.Rollback()
-	id, err := revision(ctx, tx, owner)
+	id, err := revision(ctx, tx, owner, legacyOwners)
 	if err != nil {
 		return Snapshot{}, err
 	}
 	if id != expected {
 		return Snapshot{}, fmt.Errorf("history changed since preview; preview sync again")
 	}
-	if _, err = tx.ExecContext(ctx, "INSERT OR IGNORE INTO metadata(key,value) VALUES('owner',?)", owner); err != nil {
+	// Upsert, not INSERT OR IGNORE: revision() above already validated the
+	// stored owner in this transaction, so re-stamping migrates a legacy
+	// (accounts+primary) digest to the primary-free form.
+	if _, err = tx.ExecContext(ctx, "INSERT INTO metadata(key,value) VALUES('owner',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", owner); err != nil {
 		return Snapshot{}, err
 	}
 	meta := data.Snapshot

@@ -53,6 +53,22 @@ func TestCheckLegacyConfig(t *testing.T) {
 	}
 }
 
+func TestCheckUnknownConfig(t *testing.T) {
+	if got := checkUnknownConfig(config.Status{Exists: false}); got.Status != CheckInfo {
+		t.Fatalf("missing config must be info, got %+v", got)
+	}
+	if got := checkUnknownConfig(config.Status{Exists: true}); got.Status != CheckOK {
+		t.Fatalf("clean config must pass, got %+v", got)
+	}
+	got := checkUnknownConfig(config.Status{Exists: true, UnknownFields: []string{"trading.palce"}})
+	if got.Status != CheckWarn || got.Name != "unknown_config_keys" {
+		t.Fatalf("typo keys must warn, got %+v", got)
+	}
+	if !strings.Contains(got.Detail, "trading.palce") {
+		t.Fatalf("detail must name the keys, got %+v", got)
+	}
+}
+
 func hasHangul(s string) bool {
 	for _, r := range s {
 		if unicode.In(r, unicode.Hangul) {

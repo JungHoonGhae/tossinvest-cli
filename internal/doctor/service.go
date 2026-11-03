@@ -119,6 +119,7 @@ func (s *Service) Run(ctx context.Context) (Report, error) {
 		checkLiveOrderActions(s.configState),
 		checkDangerousAutomation(s.configState),
 		checkLegacyConfig(s.configState),
+		checkUnknownConfig(s.configState),
 		{
 			Name:    "trading_scope",
 			Status:  CheckInfo,
@@ -583,5 +584,31 @@ func checkLegacyConfig(status config.Status) Check {
 		Status:  CheckWarn,
 		Summary: i18n.T("doctor.check.legacyDetected"),
 		Detail:  strings.Join(status.LegacyFields, ", "),
+	}
+}
+
+// checkUnknownConfig warns about config keys the loader does not recognize
+// (typically typos): they are silently ignored, so without this the user
+// would believe an option took effect when it did not.
+func checkUnknownConfig(status config.Status) Check {
+	if !status.Exists {
+		return Check{
+			Name:    "unknown_config_keys",
+			Status:  CheckInfo,
+			Summary: i18n.T("doctor.check.unknownNoConfig"),
+		}
+	}
+	if len(status.UnknownFields) == 0 {
+		return Check{
+			Name:    "unknown_config_keys",
+			Status:  CheckOK,
+			Summary: i18n.T("doctor.check.unknownNone"),
+		}
+	}
+	return Check{
+		Name:    "unknown_config_keys",
+		Status:  CheckWarn,
+		Summary: i18n.T("doctor.check.unknownDetected"),
+		Detail:  strings.Join(status.UnknownFields, ", "),
 	}
 }

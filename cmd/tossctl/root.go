@@ -525,7 +525,7 @@ func resolveUpdateCachePath(opts *rootOptions) (string, error) {
 	}
 	cacheDir := paths.CacheDir
 	if opts.configDir != "" {
-		cacheDir = opts.configDir
+		cacheDir = filepath.Join(opts.configDir, "cache")
 	}
 	return filepath.Join(cacheDir, "update-check.json"), nil
 }
@@ -600,6 +600,10 @@ func newAppContext(opts *rootOptions) (*appContext, error) {
 		paths.ConfigFile = filepath.Join(opts.configDir, "config.json")
 		paths.SessionFile = filepath.Join(opts.configDir, "session.json")
 		paths.LineageFile = filepath.Join(opts.configDir, "trading-lineage.json")
+		// Everything derived from the cache (auth storage-state, update-check
+		// state, doctor orphan scan) must live under the override too, or
+		// concurrent per-account --config-dir runs share and trample it.
+		paths.CacheDir = filepath.Join(opts.configDir, "cache")
 	}
 
 	if opts.sessionFile != "" {
