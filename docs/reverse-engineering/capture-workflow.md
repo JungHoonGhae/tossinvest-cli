@@ -90,7 +90,7 @@ Good capture units:
 
 Never commit raw captures.
 
-Store raw files outside git tracking, then sanitize them into `fixtures/har/` or convert them into smaller JSON fixtures under `fixtures/responses/`.
+Store raw files outside git tracking, then sanitize them into `fixtures/har/` or convert them into smaller JSON fixtures under `fixtures/responses/`. `fixtures/har/` itself is git-ignored: sanitized captures stay on your machine as working material — only the extracted `fixtures/responses/*.json` fixtures are committed.
 
 Use:
 
