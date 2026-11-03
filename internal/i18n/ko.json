@@ -46,6 +46,7 @@
   "config.short": "tossctl 설정 조회 및 초기화",
   "config.show.short": "현재 적용된 설정과 설정 파일 경로 표시",
   "doctor.check.authHelperFail": "auth 헬퍼 모듈을 임포트할 수 없습니다",
+  "doctor.check.authHelperNotFound": "auth helper 를 찾지 못했습니다. TOSSCTL_AUTH_HELPER_DIR 를 지정하세요.",
   "doctor.check.authHelperOk": "auth 헬퍼 모듈을 임포트할 수 있습니다",
   "doctor.check.chromeAvailable": "Google Chrome 을 사용할 수 있습니다",
   "doctor.check.chromeNotInstalled": "Google Chrome 이 설치돼 있지 않습니다. https://www.google.com/chrome/ 에서 설치하세요.",
