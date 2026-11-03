@@ -125,3 +125,60 @@ func TestNoRecorderIsHarmless(t *testing.T) {
 func confirmed(s *Service, _ Action, p Preview) ExecuteOptions {
 	return ExecuteOptions{Execute: true, Confirm: p.ConfirmToken}
 }
+
+// resolvingSpy records like recorderSpy and also resolves ids through a map.
+// It proves cancel/amend follow the live order the tool itself recorded.
+type resolvingSpy struct {
+	recorderSpy
+	mapping    map[string]string
+	resolveErr error
+}
+
+func (r *resolvingSpy) Resolve(orderID string) (string, bool, error) {
+	if r.resolveErr != nil {
+		return "", false, r.resolveErr
+	}
+	live, ok := r.mapping[orderID]
+	return live, ok, nil
+}
+
+// TestCancelFollowsLineageToLiveOrder guards issue #6: after an amend issues a
+// replacement id, cancelling the original id must act on the live order — the
+// preview token, the guard, and the broker call all see the resolved id.
+func TestCancelFollowsLineageToLiveOrder(t *testing.T) {
+	spy := &resolvingSpy{mapping: map[string]string{"OLD-1": "NEW-1"}}
+	stub := &brokerStub{}
+	s := NewService(openPolicy(), stub).WithLineage(spy)
+
+	intent := orderintent.CancelIntent{OrderID: "OLD-1", Symbol: "DUMMY"}
+	preview := s.PreviewCancel(intent)
+	if !strings.Contains(preview.Canonical, "NEW-1") {
+		t.Fatalf("preview must bind the live order, got %q", preview.Canonical)
+	}
+	if _, err := s.Cancel(context.Background(), intent, confirmed(s, ActionCancel, preview)); err != nil {
+		t.Fatal(err)
+	}
+	if stub.lastOrderID != "NEW-1" {
+		t.Fatalf("broker must receive the live order id, got %q", stub.lastOrderID)
+	}
+}
+
+// TestLineageResolveErrorDoesNotStrandCancel: a corrupt lineage cache must not
+// block cancelling a possibly-live order — proceed with the original id and warn.
+func TestLineageResolveErrorDoesNotStrandCancel(t *testing.T) {
+	spy := &resolvingSpy{resolveErr: errors.New("디스크 오류")}
+	stub := &brokerStub{}
+	s := NewService(openPolicy(), stub).WithLineage(spy)
+
+	intent := orderintent.CancelIntent{OrderID: "OLD-1", Symbol: "DUMMY"}
+	got, err := s.Cancel(context.Background(), intent, confirmed(s, ActionCancel, s.PreviewCancel(intent)))
+	if err != nil {
+		t.Fatalf("resolve failure stranded the cancel: %v", err)
+	}
+	if stub.lastOrderID != "OLD-1" {
+		t.Fatalf("must fall back to the original id, got %q", stub.lastOrderID)
+	}
+	if len(got.Warnings) == 0 || !strings.Contains(got.Warnings[len(got.Warnings)-1], "lineage") {
+		t.Fatalf("resolve failure must warn, got %v", got.Warnings)
+	}
+}

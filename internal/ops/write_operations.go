@@ -26,7 +26,7 @@ func (b OfficialBroker) PlacePendingOrder(ctx context.Context, intent orderinten
 }
 
 func (b OfficialBroker) CancelPendingOrder(ctx context.Context, intent orderintent.CancelIntent) (trading.MutationResult, error) {
-	return b.Client.CancelOrder(ctx, intent.OrderID)
+	return b.Client.CancelOrder(ctx, intent)
 }
 
 func (b OfficialBroker) AmendPendingOrder(ctx context.Context, intent orderintent.AmendIntent) (trading.MutationResult, error) {
@@ -111,6 +111,7 @@ func writeOperations() []Operation {
 				{Name: "currency_mode", Type: "string", Desc: `"KRW" (default) or "USD". US fractional-buy amounts and US limit prices are USD-denominated on this official-only path: non-USD values are rejected, convert via WTS/CLI first`},
 				{Name: "fractional", Type: "boolean", Desc: "US fractional market order"},
 				{Name: "time_in_force", Type: "string", Desc: `"DAY" (default) | "CLS" (US limit-on-close) | "OPG" (KR opening single-price, limit only — market orders are rejected). Rejected on other combinations and on fractional orders.`},
+				{Name: "client_order_id", Type: "string", Desc: "optional idempotency key (official API only, 1-36 of A-Z a-z 0-9 - _). Reusing it within 10 minutes returns the first order instead of placing another: reuse it only when retrying the same order"},
 			}, executeParams...),
 			handler: placeHandler,
 		},
@@ -377,17 +378,22 @@ func placeHandler(ctx context.Context, d *Deps, args map[string]any) (any, error
 	if err != nil {
 		return nil, err
 	}
+	clientOrderID, err := argString(args, "client_order_id")
+	if err != nil {
+		return nil, err
+	}
 	intent, err := orderintent.NormalizePlace(orderintent.PlaceInput{
-		Symbol:       symbol,
-		Market:       market,
-		Side:         side,
-		OrderType:    orderType,
-		Quantity:     quantity,
-		Price:        price,
-		Amount:       amount,
-		CurrencyMode: currencyMode,
-		Fractional:   fractional,
-		TimeInForce:  timeInForce,
+		Symbol:        symbol,
+		Market:        market,
+		Side:          side,
+		OrderType:     orderType,
+		Quantity:      quantity,
+		Price:         price,
+		Amount:        amount,
+		CurrencyMode:  currencyMode,
+		Fractional:    fractional,
+		TimeInForce:   timeInForce,
+		ClientOrderID: clientOrderID,
 	})
 	if err != nil {
 		return nil, err

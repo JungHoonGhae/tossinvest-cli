@@ -33,7 +33,8 @@ tossctl config status
   "openapi": {
     "enabled": true,
     "prefer": "auto",
-    "fallback": true
+    "fallback": true,
+    "account_seq": 0
   },
   "experimental": {
     "paper_trading": false
@@ -49,6 +50,7 @@ tossctl config status
 | `trading.allow_live_order_actions` | Master kill switch for every live-account order |
 | `trading.dangerous_automation.accept_fx_consent` | Accept only post-prepare FX consent for supported WTS US-stock KRW buys; never skips order execute/confirm |
 | `openapi.enabled`·`prefer`·`fallback` | Official routing, starting preference, and eligible read fallback to WTS; never cross-backend order retry |
+| `openapi.account_seq` | Official API account sequence. 0 auto-selects only when there is a single account; with several, orders are refused and reads fall back to WTS. Find the sequence with `tossctl openapi status` |
 | `update_check.enabled` | New-version notice on/off (never pollutes automation output) |
 | `experimental.paper_trading` | Expose the rolling-out US-options paper CLI, ops/MCP operations, and dedicated probes. Default `false` |
 

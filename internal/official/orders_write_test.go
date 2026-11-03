@@ -235,6 +235,7 @@ func TestPlaceOrder(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // TestCancelOrder verifies POST to correct path and X-Tossinvest-Account header.
+// The intent symbol is verified against the live order first (issue #6).
 func TestCancelOrder(t *testing.T) {
 	var gotPath string
 	var gotAcctHeader string
@@ -242,6 +243,9 @@ func TestCancelOrder(t *testing.T) {
 		switch r.URL.Path {
 		case "/oauth2/token":
 			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/orders/order-abc-123":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"result":{"orderId":"order-abc-123","symbol":"005930","side":"BUY","orderType":"LIMIT","status":"OPEN","quantity":"10","price":"70000"}}`))
 		default:
 			if strings.HasSuffix(r.URL.Path, "/cancel") {
 				gotPath = r.URL.Path
@@ -263,7 +267,7 @@ func TestCancelOrder(t *testing.T) {
 		WithAccountSeq(9),
 	)
 
-	res, err := c.CancelOrder(context.Background(), "order-abc-123")
+	res, err := c.CancelOrder(context.Background(), orderintent.CancelIntent{OrderID: "order-abc-123", Symbol: "005930"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -282,6 +286,49 @@ func TestCancelOrder(t *testing.T) {
 	}
 	if gotAcctHeader != "9" {
 		t.Fatalf("X-Tossinvest-Account: want 9, got %q", gotAcctHeader)
+	}
+}
+
+// TestCancelOrderRejectsSymbolMismatch guards issue #6: cancelling an order
+// with another symbol asserted must refuse before the cancel POST goes out.
+func TestCancelOrderRejectsSymbolMismatch(t *testing.T) {
+	cancelCalls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth2/token":
+			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
+		case "/api/v1/orders/order-abc-123":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"result":{"orderId":"order-abc-123","symbol":"TSLA","side":"BUY","orderType":"MARKET","status":"OPEN","quantity":"5"}}`))
+		default:
+			if strings.HasSuffix(r.URL.Path, "/cancel") {
+				cancelCalls++
+			}
+			http.NotFound(w, r)
+		}
+	}))
+	defer srv.Close()
+
+	c := New(
+		Credentials{APIKey: "k", SecretKey: "s"},
+		filepath.Join(t.TempDir(), "t.json"),
+		WithBaseURL(srv.URL),
+		WithHTTPClient(srv.Client()),
+		WithAccountSeq(9),
+	)
+
+	if _, err := c.CancelOrder(context.Background(), orderintent.CancelIntent{OrderID: "order-abc-123", Symbol: "005930"}); err == nil {
+		t.Fatal("expected symbol-mismatch refusal, got nil")
+	}
+	if cancelCalls != 0 {
+		t.Fatalf("refused cancel must not POST, got %d calls", cancelCalls)
+	}
+	// A005930 vs 005930 is the same KR listing spelled differently: allowed.
+	if !cancelSymbolsMatch("A005930", "005930") || !cancelSymbolsMatch("aapl", "AAPL") {
+		t.Fatal("expected tolerant symbol match")
+	}
+	if cancelSymbolsMatch("TSLA", "005930") || cancelSymbolsMatch("", "005930") {
+		t.Fatal("expected mismatch for different/empty symbols")
 	}
 }
 
@@ -567,5 +614,30 @@ func TestBuildOrderCreateRejectsNonUSDCurrency(t *testing.T) {
 				t.Fatalf("buildOrderCreate: %v", err)
 			}
 		})
+	}
+}
+
+// clientOrderId goes on the wire only when the caller supplied one.
+func TestBuildOrderCreateClientOrderIDOptIn(t *testing.T) {
+	base := orderintent.PlaceIntent{Symbol: "AAPL", Market: "us", Side: "buy", OrderType: "limit", Quantity: 1, Price: 100, CurrencyMode: "USD"}
+	frac := orderintent.PlaceIntent{Symbol: "AAPL", Market: "us", Side: "buy", OrderType: "market", Fractional: true, Amount: 10, CurrencyMode: "USD"}
+	for _, intent := range []orderintent.PlaceIntent{base, frac} {
+		body, err := buildOrderCreate(intent)
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, _ := json.Marshal(body)
+		if strings.Contains(string(raw), "clientOrderId") {
+			t.Fatalf("no key given, wire must omit clientOrderId: %s", raw)
+		}
+		intent.ClientOrderID = "retry-001"
+		body, err = buildOrderCreate(intent)
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, _ = json.Marshal(body)
+		if !strings.Contains(string(raw), `"clientOrderId":"retry-001"`) {
+			t.Fatalf("wire must send the caller's key: %s", raw)
+		}
 	}
 }

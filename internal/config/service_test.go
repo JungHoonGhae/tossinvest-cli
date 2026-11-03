@@ -385,6 +385,46 @@ func TestLoadOpenAPIFromExistingConfig(t *testing.T) {
 	}
 }
 
+func TestLoadOpenAPIAccountSeq(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	data := []byte(`{
+  "schema_version": 3,
+  "trading": {},
+  "openapi": {
+    "enabled": true,
+    "prefer": "auto",
+    "fallback": true,
+    "account_seq": 42
+  }
+}`)
+	if err := os.WriteFile(configPath, data, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	cfg, err := NewService(configPath).Load(context.Background())
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.OpenAPI.AccountSeq != 42 {
+		t.Fatalf("expected account_seq=42, got %d", cfg.OpenAPI.AccountSeq)
+	}
+}
+
+func TestLoadOpenAPIRejectsNegativeAccountSeq(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	data := []byte(`{
+  "schema_version": 3,
+  "trading": {},
+  "openapi": {"account_seq": -1}
+}`)
+	if err := os.WriteFile(configPath, data, 0o600); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+	_, err := NewService(configPath).Load(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "openapi.account_seq") {
+		t.Fatalf("expected openapi.account_seq rejection, got %v", err)
+	}
+}
+
 func TestLoadOpenAPIRejectsInvalidPrefer(t *testing.T) {
 	for _, tt := range []struct {
 		name string

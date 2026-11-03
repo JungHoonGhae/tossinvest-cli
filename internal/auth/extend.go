@@ -108,8 +108,11 @@ func (s *Service) Extend(ctx context.Context, timeout time.Duration) (*ExtendRes
 	if err != nil {
 		return nil, fmt.Errorf("read new expiry: %w", err)
 	}
-	sess.ServerExpiresAt = &expiredAt
-	if err := s.store.Save(ctx, sess); err != nil {
+	// Re-read before persisting: a concurrent logout in the meantime must not
+	// be resurrected, and a concurrent login's cookies must not be clobbered.
+	if err := s.refreshAndSave(ctx, func(fresh *session.Session) {
+		fresh.ServerExpiresAt = &expiredAt
+	}); err != nil {
 		return nil, fmt.Errorf("persist new expiry: %w", err)
 	}
 
