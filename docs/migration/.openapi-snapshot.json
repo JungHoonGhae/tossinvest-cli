@@ -6,11 +6,11 @@
   "spec_path_count": 39,
   "spec_paths_sha256": "a9a8ca60821c2049ff4a3e8f57242a04c8c5e84f8f716cd086dd8417e654c460",
   "spec_full_sha256": "9cc7a7b3fa5c0e9248f837ed634acabf31d4a3dfb9f972245725f2bc2b3f6466",
-  "asyncapi_version": "1.2.2",
-  "asyncapi_sha256": "176595a3abbba3c1b84576e3c1b6806b75ec6d507a2efee26a24021a55531a63",
+  "asyncapi_version": "1.2.3",
+  "asyncapi_sha256": "da086180103ae72de5adb814e0dc59939a1eb8fe20138894241dc78856c50a05",
   "docs_url": "https://developers.tossinvest.com/docs",
   "docs_status": "200",
   "llms_txt_status": "200",
-  "updated_at": "2026-10-29",
-  "last_checked_at": "2026-10-29"
+  "updated_at": "2026-11-03",
+  "last_checked_at": "2026-11-03"
 }
