@@ -252,3 +252,80 @@ func TestOrderReconcilerCancellationStopsHistoryReads(t *testing.T) {
 		})
 	}
 }
+
+// TestReconcileExcludesPreSubmitOrders guards issue #7: a repeated identical
+// order (split buys) must match the new entry, not the pre-existing one — and
+// must not go ambiguous when both are visible.
+func TestReconcileExcludesPreSubmitOrders(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 9, 7, 10, 0, 0, 0, time.UTC)
+	old := domain.Order{ID: "old", Symbol: "005930", Market: "kr", Quantity: 2, Price: 500,
+		OrderDate: "2026-09-07", SubmittedAt: &now}
+	new := old
+	new.ID = "new"
+
+	reconcile := func(exclude map[string]bool) (trading.MutationResult, error) {
+		h := &scriptedOrderHistory{frames: []historyFrame{{pending: []domain.Order{old, new}}}}
+		r := newOrderReconciler(h)
+		r.attempts, r.interval = 3, 0
+		return r.reconcile(context.Background(), reconciliationRequest{
+			kind: "place", productCode: "A005930", symbol: "005930", market: "kr",
+			priceKRW: 500, quantity: 2, startedAt: now, excludeIDs: exclude,
+		})
+	}
+
+	got, err := reconcile(map[string]bool{"old": true})
+	if err != nil || got.Status != "accepted_pending" || got.OrderID != "new" {
+		t.Fatalf("excluded old order must match the new one: %+v, %v", got, err)
+	}
+	got, err = reconcile(nil)
+	if err != nil || got.Status != "unknown" {
+		t.Fatalf("without exclusion identical orders must go ambiguous: %+v, %v", got, err)
+	}
+}
+
+// TestReconcileExcludesPreSubmitCompletedFill: a previous identical fill must
+// not be claimed for the new order.
+func TestReconcileExcludesPreSubmitCompletedFill(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 9, 7, 10, 0, 0, 0, time.UTC)
+	fill := domain.Order{ID: "fill-1", Symbol: "005930", Market: "kr", Quantity: 2, Price: 500,
+		Status: "체결완료", FilledQuantity: 2, OrderDate: "2026-09-07", SubmittedAt: &now}
+	h := &scriptedOrderHistory{frames: []historyFrame{{completed: []domain.Order{fill}}}}
+	r := newOrderReconciler(h)
+	r.attempts, r.interval = 3, 0
+	got, err := r.reconcile(context.Background(), reconciliationRequest{
+		kind: "place", productCode: "A005930", symbol: "005930", market: "kr",
+		priceKRW: 500, quantity: 2, startedAt: now, excludeIDs: map[string]bool{"fill-1": true},
+	})
+	if err != nil || got.Status != "unknown" {
+		t.Fatalf("excluded previous fill must not match: %+v, %v", got, err)
+	}
+}
+
+// TestReconcileLooseMatchesAmountShapes guards issue #7: fractional buys zero
+// quantity/price and US inputs cross currencies, so symbol/side/market plus
+// snapshot newness identify them — strict equality would always miss.
+func TestReconcileLooseMatchesAmountShapes(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 9, 7, 10, 0, 0, 0, time.UTC)
+	ledger := domain.Order{ID: "new", Symbol: "TSLL", Market: "us", Quantity: 0.5, Price: 0.4753,
+		Side: "buy", OrderDate: "2026-09-07", SubmittedAt: &now}
+	reconcile := func(loose bool) (trading.MutationResult, error) {
+		h := &scriptedOrderHistory{frames: []historyFrame{{pending: []domain.Order{ledger}}}}
+		r := newOrderReconciler(h)
+		r.attempts, r.interval = 3, 0
+		return r.reconcile(context.Background(), reconciliationRequest{
+			kind: "place", productCode: "US20220809012", symbol: "TSLL", market: "us",
+			priceKRW: 0, quantity: 0, side: "buy", startedAt: now, matchLoose: loose,
+		})
+	}
+	got, err := reconcile(true)
+	if err != nil || got.Status != "accepted_pending" || got.OrderID != "new" {
+		t.Fatalf("loose match must find the order: %+v, %v", got, err)
+	}
+	got, err = reconcile(false)
+	if err != nil || got.Status != "unknown" {
+		t.Fatalf("strict match must miss zeroed amount fields: %+v, %v", got, err)
+	}
+}
