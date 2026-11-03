@@ -29,6 +29,10 @@ python3 -m tossctl_auth_helper login --storage-state /tmp/tossctl-storage-state.
 
 The helper emits JSON on stdout. On success it returns `status=ok` and the path of the saved Playwright storage-state file.
 
+## 헬퍼 위치
+
+`tossctl` 은 실행 파일 기준 위치(`<bin>/auth-helper`, `<bin>/../auth-helper`, `<bin>/../libexec/auth-helper`, `<bin>/../share/tossctl/auth-helper`)에서만 헬퍼를 찾습니다. 현재 디렉터리는 보지 않습니다. Homebrew·설치 스크립트·`make build` 결과물은 그대로 동작하고, 저장소에서 `go run ./cmd/tossctl` 로 실행할 때는 `TOSSCTL_AUTH_HELPER_DIR=$PWD/auth-helper` 를 지정하세요.
+
 ## Python 선택 (tossctl auth login)
 
 `tossctl auth login`이 helper를 실행할 때 쓰는 Python은 아래 순서로 결정됩니다.
