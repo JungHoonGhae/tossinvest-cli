@@ -131,6 +131,9 @@ func (c *Client) PlacePendingOrder(ctx context.Context, intent orderintent.Place
 			ExchangeRate: usdRate,
 		}
 	}
+	// Snapshot before submit: reconcile must only consider orders that appear
+	// after this mutation, or a repeated identical order matches the old one.
+	excludeIDs, snapshotWarn := snapshotOrderIDs(ctx, c, intent.Market)
 	bodyPrepare, err := buildPlaceBody(productCode, info.Market.Code, intent, meta, true)
 	if err != nil {
 		return tradingflow.MutationResult{}, err
@@ -174,10 +177,22 @@ func (c *Client) PlacePendingOrder(ctx context.Context, intent orderintent.Place
 		return tradingflow.MutationResult{}, tradingflow.ErrInteractiveAuthRequired
 	}
 
-	return newOrderReconciler(c).reconcile(ctx, reconciliationRequest{
+	res, err := newOrderReconciler(c).reconcile(ctx, reconciliationRequest{
 		kind: "place", productCode: productCode, symbol: info.Symbol, market: intent.Market,
 		priceKRW: intent.Price, quantity: intent.Quantity, side: intent.Side, startedAt: startedAt,
+		excludeIDs: excludeIDs,
+		// US wire values are not ledger-comparable (fractional buys zero
+		// quantity/price; KRW/USD inputs cross currencies): symbol, side,
+		// and snapshot newness identify the order instead.
+		matchLoose: intent.Market == "us",
 	})
+	if err != nil {
+		return tradingflow.MutationResult{}, err
+	}
+	if snapshotWarn != "" {
+		res.Warnings = append(res.Warnings, snapshotWarn)
+	}
+	return res, nil
 }
 
 func (c *Client) GetOrderAvailableActions(ctx context.Context, orderID string) (map[string]any, error) {
@@ -468,6 +483,7 @@ func (c *Client) CancelPendingOrder(ctx context.Context, intent orderintent.Canc
 		return tradingflow.MutationResult{}, err
 	}
 
+	excludeIDs, snapshotWarn := snapshotOrderIDs(ctx, c, orderintent.InferMarketFromStockCode(order.StockCode))
 	bodyPrepare, bodyCancel, err := buildCancelBodies(order)
 	if err != nil {
 		return tradingflow.MutationResult{}, err
@@ -504,11 +520,19 @@ func (c *Client) CancelPendingOrder(ctx context.Context, intent orderintent.Canc
 		expectedQty = order.Quantity
 	}
 
-	return newOrderReconciler(c).reconcile(ctx, reconciliationRequest{
+	res, err := newOrderReconciler(c).reconcile(ctx, reconciliationRequest{
 		kind: "cancel", originalOrderID: intent.OrderID, productCode: order.StockCode,
 		symbol: intent.Symbol, market: orderintent.InferMarketFromStockCode(order.StockCode),
 		priceKRW: order.OrderPrice, quantity: expectedQty, side: order.TradeType, startedAt: startedAt,
+		excludeIDs: excludeIDs,
 	})
+	if err != nil {
+		return tradingflow.MutationResult{}, err
+	}
+	if snapshotWarn != "" {
+		res.Warnings = append(res.Warnings, snapshotWarn)
+	}
+	return res, nil
 }
 
 func (c *Client) AmendPendingOrder(ctx context.Context, intent orderintent.AmendIntent) (tradingflow.MutationResult, error) {
@@ -531,6 +555,7 @@ func (c *Client) AmendPendingOrder(ctx context.Context, intent orderintent.Amend
 		return tradingflow.MutationResult{}, err
 	}
 
+	excludeIDs, snapshotWarn := snapshotOrderIDs(ctx, c, orderintent.InferMarketFromStockCode(order.StockCode))
 	bodyPrepare, expectedPriceKRW, expectedQty, err := buildAmendBody(order, info.Market.Code, rate, intent.Quantity, intent.Price, true)
 	if err != nil {
 		return tradingflow.MutationResult{}, err
@@ -558,11 +583,19 @@ func (c *Client) AmendPendingOrder(ctx context.Context, intent orderintent.Amend
 		return tradingflow.MutationResult{}, tradingflow.ErrInteractiveAuthRequired
 	}
 
-	return newOrderReconciler(c).reconcile(ctx, reconciliationRequest{
+	res, err := newOrderReconciler(c).reconcile(ctx, reconciliationRequest{
 		kind: "amend", originalOrderID: intent.OrderID, productCode: order.StockCode,
 		symbol: info.Symbol, market: orderintent.InferMarketFromStockCode(order.StockCode),
 		priceKRW: expectedPriceKRW, quantity: expectedQty, side: order.TradeType, startedAt: startedAt,
+		excludeIDs: excludeIDs,
 	})
+	if err != nil {
+		return tradingflow.MutationResult{}, err
+	}
+	if snapshotWarn != "" {
+		res.Warnings = append(res.Warnings, snapshotWarn)
+	}
+	return res, nil
 }
 
 func (c *Client) HasPendingOrder(ctx context.Context, orderID string) (bool, error) {
