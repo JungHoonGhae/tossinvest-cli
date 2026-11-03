@@ -2,6 +2,7 @@ package official
 
 import (
 	"context"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -634,5 +635,21 @@ func TestMarketInvestorTradingIntegration(t *testing.T) {
 	}
 	if got.Records[0].Foreigner.NetAmount != 200000000000 {
 		t.Fatalf("foreigner net: %v", got.Records[0].Foreigner.NetAmount)
+	}
+}
+
+// TestParseDecimalMalformedIsNaN guards issue #14: empty stays 0 (nullable),
+// but garbage must never masquerade as a plausible zero price or quantity.
+func TestParseDecimalMalformedIsNaN(t *testing.T) {
+	if got := parseDecimal(""); got != 0 {
+		t.Fatalf("empty must map to 0, got %v", got)
+	}
+	if got := parseDecimal("150.25"); got != 150.25 {
+		t.Fatalf("valid decimal must parse, got %v", got)
+	}
+	for _, bad := range []string{"N/A", "1,000", "abc", "--5"} {
+		if got := parseDecimal(bad); !math.IsNaN(got) {
+			t.Fatalf("malformed %q must be NaN, got %v", bad, got)
+		}
 	}
 }
