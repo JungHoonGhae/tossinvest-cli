@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/hiddenholding"
@@ -141,6 +140,7 @@ type rpcError struct {
 
 const (
 	codeParseError     = -32700
+	codeInvalidRequest = -32600
 	codeMethodNotFound = -32601
 	codeInvalidParams  = -32602
 	codeInternalError  = -32603
@@ -162,13 +162,13 @@ func (s *Server) Serve(ctx context.Context, in io.Reader, out io.Writer) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		line, readErr := r.ReadBytes('\n')
-		if trimmed := bytes.TrimSpace(line); len(trimmed) > 0 {
-			if len(trimmed) > maxLineBytes {
-				if err := enc.Encode(rpcResponse{JSONRPC: "2.0", Error: &rpcError{Code: codeParseError, Message: "frame exceeds size limit"}}); err != nil {
-					return err
-				}
-			} else if resp, ok := s.handle(ctx, trimmed); ok {
+		line, tooLong, readErr := readFrame(r)
+		if tooLong {
+			if err := enc.Encode(rpcResponse{JSONRPC: "2.0", Error: &rpcError{Code: codeParseError, Message: "frame exceeds size limit"}}); err != nil {
+				return err
+			}
+		} else if trimmed := bytes.TrimSpace(line); len(trimmed) > 0 {
+			if resp, ok := s.handle(ctx, trimmed); ok {
 				if err := enc.Encode(resp); err != nil {
 					return err
 				}
@@ -179,6 +179,24 @@ func (s *Server) Serve(ctx context.Context, in io.Reader, out io.Writer) error {
 		}
 		if readErr != nil {
 			return readErr
+		}
+	}
+}
+
+// readFrame reads one '\n'-terminated line of at most maxLineBytes (excluding
+// the terminator). A longer line is consumed chunk by chunk and discarded, so
+// memory stays bounded by maxLineBytes plus the bufio buffer; it reports tooLong.
+func readFrame(r *bufio.Reader) (line []byte, tooLong bool, err error) {
+	for {
+		chunk, err := r.ReadSlice('\n')
+		if !tooLong {
+			line = append(line, chunk...)
+			if len(bytes.TrimRight(line, "\r\n")) > maxLineBytes {
+				line, tooLong = nil, true
+			}
+		}
+		if err != bufio.ErrBufferFull {
+			return line, tooLong, err
 		}
 	}
 }
@@ -198,8 +216,12 @@ func (s *Server) handle(ctx context.Context, raw []byte) (resp rpcResponse, ok b
 	}()
 	var req rpcRequest
 	if err := json.Unmarshal(raw, &req); err != nil {
-		// No recoverable id: answer -32700 with a null id per JSON-RPC 2.0
-		// instead of dropping the frame and leaving the host hanging.
+		// Answer instead of dropping the frame and leaving the host hanging.
+		// Valid JSON of the wrong shape (batch array, non-string method) is
+		// -32600; only unparseable bytes are -32700 (null id per JSON-RPC 2.0).
+		if json.Valid(raw) {
+			return rpcResponse{JSONRPC: "2.0", ID: rawID(raw), Error: &rpcError{Code: codeInvalidRequest, Message: "invalid request"}}, true
+		}
 		return rpcResponse{JSONRPC: "2.0", Error: &rpcError{Code: codeParseError, Message: "parse error"}}, true
 	}
 	if len(req.ID) == 0 {
@@ -374,10 +396,11 @@ func shrinkToCap(v any) any {
 		}
 		var (
 			best     []any
+			bestKey  string
 			bestSet  func(any)
 			bestSize int
 		)
-		walkSlices(holder, nil, func(s []any, set func(any)) {
+		walkSlices(holder, "", nil, func(s []any, key string, set func(any)) {
 			if keepable(s) == 0 {
 				return
 			}
@@ -385,7 +408,7 @@ func shrinkToCap(v any) any {
 			if err != nil || len(enc) <= bestSize {
 				return
 			}
-			best, bestSet, bestSize = s, set, len(enc)
+			best, bestKey, bestSet, bestSize = s, key, set, len(enc)
 		})
 		if bestSet == nil {
 			return map[string]any{
@@ -397,7 +420,11 @@ func shrinkToCap(v any) any {
 				),
 			}
 		}
-		bestSet(trim(best, bestSize, len(text)-maxResultBytes))
+		// Only chart candles (domain.Chart, oldest-first) drop from the front so
+		// the newest bars survive. Every other array — calendars, news, the
+		// newest-first indicator candles — keeps its head (status quo).
+		fromFront := bestKey == "candles" && ascendingByTime(best)
+		bestSet(trim(best, bestSize, len(text)-maxResultBytes, fromFront))
 	}
 }
 
@@ -416,11 +443,10 @@ func keepable(s []any) int {
 // in a trailing placeholder. It always drops at least one element, so
 // shrinkToCap's loop terminates; overshooting the cap only costs another pass.
 //
-// Oldest-first arrays (chart candles carry ascending `time`) drop from the
-// FRONT so the newest entries survive; everything else drops from the tail
-// (status quo). The placeholder stays trailing either way and still counts
-// every dropped row.
-func trim(s []any, size, excess int) []any {
+// fromFront drops from the FRONT (oldest-first chart candles keep their newest
+// bars); otherwise the tail is dropped. The placeholder stays trailing either
+// way and still counts every dropped row.
+func trim(s []any, size, excess int, fromFront bool) []any {
 	n, dropped := keepable(s), 0
 	if n < len(s) {
 		dropped = s[len(s)-1].(omittedItems).Count
@@ -451,7 +477,7 @@ func trim(s []any, size, excess int) []any {
 	// the omission marker. Using the existing length as capacity avoids an
 	// attacker-controlled addition in the allocation-size expression.
 	out := make([]any, 0, len(s))
-	if ascendingByTime(s) {
+	if fromFront {
 		out = append(out, s[drop:n]...)
 	} else {
 		out = append(out, s[:n-drop]...)
@@ -462,12 +488,8 @@ func trim(s []any, size, excess int) []any {
 	})
 }
 
-// timeKeys are decoded-JSON field names that may carry a timestamp. Only the
-// first hit per element is used.
-var timeKeys = []string{"time", "timestamp", "publishedAt", "published_at", "date", "orderedAt", "ordered_at", "createdAt", "created_at"}
-
-// ascendingByTime reports whether the array runs oldest-first (like chart
-// candles): the first and last time-bearing rows compare ascending. Anything
+// ascendingByTime reports whether a candles array runs oldest-first: the first
+// and last rows' `time` (domain.Candle, RFC3339) compare ascending. Anything
 // unparseable, schemaless, or non-monotonic falls back to false (drop tail).
 func ascendingByTime(s []any) bool {
 	first, okFirst := edgeTime(s, true)
@@ -501,58 +523,35 @@ func edgeTime(s []any, front bool) (time.Time, bool) {
 	return time.Time{}, false
 }
 
-// rowTime extracts a timestamp from one decoded row, if it carries a
-// recognized time key with a parseable value.
+// rowTime extracts domain.Candle's RFC3339 `time` from one decoded row.
 func rowTime(el any) (time.Time, bool) {
 	m, ok := el.(map[string]any)
 	if !ok {
 		return time.Time{}, false
 	}
-	if _, ok := m[omittedKey]; ok {
+	str, ok := m["time"].(string)
+	if !ok {
 		return time.Time{}, false
 	}
-	for _, key := range timeKeys {
-		v, ok := m[key]
-		if !ok {
-			continue
-		}
-		str, ok := v.(string)
-		if !ok || strings.TrimSpace(str) == "" {
-			continue
-		}
-		if t, ok := parseRowTime(strings.TrimSpace(str)); ok {
-			return t, true
-		}
-	}
-	return time.Time{}, false
+	t, err := time.Parse(time.RFC3339Nano, str)
+	return t, err == nil
 }
 
-// parseRowTime parses the timestamp shapes the tool surface emits (RFC3339
-// datetimes and bare dates).
-func parseRowTime(s string) (time.Time, bool) {
-	for _, layout := range []string{time.RFC3339Nano, time.RFC3339, "2006-01-02", "2006-01-02 15:04:05", "2006-01-02 15:04:05.999"} {
-		if t, err := time.Parse(layout, s); err == nil {
-			return t, true
-		}
-	}
-	return time.Time{}, false
-}
-
-// walkSlices visits every array in a decoded JSON value, passing a setter that
-// replaces it in its parent.
-func walkSlices(v any, set func(any), visit func([]any, func(any))) {
+// walkSlices visits every array in a decoded JSON value, passing its object key
+// ("" for array elements and the root) and a setter that replaces it in its parent.
+func walkSlices(v any, key string, set func(any), visit func([]any, string, func(any))) {
 	switch t := v.(type) {
 	case []any:
 		if set != nil {
-			visit(t, set)
+			visit(t, key, set)
 		}
 		for i := range t {
-			walkSlices(t[i], func(nv any) { t[i] = nv }, visit)
+			walkSlices(t[i], "", func(nv any) { t[i] = nv }, visit)
 		}
 	case map[string]any:
 		for k := range t {
 			k := k
-			walkSlices(t[k], func(nv any) { t[k] = nv }, visit)
+			walkSlices(t[k], k, func(nv any) { t[k] = nv }, visit)
 		}
 	}
 }

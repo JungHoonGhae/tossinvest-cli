@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -743,28 +744,90 @@ func TestOversizedFrameIsRejected(t *testing.T) {
 	}
 }
 
-// TestTrimKeepsNewestForAscendingTime guards issue #13: oldest-first arrays
-// (chart candles) drop from the front so the newest entries survive; other
-// orders keep the status quo (drop tail).
-func TestTrimKeepsNewestForAscendingTime(t *testing.T) {
+// TestTrimKeepsNewestForAscendingCandles guards issue #13: chart candles
+// (oldest-first) drop from the front so the newest bars survive; everything
+// else keeps the status quo (drop tail).
+func TestTrimKeepsNewestForAscendingCandles(t *testing.T) {
 	row := func(ts string) map[string]any { return map[string]any{"time": ts, "close": 1.0} }
 	ascending := []any{row("2026-03-11T09:00:00+09:00"), row("2026-03-11T09:01:00+09:00"), row("2026-03-11T09:02:00+09:00")}
-	got := trim(ascending, 1000, 100)
+	got := trim(ascending, 1000, 100, true)
 	lastReal := got[len(got)-2].(map[string]any)
 	if lastReal["time"] != "2026-03-11T09:02:00+09:00" {
-		t.Fatalf("ascending trim must keep the newest tail, got %v", got)
+		t.Fatalf("front trim must keep the newest tail, got %v", got)
 	}
-	descending := []any{row("2026-03-11T09:02:00+09:00"), row("2026-03-11T09:01:00+09:00"), row("2026-03-11T09:00:00+09:00")}
-	got = trim(descending, 1000, 100)
-	if got[0].(map[string]any)["time"] != "2026-03-11T09:02:00+09:00" {
-		t.Fatalf("descending trim must keep the head, got %v", got)
-	}
-	schemaless := []any{map[string]any{"a": 1}, map[string]any{"a": 2}, map[string]any{"a": 3}}
-	got = trim(schemaless, 1000, 100)
-	if got[0].(map[string]any)["a"] != 1 {
-		t.Fatalf("schemaless trim must keep status quo (head), got %v", got)
+	got = trim(ascending, 1000, 100, false)
+	if got[0].(map[string]any)["time"] != "2026-03-11T09:00:00+09:00" {
+		t.Fatalf("tail trim must keep the head, got %v", got)
 	}
 	if _, ok := got[len(got)-1].(omittedItems); !ok {
 		t.Fatalf("trim must end with an omission marker, got %v", got)
+	}
+	if !ascendingByTime(ascending) {
+		t.Fatal("ascending candles must be detected")
+	}
+	descending := []any{row("2026-03-11T09:02:00+09:00"), row("2026-03-11T09:01:00+09:00"), row("2026-03-11T09:00:00+09:00")}
+	if ascendingByTime(descending) {
+		t.Fatal("newest-first candles must not drop from the front")
+	}
+}
+
+// shrinkWith builds a payload with one oversized dated array under key, rows
+// ascending by both `time` and `date`.
+func shrinkWith(key string) []any {
+	rows := make([]any, 0, 400)
+	for i := range 400 {
+		ts := fmt.Sprintf("2026-03-%02dT%02d:%02d:00+09:00", 1+i/96, (i/4)%24, (i%4)*15)
+		rows = append(rows, map[string]any{"time": ts, "date": ts[:10], "title": strings.Repeat("x", 200)})
+	}
+	out := shrinkToCap(map[string]any{key: rows}).(map[string]any)[key].([]any)
+	return out
+}
+
+// A non-candle dated array (e.g. a market calendar) over the cap must keep its
+// head — the earliest, most relevant events — even when rows ascend by time.
+func TestShrinkKeepsHeadForNonCandleDatedArray(t *testing.T) {
+	got := shrinkWith("events")
+	if _, ok := got[len(got)-1].(omittedItems); !ok {
+		t.Fatal("expected the array to be trimmed")
+	}
+	if first := got[0].(map[string]any)["time"]; first != "2026-03-01T00:00:00+09:00" {
+		t.Fatalf("non-candle array must keep the head, first row = %v", first)
+	}
+	got = shrinkWith("candles")
+	if first := got[0].(map[string]any)["time"]; first == "2026-03-01T00:00:00+09:00" {
+		t.Fatal("ascending candles must drop the oldest bars")
+	}
+}
+
+// Valid JSON with the wrong shape is Invalid Request (-32600), not a parse error.
+func TestWrongShapeFrameReturnsInvalidRequest(t *testing.T) {
+	c := dummyClient(t, nil)
+	resps := runServer(t, c,
+		`[{"jsonrpc":"2.0","id":1,"method":"ping"}]`,
+		`{"jsonrpc":"2.0","id":3,"method":42}`,
+	)
+	if len(resps) != 2 {
+		t.Fatalf("want 2 responses, got %d: %v", len(resps), resps)
+	}
+	for _, r := range resps {
+		if errObj, ok := r["error"].(map[string]any); !ok || errObj["code"].(float64) != -32600 {
+			t.Fatalf("want -32600 invalid request, got %v", r)
+		}
+	}
+	if resps[1]["id"] != float64(3) {
+		t.Fatalf("invalid request must echo a recoverable id, got %v", resps[1]["id"])
+	}
+}
+
+// A request right at the line cap still works; the bounded reader only rejects
+// what is past it.
+func TestFrameAtCapIsServed(t *testing.T) {
+	c := dummyClient(t, nil)
+	head := `{"jsonrpc":"2.0","id":1,"method":"ping","params":{"pad":"`
+	tail := `"}}`
+	line := head + strings.Repeat("x", maxLineBytes-len(head)-len(tail)) + tail
+	resps := runServer(t, c, line)
+	if len(resps) != 1 || resps[0]["error"] != nil {
+		t.Fatalf("frame at the cap must be served, got %v", resps)
 	}
 }
