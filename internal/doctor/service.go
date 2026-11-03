@@ -2,6 +2,7 @@ package doctor
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/auth"
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
@@ -165,53 +167,64 @@ func (s *Service) RunReport(ctx context.Context, prober sessionProber) (Report, 
 	return report, nil
 }
 
-// redactReport replaces the user's home directory prefix with `~` in every
-// path field surfaced by --report. Does not touch URLs, UA strings, or error
-// messages from network probes (those don't contain local PII).
+// redactReport replaces the user's home directory with `~` in every string of
+// the report, so the JSON is safe to paste into issues. It works on the
+// marshalled payload instead of an enumerated field list, so no present or
+// future field (config paths, credential/token paths, check details,
+// traceback output) can leak the username by omission. Matching is
+// boundary-aware: only the exact home dir or a home-dir prefix followed by a
+// path separator is replaced, so /Users/lee never mangles /Users/leejongyoung.
 func redactReport(r *Report) {
 	home, err := os.UserHomeDir()
 	if err != nil || home == "" {
 		return
 	}
-
-	redact := func(s string) string {
-		if s == "" {
-			return s
-		}
-		if strings.HasPrefix(s, home) {
-			return "~" + s[len(home):]
-		}
-		return s
+	data, err := json.Marshal(r)
+	if err != nil {
+		return
 	}
-
-	r.Paths.ConfigDir = redact(r.Paths.ConfigDir)
-	r.Paths.CacheDir = redact(r.Paths.CacheDir)
-	r.Paths.ConfigFile = redact(r.Paths.ConfigFile)
-	r.Paths.SessionFile = redact(r.Paths.SessionFile)
-	r.Paths.LineageFile = redact(r.Paths.LineageFile)
-
-	r.Config.ConfigFile = redact(r.Config.ConfigFile)
-
-	r.Auth.PythonBinary = redact(r.Auth.PythonBinary)
-	r.Auth.HelperDir = redact(r.Auth.HelperDir)
-	r.Auth.Session.SessionFile = redact(r.Auth.Session.SessionFile)
-
-	for i := range r.Checks {
-		r.Checks[i].Summary = redact(r.Checks[i].Summary)
-		r.Checks[i].Detail = redact(r.Checks[i].Detail)
+	var v any
+	if err := json.Unmarshal(data, &v); err != nil {
+		return
 	}
-	for i := range r.Auth.Checks {
-		r.Auth.Checks[i].Summary = redact(r.Auth.Checks[i].Summary)
-		r.Auth.Checks[i].Detail = redact(r.Auth.Checks[i].Detail)
+	redacted := redactValue(v, home)
+	data, err = json.Marshal(redacted)
+	if err != nil {
+		return
 	}
+	// Best-effort by construction: every field above marshals cleanly, so a
+	// failure here would mean programmer error, and dropping the whole
+	// report would be worse than an unredacted path.
+	_ = json.Unmarshal(data, r)
+}
 
-	if r.Diagnostics != nil {
-		for i := range r.Diagnostics.FileModes {
-			r.Diagnostics.FileModes[i].Path = redact(r.Diagnostics.FileModes[i].Path)
+// redactValue rewrites home-dir references in every string of a decoded JSON
+// value — including mid-string paths in messages and tracebacks. Only
+// separator-terminated occurrences are replaced, so /Users/lee never mangles
+// /Users/leejongyoung, and a bare home dir value becomes "~".
+func redactValue(v any, home string) any {
+	switch t := v.(type) {
+	case string:
+		if t == home {
+			return "~"
 		}
-		for i := range r.Diagnostics.OrphanFiles {
-			r.Diagnostics.OrphanFiles[i] = redact(r.Diagnostics.OrphanFiles[i])
+		out := t
+		for _, sep := range []string{"/", `\`} {
+			out = strings.ReplaceAll(out, home+sep, "~"+sep)
 		}
+		return out
+	case []any:
+		for i := range t {
+			t[i] = redactValue(t[i], home)
+		}
+		return t
+	case map[string]any:
+		for k := range t {
+			t[k] = redactValue(t[k], home)
+		}
+		return t
+	default:
+		return v
 	}
 }
 
@@ -227,6 +240,8 @@ func (s *Service) checkFileModes() []FileModeCheck {
 		s.paths.ConfigFile,
 		s.paths.SessionFile,
 		s.paths.LineageFile,
+		s.paths.CredentialsFile,
+		s.paths.TokenFile,
 	}
 
 	checks := make([]FileModeCheck, 0, len(dirs)+len(files))
@@ -281,9 +296,9 @@ func (s *Service) RunAuth(ctx context.Context) (AuthReport, error) {
 	checks := []Check{
 		checkPythonBinary(s.loginConfig.PythonBin),
 		checkPath("auth_helper_dir", s.loginConfig.HelperDir),
-		checkPythonModule(s.loginConfig, "tossctl_auth_helper", i18n.T("doctor.check.authHelperOk"), i18n.T("doctor.check.authHelperFail")),
-		checkPythonModule(s.loginConfig, "playwright", i18n.T("doctor.check.playwrightOk"), i18n.T("doctor.check.playwrightFail")),
-		checkChrome(s.loginConfig),
+		checkPythonModule(ctx, s.loginConfig, "tossctl_auth_helper", i18n.T("doctor.check.authHelperOk"), i18n.T("doctor.check.authHelperFail")),
+		checkPythonModule(ctx, s.loginConfig, "playwright", i18n.T("doctor.check.playwrightOk"), i18n.T("doctor.check.playwrightFail")),
+		checkChrome(ctx, s.loginConfig),
 		checkSession(sessionStatus),
 	}
 
@@ -341,7 +356,11 @@ func checkPythonBinary(pythonBin string) Check {
 	}
 }
 
-func checkPythonModule(cfg auth.LoginConfig, module, successSummary, failSummary string) Check {
+// externalCheckTimeout bounds helper subprocesses: without it a wedged
+// interpreter or browser launch blocks `tossctl doctor` forever.
+const externalCheckTimeout = 60 * time.Second
+
+func checkPythonModule(ctx context.Context, cfg auth.LoginConfig, module, successSummary, failSummary string) Check {
 	path, err := exec.LookPath(cfg.PythonBin)
 	if err != nil {
 		return Check{
@@ -352,7 +371,9 @@ func checkPythonModule(cfg auth.LoginConfig, module, successSummary, failSummary
 		}
 	}
 
-	cmd := exec.Command(path, "-c", "import "+module)
+	ctx, cancel := context.WithTimeout(ctx, externalCheckTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, path, "-c", "import "+module)
 	cmd.Dir = cfg.HelperDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -360,7 +381,7 @@ func checkPythonModule(cfg auth.LoginConfig, module, successSummary, failSummary
 			Name:    module,
 			Status:  CheckWarn,
 			Summary: failSummary,
-			Detail:  string(output),
+			Detail:  firstLine(strings.TrimSpace(string(output))),
 		}
 	}
 
@@ -371,7 +392,7 @@ func checkPythonModule(cfg auth.LoginConfig, module, successSummary, failSummary
 	}
 }
 
-func checkChrome(cfg auth.LoginConfig) Check {
+func checkChrome(ctx context.Context, cfg auth.LoginConfig) Check {
 	path, err := exec.LookPath(cfg.PythonBin)
 	if err != nil {
 		return Check{
@@ -395,7 +416,9 @@ except Exception as e:
 finally:
     p.stop()
 `
-	cmd := exec.Command(path, "-c", script)
+	ctx, cancel := context.WithTimeout(ctx, externalCheckTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, path, "-c", script)
 	cmd.Dir = cfg.HelperDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
