@@ -2,6 +2,8 @@ package official
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -25,6 +27,10 @@ type tokenResponse struct {
 type cachedToken struct {
 	AccessToken string    `json:"access_token"`
 	ExpiresAt   time.Time `json:"expires_at"`
+	// KeyFingerprint binds the token to the credentials (and base URL) it
+	// was issued for. A cache entry from other credentials — e.g. after a
+	// key rotation or env/file switching — is discarded instead of reused.
+	KeyFingerprint string `json:"key_fingerprint,omitempty"`
 }
 
 // tokenManager handles OAuth2 client_credentials token acquisition and
@@ -55,8 +61,9 @@ func newTokenManager(creds Credentials, base, cacheFile string, hc *http.Client)
 }
 
 // token returns a valid access token, reusing the cached one when it has not
-// yet expired (using a 60-second skew). If no valid in-memory token exists it
-// tries to load from cacheFile before issuing a new exchange.
+// yet expired (using a 60-second skew) and was issued for the current
+// credentials. If no valid in-memory token exists it tries to load from
+// cacheFile before issuing a new exchange.
 func (m *tokenManager) token(ctx context.Context) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -68,14 +75,29 @@ func (m *tokenManager) token(ctx context.Context) (string, error) {
 		return m.cache.AccessToken, nil
 	}
 
-	// 2. Disk cache.
-	if ct, err := m.loadCache(); err == nil && isStillValid(ct, now) {
+	// 2. Disk cache — only when it belongs to these credentials.
+	if ct, err := m.loadCache(); err == nil && isStillValid(ct, now) && m.owns(ct) {
 		m.cache = ct
 		return ct.AccessToken, nil
 	}
 
 	// 3. Exchange.
 	return m.exchange(ctx)
+}
+
+// fingerprint identifies the (key, secret, base URL) triple this manager
+// exchanges with. The hash is one-way; it reveals nothing usable as a
+// credential, it only distinguishes credential sets.
+func (m *tokenManager) fingerprint() string {
+	sum := sha256.Sum256([]byte(m.creds.APIKey + "\x00" + m.creds.SecretKey + "\x00" + m.base))
+	return hex.EncodeToString(sum[:])
+}
+
+// owns reports whether the cached token was issued for this manager's
+// credentials. Entries written before fingerprinting (empty) never match, so
+// the first use after upgrade re-exchanges once and self-heals the format.
+func (m *tokenManager) owns(ct *cachedToken) bool {
+	return ct != nil && ct.KeyFingerprint != "" && ct.KeyFingerprint == m.fingerprint()
 }
 
 // isStillValid reports whether ct is non-nil and not expired, applying a
@@ -160,8 +182,11 @@ func (m *tokenManager) loadCache() (*cachedToken, error) {
 	return &ct, nil
 }
 
-// saveCache persists ct to cacheFile with 0600 permissions.
+// saveCache persists ct to cacheFile with 0600 permissions, stamping the
+// credential fingerprint first so a later manager with different credentials
+// refuses the entry.
 func (m *tokenManager) saveCache(ct *cachedToken) error {
+	ct.KeyFingerprint = m.fingerprint()
 	dir := filepath.Dir(m.cacheFile)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return err
