@@ -31,7 +31,7 @@ func mcpOfficialBackends(cfg config.File, creds *official.Credentials, tokenFile
 	if creds == nil || !cfg.OpenAPI.Enabled || prefer == routing.WTS {
 		return nil, nil
 	}
-	officialClient := official.New(*creds, tokenFile)
+	officialClient := official.New(*creds, tokenFile, official.WithAccountSeq(cfg.OpenAPI.AccountSeq))
 	tradingSvc := trading.NewService(cfg.Trading, mcp.OfficialBroker{Client: officialClient}).
 		WithLineage(orderlineage.NewService(lineageFile))
 	return officialClient, tradingSvc

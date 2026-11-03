@@ -124,11 +124,13 @@ func (c *Client) get(ctx context.Context, path string, q url.Values, out any) er
 
 // ensureAccountSeq returns the account sequence number, resolving it lazily
 // when no seq was provided via WithAccountSeq. The first call (accountSeq==0)
-// fetches /api/v1/accounts, parses the first entry's ID, and caches the result.
-// Subsequent calls return the cached value with no network round-trip. The mu
-// field serialises concurrent first-call resolution so /accounts is called at
-// most once. Callers that set WithAccountSeq at construction time skip the
-// fetch entirely.
+// fetches /api/v1/accounts: a single account is used as-is, but two or more
+// are refused — silently picking accounts[0] could send reads and orders to a
+// different account than the WTS primary, so the user must set
+// openapi.account_seq explicitly. The resolved value is cached; the mu field
+// serialises concurrent first-call resolution so /accounts is called at most
+// once. Callers that set WithAccountSeq at construction time skip the fetch
+// entirely.
 func (c *Client) ensureAccountSeq(ctx context.Context) (int, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -142,12 +144,27 @@ func (c *Client) ensureAccountSeq(ctx context.Context) (int, error) {
 	if len(accts) == 0 {
 		return 0, fmt.Errorf("lazy account-seq resolution: no accounts found")
 	}
+	if len(accts) > 1 {
+		ids := make([]string, 0, len(accts))
+		for _, a := range accts {
+			ids = append(ids, a.ID)
+		}
+		return 0, fmt.Errorf("lazy account-seq resolution: %d accounts found (%s) — refusing to guess; set openapi.account_seq explicitly", len(accts), strings.Join(ids, ", "))
+	}
 	seq, err := strconv.Atoi(accts[0].ID)
 	if err != nil {
 		return 0, fmt.Errorf("lazy account-seq resolution: parsing account ID %q: %w", accts[0].ID, err)
 	}
 	c.accountSeq = seq
 	return seq, nil
+}
+
+// ResolveAccountSeq reports the X-Tossinvest-Account sequence this client
+// sends: the configured value, or the lazily resolved single account. It
+// exists so surfaces (e.g. `openapi status`) can show which account is in
+// use without duplicating the resolution logic.
+func (c *Client) ResolveAccountSeq(ctx context.Context) (int, error) {
+	return c.ensureAccountSeq(ctx)
 }
 
 // getAcct is like get but also resolves the account sequence (lazily if needed)
