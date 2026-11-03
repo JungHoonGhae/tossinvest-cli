@@ -20,10 +20,12 @@ import (
 // for fractional BUY. Expects: orderAmount set, no quantity field, orderType=MARKET.
 func TestBuildOrderCreateFractionalBuy(t *testing.T) {
 	intent := orderintent.PlaceIntent{
-		Symbol:     "TSLA",
-		Side:       "buy",
-		Fractional: true,
-		Amount:     100.5,
+		Symbol:       "TSLA",
+		Market:       "us",
+		Side:         "buy",
+		Fractional:   true,
+		Amount:       100.5,
+		CurrencyMode: "USD",
 	}
 	body, err := buildOrderCreate(intent)
 	if err != nil {
@@ -51,6 +53,7 @@ func TestBuildOrderCreateFractionalBuy(t *testing.T) {
 func TestBuildOrderCreateFractionalSell(t *testing.T) {
 	intent := orderintent.PlaceIntent{
 		Symbol:     "TSLA",
+		Market:     "us",
 		Side:       "sell",
 		Fractional: true,
 		Quantity:   0.5,
@@ -177,12 +180,13 @@ func TestPlaceOrder(t *testing.T) {
 	)
 
 	intent := orderintent.PlaceIntent{
-		Symbol:    "TSLA",
-		Market:    "us",
-		Side:      "buy",
-		OrderType: "limit",
-		Quantity:  3,
-		Price:     150.25,
+		Symbol:       "TSLA",
+		Market:       "us",
+		Side:         "buy",
+		OrderType:    "limit",
+		Quantity:     3,
+		Price:        150.25,
+		CurrencyMode: "USD",
 	}
 	res, err := c.PlaceOrder(context.Background(), intent)
 	if err != nil {
@@ -359,27 +363,20 @@ func TestModifyOrder(t *testing.T) {
 	}
 }
 
-// TestModifyOrderMarket verifies the MARKET inference path: when intent.Price is
-// nil, orderType is MARKET and no price field is sent. quantity is forwarded.
-func TestModifyOrderMarket(t *testing.T) {
-	var gotBody string
-	var gotPath string
+// TestModifyOrderRejectsMissingPrice guards issue #2: with no price the old
+// code sent orderType MARKET, silently converting a limit order into a market
+// order. The builder must refuse instead — no /modify call may go out.
+func TestModifyOrderRejectsMissingPrice(t *testing.T) {
+	modifyCalls := 0
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/oauth2/token":
 			_, _ = w.Write([]byte(`{"access_token":"AT","expires_in":3600,"token_type":"Bearer"}`))
 		default:
 			if strings.HasSuffix(r.URL.Path, "/modify") {
-				gotPath = r.URL.Path
-				var m map[string]any
-				_ = json.NewDecoder(r.Body).Decode(&m)
-				b, _ := json.Marshal(m)
-				gotBody = string(b)
-				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write([]byte(`{"result":{"orderId":"M2"}}`))
-			} else {
-				http.NotFound(w, r)
+				modifyCalls++
 			}
+			http.NotFound(w, r)
 		}
 	}))
 	defer srv.Close()
@@ -397,28 +394,24 @@ func TestModifyOrderMarket(t *testing.T) {
 		OrderID:  "order-mkt-789",
 		Quantity: &newQty,
 	}
-	res, err := c.ModifyOrder(context.Background(), intent)
+	if _, err := c.ModifyOrder(context.Background(), intent); err == nil {
+		t.Fatal("expected rejection for price-less amend, got nil")
+	}
+	if modifyCalls != 0 {
+		t.Fatalf("rejected amend must not call /modify, got %d calls", modifyCalls)
+	}
+
+	if _, err := buildOrderModify(intent); err == nil {
+		t.Fatal("expected buildOrderModify error for price-less intent, got nil")
+	}
+	newPrice := 71000.0
+	limitIntent := orderintent.AmendIntent{OrderID: "order-mkt-789", Quantity: &newQty, Price: &newPrice}
+	body, err := buildOrderModify(limitIntent)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("buildOrderModify: %v", err)
 	}
-	if res.OriginalOrderID != "order-mkt-789" {
-		t.Fatalf("OriginalOrderID: want order-mkt-789, got %q", res.OriginalOrderID)
-	}
-	if res.CurrentOrderID != "M2" {
-		t.Fatalf("CurrentOrderID: want M2, got %q", res.CurrentOrderID)
-	}
-	wantPath := "/api/v1/orders/order-mkt-789/modify"
-	if gotPath != wantPath {
-		t.Fatalf("path: want %q, got %q", wantPath, gotPath)
-	}
-	if !strings.Contains(gotBody, `"orderType":"MARKET"`) {
-		t.Fatalf("body missing orderType MARKET; got %s", gotBody)
-	}
-	if !strings.Contains(gotBody, `"quantity":"4"`) {
-		t.Fatalf("body missing quantity; got %s", gotBody)
-	}
-	if strings.Contains(gotBody, `"price"`) {
-		t.Fatalf("market modify must not include price; got %s", gotBody)
+	if body.OrderType != "LIMIT" || body.Price != "71000" || body.Quantity != "4" {
+		t.Fatalf("unexpected body: %+v", body)
 	}
 }
 
@@ -468,10 +461,11 @@ func TestBuildOrderCreateCarriesTimeInForce(t *testing.T) {
 	}{
 		{"지정가 기본은 DAY 유지", orderintent.PlaceIntent{
 			Symbol: "AAPL", Market: "us", Side: "buy", OrderType: "limit", Quantity: 1, Price: 10,
+			CurrencyMode: "USD",
 		}, "DAY"},
 		{"CLS 가 실린다", orderintent.PlaceIntent{
 			Symbol: "AAPL", Market: "us", Side: "buy", OrderType: "limit", Quantity: 1, Price: 10,
-			TimeInForce: "CLS",
+			TimeInForce: "CLS", CurrencyMode: "USD",
 		}, "CLS"},
 		{"시장가에도 OPG 가 실린다", orderintent.PlaceIntent{
 			Symbol: "005930", Market: "kr", Side: "buy", OrderType: "market", Quantity: 1,
@@ -493,6 +487,84 @@ func TestBuildOrderCreateCarriesTimeInForce(t *testing.T) {
 			}
 			if v0.TimeInForce != c.want {
 				t.Errorf("TimeInForce = %q, want %q", v0.TimeInForce, c.want)
+			}
+		})
+	}
+}
+
+// TestBuildOrderCreateRejectsNonUSDCurrency guards issue #1: the official API
+// prices US fractional-buy amounts and US limit prices in USD. A KRW value
+// sent here would execute ~1400x off intent, so the builder must refuse it —
+// the hybrid broker routes these to WTS, and official-only callers (ops/MCP)
+// must fail closed instead of mis-sending.
+func TestBuildOrderCreateRejectsNonUSDCurrency(t *testing.T) {
+	cases := []struct {
+		name   string
+		intent orderintent.PlaceIntent
+	}{
+		{
+			name: "US fractional buy in KRW",
+			intent: orderintent.PlaceIntent{Symbol: "TSLA", Market: "us", Side: "buy",
+				OrderType: "market", Fractional: true, Amount: 10000, CurrencyMode: "KRW"},
+		},
+		{
+			name: "US limit in KRW",
+			intent: orderintent.PlaceIntent{Symbol: "AAPL", Market: "us", Side: "buy",
+				OrderType: "limit", Quantity: 1, Price: 250000, CurrencyMode: "KRW"},
+		},
+		{
+			name: "US fractional buy without currency",
+			intent: orderintent.PlaceIntent{Symbol: "TSLA", Market: "us", Side: "buy",
+				OrderType: "market", Fractional: true, Amount: 100},
+		},
+		{
+			name: "US limit without currency",
+			intent: orderintent.PlaceIntent{Symbol: "AAPL", Market: "us", Side: "buy",
+				OrderType: "limit", Quantity: 1, Price: 150},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := buildOrderCreate(tc.intent); err == nil {
+				t.Fatal("expected currency guard error, got nil")
+			}
+		})
+	}
+
+	allowed := []struct {
+		name   string
+		intent orderintent.PlaceIntent
+	}{
+		{
+			name: "US fractional buy in USD",
+			intent: orderintent.PlaceIntent{Symbol: "TSLA", Market: "us", Side: "buy",
+				OrderType: "market", Fractional: true, Amount: 100, CurrencyMode: "USD"},
+		},
+		{
+			name: "US limit in USD",
+			intent: orderintent.PlaceIntent{Symbol: "AAPL", Market: "us", Side: "buy",
+				OrderType: "limit", Quantity: 1, Price: 150.25, CurrencyMode: "USD"},
+		},
+		{
+			name: "US market carries no currency value",
+			intent: orderintent.PlaceIntent{Symbol: "AAPL", Market: "us", Side: "buy",
+				OrderType: "market", Quantity: 1, CurrencyMode: "KRW"},
+		},
+		{
+			name: "US fractional sell is share quantity",
+			intent: orderintent.PlaceIntent{Symbol: "TSLA", Market: "us", Side: "sell",
+				OrderType: "market", Fractional: true, Quantity: 0.5, CurrencyMode: "KRW"},
+		},
+		{
+			name: "KR limit stays KRW",
+			intent: orderintent.PlaceIntent{Symbol: "005930", Market: "kr", Side: "buy",
+				OrderType: "limit", Quantity: 10, Price: 70000, CurrencyMode: "KRW"},
+		},
+	}
+	for _, tc := range allowed {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := buildOrderCreate(tc.intent); err != nil {
+				t.Fatalf("buildOrderCreate: %v", err)
 			}
 		})
 	}
