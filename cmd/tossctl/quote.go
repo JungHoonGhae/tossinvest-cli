@@ -79,7 +79,10 @@ func newQuoteCmd(opts *rootOptions) *cobra.Command {
 				}
 				var charts []domain.Chart
 				for _, q := range quotes {
-					chart, err := app.client.GetChart(ctx, q.ProductCode, "3m", 30)
+					// Symbol is populated by both adapters; ProductCode is empty
+					// on official-sourced quotes, which broke every batch chart
+					// whenever official credentials were configured.
+					chart, err := app.client.GetChart(ctx, q.Symbol, "3m", 30)
 					if err != nil {
 						fmt.Fprintf(warnW, "warning: chart unavailable for %s: %v\n", q.Symbol, err)
 						charts = append(charts, domain.Chart{})
