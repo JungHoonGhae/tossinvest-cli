@@ -1426,3 +1426,68 @@ func TestClassifyPlaceCreateFailurePassesThroughNonStatusError(t *testing.T) {
 		t.Fatalf("expected passthrough, got %v", got)
 	}
 }
+
+// TestBuildAmendBodyKRSendsKRWAsIs guards issue #5: KR amends must not divide
+// by the dollar rate (70000 KRW went out as ~50 USD).
+func TestBuildAmendBodyKRSendsKRWAsIs(t *testing.T) {
+	order := pendingOrderDetails{
+		OrderNo:            "21",
+		OrderedDate:        "2026-03-11",
+		StockCode:          "A005930",
+		TradeType:          "buy",
+		OrderPrice:         70000,
+		OrderUSDPrice:      0,
+		Quantity:           10,
+		PendingQuantity:    10,
+		OrderPriceTypeCode: "00",
+	}
+	price := 71000.0
+	body, expectedKRW, expectedQty, err := buildAmendBody(order, "KSP", 0, nil, &price, false)
+	if err != nil {
+		t.Fatalf("buildAmendBody returned error: %v", err)
+	}
+	if expectedKRW != 71000 || expectedQty != 10 {
+		t.Fatalf("expected (71000, 10), got (%v, %v)", expectedKRW, expectedQty)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["price"] != 71000.0 {
+		t.Fatalf("KR amend price must be KRW as-is, got %v", payload["price"])
+	}
+	if payload["market"] != "KSP" {
+		t.Fatalf("market must pass through, got %v", payload["market"])
+	}
+}
+
+// TestBuildAmendBodyDefaultsToPendingQuantity: on a partially filled order a
+// price-only amend must not re-request the filled shares.
+func TestBuildAmendBodyDefaultsToPendingQuantity(t *testing.T) {
+	order := pendingOrderDetails{
+		OrderNo:            "22",
+		OrderedDate:        "2026-03-11",
+		StockCode:          "US20220809012",
+		TradeType:          "buy",
+		OrderPrice:         700,
+		OrderUSDPrice:      0.4753,
+		Quantity:           10,
+		PendingQuantity:    7,
+		OrderPriceTypeCode: "00",
+	}
+	price := 700.0
+	body, _, expectedQty, err := buildAmendBody(order, "NSQ", 1472.8, nil, &price, true)
+	if err != nil {
+		t.Fatalf("buildAmendBody returned error: %v", err)
+	}
+	if expectedQty != 7 {
+		t.Fatalf("expected pending quantity 7, got %v", expectedQty)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["quantity"] != 7.0 {
+		t.Fatalf("wire quantity must be 7, got %v", payload["quantity"])
+	}
+}

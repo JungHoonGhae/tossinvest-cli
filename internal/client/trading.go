@@ -526,9 +526,14 @@ func (c *Client) AmendPendingOrder(ctx context.Context, intent orderintent.Amend
 		return tradingflow.MutationResult{}, err
 	}
 
-	rate, err := c.getUSDBaseExchangeRate(ctx)
-	if err != nil {
-		return tradingflow.MutationResult{}, err
+	// KR amends are KRW-denominated: no dollar rate is fetched (or billed as
+	// a failure mode) for them.
+	var rate float64
+	if orderintent.InferMarketFromStockCode(order.StockCode) != "kr" {
+		rate, err = c.getUSDBaseExchangeRate(ctx)
+		if err != nil {
+			return tradingflow.MutationResult{}, err
+		}
 	}
 
 	bodyPrepare, expectedPriceKRW, expectedQty, err := buildAmendBody(order, info.Market.Code, rate, intent.Quantity, intent.Price, true)
@@ -766,16 +771,29 @@ func decodePendingOrderDetails(raw json.RawMessage) (pendingOrderDetails, error)
 }
 
 func buildAmendBody(order pendingOrderDetails, marketCode string, usdRate float64, quantity *float64, priceKRW *float64, withOrderKey bool) ([]byte, float64, float64, error) {
-	targetQty := order.Quantity
+	// Amend applies to the surviving quantity: default to what is still
+	// pending (the cancel path uses PendingQuantity for the same reason).
+	// Falling back to the total only when pending is unset keeps a data
+	// quirk from producing a zero-quantity amend.
+	targetQty := order.PendingQuantity
+	if targetQty <= 0 {
+		targetQty = order.Quantity
+	}
 	if quantity != nil {
 		targetQty = *quantity
 	}
 
 	targetPriceKRW := order.OrderPrice
-	targetPriceUSD := order.OrderUSDPrice
 	if priceKRW != nil {
 		targetPriceKRW = *priceKRW
-		targetPriceUSD = round2(targetPriceKRW / usdRate)
+	}
+	// KR orders are KRW-denominated on the wire (same as buildPlaceBody): no
+	// FX conversion. Only US orders divide by the dollar rate.
+	var priceValue float64
+	if orderintent.InferMarketFromStockCode(order.StockCode) == "kr" {
+		priceValue = targetPriceKRW
+	} else {
+		priceValue = round2(targetPriceKRW / usdRate)
 	}
 
 	payload := map[string]any{
@@ -783,7 +801,7 @@ func buildAmendBody(order pendingOrderDetails, marketCode string, usdRate float6
 		"market":                 marketCode,
 		"currencyMode":           "KRW",
 		"tradeType":              order.TradeType,
-		"price":                  targetPriceUSD,
+		"price":                  priceValue,
 		"quantity":               targetQty,
 		"orderAmount":            0,
 		"orderPriceType":         order.OrderPriceTypeCode,
