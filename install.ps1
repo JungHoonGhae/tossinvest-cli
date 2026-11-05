@@ -43,8 +43,17 @@ function Install-Tossctl {
     }
 
     # ── Resolve download URLs ─────────────────────────────────────────────────
-    $zipUrl    = "https://github.com/$REPO/releases/latest/download/$ASSET.zip"
-    $sha256Url = "https://github.com/$REPO/releases/latest/download/$ASSET.zip.sha256"
+    # TOSSCTL_VERSION pins the payload to the release tag the updater resolved
+    # (e.g. v0.54.1). Manual runs default to latest.
+    $tag = $env:TOSSCTL_VERSION
+    if ([string]::IsNullOrEmpty($tag)) { $tag = "latest" }
+    if ($tag -eq "latest") {
+        $base = "https://github.com/$REPO/releases/latest/download"
+    } else {
+        $base = "https://github.com/$REPO/releases/download/$tag"
+    }
+    $zipUrl    = "$base/$ASSET.zip"
+    $sha256Url = "$base/$ASSET.zip.sha256"
 
     # ── Temporary directory ───────────────────────────────────────────────────
     $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
@@ -87,14 +96,24 @@ function Install-Tossctl {
             Write-Warn "tossctl is currently running. Close it before upgrading or the file copy may fail."
         }
         Copy-Item (Join-Path $extractDir $BINARY) $destBin -Force
-
         $srcHelper = Join-Path $extractDir "auth-helper"
         if (Test-Path $srcHelper) {
             $dstHelper = Join-Path $INSTALL_DIR "auth-helper"
+            $bakHelper = "$dstHelper.bak"
+            # Atomic swap: the old helper stays in place until the new one lands.
             if (Test-Path $dstHelper) {
-                Remove-Item $dstHelper -Recurse -Force
+                if (Test-Path $bakHelper) { Remove-Item $bakHelper -Recurse -Force }
+                Rename-Item $dstHelper ([System.IO.Path]::GetFileName($bakHelper))
+                try {
+                    Copy-Item $srcHelper $dstHelper -Recurse -Force
+                    Remove-Item $bakHelper -Recurse -Force
+                } catch {
+                    Rename-Item $bakHelper ([System.IO.Path]::GetFileName($dstHelper))
+                    throw
+                }
+            } else {
+                Copy-Item $srcHelper $dstHelper -Recurse -Force
             }
-            Copy-Item $srcHelper $dstHelper -Recurse -Force
         }
 
         # ── PATH (exact-segment, null-safe, REG_EXPAND_SZ-preserving) ─────────
@@ -140,16 +159,12 @@ function Install-Tossctl {
         }
 
         # ── Python / playwright ───────────────────────────────────────────────
-        Write-Host ""
-        Write-Step "Installing Python dependencies for auth-helper..."
-        $pyCmd = $null
-        foreach ($candidate in @("python", "python3", "py")) {
-            if (Get-Command $candidate -ErrorAction SilentlyContinue) {
-                $pyCmd = $candidate
-                break
-            }
-        }
         if ($pyCmd) {
+            # Pinned to the range auth-helper declares (pyproject.toml): an
+            # unpinned `pip install playwright` would float the
+            # browser-automation dependency of a tool that handles
+            # live-trading credentials.
+            $playwrightSpec = "playwright>=1.52,<2"
             # pip prints notices/progress to stderr even on success. With
             # $ErrorActionPreference='Stop', merging stderr via 2>&1 surfaces
             # those lines as a fatal NativeCommandError *before* we can check the
@@ -162,14 +177,14 @@ function Install-Tossctl {
                 $PSNativeCommandUseErrorActionPreference = $false
             }
             $ErrorActionPreference = 'Continue'
-            $pipOut = & $pyCmd -m pip install --quiet playwright 2>&1
+            $pipOut = & $pyCmd -m pip install --quiet $playwrightSpec 2>&1
             $pipExit = $LASTEXITCODE
             $ErrorActionPreference = $prevEAP
             if ($null -ne $prevNative) {
                 $PSNativeCommandUseErrorActionPreference = $prevNative
             }
             if ($pipExit -ne 0) {
-                Write-Warn "Failed to install playwright. Run '$pyCmd -m pip install playwright' manually."
+                Write-Warn "Failed to install $playwrightSpec. Run '$pyCmd -m pip install $playwrightSpec' manually."
                 Write-Host ($pipOut | Out-String) -ForegroundColor DarkGray
             } else {
                 Write-Ok "playwright installed via $pyCmd."

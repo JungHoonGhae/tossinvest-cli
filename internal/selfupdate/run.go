@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 
 	"github.com/JungHoonGhae/tossinvest-cli/internal/version"
 )
@@ -16,6 +18,11 @@ type Options struct {
 	// Method is the install method to act on — normally the result of
 	// DetectInstallMethod.
 	Method InstallMethod
+	// Version is the target release version without a "v" prefix (e.g. "0.54.1",
+	// as reported by updatecheck). MethodBinary requires it so the installer
+	// script and payload are pinned to that release tag instead of mutable
+	// main. Empty refuses the update (fail-closed).
+	Version string
 	// Out and ErrOut receive the child process's stdout/stderr, streamed
 	// live so users see brew/curl/install-script progress as it happens.
 	Out    io.Writer
@@ -34,13 +41,15 @@ var ErrDevBuild = errors.New("source build (dev) — use `git pull && make build
 //   - MethodBinary on non-Windows: re-runs install.sh via `sh -c 'curl ... |
 //     sh'` synchronously — safe because Unix allows replacing a running
 //     binary's directory entry without disturbing the currently-executing
-//     process.
+//     process. The script URL and the payload it fetches are both pinned to
+//     opts.Version's release tag (never mutable main).
 //   - MethodBinary on Windows: starts install.ps1 via PowerShell and returns
 //     immediately without waiting for it to finish. install.ps1 needs this
 //     process's file lock on tossctl.exe released before it can overwrite
 //     the binary, so Run hands off and lets the caller exit right after —
 //     it does not (and cannot, without duplicating install.ps1's own
 //     "tossctl is running" check) confirm the swap actually completed.
+//     The script URL and payload are pinned to opts.Version like on Unix.
 func Run(ctx context.Context, opts Options) error {
 	switch opts.Method {
 	case MethodDev:
@@ -63,9 +72,23 @@ func Run(ctx context.Context, opts Options) error {
 	}
 }
 
+// pinnedTag normalizes opts.Version to "v<ver>" form and refuses an empty
+// version: running an unpinned installer would execute mutable main.
+func pinnedTag(ver string) (string, error) {
+	if strings.TrimSpace(ver) == "" {
+		return "", errors.New("refusing self-update without a pinned target version (update check returned empty)")
+	}
+	return "v" + strings.TrimPrefix(strings.TrimSpace(ver), "v"), nil
+}
+
 func runUnixInstaller(ctx context.Context, opts Options) error {
-	script := fmt.Sprintf("curl -fsSL %s | sh", version.RawMainURL("install.sh"))
+	tag, err := pinnedTag(opts.Version)
+	if err != nil {
+		return err
+	}
+	script := fmt.Sprintf("curl -fsSL %s | sh", version.RawTagURL("install.sh", tag))
 	cmd := exec.CommandContext(ctx, "sh", "-c", script)
+	cmd.Env = append(os.Environ(), "TOSSCTL_VERSION="+tag)
 	cmd.Stdout = opts.Out
 	cmd.Stderr = opts.ErrOut
 	if err := cmd.Run(); err != nil {
@@ -75,11 +98,16 @@ func runUnixInstaller(ctx context.Context, opts Options) error {
 }
 
 func runWindowsInstaller(opts Options) error {
-	script := fmt.Sprintf("irm %s | iex", version.RawMainURL("install.ps1"))
+	tag, err := pinnedTag(opts.Version)
+	if err != nil {
+		return err
+	}
+	script := fmt.Sprintf("irm %s | iex", version.RawTagURL("install.ps1", tag))
 	// Intentionally exec.Command, not exec.CommandContext: this process is
 	// about to exit so the child can take over the file lock on tossctl.exe;
 	// tying its lifetime to our context would risk killing it on cancel.
 	cmd := exec.Command("powershell", "-NoProfile", "-Command", script)
+	cmd.Env = append(os.Environ(), "TOSSCTL_VERSION="+tag)
 	cmd.Stdout = opts.Out
 	cmd.Stderr = opts.ErrOut
 	if err := cmd.Start(); err != nil {

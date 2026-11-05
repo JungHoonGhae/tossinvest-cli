@@ -18,7 +18,16 @@ main() {
     fi
 
     asset="${BINARY}-${os}-${arch}.tar.gz"
-    url="https://github.com/${REPO}/releases/latest/download/${asset}"
+    # TOSSCTL_VERSION pins the payload to the release tag the updater resolved
+    # (e.g. v0.54.1). Manual runs default to latest. Never points at mutable
+    # branch content: only the versioned release assets below are executed.
+    TAG="${TOSSCTL_VERSION:-latest}"
+    if [ "$TAG" = "latest" ]; then
+        base="https://github.com/${REPO}/releases/latest/download"
+    else
+        base="https://github.com/${REPO}/releases/download/${TAG}"
+    fi
+    url="${base}/${asset}"
     sha_url="${url}.sha256"
 
     echo "Detected: ${os}/${arch}"
@@ -53,16 +62,33 @@ main() {
     $SUDO mv "${tmpdir}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
     $SUDO chmod +x "${INSTALL_DIR}/${BINARY}"
     if [ -d "${tmpdir}/auth-helper" ]; then
-        $SUDO rm -rf "${SHARE_DIR}/auth-helper"
-        $SUDO mv "${tmpdir}/auth-helper" "${SHARE_DIR}/auth-helper"
+        # Atomic swap: the old helper stays in place until the new one lands.
+        if [ -d "${SHARE_DIR}/auth-helper" ]; then
+            $SUDO mv "${SHARE_DIR}/auth-helper" "${SHARE_DIR}/auth-helper.bak" || exit 1
+            if $SUDO mv "${tmpdir}/auth-helper" "${SHARE_DIR}/auth-helper"; then
+                $SUDO rm -rf "${SHARE_DIR}/auth-helper.bak"
+            else
+                $SUDO mv "${SHARE_DIR}/auth-helper.bak" "${SHARE_DIR}/auth-helper"
+                echo "Error: failed to install auth-helper, restored previous version" >&2
+                exit 1
+            fi
+        else
+            $SUDO mv "${tmpdir}/auth-helper" "${SHARE_DIR}/auth-helper"
+        fi
     fi
 
     echo ""
     echo "Installing Python dependencies for auth-helper..."
+    # Pinned to the range auth-helper declares (pyproject.toml): an unpinned
+    # `pip install playwright` would float the browser-automation dependency
+    # of a tool that handles live-trading credentials.
+    PLAYWRIGHT_SPEC="playwright>=1.52,<2"
     if command -v python3 >/dev/null 2>&1; then
-        python3 -m pip install --quiet playwright 2>/dev/null || echo "Warning: failed to install playwright. Run 'python3 -m pip install playwright' manually."
+        if ! python3 -m pip install --quiet "${PLAYWRIGHT_SPEC}"; then
+            echo "Warning: failed to install ${PLAYWRIGHT_SPEC}. Run 'python3 -m pip install \"${PLAYWRIGHT_SPEC}\"' manually." >&2
+        fi
     else
-        echo "Warning: python3 not found. Install Python 3.11+ and run 'python3 -m pip install playwright'."
+        echo "Warning: python3 not found. Install Python 3.11+ and run 'python3 -m pip install \"${PLAYWRIGHT_SPEC}\"'." >&2
     fi
 
     echo ""
@@ -104,13 +130,25 @@ detect_arch() {
 verify_checksum() {
     file="$1"
     expected=$(awk '{print $1}' "${file}.sha256")
+    case "$expected" in
+        *[!0-9a-fA-F]*|"")
+            echo "Error: checksum file is malformed, refusing to install" >&2
+            exit 1
+            ;;
+    esac
+    if [ "${#expected}" -ne 64 ]; then
+        echo "Error: checksum file is malformed, refusing to install" >&2
+        exit 1
+    fi
     if command -v sha256sum >/dev/null 2>&1; then
         actual=$(sha256sum "$file" | awk '{print $1}')
     elif command -v shasum >/dev/null 2>&1; then
         actual=$(shasum -a 256 "$file" | awk '{print $1}')
     else
-        echo "Warning: no sha256 tool found, skipping checksum verification" >&2
-        return 0
+        # Fail closed: installing an unverified binary that manages live
+        # trading credentials is worse than refusing to install.
+        echo "Error: no sha256 tool found (sha256sum/shasum), refusing to install without checksum verification" >&2
+        exit 1
     fi
     if [ "$expected" != "$actual" ]; then
         echo "Error: checksum mismatch" >&2
