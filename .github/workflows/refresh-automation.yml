@@ -12,9 +12,10 @@ on:
   workflow_dispatch:
 
 permissions:
-  actions: write
-  contents: write
-  pull-requests: write
+  # Least privilege by default: the pending job only lists PRs. The refresh
+  # job below re-raises what it needs to push and open automation PRs.
+  contents: read
+  pull-requests: read
 
 jobs:
   pending:
@@ -48,6 +49,9 @@ jobs:
     concurrency:
       group: automation-${{ matrix.family }}
       cancel-in-progress: false
+    permissions:
+      contents: write # push rebased automation branches
+      pull-requests: write # comment/update automation PRs
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -7,20 +7,25 @@ on:
     - cron: '17 23 * * *' # 08:17 KST
   workflow_dispatch:
 
+# Least privilege by default: collection parses third-party pages and API
+# responses and must never hold a writable token. The publish job below
+# raises its own permissions.
 permissions:
-  actions: write
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: automation-repository-metadata
   cancel-in-progress: false
 
 jobs:
-  refresh:
+  collect:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read # checkout + gh pr list in the prepare step
+      pull-requests: read # gh pr list in the prepare step
+      actions: write # upload-artifact handoff to the publish job only
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -47,6 +52,43 @@ jobs:
           else
             echo "SPONSORS_TOKEN not configured; preserving existing attribution."
           fi
+      - name: Hand off to publish job
+        # Every file the publish commit may touch (see validate_files in
+        # tools/open_automation_pr.sh) travels in one tarball.
+        run: |
+          tar -czf /tmp/repo-metadata-collect.tar.gz -C "$GITHUB_WORKSPACE" \
+            STATS.md docs/.stats-downloads.json docs/assets/star-history/star-history-v2-dark.svg docs/assets/star-history/star-history-v2-light.svg README.md README.en.md
+      - name: Upload handoff
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: repository-metadata-collect
+          path: /tmp/repo-metadata-collect.tar.gz
+          retention-days: 1
+
+  publish:
+    if: github.ref == 'refs/heads/main'
+    needs: [collect]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # push updated docs
+      pull-requests: write # open/update automation PR
+      actions: read # download-artifact only
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Reuse pending maintenance PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash tools/open_automation_pr.sh --prepare automation/repository-metadata
+      - name: Download handoff
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: repository-metadata-collect
+          path: /tmp/repo-handoff
+      - name: Restore generated files
+        run: tar -xzf /tmp/repo-handoff/repo-metadata-collect.tar.gz -C "$GITHUB_WORKSPACE"
       - name: Publish one protected maintenance PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

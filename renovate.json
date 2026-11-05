@@ -62,6 +62,16 @@
       "automerge": true
     },
     {
+      "description": "시크릿·릴리스 경로 Action(doppler 토큰 등)은 자동 병합하지 않고 사람이 확인한다. 뒤쪽 규칙이 우선하므로 그룹 규칙 뒤에 둔다.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchPackageNames": [
+        "dopplerhq/cli-action"
+      ],
+      "automerge": false
+    },
+    {
       "matchManagers": [
         "pep621"
       ],
