@@ -85,7 +85,10 @@ func newUpdateCmd(opts *rootOptions) *cobra.Command {
 				confirmed, confirmErr := tui.Confirm(title)
 				switch {
 				case errors.Is(confirmErr, tui.ErrNotInteractive):
-					assumeYes = true
+					// Never auto-confirm for agents/cron: a non-TTY without --yes
+					// is a refusal, not consent. See AGENTS.md ("Don't auto-run
+					// `tossctl update`").
+					return fmt.Errorf("not an interactive terminal: re-run with --yes to update to %s", latest)
 				case confirmErr != nil:
 					return confirmErr
 				case !confirmed:
@@ -98,9 +101,10 @@ func newUpdateCmd(opts *rootOptions) *cobra.Command {
 			}
 
 			runErr := selfupdate.Run(cmd.Context(), selfupdate.Options{
-				Method: method,
-				Out:    out,
-				ErrOut: cmd.ErrOrStderr(),
+				Method:  method,
+				Version: latest,
+				Out:     out,
+				ErrOut:  cmd.ErrOrStderr(),
 			})
 			if runErr != nil {
 				fmt.Fprintln(out, output.StyleFail(fmt.Sprintf("✗ Update failed: %v", runErr), enabled))
@@ -118,7 +122,7 @@ func newUpdateCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVarP(&assumeYes, "yes", "y", false, "skip the confirmation prompt (also implied when stdin/stdout are not a TTY)")
+	cmd.Flags().BoolVarP(&assumeYes, "yes", "y", false, "skip the confirmation prompt (required when stdin/stdout are not a TTY; never auto-run unattended)")
 	cmd.Flags().BoolVar(&checkOnly, "check", false, "only report whether an update is available; do not update")
 
 	return cmd
