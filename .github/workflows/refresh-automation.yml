@@ -35,7 +35,7 @@ jobs:
         run: |
           families="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --base main --limit 100 \
             --json headRefName,author,isCrossRepository \
-            --jq '[.[] | select(.isCrossRepository == false and (.author.login == "app/github-actions" or .author.login == "github-actions[bot]")) | .headRefName | capture("^automation/(?<family>repository-metadata|wts-monitor|daily-monitor)(?:-[a-z0-9-]+)?$").family] | unique')"
+            --jq '[.[] | select(.isCrossRepository == false and (.author.login == "app/github-actions" or .author.login == "github-actions[bot]")) | .headRefName | capture("^automation/(?<family>repository-metadata|wts-monitor|daily-monitor|website-changelog)(?:-[a-z0-9-]+)?$").family] | unique')"
           echo "families=$(jq -c . <<< "$families")" >> "$GITHUB_OUTPUT"
   refresh:
     needs: pending
