@@ -41,7 +41,9 @@ jobs:
     needs: pending
     if: needs.pending.outputs.families != '[]'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # approve_automation_ci.sh may wait twice (~2.5 min each) when GitHub drops
+    # the pull_request event and the PR has to be reopened.
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
