@@ -81,14 +81,21 @@ func pinnedTag(ver string) (string, error) {
 	return "v" + strings.TrimPrefix(strings.TrimSpace(ver), "v"), nil
 }
 
+// unixInstallScript downloads install.sh before running it. `curl | sh`
+// exits 0 when curl fails (sh just reads empty input), so a missing tag
+// would print "updated" without installing anything.
+const unixInstallScript = `set -e
+script=$(curl -fsSL "$TOSSCTL_INSTALL_URL")
+[ -n "$script" ] || { echo "install.sh download was empty" >&2; exit 1; }
+printf '%s\n' "$script" | sh`
+
 func runUnixInstaller(ctx context.Context, opts Options) error {
 	tag, err := pinnedTag(opts.Version)
 	if err != nil {
 		return err
 	}
-	script := fmt.Sprintf("curl -fsSL %s | sh", version.RawTagURL("install.sh", tag))
-	cmd := exec.CommandContext(ctx, "sh", "-c", script)
-	cmd.Env = append(os.Environ(), "TOSSCTL_VERSION="+tag)
+	cmd := exec.CommandContext(ctx, "sh", "-c", unixInstallScript)
+	cmd.Env = append(os.Environ(), "TOSSCTL_VERSION="+tag, "TOSSCTL_INSTALL_URL="+version.RawTagURL("install.sh", tag))
 	cmd.Stdout = opts.Out
 	cmd.Stderr = opts.ErrOut
 	if err := cmd.Run(); err != nil {

@@ -159,6 +159,15 @@ function Install-Tossctl {
         }
 
         # ── Python / playwright ───────────────────────────────────────────────
+        Write-Host ""
+        Write-Step "Installing Python dependencies for auth-helper..."
+        $pyCmd = $null
+        foreach ($candidate in @("python", "python3", "py")) {
+            if (Get-Command $candidate -ErrorAction SilentlyContinue) {
+                $pyCmd = $candidate
+                break
+            }
+        }
         if ($pyCmd) {
             # Pinned to the range auth-helper declares (pyproject.toml): an
             # unpinned `pip install playwright` would float the
