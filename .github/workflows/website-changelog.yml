@@ -1,0 +1,53 @@
+name: Website Changelog
+
+# CHANGELOG.md is the source of the website's changelog pages. Vercel builds
+# only website-fumadocs/, where ../../CHANGELOG.md is unreachable, so the
+# generated pages must be committed. Regenerate them whenever CHANGELOG.md
+# lands on main instead of opening a sync PR by hand after every release.
+on:
+  push:
+    branches: [main]
+    paths: [CHANGELOG.md]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automation-website-changelog
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # approve_automation_ci.sh may wait twice (~2.5 min each).
+    timeout-minutes: 10
+    permissions:
+      contents: write # push the generated pages
+      pull-requests: write # open/update the automation PR
+      actions: write # approve the attached CI run (tools/approve_automation_ci.sh)
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Reuse pending changelog PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash tools/open_automation_pr.sh --prepare automation/website-changelog
+      - name: Regenerate changelog pages
+        # Node builtins only; the runner's preinstalled Node is enough.
+        run: node website-fumadocs/scripts/sync-changelog.mjs
+      - name: Commit when the pages changed
+        run: |
+          git add website-fumadocs/content/docs/changelog.mdx website-fumadocs/content/docs/changelog.en.mdx
+          git diff --cached --quiet && { echo "changelog pages already in sync"; exit 0; }
+          git commit -m "docs(website): changelog 동기화"
+      - name: Open protected automation PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash tools/open_automation_pr.sh \
+            automation/website-changelog \
+            "docs(website): changelog 동기화" \
+            "CHANGELOG.md 에서 웹사이트 changelog 페이지를 다시 생성했습니다. CI 통과 후 자동 병합됩니다."

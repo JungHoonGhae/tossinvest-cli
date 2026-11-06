@@ -12,7 +12,7 @@ if [ "$#" -lt 1 ] || [ "$#" -gt 3 ] || { [ "$mode" = publish ] && [ "$#" -lt 2 ]
 fi
 branch_prefix="$1"
 case "$branch_prefix" in
-  automation/repository-metadata|automation/wts-monitor|automation/daily-monitor) ;;
+  automation/repository-metadata|automation/wts-monitor|automation/daily-monitor|automation/website-changelog) ;;
   *) echo "Unknown automation family: $branch_prefix" >&2; exit 2 ;;
 esac
 
@@ -40,6 +40,7 @@ validate_files() {
     case "$branch_prefix:$path" in
       automation/repository-metadata:STATS.md|automation/repository-metadata:docs/.stats-downloads.json|automation/repository-metadata:README.md|automation/repository-metadata:README.en.md|automation/repository-metadata:docs/assets/star-history/*.svg) ;;
       automation/wts-monitor:docs/reverse-engineering/wts-endpoints.json|automation/wts-monitor:docs/reverse-engineering/android-app.json) ;;
+      automation/website-changelog:website-fumadocs/content/docs/changelog.mdx|automation/website-changelog:website-fumadocs/content/docs/changelog.en.mdx) ;;
       automation/daily-monitor:docs/migration/.openapi-snapshot.json|automation/daily-monitor:docs/migration/openapi.latest.json|automation/daily-monitor:docs/migration/asyncapi.latest.json|automation/daily-monitor:website-fumadocs/content/docs/reference/support-scope.mdx|automation/daily-monitor:website-fumadocs/content/docs/reference/support-scope.en.mdx) ;;
       *) echo "Unexpected automation file: $path" >&2; return 1 ;;
     esac

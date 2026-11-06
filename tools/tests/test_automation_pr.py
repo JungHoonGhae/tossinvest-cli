@@ -117,6 +117,33 @@ elif args[:2] != ['pr', 'merge']:
                 self.assertIn(branch, call)
                 self.assertIn("headSha", call[call.index("--jq") + 1])
 
+    def run_family(self, family, *extra):
+        return subprocess.run(["bash", str(HELPER), *extra, family, *(["docs(website): fixture"] if not extra else [])],
+                              cwd=self.repo, env=self.env, capture_output=True, text=True)
+
+    def test_website_changelog_family_publishes_only_generated_pages(self):
+        family = "automation/website-changelog"
+        self.assertEqual(self.run_family(family, "--prepare").returncode, 0)
+        pages = self.repo / "website-fumadocs/content/docs"
+        pages.mkdir(parents=True)
+        (pages / "changelog.mdx").write_text("ko")
+        (pages / "changelog.en.mdx").write_text("en")
+        self.git("add", ".")
+        self.git("commit", "-m", "pages")
+        result = self.run_family(family)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(any(call[:2] == ["pr", "merge"] for call in self.calls()))
+
+    def test_website_changelog_family_rejects_other_files(self):
+        family = "automation/website-changelog"
+        self.assertEqual(self.run_family(family, "--prepare").returncode, 0)
+        (self.repo / "README.md").write_text("tampered")
+        self.git("add", ".")
+        self.git("commit", "-m", "readme")
+        result = self.run_family(family)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Unexpected automation file: README.md", result.stderr)
+
     def test_missing_ci_fails_without_queuing_merge(self):
         self.assertEqual(self.prepare().returncode, 0)
         (self.repo / "STATS.md").write_text("sample")
