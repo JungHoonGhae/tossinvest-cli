@@ -49,9 +49,14 @@ if args[:2] == ['pr', 'list']:
 elif args[:2] == ['pr', 'create']:
     print('https://github.com/owner/repo/pull/1')
 elif args[:2] == ['run', 'list']:
-    print('' if os.environ.get('FIXTURE_NO_RUN') else '123')
+    with open(os.environ['FIXTURE_GH_LOG']) as seen:
+        reopened = any(json.loads(line)[:2] == ['pr', 'reopen'] for line in seen)
+    missing = os.environ.get('FIXTURE_NO_RUN') or (os.environ.get('FIXTURE_RUN_AFTER_REOPEN') and not reopened)
+    print('' if missing else '123')
 elif args[:2] == ['run', 'view']:
-    print('completed' if 'status' in args else os.environ.get('FIXTURE_CONCLUSION', 'success'))
+    print(os.environ.get('FIXTURE_STATUS', 'completed') if 'status' in args else os.environ.get('FIXTURE_CONCLUSION', 'success'))
+elif args[:2] in (['pr', 'close'], ['pr', 'reopen']):
+    pass
 elif args[:1] == ['api']:
     pass
 elif args[:2] != ['pr', 'merge']:
@@ -121,7 +126,38 @@ elif args[:2] != ['pr', 'merge']:
         result = self.publish()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("CI pull_request run missing", result.stderr)
-        self.assertFalse(any(call[:2] == ["pr", "merge"] for call in self.calls()))
+        calls = self.calls()
+        self.assertFalse(any(call[:2] == ["pr", "merge"] for call in calls))
+        # One re-emit attempt, never a loop of close/reopen.
+        self.assertEqual(sum(call[:2] == ["pr", "reopen"] for call in calls), 1)
+
+    def test_dropped_pull_request_event_is_reemitted_by_reopening(self):
+        self.assertEqual(self.prepare().returncode, 0)
+        (self.repo / "STATS.md").write_text("sample")
+        self.git("add", "STATS.md")
+        self.git("commit", "-m", "sample")
+        self.env["FIXTURE_RUN_AFTER_REOPEN"] = "1"
+        self.env["FIXTURE_CONCLUSION"] = "action_required"
+        result = self.publish()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.calls()
+        names = [call[:2] for call in calls]
+        self.assertLess(names.index(["pr", "close"]), names.index(["pr", "reopen"]))
+        self.assertTrue(any(call[:1] == ["api"] and call[-1].endswith("/123/approve") for call in calls))
+        self.assertLess(names.index(["pr", "reopen"]), names.index(["pr", "merge"]))
+
+    def test_queued_run_is_left_to_start_instead_of_failing(self):
+        self.assertEqual(self.prepare().returncode, 0)
+        (self.repo / "STATS.md").write_text("sample")
+        self.git("add", "STATS.md")
+        self.git("commit", "-m", "sample")
+        self.env["FIXTURE_CONCLUSION"] = ""
+        self.env["FIXTURE_STATUS"] = "queued"
+        result = self.publish()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.calls()
+        self.assertFalse(any(call[:2] == ["pr", "reopen"] for call in calls))
+        self.assertTrue(any(call[:2] == ["pr", "merge"] for call in calls))
 
     def test_exact_family_branch_is_accepted_in_prepare_and_publish(self):
         self.pending_branch()
