@@ -54,9 +54,20 @@ jobs:
               }
             }
 
-            if (/^[a-z]+(?:\([^)]*\))?!:/i.test(title) ||
-                /BREAKING[ -]CHANGE:/i.test(pr.body || "")) {
+            const breaking =
+              /^[a-z]+(?:\([^)]*\))?!:/i.test(title) ||
+              /BREAKING[ -]CHANGE:/i.test(pr.body || "");
+            if (breaking) {
               labels.push("breaking-change");
+            } else if (current.has("breaking-change")) {
+              // Retitled away from a breaking change: drop the stale label
+              // so the release-notes "Breaking changes" section stays clean.
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                name: "breaking-change",
+              });
             }
 
             await github.rest.issues.addLabels({
