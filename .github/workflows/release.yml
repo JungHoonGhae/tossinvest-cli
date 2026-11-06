@@ -256,3 +256,52 @@ jobs:
           fi
           git commit -m "chore: update tossctl ${VERSION}"
           git push
+
+  # The four live checks done by hand after every release. A mismatch fails
+  # this run (and notifies) instead of waiting for someone to look.
+  verify-live:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: [update-homebrew-tap]
+    timeout-minutes: 20
+    steps:
+      - name: Release assets, releases/latest, Homebrew tap, website changelog
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+          TAP: ${{ github.repository_owner }}/homebrew-tossinvest-cli
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          # Same set the build matrix produces.
+          want="tossctl-darwin-amd64.tar.gz tossctl-darwin-arm64.tar.gz tossctl-linux-amd64.tar.gz tossctl-linux-arm64.tar.gz tossctl-windows-amd64.zip"
+          assets="$(gh release view "$TAG" --repo "$REPO" --json assets --jq '.assets[].name')"
+          for a in $want; do
+            grep -qx "$a" <<< "$assets" || { echo "::error::missing asset $a"; exit 1; }
+            grep -qx "$a.sha256" <<< "$assets" || { echo "::error::missing asset $a.sha256"; exit 1; }
+          done
+          echo "assets ok"
+
+          latest="$(gh api "repos/$REPO/releases/latest" --jq .tag_name)"
+          [ "$latest" = "$TAG" ] || { echo "::error::releases/latest is $latest, expected $TAG"; exit 1; }
+          echo "releases/latest ok"
+
+          formula="$(gh api "repos/$TAP/contents/Formula/tossctl.rb" --jq .content | base64 -d)"
+          grep -q "version \"$version\"" <<< "$formula" || { echo "::error::tap Formula/tossctl.rb is not at $version"; exit 1; }
+          echo "homebrew tap ok"
+
+          # The website deploys from main after the changelog PR auto-merges,
+          # which can trail the tag by a few minutes.
+          for _ in $(seq 1 30); do
+            # Capture first: `curl | grep -q` fails under pipefail once grep
+            # exits early on a match (curl gets SIGPIPE).
+            page="$(curl -fsSL https://tossinvest-cli.vercel.app/docs/changelog || true)"
+            if grep -qF "$version" <<< "$page"; then
+              echo "website changelog ok"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::website changelog does not mention $version after 15 minutes"
+          exit 1
