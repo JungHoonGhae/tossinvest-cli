@@ -27,7 +27,6 @@ jobs:
     permissions:
       contents: read # checkout + gh pr list in the prepare step
       pull-requests: read # gh pr list in the prepare step
-      actions: write # upload-artifact handoff to the publish job only
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -152,7 +151,7 @@ jobs:
     permissions:
       contents: write # push updated catalog
       pull-requests: write # open/update automation PR
-      actions: read # download-artifact only
+      actions: write # approve the attached CI run (tools/approve_automation_ci.sh); artifacts use the runtime token
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -194,6 +193,8 @@ jobs:
       - name: Send Discord
         # Mirrors the compose condition in collect: notify only when the
         # surface actually changed (payload present in the handoff).
+        # always(): still report when the PR step failed.
+        if: always()
         env:
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |

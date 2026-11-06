@@ -23,7 +23,6 @@ jobs:
     permissions:
       contents: read # checkout + gh pr list in the prepare step
       pull-requests: read # gh pr list in the prepare step
-      actions: write # upload-artifact handoff to the publish job only
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -253,7 +252,7 @@ jobs:
     permissions:
       contents: write # push updated docs
       pull-requests: write # open/update automation PR
-      actions: read # download-artifact only
+      actions: write # approve the attached CI run (tools/approve_automation_ci.sh); artifacts use the runtime token
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -307,12 +306,16 @@ jobs:
             "chore(monitor): 공식 API 스냅샷·지원 범위 자동 갱신"
 
       - name: Send Discord
+        # Runs after commit/PR, so failing here blocks nothing — but it must
+        # fail loudly: monitor problems are only ever reported through Discord.
+        # always(): still report when the PR step failed.
+        if: always()
         env:
           WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
           if [ -z "$WEBHOOK" ]; then
-            echo "::warning::DISCORD_WEBHOOK secret 미설정 — 알림 skip"
-            exit 0
+            echo "::error::DISCORD_WEBHOOK secret 미설정"
+            exit 1
           fi
           # Components V2 는 웹훅이 with_components=true 일 때만 존중한다 (없으면 드롭 → 50006)
           SEP='?'; case "$WEBHOOK" in *\?*) SEP='&';; esac
@@ -321,10 +324,9 @@ jobs:
             --data @/tmp/payload.json "${WEBHOOK}${SEP}with_components=true")
           echo "Discord status: $HTTP"
           cat /tmp/resp || true
-          # 알림 실패가 스냅샷 커밋·자동화 PR을 막지 않는다 (wts-monitor와 동일).
           if [ "$HTTP" != "204" ]; then
-            echo "::warning::Discord delivery failed with status $HTTP."
-            exit 0
+            echo "::error::Discord delivery failed with status $HTTP."
+            exit 1
           fi
 
       # API 변경의 AI 해석은 공개 저장소에 self-hosted runner를 연결하지 않기 위해

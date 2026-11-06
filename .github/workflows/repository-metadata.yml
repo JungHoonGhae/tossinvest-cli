@@ -25,7 +25,6 @@ jobs:
     permissions:
       contents: read # checkout + gh pr list in the prepare step
       pull-requests: read # gh pr list in the prepare step
-      actions: write # upload-artifact handoff to the publish job only
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -73,7 +72,7 @@ jobs:
     permissions:
       contents: write # push updated docs
       pull-requests: write # open/update automation PR
-      actions: read # download-artifact only
+      actions: write # approve the attached CI run (tools/approve_automation_ci.sh); artifacts use the runtime token
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -88,7 +87,12 @@ jobs:
           name: repository-metadata-collect
           path: /tmp/repo-handoff
       - name: Restore generated files
-        run: tar -xzf /tmp/repo-handoff/repo-metadata-collect.tar.gz -C "$GITHUB_WORKSPACE"
+        # Extract only the allowlisted outputs: the collect job parses
+        # third-party data, and a crafted tarball must not overwrite tools/
+        # scripts that this write-token job runs next.
+        run: |
+          tar -xzf /tmp/repo-handoff/repo-metadata-collect.tar.gz -C "$GITHUB_WORKSPACE" \
+            STATS.md docs/.stats-downloads.json docs/assets/star-history/star-history-v2-dark.svg docs/assets/star-history/star-history-v2-light.svg README.md README.en.md
       - name: Publish one protected maintenance PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

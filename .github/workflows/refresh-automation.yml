@@ -52,6 +52,7 @@ jobs:
     permissions:
       contents: write # push rebased automation branches
       pull-requests: write # comment/update automation PRs
+      actions: write # approve the attached CI run (tools/approve_automation_ci.sh)
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
