@@ -74,12 +74,13 @@ tools/api_change_analysis.sh          # 미분석 변경마다 분석 파일과 
 - **미분석 판정**: 분석 파일에 그 스펙 커밋 해시가 적혀 있으면 분석된 것입니다. 최신 스냅샷부터
   거슬러 올라가 처음 분석된 커밋을 만날 때까지가 모두 대기 대상이고, 오래된 것부터 처리합니다.
   (예전에는 최신 커밋 하나만 봐서, 두 실행 사이에 변경이 둘 쌓이면 앞의 것이 영영 빠졌습니다.)
-- **격리**: 임시 clone에서 `claude -p --safe-mode --strict-mcp-config --permission-mode dontAsk`로
-  실행합니다. CLAUDE.md·스킬·플러그인·훅·MCP는 꺼지고, 허용 도구는 읽기·분석 파일 쓰기·
-  `tools/openapi_diff.py`·`git show/diff/log`뿐입니다. 실행 뒤 분석 파일 하나 외에 바뀐 파일이 있거나
-  파일에 스펙 커밋 해시가 없으면 PR 전에 중단합니다. 공개 PR의 코드는 개인 Mac에서 실행하지 않습니다.
+- **격리(읽기 전용 모델)**: 차분(`tools/openapi_diff.py`, AsyncAPI `git show`)은 스크립트가 먼저 만들어
+  checkout 밖의 파일로 넘깁니다. 모델은 `claude -p --safe-mode --strict-mcp-config --permission-mode dontAsk`로
+  `Read`·`Grep`·`Glob`만 쓰고(쓰기·Bash·웹 금지) 보고서를 출력으로만 돌려줍니다. 스펙 문구에 지시가 섞여도
+  저장소·도구·`.git`(훅·설정)을 바꿀 수 없습니다. 파일 쓰기·커밋·PR은 스크립트가 하고, 제목·커밋 해시가
+  없거나 checkout이 바뀌었으면 중단합니다. 공개 PR의 코드는 개인 Mac에서 실행하지 않습니다.
 - **스케줄**: macOS `launchd`(`~/Library/LaunchAgents/com.tossctl.api-analysis.plist`)가 매일 07:20·19:20 KST에
-  실행합니다. GitHub 모니터의 07:00·19:00 KST 수집 뒤 20분 여유를 둔 값입니다. Mac이 잠들어 있던 동안
+  `origin/main` 의 스크립트를 실행합니다(로컬 checkout 이 어느 브랜치에 있든 같은 버전). 실패하면 macOS 알림이 뜹니다. GitHub 모니터의 07:00·19:00 KST 수집 뒤 20분 여유를 둔 값입니다. Mac이 잠들어 있던 동안
   놓친 실행은 깨어날 때 한 번 돕니다. 로그: `~/Library/Logs/tossctl-api-analysis.log`.
 - 2026-11 Codex 구독 해지로 Codex CLI(`codex exec`)에서 Claude Code로 옮겼습니다.
 
