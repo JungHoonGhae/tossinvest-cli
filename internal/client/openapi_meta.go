@@ -37,6 +37,9 @@ const openAPIAllowedIPsPath = "/api/v1/openapi/client/allowed-ips"
 
 // OpenAPIClientInfo holds key metadata for the user's WTS-side Open API key.
 type OpenAPIClientInfo struct {
+	// APIKey is the clientId (tsck_live_…): an identifier, not a secret. It
+	// tells whether the locally saved key is the one Toss has on file.
+	APIKey     string
 	Status     string // derived: "활성" / "만료"
 	IssuedAt   time.Time
 	ExpiresAt  time.Time
@@ -50,6 +53,7 @@ type OpenAPIClientInfo struct {
 // plaintext and we must never capture, store, or log it.
 type openapiClientEnvelope struct {
 	Result struct {
+		ClientID              string          `json:"clientId"`
 		ClientIDIssuedAt      json.RawMessage `json:"clientIdIssuedAt"`
 		ClientSecretExpiresAt json.RawMessage `json:"clientSecretExpiresAt"`
 		Tier                  string          `json:"tier"`
@@ -90,6 +94,7 @@ func (c *Client) OpenAPIClientInfo(ctx context.Context) (OpenAPIClientInfo, erro
 	}
 
 	return OpenAPIClientInfo{
+		APIKey:     strings.TrimSpace(r.ClientID),
 		Status:     status,
 		IssuedAt:   issuedAt,
 		ExpiresAt:  expiresAt,

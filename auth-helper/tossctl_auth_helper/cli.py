@@ -51,6 +51,13 @@ QR_API_HOST = "wts-api.tossinvest.com"
 # selector works regardless of the Korean alt attribute ("큐알코드").
 QR_IMG_SELECTOR = 'img[src^="data:image/png;base64"]'
 
+PHONE_TAB_LABEL = "휴대폰 번호로 로그인"
+PHONE_AGREE_ALL_LABEL = "필수 약관에 모두 동의"
+# Personal data for phone login arrives through the environment only: argv is
+# visible to every local user via ps.
+PHONE_ENV = ("TOSSCTL_LOGIN_NAME", "TOSSCTL_LOGIN_BIRTH", "TOSSCTL_LOGIN_PHONE")
+LOGIN_API_PREFIX = "/api/v2/login/wts/toss"
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -83,6 +90,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--headless",
         action="store_true",
         help="Run Chrome headless (required for remote/CLI-only login).",
+    )
+    login_parser.add_argument(
+        "--phone",
+        action="store_true",
+        help=(
+            "Log in with name, birth date and phone number (read from "
+            "TOSSCTL_LOGIN_NAME / TOSSCTL_LOGIN_BIRTH / TOSSCTL_LOGIN_PHONE); "
+            "Toss sends an approval push to the phone. Agrees to the required "
+            "Toss certificate login terms on the user's behalf."
+        ),
     )
     login_parser.add_argument(
         "--qr-output",
@@ -122,6 +139,35 @@ def has_persistent_session_cookie(storage_state: dict) -> bool:
         if isinstance(expires, (int, float)) and expires >= threshold:
             return True
     return False
+
+
+def phone_login_inputs() -> tuple[str, str, str]:
+    name, birth, phone = (os.environ.get(key, "").strip() for key in PHONE_ENV)
+    phone = re.sub(r"[^0-9]", "", phone)
+    if not name:
+        raise ValueError("name is required (TOSSCTL_LOGIN_NAME)")
+    if not re.fullmatch(r"[0-9]{6}", birth):
+        raise ValueError("birth date must be 6 digits, YYMMDD (TOSSCTL_LOGIN_BIRTH)")
+    if not re.fullmatch(r"01[0-9]{8,9}", phone):
+        raise ValueError("phone must be a Korean mobile number like 010XXXXXXXX (TOSSCTL_LOGIN_PHONE)")
+    return name, birth, phone
+
+
+def submit_phone_login(page, name: str, birth: str, phone: str) -> None:
+    # Visible text over minified class names (see capture-workflow.md).
+    page.get_by_role("button", name=PHONE_TAB_LABEL).first.click()
+    page.locator('input[name="name"]').fill(name)
+    page.locator('input[name="ssnHead"]').fill(birth)
+    page.locator('input[name="phoneNumber"]').fill(phone)
+    page.get_by_text(PHONE_AGREE_ALL_LABEL, exact=True).click()
+    submit = page.get_by_role("button", name="로그인", exact=True)
+    deadline = time.monotonic() + 10
+    while not submit.is_enabled():
+        if time.monotonic() > deadline:
+            raise RuntimeError("login button stayed disabled; the form or required terms may have changed")
+        page.wait_for_timeout(200)
+    submit.click()
+    log("Sent the approval request. Open the Toss app notification on your phone and approve it.")
 
 
 def activate_qr_tab(page, qr_state=None) -> bool:
@@ -292,6 +338,13 @@ def command_login(args: argparse.Namespace) -> int:
 
     qr_state = QRState(qr_output_path)
 
+    phone_inputs = None
+    if args.phone:
+        try:
+            phone_inputs = phone_login_inputs()
+        except ValueError as exc:
+            return emit({"status": "error", "message": str(exc)})
+
     try:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(
@@ -310,6 +363,14 @@ def command_login(args: argparse.Namespace) -> int:
                     return
                 if parsed.hostname != QR_API_HOST:
                     return
+                # Surface server rejections of the phone flow (e.g. details
+                # that do not match a Toss account) instead of a silent timeout.
+                if phone_inputs is not None and parsed.path.startswith(LOGIN_API_PREFIX) and response.status >= 400:
+                    try:
+                        detail = response.json().get("error", {}).get("message", "")
+                    except Exception:
+                        detail = ""
+                    log(f"Toss rejected the login request ({response.status}) {detail}".rstrip())
                 if not any(parsed.path.endswith(p) for p in QR_API_PATHS):
                     return
                 try:
@@ -328,7 +389,13 @@ def command_login(args: argparse.Namespace) -> int:
             page.goto(args.url, wait_until="domcontentloaded")
 
             qr_mode = args.headless or qr_output_path is not None
-            if qr_mode:
+            if phone_inputs is not None:
+                try:
+                    submit_phone_login(page, *phone_inputs)
+                except (PlaywrightError, RuntimeError) as exc:
+                    browser.close()
+                    return emit({"status": "error", "message": f"phone login form failed: {exc}"})
+            elif qr_mode:
                 activate_qr_tab(page, qr_state)
                 page.wait_for_timeout(500)
             else:
@@ -405,7 +472,12 @@ def command_login(args: argparse.Namespace) -> int:
                 page.wait_for_timeout(1000)
 
             browser.close()
-            if not initial_auth_notified:
+            if not initial_auth_notified and phone_inputs is not None:
+                timeout_message = (
+                    f"Timed out after {args.timeout_seconds} seconds. "
+                    "The Toss app approval was not completed — approve the notification on your phone."
+                )
+            elif not initial_auth_notified:
                 timeout_message = (
                     f"Timed out after {args.timeout_seconds} seconds. "
                     "Login was not completed — open the printed URL on your phone or scan the QR code first."

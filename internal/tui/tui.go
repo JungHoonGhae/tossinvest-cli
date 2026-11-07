@@ -42,6 +42,12 @@ func Password(title string) (string, error) {
 	return passwordWith(os.Stdin, os.Stdout, title)
 }
 
+// Input presents a plain text input via huh. validate may be nil.
+// Returns ErrNotInteractive when os.Stdin/os.Stdout are not a TTY.
+func Input(title, placeholder string, validate func(string) error) (string, error) {
+	return inputWith(os.Stdin, os.Stdout, title, placeholder, validate)
+}
+
 // Confirm presents a yes/no prompt via huh.
 // Returns ErrNotInteractive when os.Stdin/os.Stdout are not a TTY.
 func Confirm(title string) (bool, error) {
@@ -83,6 +89,19 @@ func passwordWith(in, out *os.File, title string) (string, error) {
 				Value(&result),
 		),
 	).Run()
+	return result, err
+}
+
+func inputWith(in, out *os.File, title, placeholder string, validate func(string) error) (string, error) {
+	if !IsInteractive(in, out) {
+		return "", ErrNotInteractive
+	}
+	var result string
+	field := huh.NewInput().Title(title).Placeholder(placeholder).Value(&result)
+	if validate != nil {
+		field = field.Validate(validate)
+	}
+	err := huh.NewForm(huh.NewGroup(field)).Run()
 	return result, err
 }
 
