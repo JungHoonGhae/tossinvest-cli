@@ -55,11 +55,26 @@ func (PythonLoginRunner) Login(ctx context.Context, cfg LoginConfig) (*LoginResu
 	if cfg.QROutputPath != "" {
 		args = append(args, "--qr-output", cfg.QROutputPath)
 	}
+	if cfg.Phone != nil {
+		// Phone login needs no window: the approval happens on the phone.
+		if !cfg.Headless {
+			args = append(args, "--headless")
+		}
+		args = append(args, "--phone")
+	}
 
 	cmd := exec.CommandContext(ctx, cfg.PythonBin, args...)
 	cmd.Dir = cfg.HelperDir
 	cmd.Stderr = os.Stderr
 	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1")
+	if cfg.Phone != nil {
+		// Environment, not argv: argv is visible to every local user via ps.
+		cmd.Env = append(cmd.Env,
+			"TOSSCTL_LOGIN_NAME="+cfg.Phone.Name,
+			"TOSSCTL_LOGIN_BIRTH="+cfg.Phone.Birth,
+			"TOSSCTL_LOGIN_PHONE="+cfg.Phone.Number,
+		)
+	}
 
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout

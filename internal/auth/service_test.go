@@ -412,3 +412,56 @@ func mustTime(t *testing.T, value string) time.Time {
 
 	return parsed
 }
+
+// Phone login identity must reach the helper only through the environment
+// (argv is visible to every local user via ps), and the helper must run in
+// phone + headless mode. Dummy identity only.
+func TestPythonLoginRunnerPassesPhoneLoginViaEnvOnly(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX shell only")
+	}
+	helperDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(helperDir, "tossctl_auth_helper"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(helperDir, "tossctl_auth_helper", "__main__.py"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	record := filepath.Join(t.TempDir(), "record")
+	fakePython := filepath.Join(t.TempDir(), "python")
+	script := "#!/bin/sh\n" +
+		"printf 'ARGS %s\\n' \"$*\" > " + record + "\n" +
+		"printf 'ENV %s|%s|%s\\n' \"$TOSSCTL_LOGIN_NAME\" \"$TOSSCTL_LOGIN_BIRTH\" \"$TOSSCTL_LOGIN_PHONE\" >> " + record + "\n" +
+		"echo '{\"status\":\"ok\",\"storage_state_path\":\"x\"}'\n"
+	if err := os.WriteFile(fakePython, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	cfg := LoginConfig{
+		PythonBin:        fakePython,
+		HelperDir:        helperDir,
+		StorageStatePath: filepath.Join(t.TempDir(), "state.json"),
+		Phone:            &PhoneLogin{Name: "홍길동", Birth: "900101", Number: "01000000000"},
+	}
+	if _, err := (PythonLoginRunner{}).Login(context.Background(), cfg); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := string(data)
+	args := strings.SplitN(got, "\n", 2)[0]
+	for _, want := range []string{"--phone", "--headless"} {
+		if !strings.Contains(args, want) {
+			t.Fatalf("helper args missing %s: %q", want, args)
+		}
+	}
+	for _, pii := range []string{"홍길동", "900101", "01000000000"} {
+		if strings.Contains(args, pii) {
+			t.Fatalf("personal data leaked into argv: %q", args)
+		}
+	}
+	if !strings.Contains(got, "ENV 홍길동|900101|01000000000") {
+		t.Fatalf("phone login identity must arrive via env, got %q", got)
+	}
+}

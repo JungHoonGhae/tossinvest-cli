@@ -185,6 +185,8 @@ IMPLEMENTED = [
     r"^/api/v1/dashboard/all-accounts$",                         # account overview (Android + live verified)
     r"^/api/v1/openapi/client$",                                  # openapi status / doctor
     r"^/api/v1/openapi/client/allowed-ips(?:/[^/]+)?$",            # openapi IP allowlist
+    r"^/api/v2/open-api/(?:registration|reissue)/cert/(?:push|status|complete)$",  # openapi setup (issue/reissue)
+    r"^/api/v1/account/frontend/terms/list$",                     # openapi setup (issuance terms)
     r"^/api/v1/autotrade/open-banking/(info/find|creatable|need-registration)$", # accumulation funding status
     r"^/api/v1/trading/open-banking/auto-trading$",              # automated-order funding registration
     r"^/api/v1/user/last-login-info$",                            # account access status
