@@ -30,6 +30,10 @@ var stableTagPattern = regexp.MustCompile(`^\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?$`
 const (
 	defaultRepoSlug = version.Repo
 	defaultInterval = 24 * time.Hour
+	// defaultCheckInterval is how long a fetched latest version stays fresh.
+	// Shorter than the notice backoff so a release is seen the same day,
+	// while a given notice still appears at most once per defaultInterval.
+	defaultCheckInterval = 6 * time.Hour
 	// negativeInterval is the backoff after a failed fetch. Without it an
 	// offline machine pays the full fetchTimeout on EVERY command (the
 	// success timestamp never advances); with it we retry hourly instead
@@ -56,17 +60,21 @@ type Checker struct {
 	cachePath  string
 	httpClient *http.Client
 	repoSlug   string
-	interval   time.Duration
-	now        func() time.Time
+	interval   time.Duration // notice backoff
+	// checkInterval keeps a fetched latest version fresh; zero falls back to
+	// interval.
+	checkInterval time.Duration
+	now           func() time.Time
 }
 
 func New(cachePath string) *Checker {
 	return &Checker{
-		cachePath:  cachePath,
-		httpClient: &http.Client{Timeout: fetchTimeout},
-		repoSlug:   defaultRepoSlug,
-		interval:   defaultInterval,
-		now:        time.Now,
+		cachePath:     cachePath,
+		httpClient:    &http.Client{Timeout: fetchTimeout},
+		repoSlug:      defaultRepoSlug,
+		interval:      defaultInterval,
+		checkInterval: defaultCheckInterval,
+		now:           time.Now,
 	}
 }
 
@@ -91,7 +99,11 @@ func (c *Checker) LatestStableFresh(ctx context.Context) string {
 
 func (c *Checker) latest(ctx context.Context, force bool) string {
 	entry, _ := c.readCache()
-	if !force && c.now().Sub(entry.LastCheckedAt) < c.interval && entry.LatestVersion != "" {
+	fresh := c.checkInterval
+	if fresh == 0 {
+		fresh = c.interval
+	}
+	if !force && c.now().Sub(entry.LastCheckedAt) < fresh && entry.LatestVersion != "" {
 		return entry.LatestVersion
 	}
 	if !force && !entry.LastFailedAt.IsZero() && c.now().Sub(entry.LastFailedAt) < negativeInterval {

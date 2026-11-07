@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"time"
 
@@ -21,7 +20,6 @@ import (
 	"github.com/JungHoonGhae/tossinvest-cli/internal/routing"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/session"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/trading"
-	"github.com/JungHoonGhae/tossinvest-cli/internal/updatecheck"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/version"
 	watchlistservice "github.com/JungHoonGhae/tossinvest-cli/internal/watchlist"
 	"github.com/spf13/cobra"
@@ -139,18 +137,17 @@ func newMCPCmd(opts *rootOptions) *cobra.Command {
 			server.SetAuthStatus(authSnapshot(sess, officialClient, tokenFile))
 
 			// MCP-only users never see the CLI's stderr update notices, so surface
-			// "update available" through the initialize `instructions` (the agent can
-			// relay it). Bounded + cached; a network failure is silent.
-			if cachePath, perr := resolveUpdateCachePath(opts); perr == nil && (officialClient != nil || sess != nil) {
-				checkCtx, cancel := context.WithTimeout(cmd.Context(), 2*time.Second)
-				latest := updatecheck.New(cachePath).LatestStable(checkCtx)
-				cancel()
+			// "update available" through the initialize `instructions` and, for a
+			// release published while this long-running server is up, on a later
+			// tool result (the agent relays it). Honors update_check.enabled;
+			// bounded and cached; a network failure is silent.
+			if checker := newUpdateChecker(opts); checker != nil && (officialClient != nil || sess != nil) {
 				cur := version.Current().Version
-				if updatecheck.IsNewer(latest, cur) {
-					server.AppendInstructions(fmt.Sprintf(
-						"Update available: tossctl v%s (this server runs v%s). Tell the user they can update with `brew upgrade tossctl` or `tossctl update`, then restart this MCP server to pick it up.",
-						latest, cur))
-				}
+				notifier := newMCPUpdateNotifier(checker, cur, updateActionHint(cur))
+				checkCtx, cancel := context.WithTimeout(cmd.Context(), 2*time.Second)
+				server.AppendInstructions(notifier.startup(checkCtx))
+				cancel()
+				server.SetUpdateNotice(notifier.perCall)
 			}
 
 			// Serve blocks until stdin reaches EOF (host closed the pipe).

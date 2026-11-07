@@ -473,7 +473,7 @@ func writeUpdateNoticeIfNeeded(ctx context.Context, stderr io.Writer, opts *root
 	configFile, _ := configFilePath(opts)
 	fmt.Fprintf(
 		stderr,
-		"\n✨ tossctl %s available (current %s) — %s\n   Disable: set update_check.enabled=false in %s\n",
+		i18n.T("update.notice"),
 		latest,
 		version.Version,
 		updateActionHint(version.Version),
@@ -490,15 +490,15 @@ func writeUpdateNoticeIfNeeded(ctx context.Context, stderr io.Writer, opts *root
 func updateActionHint(currentVersion string) string {
 	execPath, err := os.Executable()
 	if err != nil {
-		return "`tossctl update` or " + version.ReleasesLatestURL
+		return "`tossctl update` " + i18n.T("update.or") + " " + version.ReleasesLatestURL
 	}
 	if resolved, err := filepath.EvalSymlinks(execPath); err == nil {
 		execPath = resolved
 	}
 	if selfupdate.DetectInstallMethod(execPath, currentVersion) == selfupdate.MethodHomebrew {
-		return "`brew upgrade tossctl` or " + version.ReleasesLatestURL
+		return "`brew upgrade tossctl` " + i18n.T("update.or") + " " + version.ReleasesLatestURL
 	}
-	return "`tossctl update` or " + version.ReleasesLatestURL
+	return "`tossctl update` " + i18n.T("update.or") + " " + version.ReleasesLatestURL
 }
 
 // newUpdateChecker constructs an updatecheck.Checker honoring update_check

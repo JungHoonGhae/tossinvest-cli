@@ -875,5 +875,7 @@
   "init.prompt.loginMethod": "로그인 방법을 선택하세요",
   "init.prompt.loginPhone": "휴대폰 번호로 로그인 (권장) — 토스 앱 알림으로 승인, 브라우저 창 없음",
   "init.prompt.loginQR": "QR 코드로 로그인 — 브라우저 창에서 QR 을 스캔",
-  "openapi.setup.msg.cancelled": "중단했습니다. 아무것도 바뀌지 않았습니다. 휴대폰에 승인 요청이 남아 있다면 무시해도 됩니다.\n"
+  "openapi.setup.msg.cancelled": "중단했습니다. 아무것도 바뀌지 않았습니다. 휴대폰에 승인 요청이 남아 있다면 무시해도 됩니다.\n",
+  "update.notice": "\n✨ tossctl %s 가 나왔습니다 (현재 %s) — %s\n   알림 끄기: %s 에서 update_check.enabled=false\n",
+  "update.or": "또는"
 }

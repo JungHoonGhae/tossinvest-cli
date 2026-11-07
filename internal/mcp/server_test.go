@@ -831,3 +831,21 @@ func TestFrameAtCapIsServed(t *testing.T) {
 		t.Fatalf("frame at the cap must be served, got %v", resps)
 	}
 }
+
+// A long-running server appends the update notice to a successful
+// call_operation result as one extra text block; the payload block is intact.
+func TestCallOperationAppendsUpdateNotice(t *testing.T) {
+	s := NewServer(nil, nil, Services{}, "test", "0.0.0")
+	s.SetUpdateNotice(func(context.Context) string { return "Update available: tossctl v9.9.9" })
+	res, rerr := s.handleToolsCall(context.Background(), json.RawMessage(`{"name":"call_operation","arguments":{"operation":"auth_status"}}`))
+	if rerr != nil {
+		t.Fatal(rerr.Message)
+	}
+	content := res.(map[string]any)["content"].([]map[string]any)
+	if len(content) != 2 || content[1]["text"] != "Update available: tossctl v9.9.9" {
+		t.Fatalf("want payload + notice blocks, got %v", content)
+	}
+	if !json.Valid([]byte(content[0]["text"].(string))) {
+		t.Fatalf("the payload block must stay valid JSON: %v", content[0]["text"])
+	}
+}

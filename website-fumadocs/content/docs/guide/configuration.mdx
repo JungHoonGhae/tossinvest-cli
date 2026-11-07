@@ -51,7 +51,7 @@ tossctl config status
 | `trading.dangerous_automation.accept_fx_consent` | WTS 미국주식 KRW 매수 prepare 후 환전 동의만 자동 수락. 주문별 execute·confirm은 생략하지 않음 |
 | `openapi.enabled`·`prefer`·`fallback` | 공식 경로 활성화·시작 경로·지원 조회의 WTS 폴백. 주문은 교차 폴백하지 않음 |
 | `openapi.account_seq` | 공식 API 계좌 순번. 0 이면 계좌가 하나일 때만 자동 선택하고, 여러 개면 주문을 거절하고 조회는 WTS 로 폴백. 순번은 `tossctl openapi status` 로 확인 |
-| `update_check.enabled` | 새 버전 알림 on/off (자동화 출력은 오염시키지 않음) |
+| `update_check.enabled` | 새 버전 알림 on/off. 최신 버전은 6시간마다 확인하고 안내는 하루 한 번. 표 출력 명령 끝에 stderr 로, MCP 는 시작 지침과 실행 중 나온 새 버전을 도구 응답에 한 번 덧붙여 알림. JSON/CSV 출력은 오염시키지 않음 |
 | `experimental.paper_trading` | 롤아웃 중인 미국 옵션 모의투자 CLI·ops/MCP·전용 probe 노출. 기본 `false` |
 
 모의투자는 다음 명령으로 명시적으로 옵트인합니다.

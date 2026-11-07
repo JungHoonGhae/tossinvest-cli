@@ -51,7 +51,7 @@ tossctl config status
 | `trading.dangerous_automation.accept_fx_consent` | Accept only post-prepare FX consent for supported WTS US-stock KRW buys; never skips order execute/confirm |
 | `openapi.enabled`·`prefer`·`fallback` | Official routing, starting preference, and eligible read fallback to WTS; never cross-backend order retry |
 | `openapi.account_seq` | Official API account sequence. 0 auto-selects only when there is a single account; with several, orders are refused and reads fall back to WTS. Find the sequence with `tossctl openapi status` |
-| `update_check.enabled` | New-version notice on/off (never pollutes automation output) |
+| `update_check.enabled` | New-version notice on/off. Checks the latest version every 6 hours and notifies at most once a day: on stderr after table-output commands; for MCP, in the initialize instructions and once on a tool result when a release lands while the server runs. Never pollutes JSON/CSV output |
 | `experimental.paper_trading` | Expose the rolling-out US-options paper CLI, ops/MCP operations, and dedicated probes. Default `false` |
 
 Opt in explicitly:
