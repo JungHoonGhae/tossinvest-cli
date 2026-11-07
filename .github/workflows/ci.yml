@@ -134,7 +134,10 @@ jobs:
           fail-on-severity: high
 
       - name: Check auth helper syntax
-        run: python -m compileall auth-helper
+        run: |
+          python -m compileall auth-helper
+          # The helper's unit tests need no browser or playwright install.
+          python -m unittest discover -s auth-helper/tests
 
       - name: WTS 카탈로그 분류기 sanity
         run: python -m py_compile tools/wts_endpoints.py tools/update_new_markers.py

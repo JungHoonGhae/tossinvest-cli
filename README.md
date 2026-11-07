@@ -59,7 +59,7 @@ macOS / Linux:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.sh | sh
-tossctl auth login
+tossctl auth login --phone
 tossctl account summary --output json
 ```
 
@@ -67,7 +67,7 @@ tossctl account summary --output json
   <img src="diagrams/readme-workflow.png" alt="휴대폰으로 로그인하고 시세·수급·계좌·배당을 선택해 CLI나 MCP로 조회합니다. 결과는 터미널·JSON·AI 답변으로 활용하며, 실주문은 별도 미리보기와 사람의 승인이 필요합니다." width="100%" />
 </p>
 
-휴대폰 인증 후 **이 기기 로그인 유지**까지 승인하세요. QR 대신 링크를 쓰려면 `tossctl auth login --link`로 로그인합니다.
+이름·생년월일·휴대폰 번호를 입력하면 토스 앱으로 승인 알림이 갑니다. 알림을 승인한 뒤 **이 기기 로그인 유지**까지 승인하세요. 입력한 정보는 토스증권 로그인 화면에만 전달하고 저장하지 않습니다. 브라우저 QR 로그인은 `tossctl auth login`, 링크는 `tossctl auth login --link`입니다.
 
 <details>
 <summary>Windows · Homebrew · 공식 API 연결</summary>
@@ -78,12 +78,14 @@ Windows PowerShell에서 설치한 뒤 위의 로그인·조회 명령을 실행
 irm https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.ps1 | iex
 ```
 
-공식 Open API 키를 연결하려면:
+공식 Open API 키를 연결하려면(웹 로그인 후):
 
 ```bash
-tossctl openapi login
+tossctl openapi setup   # 기존 키 연결 · 저장해 둔 Secret 입력 · 새 키 발급 중 안내
 tossctl openapi status
 ```
+
+키와 Secret을 이미 갖고 있다면 `tossctl openapi login`으로 직접 등록할 수도 있습니다.
 
 Homebrew·소스 빌드는 [설치 문서](https://tossinvest-cli.vercel.app/docs/getting-started/installation), 인증·연결 문제는 `tossctl doctor --report`를 참고하세요.
 

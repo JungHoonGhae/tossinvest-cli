@@ -565,7 +565,7 @@ func newOpenAPICmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(loginCmd, testCmd, logoutCmd, statusCmd, newOpenAPIIPCmd(opts))
+	cmd.AddCommand(loginCmd, testCmd, logoutCmd, statusCmd, newOpenAPIIPCmd(opts), newOpenAPISetupCmd(opts))
 	return cmd
 }
 

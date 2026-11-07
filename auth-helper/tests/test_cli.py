@@ -54,3 +54,26 @@ class LoginGuidanceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PhoneLoginInputTests(unittest.TestCase):
+    """Dummy identity only."""
+
+    def env(self, name="홍길동", birth="900101", phone="010-0000-0000"):
+        return {"TOSSCTL_LOGIN_NAME": name, "TOSSCTL_LOGIN_BIRTH": birth, "TOSSCTL_LOGIN_PHONE": phone}
+
+    def test_inputs_come_from_env_and_phone_is_normalized(self):
+        with patch.dict(cli.os.environ, self.env(), clear=False):
+            self.assertEqual(cli.phone_login_inputs(), ("홍길동", "900101", "01000000000"))
+
+    def test_invalid_inputs_are_rejected_before_any_browser_work(self):
+        for bad in (self.env(name=""), self.env(birth="9001"), self.env(phone="02-123-4567")):
+            with self.subTest(bad=bad), patch.dict(cli.os.environ, bad, clear=False):
+                with self.assertRaises(ValueError):
+                    cli.phone_login_inputs()
+
+    def test_phone_flag_does_not_take_personal_data_as_arguments(self):
+        args = cli.build_parser().parse_args(["login", "--storage-state", "s.json", "--phone"])
+        self.assertTrue(args.phone)
+        for attr in ("name", "birth", "phone_number"):
+            self.assertFalse(hasattr(args, attr), "personal data must not be argv flags")

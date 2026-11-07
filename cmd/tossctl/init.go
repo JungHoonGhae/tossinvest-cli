@@ -46,7 +46,9 @@ func newInitCmd(opts *rootOptions) *cobra.Command {
 				if err := runInitWebFlow(cmd, opts); err != nil {
 					return err
 				}
-				return runInitOfficialFlow(cmd, opts)
+				// With a web session the key can be reused, paired with a
+				// saved secret, or issued — no copying keys from a portal.
+				return runOpenAPISetup(cmd, opts)
 			default:
 				return fmt.Errorf("unknown choice: %q", choice)
 			}
@@ -95,12 +97,27 @@ func runInitOfficialFlow(cmd *cobra.Command, opts *rootOptions) error {
 	return nil
 }
 
-// runInitWebFlow triggers the existing browser-assisted login flow.
+// runInitWebFlow logs in to the web: phone-number approval (default) or the
+// browser QR flow.
 func runInitWebFlow(cmd *cobra.Command, opts *rootOptions) error {
 	app, err := newAppContext(opts)
 	if err != nil {
 		return err
 	}
-	_, err = app.authService.LoginWith(cmd.Context(), app.loginConfig)
+	cfg := app.loginConfig
+	phoneChoice := i18n.T("init.prompt.loginPhone")
+	method, err := tui.Select(i18n.T("init.prompt.loginMethod"), []string{phoneChoice, i18n.T("init.prompt.loginQR")})
+	if err != nil {
+		return err
+	}
+	if method == phoneChoice {
+		phone, ok, err := resolvePhoneLogin(cmd.ErrOrStderr(), os.Getenv)
+		if err != nil || !ok {
+			return err
+		}
+		cfg.Phone = phone
+		fmt.Fprint(cmd.ErrOrStderr(), i18n.T("auth.phone.msg.waiting"))
+	}
+	_, err = app.authService.LoginWith(cmd.Context(), cfg)
 	return err
 }

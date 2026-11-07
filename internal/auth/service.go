@@ -19,6 +19,17 @@ type LoginConfig struct {
 	StorageStatePath string
 	Headless         bool
 	QROutputPath     string
+	// Phone switches the helper to phone-number login (Toss app approval
+	// push). Its fields reach the helper only through the environment.
+	Phone *PhoneLogin
+}
+
+// PhoneLogin is the identity the Toss sign-in form asks for. Never persisted
+// or logged: it is handed to the helper process and dropped.
+type PhoneLogin struct {
+	Name   string
+	Birth  string // YYMMDD
+	Number string // 010XXXXXXXX
 }
 
 type Options struct {

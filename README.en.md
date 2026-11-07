@@ -59,7 +59,7 @@ macOS / Linux:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.sh | sh
-tossctl auth login
+tossctl auth login --phone
 tossctl account summary --output json
 ```
 
@@ -67,7 +67,7 @@ tossctl account summary --output json
   <img src="diagrams/readme-workflow.en.png" alt="Sign in on your phone, select quotes, flows, accounts, or dividends, and query through the CLI or MCP. Use results in a terminal, JSON, or an AI answer. Live orders require a separate preview and human approval." width="100%" />
 </p>
 
-Complete phone authentication and approve **Keep this device signed in**. To use a link instead of a QR code, sign in with `tossctl auth login --link`.
+Enter your name, date of birth and phone number and the Toss app receives an approval notification. Approve it, then approve **Keep this device signed in**. The details go only to the Toss Securities sign-in page and are not saved. For the browser QR login use `tossctl auth login`; for a link, `tossctl auth login --link`.
 
 <details>
 <summary>Windows · Homebrew · Official API setup</summary>
@@ -78,12 +78,14 @@ Install in Windows PowerShell, then run the login and query commands above:
 irm https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/install.ps1 | iex
 ```
 
-To connect an official Open API key:
+To connect an official Open API key (after the web login):
 
 ```bash
-tossctl openapi login
+tossctl openapi setup   # reuse the existing key, enter a saved secret, or issue a new key
 tossctl openapi status
 ```
+
+If you already have the key and secret, `tossctl openapi login` registers them directly.
 
 See the [installation guide](https://tossinvest-cli.vercel.app/en/docs/getting-started/installation) for Homebrew and source builds. Run `tossctl doctor --report` to diagnose authentication or connection problems.
 
