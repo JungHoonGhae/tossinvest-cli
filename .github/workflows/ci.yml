@@ -64,7 +64,7 @@ jobs:
           actionlint
           bash -n tools/open_automation_pr.sh
           bash -n tools/approve_automation_ci.sh
-          bash -n tools/codex_api_analysis.sh
+          bash -n tools/api_change_analysis.sh
 
       - name: Build CLI
         run: make build

@@ -216,7 +216,7 @@ func (c *Client) send(ctx context.Context, makeReq func(tok string) (*http.Reque
 	}
 	if code == http.StatusUnauthorized {
 		// Force-refresh the token and retry once.
-		tok, err = c.tm.refresh(ctx)
+		tok, err = c.tm.refresh(ctx, tok)
 		if err != nil {
 			return err
 		}
