@@ -42,6 +42,11 @@ var ErrStreamShutdown = errors.New("official: server requested reconnect")
 // allowed — so StreamWithRetry returns it instead of looping forever.
 var ErrStreamUnauthorized = errors.New("official: websocket handshake unauthorized")
 
+// ErrStreamAuthRevoked marks a server-sent auth-revoked frame: the token was
+// re-validated mid-connection and rejected. Reconnecting with a fresh token
+// usually fixes it; revocation right after such a reconnect does not.
+var ErrStreamAuthRevoked = errors.New("official: stream token revoked (auth-revoked)")
+
 // Subscription 은 구독 선언 배열의 항목 하나다. Type 은 "trade:us" · "orderbook:kr" ·
 // "personal:order", Codes 는 심볼 목록(주문 채널은 accountSeq 를 문자열로).
 type Subscription struct {
@@ -104,7 +109,7 @@ func (c *Client) Stream(ctx context.Context, subs []Subscription, handler func(S
 	if err != nil && resp != nil && resp.StatusCode == http.StatusUnauthorized {
 		// 캐시 토큰이 폐기·교체됐을 수 있다: refresh 후 한 번만 다시 다이얼한다.
 		// 그래도 401이면 자격증명 자체가 문제라 영원히 재시도해 봐야 소용없다.
-		refreshed, rerr := c.tm.refresh(ctx)
+		refreshed, rerr := c.tm.refresh(ctx, tok)
 		if rerr != nil {
 			// refresh 자체의 429·5xx·네트워크 장애는 일시적이다: 재시도 가능한
 			// 오류로 돌려주고, 자격증명 거부일 때만 영구 실패로 본다.
@@ -161,6 +166,16 @@ func (c *Client) Stream(ctx context.Context, subs []Subscription, handler func(S
 		if frame.Type == "error" && frame.Error != nil && frame.Error.Code == "server-shutdown" {
 			return ErrStreamShutdown
 		}
+		if frame.Type == "error" && frame.Error != nil && frame.Error.Code == "auth-revoked" {
+			// AsyncAPI 1.2.3: the server re-validates the token mid-connection
+			// and closes on expiry, reissue/revocation, an IP removed from the
+			// allowlist, or an unsupported account. Swap the token now so the
+			// reconnect does not first try the revoked one.
+			if _, rerr := c.tm.refresh(ctx, tok); rerr != nil && isPermanentAuth(rerr) {
+				return fmt.Errorf("%w: token refresh after auth-revoked: %w", ErrStreamUnauthorized, rerr)
+			}
+			return ErrStreamAuthRevoked
+		}
 	}
 }
 
@@ -189,6 +204,7 @@ func (c *Client) StreamWithRetry(ctx context.Context, subs []Subscription, handl
 		logf = func(string, ...any) {}
 	}
 	backoff := streamInitialBackoff
+	revokedBefore := false
 	for {
 		started := time.Now()
 		err := c.Stream(ctx, subs, handler)
@@ -200,6 +216,19 @@ func (c *Client) StreamWithRetry(ctx context.Context, subs []Subscription, handl
 		if errors.Is(err, ErrStreamUnauthorized) {
 			return err
 		}
+		if errors.Is(err, ErrStreamAuthRevoked) {
+			// Revoked again soon after reconnecting with a fresh token: the
+			// cause is not the token (IP allowlist, unsupported account), so
+			// reconnecting forever cannot fix it.
+			if revokedBefore && !streamResetBackoff(time.Since(started)) {
+				return fmt.Errorf("%w: revoked again right after reconnecting with a fresh token (check the allowed IPs and the subscribed account)", ErrStreamUnauthorized)
+			}
+			revokedBefore = true
+			logf("stream: server revoked the token (auth-revoked); reconnecting with a fresh token")
+			backoff = streamInitialBackoff
+			continue
+		}
+		revokedBefore = false
 		if errors.Is(err, ErrStreamShutdown) {
 			// 예고된 배포 핸드오프 — 백오프를 키우지 않는다.
 			logf("stream: server requested reconnect")
