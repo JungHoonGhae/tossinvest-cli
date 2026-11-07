@@ -45,9 +45,9 @@ func TestTokenRefresh(t *testing.T) {
 	defer srv.Close()
 	m := newTokenManager(Credentials{APIKey: "k", SecretKey: "s"}, srv.URL, filepath.Join(t.TempDir(), "t.json"), srv.Client())
 	// First exchange
-	_, _ = m.token(context.Background())
-	// Force refresh
-	tok, err := m.refresh(context.Background())
+	first, _ := m.token(context.Background())
+	// Force refresh of the token the server rejected
+	tok, err := m.refresh(context.Background(), first)
 	if err != nil || tok != "AT2" {
 		t.Fatalf("refresh got %q,%v", tok, err)
 	}
@@ -172,5 +172,49 @@ func TestTokenExchangeError(t *testing.T) {
 	}
 	if !ShouldFallback(err) {
 		t.Fatalf("401 should fallback, err=%v", err)
+	}
+}
+
+// Another process sharing the credentials already exchanged a newer token
+// (the API keeps one valid token per client): refresh must adopt it from the
+// disk cache instead of exchanging again and revoking that process's token.
+func TestTokenRefreshAdoptsNewerTokenFromAnotherProcess(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("must not exchange while a newer valid token is on disk")
+	}))
+	defer srv.Close()
+	cacheFile := filepath.Join(t.TempDir(), "t.json")
+	m := newTokenManager(Credentials{APIKey: "k", SecretKey: "s"}, srv.URL, cacheFile, srv.Client())
+	m.cache = &cachedToken{AccessToken: "OURS", ExpiresAt: time.Now().Add(time.Hour)}
+	other := cachedToken{AccessToken: "THEIRS", ExpiresAt: time.Now().Add(time.Hour), KeyFingerprint: m.fingerprint()}
+	data, _ := json.Marshal(other)
+	if err := os.WriteFile(cacheFile, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	tok, err := m.refresh(context.Background(), "OURS")
+	if err != nil || tok != "THEIRS" {
+		t.Fatalf("want the other process's token, got %q, %v", tok, err)
+	}
+}
+
+// When the disk holds the same rejected token, refresh must exchange.
+func TestTokenRefreshExchangesWhenOnlyTheRejectedTokenIsCached(t *testing.T) {
+	hits := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		_, _ = w.Write([]byte(`{"access_token":"FRESH","expires_in":3600,"token_type":"Bearer"}`))
+	}))
+	defer srv.Close()
+	cacheFile := filepath.Join(t.TempDir(), "t.json")
+	m := newTokenManager(Credentials{APIKey: "k", SecretKey: "s"}, srv.URL, cacheFile, srv.Client())
+	stale := cachedToken{AccessToken: "STALE", ExpiresAt: time.Now().Add(time.Hour), KeyFingerprint: m.fingerprint()}
+	data, _ := json.Marshal(stale)
+	if err := os.WriteFile(cacheFile, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	m.cache = &stale
+	tok, err := m.refresh(context.Background(), "STALE")
+	if err != nil || tok != "FRESH" || hits != 1 {
+		t.Fatalf("want one exchange to FRESH, got %q, %v, hits=%d", tok, err, hits)
 	}
 }

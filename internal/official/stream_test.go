@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -300,5 +301,47 @@ func TestStreamWithRetryFirstBackoffIsInitial(t *testing.T) {
 	}
 	if gap := dialTimes[1].Sub(dialTimes[0]); gap < streamInitialBackoff || gap >= 2*streamInitialBackoff {
 		t.Fatalf("first reconnect gap = %s, want [%s, %s)", gap, streamInitialBackoff, 2*streamInitialBackoff)
+	}
+}
+
+// AsyncAPI 1.2.3: a mid-connection auth-revoked frame must swap the token and
+// reconnect at once with the new one; a second revocation right after that
+// reconnect is not a token problem and must stop instead of looping.
+func TestStreamAuthRevokedReconnectsWithFreshTokenThenStops(t *testing.T) {
+	var exchanges, dials int
+	var dialTokens []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/oauth2/token" {
+			exchanges++
+			_, _ = fmt.Fprintf(w, `{"access_token":"AT%d","expires_in":3600,"token_type":"Bearer"}`, exchanges)
+			return
+		}
+		dials++
+		dialTokens = append(dialTokens, r.Header.Get("Authorization"))
+		conn, err := websocket.Accept(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.CloseNow()
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+		if _, _, err := conn.Read(ctx); err != nil {
+			return
+		}
+		_ = conn.Write(ctx, websocket.MessageText, []byte(`{"type":"error","error":{"code":"auth-revoked","message":"token revoked"}}`))
+	}))
+	defer srv.Close()
+	c := streamClient(t, srv)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	err := c.StreamWithRetry(ctx, []Subscription{{Type: "personal:order", Codes: []string{"1"}}}, func(StreamFrame) {}, nil)
+	if !errors.Is(err, ErrStreamUnauthorized) {
+		t.Fatalf("want a permanent stop after repeated revocation, got %v", err)
+	}
+	if dials != 2 {
+		t.Fatalf("want exactly one reconnect, got %d dials", dials)
+	}
+	if dialTokens[0] == dialTokens[1] {
+		t.Fatalf("reconnect must use a fresh token, both dials used %q", dialTokens[0])
 	}
 }
