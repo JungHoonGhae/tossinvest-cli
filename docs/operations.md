@@ -76,7 +76,10 @@ tools/api_change_analysis.sh          # 미분석 변경마다 분석 파일과 
   (예전에는 최신 커밋 하나만 봐서, 두 실행 사이에 변경이 둘 쌓이면 앞의 것이 영영 빠졌습니다.)
 - **격리(읽기 전용 모델)**: 차분(`tools/openapi_diff.py`, AsyncAPI `git show`)은 스크립트가 먼저 만들어
   checkout 밖의 파일로 넘깁니다. 모델은 `claude -p --safe-mode --strict-mcp-config --permission-mode dontAsk`로
-  `Read`·`Grep`·`Glob`만 쓰고(쓰기·Bash·웹 금지) 보고서를 출력으로만 돌려줍니다. 스펙 문구에 지시가 섞여도
+  `Read`·`Grep`·`Glob`만, 그것도 checkout 과 입력 폴더 경로로 한정해 씁니다(쓰기·Bash·웹 금지). 경로 없는
+  `Read` 는 `--safe-mode` 에서도 디스크 전체를 읽을 수 있음을 2026-11-07 실측으로 확인했습니다 — 보고서가 공개 PR
+  본문이 되므로 홈 폴더의 키·세션 파일을 읽지 못하게 막습니다. 보고서는 출력으로만 돌려주고, 공개 전에 비밀값
+  모양의 문자열(`tssk_live_…`, GitHub·AWS·Slack 토큰, 개인 키)이 있으면 중단합니다. 스펙 문구에 지시가 섞여도
   저장소·도구·`.git`(훅·설정)을 바꿀 수 없습니다. 파일 쓰기·커밋·PR은 스크립트가 하고, 제목·커밋 해시가
   없거나 checkout이 바뀌었으면 중단합니다. 공개 PR의 코드는 개인 Mac에서 실행하지 않습니다.
 - **스케줄**: macOS `launchd`(`~/Library/LaunchAgents/com.tossctl.api-analysis.plist`)가 매일 07:20·19:20 KST에

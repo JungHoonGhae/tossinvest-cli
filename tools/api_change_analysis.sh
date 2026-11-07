@@ -119,7 +119,11 @@ for spec_commit in "${pending[@]}"; do
   # Read-only model: no Write/Edit/Bash, so injected spec text cannot change
   # the checkout, its tools, or .git (hooks, config) that the commit below uses.
   # --safe-mode drops CLAUDE.md, skills, plugins, hooks and MCP; dontAsk denies
-  # every tool not listed.
+  # every tool not listed. Reads are path-scoped to the checkout and the inputs:
+  # a bare "Read" reaches the whole disk even under --safe-mode (verified
+  # 2026-11-07), and the report becomes a public PR body.
+  repo_real="$(cd "$checkout" && pwd -P)"
+  inputs_real="$(cd "$inputs" && pwd -P)"
   report="$work_dir/report-$short_commit.md"
   {
     printf '%s\n\n' "$prompt"
@@ -129,7 +133,7 @@ for spec_commit in "${pending[@]}"; do
     printf 'Required first heading: # API 변경 분석 — %s\n' "$analysis_date"
   } | (cd "$checkout" && claude -p --safe-mode --strict-mcp-config \
     --permission-mode dontAsk --no-session-persistence --add-dir "$inputs" \
-    --allowedTools "Read" "Grep" "Glob" \
+    --allowedTools "Read(/$repo_real/**)" "Grep(/$repo_real/**)" "Glob(/$repo_real/**)" "Read(/$inputs_real/**)" \
     --disallowedTools "Write" "Edit" "NotebookEdit" "Bash" "WebFetch" "WebSearch") > "$report"
 
   if ! head -n 1 "$report" | grep -qF "# API 변경 분석 — $analysis_date"; then
@@ -143,6 +147,12 @@ for spec_commit in "${pending[@]}"; do
   fi
   if [ -n "$(git -C "$checkout" status --porcelain --untracked-files=all)" ]; then
     echo "The checkout changed during a read-only analysis; refusing to commit." >&2
+    exit 1
+  fi
+  # Second line of defense before anything goes public: refuse a report that
+  # carries credential-shaped strings.
+  if grep -qE 'tssk_live_[A-Za-z0-9]{6,}|gh[opsu]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-ant-[A-Za-z0-9_-]{10,}|AKIA[0-9A-Z]{16}|xox[abprs]-[A-Za-z0-9-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY-----' "$report"; then
+    echo "Report for $short_commit contains a credential-shaped string; refusing to publish. Inspect it before any rerun." >&2
     exit 1
   fi
   cp "$report" "$checkout/$analysis_file"
