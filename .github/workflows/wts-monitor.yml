@@ -37,6 +37,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash tools/open_automation_pr.sh --prepare automation/wts-monitor
 
+      - name: Install brotli decoder
+        # The WTS CDN serves brotli regardless of Accept-Encoding (2026-11-07).
+        run: python3 -m pip install --disable-pip-version-check brotli==1.2.1
       - name: Extract + classify WTS endpoints
         id: scan
         run: |

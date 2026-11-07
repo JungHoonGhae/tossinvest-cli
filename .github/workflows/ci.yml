@@ -146,6 +146,7 @@ jobs:
       # 해시 시드를 바꿔 두 번 돌린다 — 비결정성 사고가 프로세스 간 차이였다.
       - name: 카탈로그 도구 테스트
         run: |
+          python3 -m pip install --disable-pip-version-check brotli==1.2.1
           PYTHONHASHSEED=0 python3 -m unittest discover -s tools/tests
           PYTHONHASHSEED=1 python3 -m unittest discover -s tools/tests
 

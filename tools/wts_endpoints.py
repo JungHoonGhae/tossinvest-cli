@@ -13,7 +13,8 @@ print a summary + any endpoints added/removed since the committed catalog.
 Exit code 0 reports a complete scan; collection failure or a suspicious mass
 shrink exits nonzero without overwriting the existing catalog.
 
-stdlib only (runs in CI without deps).
+stdlib only (runs in CI without deps), except `brotli` — needed only because
+the WTS CDN serves brotli regardless of Accept-Encoding (2026-11-07).
 """
 import concurrent.futures
 import datetime
@@ -409,6 +410,38 @@ def _read_asset_bytes(stream, path, budget):
     return b"".join(chunks)
 
 
+class _BrotliReader:
+    """File-like view over a brotli body that never expands more than one
+    read() at a time, so _read_asset_bytes bounds it exactly like gzip."""
+
+    def __init__(self, payload):
+        try:
+            import brotli
+        except ImportError as exc:
+            raise RuntimeError(
+                "WTS serves brotli-compressed assets; install the decoder with "
+                "`python3 -m pip install brotli==1.2.1`"
+            ) from exc
+        self._error = brotli.error
+        self._decoder = brotli.Decompressor()
+        self._pending = payload
+
+    def read(self, size):
+        if self._decoder.is_finished():
+            return b""
+        data = b""
+        if self._pending is not None and self._decoder.can_accept_more_data():
+            data, self._pending = self._pending, None
+        try:
+            out = self._decoder.process(data, output_buffer_limit=size)
+        except self._error as exc:
+            raise RuntimeError(f"invalid brotli WTS asset: {exc}") from exc
+        if not out and self._pending is None and not self._decoder.is_finished() \
+                and self._decoder.can_accept_more_data():
+            raise RuntimeError("truncated brotli WTS asset")
+        return out
+
+
 def fetch(path, budget=None):
     # Route HTML and chunks occasionally return a transient empty/error response.
     # A single miss makes the route walk look like real endpoint deletion, so
@@ -450,7 +483,7 @@ def fetch(path, budget=None):
                             f"refusing redirected WTS asset outside {BASE_ORIGIN}: {_origin(final_url)}"
                         )
                 encoding = response.headers.get("Content-Encoding", "").strip().lower()
-                if encoding not in ("", "identity", "gzip"):
+                if encoding not in ("", "identity", "gzip", "br"):
                     raise RuntimeError(f"unsupported WTS Content-Encoding: {encoding}")
                 payload = _read_asset_bytes(response, path, budget)
                 if encoding == "gzip":
@@ -459,6 +492,8 @@ def fetch(path, budget=None):
                     # gzip.decompress would allocate the entire expansion first.
                     with gzip.GzipFile(fileobj=io.BytesIO(payload)) as decoded:
                         payload = _read_asset_bytes(decoded, path, budget)
+                elif encoding == "br":
+                    payload = _read_asset_bytes(_BrotliReader(payload), path, budget)
             finally:
                 response.close()
             body = payload.decode("utf-8", "ignore")
@@ -527,7 +562,16 @@ def require_fetched_assets(paths, bodies):
 # 각 라우트의 SSR HTML 에 그 라우트의 <script> 가 박혀 있으므로 브라우저 없이
 # 순수 HTTP 로 수집된다(CI 에서 그대로 동작).
 
-CHUNK_RE = r"/assets/v2/_next/static/chunks/[^\"']+\.js"
+# Toss moves the asset prefix between deploys (/assets/v2 → /assets/v3 on
+# 2026-11-07); never hard-code the version.
+CHUNK_RE = r"/assets/v\d+/_next/static/chunks/[^\"']+\.js"
+ASSET_BASE_RE = r"(/assets/v\d+)/_next/static/"
+DEFAULT_ASSET_BASE = "/assets/v2"
+
+
+def _asset_base(html, fallback=DEFAULT_ASSET_BASE):
+    match = re.search(ASSET_BASE_RE, html or "")
+    return match.group(1) if match else fallback
 
 # 토스 번들은 엔드포인트를 `host:"cert",method:"GET",path:"/api/v1/..."` 삼중으로 박아둔다.
 # 경로만 정규식으로 긁으면 두 가지를 통째로 잃는다:
@@ -890,14 +934,14 @@ def _html_build_id(html):
     return match.group(1) if match else ""
 
 
-def _add_build_manifest_chunks(build_id, chunks, budget=None):
+def _add_build_manifest_chunks(build_id, chunks, budget=None, asset_base=DEFAULT_ASSET_BASE):
     if not build_id:
         return
-    path = f"/assets/v2/_next/static/{build_id}/_buildManifest.js"
+    path = f"{asset_base}/_next/static/{build_id}/_buildManifest.js"
     manifest = fetch(path, budget)
     require_fetched_assets([path], [manifest])
     for path in re.findall(r'"(chunks/[^"]+\.js)"', manifest):
-        chunks.add("/assets/v2/_next/static/" + path)
+        chunks.add(f"{asset_base}/_next/static/" + path)
     chunks.update(re.findall(CHUNK_RE, manifest))
     return manifest
 
@@ -939,6 +983,9 @@ def collect_paths():
     if not root_build_id:
         raise RuntimeError("WTS root response is missing buildId; refusing partial discovery")
     build_ids = {root_build_id} - {""}
+    # Each build's manifest lives under the asset prefix of the HTML that
+    # declared it; a rolling deploy can serve builds from different prefixes.
+    build_bases = {root_build_id: _asset_base(idx)}
     chunks = set(re.findall(CHUNK_RE, idx))
     routes = set(discover_routes(idx))
     fetched_routes = {"/"}
@@ -956,7 +1003,10 @@ def collect_paths():
 
         new_builds = sorted(build_ids - loaded_builds)
         for build_id in new_builds:
-            _add_build_manifest_chunks(build_id, chunks, byte_budget)
+            _add_build_manifest_chunks(
+                build_id, chunks, byte_budget,
+                build_bases.get(build_id, build_bases[root_build_id]),
+            )
             loaded_builds.add(build_id)
             progressed = True
 
@@ -984,6 +1034,7 @@ def collect_paths():
                 chunks.update(re.findall(CHUNK_RE, html))
                 if build_id := _html_build_id(html):
                     build_ids.add(build_id)
+                    build_bases.setdefault(build_id, _asset_base(html, build_bases[root_build_id]))
             progressed = True
 
         _check_discovery_budget(build_ids, chunks, routes)

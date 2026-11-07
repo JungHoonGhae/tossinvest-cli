@@ -660,11 +660,18 @@ class TestClassify(unittest.TestCase):
                         W.fetch("/asset.js")
                 for response in responses:
                     response.close.assert_called_once()
-        response = self.asset_response(b"opaque", "br")
+        response = self.asset_response(b"opaque", "zstd")
         with mock.patch.object(W.FETCH_OPENER, "open", return_value=response):
             with self.assertRaisesRegex(RuntimeError, "unsupported WTS Content-Encoding"):
                 W.fetch("/asset.js")
         response.read.assert_not_called()
+        response.close.assert_called_once()
+        # br is supported (the CDN forces it), but a corrupt body still fails
+        # closed — with or without the decoder installed.
+        response = self.asset_response(b"opaque", "br")
+        with mock.patch.object(W.FETCH_OPENER, "open", return_value=response):
+            with self.assertRaisesRegex(RuntimeError, "brotli"):
+                W.fetch("/asset.js")
         response.close.assert_called_once()
 
     def test_search_and_sector_host_aliases_are_narrow(self):
@@ -685,6 +692,46 @@ class TestClassify(unittest.TestCase):
         with mock.patch.object(W, "fetch", side_effect=lambda path, *_args, **_kwargs: responses.get(path, "")):
             with self.assertRaisesRegex(RuntimeError, "required WTS assets.*root.js"):
                 W.collect_paths()
+
+    def test_collect_paths_follows_the_asset_prefix_the_html_declares(self):
+        # 2026-11-07: Toss moved /assets/v2 → /assets/v3; a hard-coded prefix
+        # found zero chunks and 404ed on the manifest.
+        root_chunk = "/assets/v3/_next/static/chunks/root.js"
+        page_chunk = "/assets/v3/_next/static/chunks/page.js"
+        responses = {
+            "/": '{"buildId":"build-a"}<script src="' + root_chunk + '">',
+            "/assets/v3/_next/static/build-a/_buildManifest.js": '"chunks/page.js"',
+            root_chunk: "root",
+            page_chunk: "page",
+        }
+        requested = []
+
+        def fake_fetch(path, *_args, **_kwargs):
+            requested.append(path)
+            return responses.get(path, "")
+
+        with mock.patch.object(W, "fetch", side_effect=fake_fetch), \
+                mock.patch.object(W, "fetch_route", return_value=None):
+            _, _, chunk_count, _, _ = W.collect_paths()
+        self.assertIn("/assets/v3/_next/static/build-a/_buildManifest.js", requested)
+        self.assertIn(page_chunk, requested)
+        self.assertNotIn("/assets/v2/_next/static/build-a/_buildManifest.js", requested)
+        self.assertEqual(chunk_count, 2)
+
+    def test_brotli_assets_decode_within_the_same_limits(self):
+        try:
+            import brotli
+        except ImportError:
+            self.skipTest("brotli not installed")
+        body = b'"chunks/page.js"' * 1000
+        reader = W._BrotliReader(brotli.compress(body))
+        self.assertEqual(W._read_asset_bytes(reader, "x.js", None), body)
+        bomb = W._BrotliReader(brotli.compress(b"\0" * (W.DISCOVERY_MAX_RESPONSE_BYTES + 1)))
+        with self.assertRaisesRegex(RuntimeError, "byte limit"):
+            W._read_asset_bytes(bomb, "bomb.js", None)
+        truncated = W._BrotliReader(brotli.compress(body)[:-4])
+        with self.assertRaisesRegex(RuntimeError, "brotli"):
+            W._read_asset_bytes(truncated, "cut.js", None)
 
     def test_collect_paths_rejects_root_without_build_identity(self):
         with mock.patch.object(W, "fetch", return_value='<script src="/assets/v2/_next/static/chunks/root.js">'):
