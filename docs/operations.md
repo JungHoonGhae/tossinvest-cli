@@ -59,30 +59,29 @@ jq . /tmp/android_diff.json
 이 감시는 모바일 API를 호출하거나 사용자 토큰을 수집하지 않습니다. 앱 버전이 바뀌었다는
 사실만 다음 정적 감사의 트리거로 사용합니다.
 
-## 공식 API 변경의 Codex 정기 분석
+## 공식 API 변경의 정기 분석 (Claude Code)
 
 `Daily Monitor`는 GitHub-hosted runner에서 공식 REST/AsyncAPI 스펙을 결정적으로 수집하고
 변경분을 보호된 자동화 PR로 기록합니다. 의미 해석은 공개 저장소에 self-hosted runner를 연결하지 않고,
-소유자 Mac의 [`tools/codex_api_analysis.sh`](../tools/codex_api_analysis.sh)가 담당합니다.
-로컬의 ChatGPT 로그인(`codex login`)을 재사용하므로 별도 OpenAI API 키나 API 과금이 없고,
-GitHub에는 Codex OAuth 파일을 저장하지 않습니다.
+소유자 Mac의 [`tools/api_change_analysis.sh`](../tools/api_change_analysis.sh)가 Claude Code로 수행합니다.
+로컬 claude.ai 로그인을 재사용하므로 별도 API 키나 GitHub secret이 없습니다.
 
 ```bash
-tools/codex_api_analysis.sh --check  # 미분석 spec 변경 여부만 확인
-tools/codex_api_analysis.sh          # 필요할 때만 분석 파일과 PR 생성
+tools/api_change_analysis.sh --check  # 미분석 spec 변경 목록만 확인
+tools/api_change_analysis.sh          # 미분석 변경마다 분석 파일과 PR 생성(한 번에 최대 3건)
 ```
 
-Codex 데스크톱 앱을 계속 실행할 수 있으면 공식 **예약** 기능에서 이 작업을 격리 worktree로
-실행하는 구성이 우선입니다. Codex CLI 자체에는 예약 관리 명령이 없으므로 터미널만 사용하는
-환경에서는 macOS `launchd`가 `codex exec` 스크립트를 호출하는 방식이 공식 비대화형 실행 모델에
-맞는 대안입니다. 현재 운영 환경은 이 대안을 사용해 매일 07:20·19:20 KST에 실행합니다.
-GitHub 모니터의 07:00·19:00 KST 수집 뒤 20분 여유를 둔 값입니다. 두 스케줄러를 동시에 켜지
-않습니다. 스크립트는 임시 clone에서만 작업하며,
-가장 최근 스펙 변경이 이미 분석됐으면 아무 변경 없이 종료합니다. 한 날짜에 변경이 둘 이상이면
-두 번째부터 commit 축약값을 파일·브랜치에 붙여 누락을 방지합니다. 공개 PR의 코드를 개인 Mac에서
-실행하지 않는 것이 이 분리의 핵심입니다. GitHub-hosted Codex Action은 별도 OpenAI API 키와 API
-사용량이 필요하고, 개인 ChatGPT 인증 파일을 공개 OSS의 self-hosted runner에 복제하는 방식은
-사용하지 않습니다.
+- **미분석 판정**: 분석 파일에 그 스펙 커밋 해시가 적혀 있으면 분석된 것입니다. 최신 스냅샷부터
+  거슬러 올라가 처음 분석된 커밋을 만날 때까지가 모두 대기 대상이고, 오래된 것부터 처리합니다.
+  (예전에는 최신 커밋 하나만 봐서, 두 실행 사이에 변경이 둘 쌓이면 앞의 것이 영영 빠졌습니다.)
+- **격리**: 임시 clone에서 `claude -p --safe-mode --strict-mcp-config --permission-mode dontAsk`로
+  실행합니다. CLAUDE.md·스킬·플러그인·훅·MCP는 꺼지고, 허용 도구는 읽기·분석 파일 쓰기·
+  `tools/openapi_diff.py`·`git show/diff/log`뿐입니다. 실행 뒤 분석 파일 하나 외에 바뀐 파일이 있거나
+  파일에 스펙 커밋 해시가 없으면 PR 전에 중단합니다. 공개 PR의 코드는 개인 Mac에서 실행하지 않습니다.
+- **스케줄**: macOS `launchd`(`~/Library/LaunchAgents/com.tossctl.api-analysis.plist`)가 매일 07:20·19:20 KST에
+  실행합니다. GitHub 모니터의 07:00·19:00 KST 수집 뒤 20분 여유를 둔 값입니다. Mac이 잠들어 있던 동안
+  놓친 실행은 깨어날 때 한 번 돕니다. 로그: `~/Library/Logs/tossctl-api-analysis.log`.
+- 2026-11 Codex 구독 해지로 Codex CLI(`codex exec`)에서 Claude Code로 옮겼습니다.
 
 ## API 회귀 감시 (`tossctl monitor api`)
 

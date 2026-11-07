@@ -330,5 +330,5 @@ jobs:
           fi
 
       # API 변경의 AI 해석은 공개 저장소에 self-hosted runner를 연결하지 않기 위해
-      # 소유자 Mac의 Codex 예약 작업 또는 launchd + ChatGPT 로그인된 Codex CLI가 수행한다.
-      # 두 스케줄러를 동시에 켜지 않는다. 도구와 설치 절차: docs/operations.md.
+      # 소유자 Mac의 launchd + claude.ai 로그인된 Claude Code(tools/api_change_analysis.sh)가 수행한다.
+      # 도구와 설치 절차: docs/operations.md.
