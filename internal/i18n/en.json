@@ -875,5 +875,7 @@
   "init.prompt.loginMethod": "Choose how to log in",
   "init.prompt.loginPhone": "Phone number (recommended) — approve in the Toss app, no browser window",
   "init.prompt.loginQR": "QR code — scan the QR shown in a browser window",
-  "openapi.setup.msg.cancelled": "Stopped. Nothing changed; you can ignore any approval request left on your phone.\n"
+  "openapi.setup.msg.cancelled": "Stopped. Nothing changed; you can ignore any approval request left on your phone.\n",
+  "update.notice": "\n✨ tossctl %s available (current %s) — %s\n   Disable: set update_check.enabled=false in %s\n",
+  "update.or": "or"
 }

@@ -326,3 +326,29 @@ func TestFetchRejectsOversizeBody(t *testing.T) {
 		t.Fatal("oversize release body must be rejected")
 	}
 }
+
+// A release must be seen the same day: the latest version is refetched after
+// checkInterval (6h) even though the notice backoff stays at 24h.
+func TestLatestStableRefetchesAfterCheckIntervalButNoticeBacksOffLonger(t *testing.T) {
+	dir := t.TempDir()
+	cachePath := filepath.Join(dir, "update-check.json")
+	seed := cacheEntry{LastCheckedAt: time.Now().Add(-7 * time.Hour), LatestVersion: "0.56.0", UpdateNotifiedAt: time.Now().Add(-7 * time.Hour)}
+	data, _ := json.Marshal(seed)
+	if err := os.WriteFile(cachePath, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"tag_name": "v0.57.0", "prerelease": false})
+	}))
+	defer server.Close()
+	c := New(cachePath)
+	c.repoSlug = "x/y"
+	c.httpClient = &http.Client{Transport: redirectTransport{base: server.URL}}
+
+	if got := c.LatestStable(context.Background()); got != "0.57.0" {
+		t.Fatalf("a 7h-old check must be refreshed, got %q", got)
+	}
+	if _, notify := c.ShouldNotifyUpdate(context.Background(), "0.56.0"); notify {
+		t.Fatal("the notice backoff (24h) must still hold after a 7h-old notice")
+	}
+}

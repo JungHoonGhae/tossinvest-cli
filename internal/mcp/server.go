@@ -40,6 +40,9 @@ type Server struct {
 	name         string
 	version      string
 	instructions string
+	// updateNotice, when set, is consulted after each call_operation; a
+	// non-empty text is appended to that result as one more text block.
+	updateNotice func(context.Context) string
 }
 
 // Services are stateful workflows assembled by the process composition root.
@@ -115,6 +118,27 @@ func (s *Server) AppendInstructions(text string) {
 		return
 	}
 	s.instructions += "\n\n" + text
+}
+
+// SetUpdateNotice installs the per-call "update available" check. MCP servers
+// run for days, so the initialize instructions alone miss releases published
+// while the server is up; the agent relays the appended text to the user.
+func (s *Server) SetUpdateNotice(fn func(context.Context) string) {
+	s.updateNotice = fn
+}
+
+// withNotice appends text as an extra content block of a tool result.
+func withNotice(res any, text string) any {
+	m, ok := res.(map[string]any)
+	if !ok || text == "" {
+		return res
+	}
+	content, ok := m["content"].([]map[string]any)
+	if !ok {
+		return res
+	}
+	m["content"] = append(content, map[string]any{"type": "text", "text": text})
+	return m
 }
 
 // --- JSON-RPC 2.0 wire types ------------------------------------------------
@@ -646,7 +670,11 @@ func (s *Server) handleToolsCall(ctx context.Context, params json.RawMessage) (a
 		if err != nil {
 			return toolError("%s", err)
 		}
-		return toolResult(result, false)
+		res, rerr := toolResult(result, false)
+		if rerr == nil && s.updateNotice != nil {
+			res = withNotice(res, s.updateNotice(ctx))
+		}
+		return res, rerr
 	default:
 		return nil, &rpcError{Code: codeMethodNotFound, Message: "unknown tool: " + call.Name}
 	}
