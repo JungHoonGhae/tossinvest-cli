@@ -108,9 +108,23 @@ func isStillValid(ct *cachedToken, now time.Time) bool {
 
 // refresh forces a new token exchange regardless of whether a cached token is
 // still valid. It updates both in-memory and disk caches on success.
-func (m *tokenManager) refresh(ctx context.Context) (string, error) {
+// refresh replaces a token the server rejected. The API keeps one valid token
+// per client and revokes the previous one on every exchange, and since
+// AsyncAPI 1.2.3 it re-validates tokens on open streams too. Another tossctl
+// process sharing these credentials (stream + MCP, cron) may already have
+// exchanged a newer token: adopt it instead of exchanging again, or the
+// processes keep revoking each other's tokens.
+func (m *tokenManager) refresh(ctx context.Context, rejected string) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	now := time.Now()
+	if isStillValid(m.cache, now) && m.cache.AccessToken != rejected {
+		return m.cache.AccessToken, nil
+	}
+	if ct, err := m.loadCache(); err == nil && isStillValid(ct, now) && m.owns(ct) && ct.AccessToken != rejected {
+		m.cache = ct
+		return ct.AccessToken, nil
+	}
 	return m.exchange(ctx)
 }
 
