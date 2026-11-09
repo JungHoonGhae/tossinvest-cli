@@ -35,3 +35,12 @@ gh label create ready-for-human --description "Requires human implementation"
   `needs-triage`(평가 필요)나 `needs-info`(정보 부족)와 헷갈리면 안 된다 —
   **`trigger-waiting` 이 붙은 이슈는 트리아지 큐에 넣지 않는다.**
   트리거 조건은 각 이슈 본문에 체크박스로 적혀 있다.
+
+## 무인 자동 개발 라벨 (docs/automation/auto-dev.md)
+
+- **`auto-dev`** — 토스 API 변동 대응 작업 큐. 분석 스크립트와 `tools/auto_dev_precheck.py` 가 만들고,
+  Orca 자동화가 하나씩 처리한다. 트리아지 대상이 아니다.
+- **`auto-dev:in-progress`** — 자동화가 지금 처리 중. 중복 실행이 같은 이슈를 집지 않게 한다.
+- **`ready-for-human`** — 위 표의 역할 그대로. 자동 개발이 멈추고 사람에게 넘긴 이슈에 붙인다
+  (2026-11-09 자동 개발을 위해 생성).
+

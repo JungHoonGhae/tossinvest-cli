@@ -75,7 +75,9 @@ JSON instead of the structured diff.
    removals or changes, identify affected implementations.
 3. Classify the result as (a) no-op, (b) feature candidate, or (c) breaking risk.
 4. Reply with ONLY the report, in Korean Markdown, and nothing before or after it. Start with the
-   specified heading, then a line `Spec commit: <full sha>`, then a summary, coverage comparison,
+   specified heading, then a line `Spec commit: <full sha>`, then a line
+   `Classification: no-op` / `Classification: feature-candidate` / `Classification: breaking-risk`,
+   then a summary, coverage comparison,
    classification, and recommended follow-up. For (c), put > breaking-risk on its own line right
    after the heading.
 
@@ -156,9 +158,16 @@ for spec_commit in "${pending[@]}"; do
     exit 1
   fi
   cp "$report" "$checkout/$analysis_file"
+  # The classification line drives the auto-dev queue (docs/automation/auto-dev.md).
+  classification="$(grep -oiE '^[*_ ]*Classification[*_ ]*:[*_ ]*(no-op|feature-candidate|breaking-risk)' "$checkout/$analysis_file" | head -n 1 | grep -oiE '(no-op|feature-candidate|breaking-risk)$' | tr 'A-Z' 'a-z')"
+  if [ -z "$classification" ]; then
+    echo "Report for $short_commit has no Classification line; refusing to publish." >&2
+    exit 1
+  fi
   title_prefix=""
-  if grep -qiE '^> *breaking-risk *$' "$checkout/$analysis_file"; then
+  if [ "$classification" = breaking-risk ] || grep -qiE '^> *breaking-risk *$' "$checkout/$analysis_file"; then
     title_prefix="[breaking-risk] "
+    classification=breaking-risk
   fi
   git_author_name="${TOSSCTL_AUTOMATION_GIT_NAME:-$(git config user.name 2>/dev/null || true)}"
   git_author_email="${TOSSCTL_AUTOMATION_GIT_EMAIL:-$(git config user.email 2>/dev/null || true)}"
@@ -172,8 +181,23 @@ for spec_commit in "${pending[@]}"; do
   git -C "$checkout" add "$analysis_file"
   git -C "$checkout" commit -q -m "docs(analysis): API 변경 분석 ${analysis_date} (${short_commit})"
   git -C "$checkout" push -q --set-upstream origin "$branch"
-  gh pr create --repo "$repo" --base main --head "$branch" \
+  pr_url="$(gh pr create --repo "$repo" --base main --head "$branch" \
     --title "${title_prefix}docs(analysis): API 변경 분석 ${analysis_date} (${short_commit})" \
-    --body "$(printf '%s\n\n---\n정기 분석입니다. 검토 후 병합하거나 닫아 주세요.' "$(cat "$checkout/$analysis_file")")"
+    --body "$(printf '%s\n\n---\n정기 분석입니다. 문서만 바꾸므로 CI 통과 후 자동 병합됩니다.' "$(cat "$checkout/$analysis_file")")")"
+  # Docs-only: merge on green CI so the record lands without a person.
+  gh pr merge "$pr_url" --repo "$repo" --auto --squash --delete-branch || \
+    echo "Could not queue auto-merge for $pr_url; it stays open for review." >&2
+
+  # Feature candidates and breaking risks become auto-dev work, once per spec commit.
+  if [ "$classification" != no-op ]; then
+    marker="api-change:${short_commit}"
+    if ! gh issue list --repo "$repo" --state all --label auto-dev --limit 200 --json body \
+        --jq ".[].body" | grep -qF "$marker"; then
+      gh issue create --repo "$repo" --label auto-dev \
+        --title "[auto-dev] 공식 API 변경 대응 ${analysis_date} (${short_commit}, ${classification})" \
+        --body "$(printf '공식 Open API 스펙 변경이 %s 로 분류됐습니다.\n\n- 분석: %s (%s)\n- 스펙 커밋: %s\n\n절차: docs/automation/auto-dev.md\n\n<!-- %s -->' \
+          "$classification" "$pr_url" "$analysis_file" "$spec_commit" "$marker")"
+    fi
+  fi
   processed=$((processed + 1))
 done

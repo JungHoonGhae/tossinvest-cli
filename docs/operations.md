@@ -87,6 +87,20 @@ tools/api_change_analysis.sh          # 미분석 변경마다 분석 파일과 
   놓친 실행은 깨어날 때 한 번 돕니다. 로그: `~/Library/Logs/tossctl-api-analysis.log`.
 - 2026-11 Codex 구독 해지로 Codex CLI(`codex exec`)에서 Claude Code로 옮겼습니다.
 
+## 무인 자동 개발 (Orca)
+
+감지된 변동을 사람 없이 대응·배포하는 파이프라인입니다. 절차와 규칙은
+[`docs/automation/auto-dev.md`](automation/auto-dev.md)가 유일한 지시서입니다.
+
+- **큐**: GitHub 이슈 라벨 `auto-dev`. 위 분석이 `feature-candidate`/`breaking-risk` 면
+  `tools/api_change_analysis.sh` 가, WTS 카탈로그에서 코드가 쓰는 경로가 사라지면
+  `tools/auto_dev_precheck.py` 가 만듭니다.
+- **실행**: Orca 자동화 `tossctl 자동 개발`(Claude, 실행마다 `origin/main` 새 worktree)이 매시간
+  사전 검사(`tools/auto_dev_precheck.py`, `origin/main` 버전)를 돌려 할 일이 있을 때만 시작합니다.
+- **안전장치**: `auto-dev/*` PR 은 CI 가 main 의 `tools/auto_dev_guard.sh` 로 보호 경로(주문·거래 쓰기,
+  CI·릴리즈, 설치·셀프업데이트, 인증 헬퍼, 의존성, 자동화 자신) 변경을 막습니다. 멈춘 이슈는
+  `ready-for-human` 라벨과 macOS 알림으로 넘어옵니다. 배포는 하루 1회까지, `verify-live` 가 초록이어야 끝입니다.
+
 ## API 회귀 감시 (`tossctl monitor api`)
 
 토스 웹 API는 예고 없이 변경됩니다. 과거 두 차례 user-facing 회귀가 있었습니다:

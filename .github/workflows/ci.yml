@@ -28,6 +28,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Auto-dev scope guard
+        # Unattended development (docs/automation/auto-dev.md) must not merge
+        # changes to order/trading writes, CI/release, install/self-update,
+        # the auth helper, dependencies, or the automation itself. Runs the
+        # BASE branch's guard so a PR cannot weaken the check it is judged by.
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'auto-dev/')
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch --no-tags --quiet origin "+refs/heads/$BASE_REF:refs/remotes/origin/$BASE_REF"
+          git fetch --no-tags --quiet --unshallow origin || true
+          git show "origin/$BASE_REF:tools/auto_dev_guard.sh" > "$RUNNER_TEMP/auto_dev_guard.sh"
+          bash "$RUNNER_TEMP/auto_dev_guard.sh" "origin/$BASE_REF" HEAD
+
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
