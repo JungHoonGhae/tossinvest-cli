@@ -83,9 +83,9 @@ MCP exposes **reads and verified settings changes across the official Open API a
 **live orders through the official API path only**. `list_operations` tags each operation with `backend`
 and a write flag; inspect every write's full `mutation` policy through `describe_operation`.
 
-- **Reads** — the official API (accounts, quotes, order book, trades, candles, …) plus **WTS-only**
+- **Reads** — the official API (accounts, quotes, order book, trades, candles, settlement-date ledger, …) plus **WTS-only**
   (rankings, flows, AI signals, screeners, sectors, earnings, briefings, dividends, realized P&L,
-  transactions, watchlist, … — see
+  per-market transactions, watchlist, … — see
   [what the official API can't, tossctl can](/en/docs/guide/hybrid-openapi)).
   WTS reads need a web session; without one, that operation returns a `tossctl auth login` hint.
   Securities trading settings, transfer accounts, and accumulation funding status are

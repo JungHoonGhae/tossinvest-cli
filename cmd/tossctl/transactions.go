@@ -144,7 +144,7 @@ func newTransactionsLedgerCmd(opts *rootOptions) *cobra.Command {
 	}
 	cmd.Flags().StringSliceVar(&filter.Types, "type", nil, "Transaction types, comma-separated OR filter: "+strings.Join(official.TransactionTypes, ","))
 	cmd.Flags().StringVar(&filter.From, "from", "", "Settlement date from YYYY-MM-DD, KST (default: no lower bound)")
-	cmd.Flags().StringVar(&filter.To, "to", "", "Settlement date to YYYY-MM-DD, KST (default: no upper bound, includes unsettled trades)")
+	cmd.Flags().StringVar(&filter.To, "to", "", "Settlement date to YYYY-MM-DD, KST; unsettled trades match by expected settlement date (default: no upper bound)")
 	cmd.Flags().StringVar(&filter.Cursor, "cursor", "", "next_cursor from the previous page; keep the same filters")
 	cmd.Flags().IntVar(&filter.Limit, "limit", 0, "Rows per page, 1-100 (0 = API default 20)")
 	return cmd

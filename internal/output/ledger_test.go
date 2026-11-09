@@ -51,7 +51,6 @@ func TestWriteLedgerTransactionsTable(t *testing.T) {
 	out := buf.String()
 	for _, want := range []string{
 		"거래 내역: 4건",
-		"미결제", "결제",
 		"1,234,567", "1,234,752", // integer part grouped
 		"1,000.50",     // fraction kept exactly as sent
 		"US0000000002", // bond: ISIN stands in for the missing symbol
@@ -61,6 +60,20 @@ func TestWriteLedgerTransactionsTable(t *testing.T) {
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("table lacks %q:\n%s", want, out)
+		}
+	}
+	// "결제" is a substring of "미결제" and of the "결제일" header, so check the
+	// status cell row by row.
+	for date, want := range map[string]string{"2026-09-03": "미결제", "2026-09-01": "결제", "2026-08-30": "결제"} {
+		var row string
+		for _, line := range strings.Split(out, "\n") {
+			if strings.HasPrefix(line, date) {
+				row = line
+			}
+		}
+		fields := strings.Fields(row)
+		if len(fields) < 2 || fields[1] != want {
+			t.Errorf("row %s status = %v, want %q", date, fields, want)
 		}
 	}
 	if strings.Contains(out, "output.ledger.") {
