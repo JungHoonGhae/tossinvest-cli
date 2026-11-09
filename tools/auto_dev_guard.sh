@@ -18,9 +18,17 @@ else
   head="${2:-HEAD}"
   # --no-renames: a rename would otherwise list only the new path, so moving
   # a protected file elsewhere would slip past the check.
-  changed="$(git diff --no-renames --name-only "$base...$head")"
+  # core.quotePath=false: otherwise non-ASCII paths come back quoted and
+  # escaped ("internal/trading/\352..."), which the regex below would miss.
+  changed="$(git -c core.quotePath=false diff --no-renames --name-only "$base...$head")"
 fi
 blocked="$(printf '%s\n' "$changed" | grep -E "$protected" || true)"
+# Fail closed on anything still quoted (control characters, odd bytes): such a
+# path cannot be judged reliably.
+quoted="$(printf '%s\n' "$changed" | grep -E '^"' || true)"
+if [ -n "$quoted" ]; then
+  blocked="$(printf '%s\n%s' "$blocked" "$quoted" | grep -v '^$' || true)"
+fi
 if [ -n "$blocked" ]; then
   echo "auto-dev scope guard: these paths need a person, not unattended development:" >&2
   printf '  %s\n' $blocked >&2
