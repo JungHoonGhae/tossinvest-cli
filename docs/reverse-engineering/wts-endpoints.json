@@ -2,16 +2,17 @@
   "source": "tossinvest.com web bundles",
   "build_id": "8gLPKP3MvlSM8FpWCCzup",
   "build_ids": [
-    "8gLPKP3MvlSM8FpWCCzup"
+    "8gLPKP3MvlSM8FpWCCzup",
+    "xiXxZCtNqqgv5oQsV_aCd"
   ],
-  "chunk_count": 77,
-  "total": 1404,
+  "chunk_count": 89,
+  "total": 1407,
   "counts": {
-    "implemented": 169,
-    "candidate": 475,
-    "excluded": 760,
+    "implemented": 176,
+    "candidate": 469,
+    "excluded": 762,
     "candidate_next": 0,
-    "meaningful": 644
+    "meaningful": 645
   },
   "overrides": {
     "/api/v1/openapi/client/allowed-ips": {
@@ -581,6 +582,13 @@
       "host": "wts-api",
       "first_seen": "2026-06-19"
     },
+    "/api/v1/account/additional-account-open/clear": {
+      "status": "excluded",
+      "note": "account opening flow",
+      "method": "DELETE",
+      "host": "wts-api",
+      "first_seen": "2026-11-09"
+    },
     "/api/v1/account/additional-account-open/eligibility": {
       "status": "excluded",
       "note": "account opening flow",
@@ -1007,8 +1015,7 @@
       }
     },
     "/api/v1/account/frontend/terms/list": {
-      "status": "excluded",
-      "note": "onboarding/eligibility UI",
+      "status": "implemented",
       "first_seen": "2026-06-19"
     },
     "/api/v1/account/investment-propensity/eligible/with-contract": {
@@ -4536,6 +4543,13 @@
         "status": 400,
         "verdict": "needs-params"
       }
+    },
+    "/api/v1/multi-account-open/clear": {
+      "status": "excluded",
+      "note": "account opening flow",
+      "method": "DELETE",
+      "host": "wts-api",
+      "first_seen": "2026-11-09"
     },
     "/api/v1/multi-account-open/common/kyc/fatca/countries": {
       "status": "excluded",
@@ -10430,7 +10444,7 @@
       "first_seen": "2026-09-21"
     },
     "/api/v2/open-api/registration/cert/complete": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "POST",
       "host": "wts-api",
       "first_seen": "2026-06-19",
@@ -10442,7 +10456,7 @@
       }
     },
     "/api/v2/open-api/registration/cert/push": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "POST",
       "host": "wts-api",
       "first_seen": "2026-06-19",
@@ -10454,7 +10468,7 @@
       }
     },
     "/api/v2/open-api/registration/cert/status": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-api",
       "first_seen": "2026-06-19",
@@ -10478,7 +10492,7 @@
       }
     },
     "/api/v2/open-api/reissue/cert/complete": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "POST",
       "host": "wts-api",
       "first_seen": "2026-06-19",
@@ -10490,7 +10504,7 @@
       }
     },
     "/api/v2/open-api/reissue/cert/push": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "POST",
       "host": "wts-api",
       "first_seen": "2026-06-19",
@@ -10502,7 +10516,7 @@
       }
     },
     "/api/v2/open-api/reissue/cert/status": {
-      "status": "candidate",
+      "status": "implemented",
       "method": "GET",
       "host": "wts-api",
       "first_seen": "2026-06-19",
@@ -11223,6 +11237,11 @@
       "status": "excluded",
       "note": "legal terms",
       "first_seen": "2026-06-19"
+    },
+    "/api/v2/terms/overseas-agreed": {
+      "status": "excluded",
+      "note": "legal terms",
+      "first_seen": "2026-11-09"
     },
     "/api/v2/terms/overseas-stocks/disagreed": {
       "status": "excluded",
@@ -12686,9 +12705,10 @@
     "paper-trading-us-options": {
       "lifecycle": "rolling_out",
       "stability": "experimental",
-      "checked_at": "2026-11-07",
+      "checked_at": "2026-11-09",
       "active_build_ids": [
-        "8gLPKP3MvlSM8FpWCCzup"
+        "8gLPKP3MvlSM8FpWCCzup",
+        "xiXxZCtNqqgv5oQsV_aCd"
       ],
       "bundle_markers": {
         "option.paper.wts.open": true
@@ -12795,5 +12815,5 @@
       ]
     }
   },
-  "updated_at": "2026-11-07"
+  "updated_at": "2026-11-09"
 }
