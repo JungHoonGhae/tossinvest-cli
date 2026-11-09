@@ -429,3 +429,5 @@ func placeIntentSupported(intent orderintent.PlaceIntent) bool {
 	}
 	return intent.CurrencyMode == "KRW" || intent.CurrencyMode == "USD"
 }
+
+// guard self-test (PR will be closed)
