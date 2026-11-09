@@ -109,6 +109,7 @@ FEATURE_DATES = {
 # Commands documented on main but not released yet. Move each entry into
 # FEATURE_DATES with the actual changelog release date when it ships.
 UNRELEASED_FEATURES = {
+    "transactions ledger",
     "account access-status",
     "accumulate funding-status",
     "notifications status",

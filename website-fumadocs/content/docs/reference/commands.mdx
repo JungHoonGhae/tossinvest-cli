@@ -132,6 +132,7 @@ MCP는 `completed_orders`에 `{"all_dates":true,"market":"all","size":50,"page":
 |------|------|
 | `tossctl transactions list --market us\|kr` | 매매·입출금·배당·입출고 ledger |
 | `tossctl transactions overview --market us\|kr` | 주문가능·출금가능·예정입금 |
+| `tossctl transactions ledger [--type BUY,SELL] [--from] [--to]` | 공식 거래내역, 국내·미국 통합·결제일 기준, 한 페이지씩(`--limit`·`--cursor`), 공식 키 필요 |
 | `tossctl export positions\|orders --market us\|kr\|all` | CSV 내보내기 |
 
 ## 계좌 부가기능 · 알림

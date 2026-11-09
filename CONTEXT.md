@@ -174,6 +174,25 @@ hybrid 라우터는 세션이 없어도 구성되므로(임베드된 WTS 클라�
 **"웹 세션이 있는가" 의 판정 기준은 포인터의 nil 여부가 아니라 이 스냅샷이다.**
 `Catalog.Call` 의 게이팅이 이 값을 본다.
 
+## 거래내역 (transactions)
+
+**`transactions list` vs `transactions ledger`** — 둘 다 거래내역이지만 서로 대체하지 않는다.
+
+- `transactions list`(WTS)는 **시장별**(kr/us) 목록이다. 날짜를 거래일로 거르고, 종목명·잔고·
+  거래 ID(`sort_key`)를 준다. history 동기화의 원천도 이쪽이다.
+- `transactions ledger`(공식 `GET /api/v1/transactions`)는 국내·미국을 **한 목록**으로 주고
+  `--from`/`--to`를 **결제일**로 거른다. 미결제 매매는 예상 결제일을 쓰고 목록 앞에 온다.
+  종목명·잔고·거래 ID가 없다. 국내 미결제 1건이 결제 뒤 여러 건으로 바뀌기도 한다.
+
+**방향과 취소** — 공식 금액에는 부호가 없다. 방향은 거래 유형이 정하고, `is_cancellation`이면
+원래 유형 그대로 방향만 반대다. 원거래는 목록에서 빠지므로 합계가 잔액 변화와 맞지 않을 수 있다.
+`net_amount`는 서버가 정산한 값이라 `amount`·`commission`·`tax`로 다시 계산하지 않는다.
+
+**결제 여부** — `settled`만 기준이다. 결제일이 지났어도 미결제일 수 있다.
+
+**페이지** — 빈 페이지 뒤에도 다음 페이지가 있을 수 있다. 끝은 `has_next`로만 판단하고,
+필터를 바꾸면 커서를 버린다.
+
 ## 실현손익 (realized profit)
 
 **cumulative vs period-scoped** — 두 가지를 구분한다. `profit`(=`profit/overview`)은

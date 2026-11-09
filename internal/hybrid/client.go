@@ -386,6 +386,16 @@ func (c *Client) InvestorTradingRankings(ctx context.Context, count int) (domain
 	})
 }
 
+// TransactionLedger serves one page of the official transaction ledger.
+// official-only: the WTS ListTransactions is per market, filtered by
+// transaction date with numeric categories, and carries names and balances, so
+// neither can stand in for the other.
+func (c *Client) TransactionLedger(ctx context.Context, filter official.TransactionsFilter) (domain.LedgerTransactionList, error) {
+	return officialOnly(c, func(off *official.Client) (domain.LedgerTransactionList, error) {
+		return off.Transactions(ctx, filter)
+	})
+}
+
 // ModifyConditionalOrder modifies a conditional order. official-only. The
 // returned ref is the replacement order; intent.ID is invalid afterwards.
 func (c *Client) ModifyConditionalOrder(ctx context.Context, intent orderintent.ConditionalModifyIntent) (domain.ConditionalOrderRef, error) {

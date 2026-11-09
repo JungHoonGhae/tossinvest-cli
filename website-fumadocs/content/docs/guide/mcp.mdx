@@ -36,7 +36,7 @@ Claude Desktop 등 `mcpServers` 형식을 지원하는 호스트는 아래 [JSON
 
 ## 왜 catalog 방식인가 — 필요한 스키마만 조회
 
-tossctl의 기본 API 표면은 **126개 오퍼레이션**입니다. 모든 설명을 처음부터 나열하는 대신 필요한 기능과 스키마를 조회합니다. 호스트마다 도구 로딩 방식이 다르므로 고정된 토큰 절감량을 보장하지는 않습니다.
+tossctl의 기본 API 표면은 **127개 오퍼레이션**입니다. 모든 설명을 처음부터 나열하는 대신 필요한 기능과 스키마를 조회합니다. 호스트마다 도구 로딩 방식이 다르므로 고정된 토큰 절감량을 보장하지는 않습니다.
 
 tossctl 은 [KIS_MCP_Server](https://github.com/pineconedata/kis-mcp-server) 의 catalog 모드를
 참조해, 앞단에 **고정 3개 툴만** 노출하고 나머지 오퍼레이션 전부는 **필요할 때만 스키마를 꺼내오는**
@@ -81,8 +81,8 @@ tossctl`(또는 `tossctl update`)로 바이너리만 갱신하면 다음 세션�
 MCP 는 **조회와 검증된 설정 변경을 공식 Open API + WTS에 걸쳐** 노출하고, **실주문(write)은 공식 API 경로만**
 씁니다. `list_operations`는 `backend`와 write 여부를 표시하며, 쓰기의 전체 `mutation` 정책은 `describe_operation`에서 확인합니다.
 
-- **조회(read)** — 공식 API(계좌·시세·호가·체결·캔들 등)와 **WTS 전용**(인기 순위·수급·AI 시그널·
-  스크리너·업종·어닝·브리핑·배당·실현손익·거래내역·관심종목 등, [공식으로 막히는 것 →
+- **조회(read)** — 공식 API(계좌·시세·호가·체결·캔들·결제일 기준 거래내역 등)와 **WTS 전용**(인기 순위·수급·AI 시그널·
+  스크리너·업종·어닝·브리핑·배당·실현손익·시장별 거래내역·관심종목 등, [공식으로 막히는 것 →
   tossctl 로 되는 것](/docs/guide/hybrid-openapi) 참고)을 함께 노출합니다. WTS 조회는 웹 세션이 필요하고, 없으면 해당 오퍼레이션이 `tossctl auth
   login` 안내를 돌려줍니다. 증권 거래 설정·주식이체 계좌·주식모으기 자금연결 상태는
   `trading_settings`·`securities_transfer_accounts`·`accumulation_funding_status`로 호출합니다. 마지막 오퍼레이션은 이전 `banking_status`도 alias로 허용하며, 앞의 두

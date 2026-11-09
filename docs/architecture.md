@@ -23,6 +23,7 @@ application core + 로컬 상태 파일`로 나뉩니다. 일반 Toss Banking/My
 - opt-in 미국 옵션 모의투자: 격리 원장 조회·주문과 실주문 preview 전환
 - `orders completed`, `order show <id>` 기반 주문 상태 조회
 - 거래내역 ledger: `transactions list/overview` — 매매/입출금/배당/주식입출고 + 현금 overview (KR/US, table/JSON/CSV, 200일 캡)
+  - 공식 Open API 거래내역: `transactions ledger` — 결제일 기준 국내·미국 통합 목록, 한 페이지씩 커서로 (공식 키 필요)
 - 실시간 푸시: `push listen` — 토스 SSE 채널(`sse-message.tossinvest.com`) 구독으로 주문/가격/보유종목 변경 알림을 JSONL 스트림으로 출력 (이벤트 분류는 [`docs/reverse-engineering/push-events.md`](reverse-engineering/push-events.md))
 - 거래 베타
   - `US/KR buy/sell limit` + `US fractional (market)`
