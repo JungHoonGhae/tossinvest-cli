@@ -6,8 +6,8 @@ name: Auto-dev Guard
 # ci.yml runs the PR's own workflow and stays only as defense in depth).
 # No PR code is fetched or executed: the PR's changed paths come from the
 # GitHub API (renames list both paths) and the base branch's guard judges
-# them. A violation turns the PR back into a draft, which cannot be merged,
-# and hands it to a person.
+# them. A violation closes the PR, which cannot then be merged, and hands it
+# to a person (GITHUB_TOKEN may not convert a PR to draft).
 on:
   pull_request_target:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      pull-requests: write # convert to draft
+      pull-requests: write # close the PR
       issues: write # label and comment
     steps:
       - name: Checkout base branch (trusted code only)
@@ -65,6 +65,5 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          gh pr ready "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --undo
           gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label ready-for-human || true
-          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "무인 자동 개발이 보호 경로를 변경해 초안으로 되돌렸습니다. 사람이 검토해야 합니다. 경로 목록은 이 워크플로 로그를 보세요." || true
+          gh pr close "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --comment "무인 자동 개발이 보호 경로를 변경해 닫았습니다. 사람이 검토해야 합니다. 경로 목록은 Auto-dev Guard 워크플로 로그를 보세요. 검토 후 사람이 다시 열 수 있습니다."
