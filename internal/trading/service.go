@@ -431,3 +431,4 @@ func placeIntentSupported(intent orderintent.PlaceIntent) bool {
 }
 
 // guard self-test (PR will be closed)
+// retest
