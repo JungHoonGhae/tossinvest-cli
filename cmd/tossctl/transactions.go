@@ -8,6 +8,7 @@ import (
 	tossclient "github.com/JungHoonGhae/tossinvest-cli/internal/client"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/domain"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/official"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
 	"github.com/spf13/cobra"
 )
@@ -21,6 +22,7 @@ func newTransactionsCmd(opts *rootOptions) *cobra.Command {
 
 	cmd.AddCommand(newTransactionsListCmd(opts))
 	cmd.AddCommand(newTransactionsOverviewCmd(opts))
+	cmd.AddCommand(newTransactionsLedgerCmd(opts))
 	return cmd
 }
 
@@ -111,6 +113,40 @@ func newTransactionsOverviewCmd(opts *rootOptions) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&market, "market", "kr", "Market: kr or us")
+	return cmd
+}
+
+// newTransactionsLedgerCmd exposes the official Open API ledger.
+//
+// Its own command rather than a --source on `transactions list`: the two lists
+// differ in date basis (settlement vs transaction date), market split, filter
+// vocabulary, paging and fields, so the same flags would mean different things.
+// It returns one page; follow next_cursor while has_next.
+func newTransactionsLedgerCmd(opts *rootOptions) *cobra.Command {
+	var filter official.TransactionsFilter
+	cmd := &cobra.Command{
+		Use:         "ledger",
+		Short:       i18n.T("transactions.ledger.short"),
+		Long:        i18n.T("transactions.ledger.long"),
+		Annotations: map[string]string{"source": "official"},
+		Args:        cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			app, err := newAppContext(opts)
+			if err != nil {
+				return err
+			}
+			page, err := app.client.TransactionLedger(cmd.Context(), filter)
+			if err != nil {
+				return userFacingCommandError(err)
+			}
+			return output.WriteLedgerTransactions(cmd.OutOrStdout(), app.format, page)
+		},
+	}
+	cmd.Flags().StringSliceVar(&filter.Types, "type", nil, "Transaction types, comma-separated OR filter: "+strings.Join(official.TransactionTypes, ","))
+	cmd.Flags().StringVar(&filter.From, "from", "", "Settlement date from YYYY-MM-DD, KST (default: no lower bound)")
+	cmd.Flags().StringVar(&filter.To, "to", "", "Settlement date to YYYY-MM-DD, KST (default: no upper bound, includes unsettled trades)")
+	cmd.Flags().StringVar(&filter.Cursor, "cursor", "", "next_cursor from the previous page; keep the same filters")
+	cmd.Flags().IntVar(&filter.Limit, "limit", 0, "Rows per page, 1-100 (0 = API default 20)")
 	return cmd
 }
 

@@ -598,6 +598,44 @@ type SettlementEstimate struct {
 	SellAmount float64 `json:"sell_amount,omitempty"`
 }
 
+// LedgerTransaction is one row of the official Open API transaction ledger
+// (GET /api/v1/transactions). It is not the WTS Transaction above: KR and US
+// share one list, dates are settlement dates, and there are no names, balances
+// or ids. Amounts are unsigned decimal strings in Currency, kept as strings so
+// USD fractions are never rounded; TransactionType gives the direction and
+// IsCancellation reverses it. NetAmount is the settled figure to use — the spec
+// forbids recomputing it from Amount, Commission and Tax. Nil means the API sent
+// null (e.g. no TransactionTime or ExchangeRate while unsettled). Unknown
+// TransactionType and AssetClass values pass through unchanged.
+type LedgerTransaction struct {
+	TransactionType string  `json:"transaction_type"`
+	IsCancellation  bool    `json:"is_cancellation"`
+	Settled         bool    `json:"settled"`
+	SettlementDate  string  `json:"settlement_date"`
+	TransactionTime *string `json:"transaction_time"`
+	MarketCountry   string  `json:"market_country"`
+	Currency        string  `json:"currency"`
+	AssetClass      *string `json:"asset_class"`
+	Symbol          *string `json:"symbol"`
+	ISINCode        *string `json:"isin_code"`
+	Quantity        *string `json:"quantity"`
+	FilledPrice     *string `json:"filled_price"`
+	Amount          *string `json:"amount"`
+	Commission      string  `json:"commission"`
+	Tax             string  `json:"tax"`
+	NetAmount       *string `json:"net_amount"`
+	ExchangeRate    *string `json:"exchange_rate"`
+}
+
+// LedgerTransactionList is one page of the official ledger. A page may be empty
+// while HasNext is true; pass NextCursor back with the same filters.
+type LedgerTransactionList struct {
+	Transactions []LedgerTransaction `json:"transactions"`
+	NextCursor   string              `json:"next_cursor,omitempty"`
+	HasNext      bool                `json:"has_next"`
+	FetchedAt    time.Time           `json:"fetched_at"`
+}
+
 type WithdrawableBottomSheetEntry struct {
 	Title string  `json:"title"`
 	KRW   float64 `json:"krw,omitempty"`

@@ -121,6 +121,37 @@ func readOperations() []Operation {
 			},
 		},
 		{
+			ID: "transaction_ledger", Method: "GET", Path: "/api/v1/transactions",
+			Category: "account", Summary: "One page of the KR+US transaction ledger, unsettled first; from/to are settlement dates. Unsigned decimal amounts; type and is_cancellation give direction. Pages can be empty: follow has_next.",
+			Params: []Param{
+				{Name: "types", Type: "string[]", Desc: "OR filter: BUY, SELL, SECURITIES_TRANSFER_IN, SECURITIES_TRANSFER_OUT, DEPOSIT, WITHDRAWAL, EXCHANGE_IN, EXCHANGE_OUT, DIVIDEND, INTEREST, FEE (omit for all)"},
+				{Name: "from", Type: "string", Desc: "settlement date YYYY-MM-DD, KST, inclusive"},
+				{Name: "to", Type: "string", Desc: "settlement date YYYY-MM-DD; omit to include unsettled trades"},
+				{Name: "cursor", Type: "string", Desc: "next_cursor from the previous call with the same filters"},
+				{Name: "limit", Type: "integer", Desc: "rows per page, 1–100 (0 = API default 20)"},
+			},
+			handler: func(ctx context.Context, d *Deps, args map[string]any) (any, error) {
+				var f official.TransactionsFilter
+				var err error
+				if f.Types, err = argStringSlice(args, "types"); err != nil {
+					return nil, err
+				}
+				if f.From, err = argString(args, "from"); err != nil {
+					return nil, err
+				}
+				if f.To, err = argString(args, "to"); err != nil {
+					return nil, err
+				}
+				if f.Cursor, err = argString(args, "cursor"); err != nil {
+					return nil, err
+				}
+				if f.Limit, err = argInt(args, "limit"); err != nil {
+					return nil, err
+				}
+				return d.Client.Transactions(ctx, f)
+			},
+		},
+		{
 			ID: "orders", Method: "GET", Path: "/api/v1/orders",
 			Category: "order",
 			Summary:  "One page of Open API-supported orders. While has_next, pass next_cursor as cursor. Unsupported types, including pre/post-market closing-price orders, are absent from lists and detail; empty results do not prove no orders exist.",
