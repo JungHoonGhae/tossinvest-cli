@@ -1,0 +1,70 @@
+name: Auto-dev Guard
+
+# Unattended development (docs/automation/auto-dev.md) must not merge changes
+# to protected paths. pull_request_target runs THIS file from the base branch,
+# so a PR cannot delete or weaken the check it is judged by (the step in
+# ci.yml runs the PR's own workflow and stays only as defense in depth).
+# No PR code is fetched or executed: the PR's changed paths come from the
+# GitHub API (renames list both paths) and the base branch's guard judges
+# them. A violation turns the PR back into a draft, which cannot be merged,
+# and hands it to a person.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    if: startsWith(github.head_ref, 'auto-dev/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write # convert to draft
+      issues: write # label and comment
+    steps:
+      - name: Checkout base branch (trusted code only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Check the PR's changed paths against protected paths
+        id: guard
+        # shell: bash adds -o pipefail: an API failure must fail the job, not
+        # feed the guard an empty list that it would pass.
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
+        run: |
+          # Judge exactly the commit this event is about; a newer push gets
+          # its own run.
+          current="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .head.sha)"
+          if [ "$current" != "$HEAD_SHA" ]; then
+            echo "::error::PR head moved ($HEAD_SHA -> $current); refusing to judge a different commit"
+            exit 1
+          fi
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[] | .filename' > "$RUNNER_TEMP/files.txt"
+          count="$(grep -c . "$RUNNER_TEMP/files.txt" || true)"
+          # The files API stops at 3000 entries; anything incomplete fails closed.
+          if [ "$count" -eq 0 ] || [ "$count" -ne "$CHANGED_FILES" ] || [ "$count" -ge 3000 ]; then
+            echo "::error::changed-file list incomplete (got $count, PR reports $CHANGED_FILES)"
+            exit 1
+          fi
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[] | (.previous_filename // empty)' >> "$RUNNER_TEMP/files.txt"
+          bash tools/auto_dev_guard.sh --files < "$RUNNER_TEMP/files.txt"
+
+      - name: Hand the PR to a person
+        if: failure() && steps.guard.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr ready "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --undo
+          gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label ready-for-human || true
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "무인 자동 개발이 보호 경로를 변경해 초안으로 되돌렸습니다. 사람이 검토해야 합니다. 경로 목록은 이 워크플로 로그를 보세요." || true
