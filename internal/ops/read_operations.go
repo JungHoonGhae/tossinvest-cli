@@ -126,7 +126,7 @@ func readOperations() []Operation {
 			Params: []Param{
 				{Name: "types", Type: "string[]", Desc: "OR filter: BUY, SELL, SECURITIES_TRANSFER_IN, SECURITIES_TRANSFER_OUT, DEPOSIT, WITHDRAWAL, EXCHANGE_IN, EXCHANGE_OUT, DIVIDEND, INTEREST, FEE (omit for all)"},
 				{Name: "from", Type: "string", Desc: "settlement date YYYY-MM-DD, KST, inclusive"},
-				{Name: "to", Type: "string", Desc: "settlement date YYYY-MM-DD, KST, inclusive; unsettled trades match by expected settlement date"},
+				{Name: "to", Type: "string", Desc: "settlement date YYYY-MM-DD, KST, inclusive; unsettled trades match by expected settlement date; omit for no upper bound"},
 				{Name: "cursor", Type: "string", Desc: "next_cursor from the previous call with the same filters"},
 				{Name: "limit", Type: "integer", Desc: "rows per page, 1–100 (0 = API default 20)"},
 			},
