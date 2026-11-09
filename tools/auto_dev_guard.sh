@@ -12,7 +12,9 @@ head="${2:-HEAD}"
 
 protected='^(internal/trading/|internal/orderintent/|internal/client/(trading|order_reconciler|order_funding)[^/]*\.go$|internal/official/(orders_write|conditional_writes)[^/]*\.go$|internal/hybrid/broker[^/]*\.go$|internal/ops/write_operations[^/]*\.go$|cmd/tossctl/order[^/]*\.go$|\.github/|install\.sh$|install\.ps1$|internal/selfupdate/|auth-helper/|go\.mod$|go\.sum$|Makefile$|renovate\.json$|website-fumadocs/package\.json$|website-fumadocs/pnpm-lock\.yaml$|tools/(approve_automation_ci|open_automation_pr|api_change_analysis)\.sh$|tools/auto_dev_|docs/automation/auto-dev\.md$)'
 
-changed="$(git diff --name-only "$base...$head")"
+# --no-renames: a rename would otherwise list only the new path, so moving
+# a protected file elsewhere would slip past the check.
+changed="$(git diff --no-renames --name-only "$base...$head")"
 blocked="$(printf '%s\n' "$changed" | grep -E "$protected" || true)"
 if [ -n "$blocked" ]; then
   echo "auto-dev scope guard: these paths need a person, not unattended development:" >&2

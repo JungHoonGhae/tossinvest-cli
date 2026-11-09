@@ -1,0 +1,52 @@
+name: Auto-dev Guard
+
+# Unattended development (docs/automation/auto-dev.md) must not merge changes
+# to protected paths. pull_request_target runs THIS file from the base branch,
+# so a PR cannot delete or weaken the check it is judged by (the step in
+# ci.yml runs the PR's own workflow and stays only as defense in depth).
+# No PR code is executed: the job reads the PR's commits with git and runs the
+# base branch's guard script. A violation turns the PR back into a draft,
+# which cannot be merged, and hands it to a person.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    if: startsWith(github.head_ref, 'auto-dev/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write # convert to draft
+      issues: write # label and comment
+    steps:
+      - name: Checkout base branch (trusted code only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the PR's changes against protected paths
+        id: guard
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          # Fetch the PR's commits as data; nothing from the PR is executed.
+          git fetch --no-tags --quiet origin "+refs/pull/${PR_NUMBER}/head:refs/remotes/pr/head"
+          bash tools/auto_dev_guard.sh "$BASE_SHA" refs/remotes/pr/head
+
+      - name: Hand the PR to a person
+        if: failure() && steps.guard.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr ready "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --undo || true
+          gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label ready-for-human || true
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "무인 자동 개발이 보호 경로를 변경해 초안으로 되돌렸습니다. 사람이 검토해야 합니다. 경로 목록은 이 워크플로 로그를 보세요." || true
