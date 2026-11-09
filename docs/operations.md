@@ -97,8 +97,10 @@ tools/api_change_analysis.sh          # 미분석 변경마다 분석 파일과 
   `tools/auto_dev_precheck.py` 가 만듭니다.
 - **실행**: Orca 자동화 `tossctl 자동 개발`(Claude, 실행마다 `origin/main` 새 worktree)이 매시간
   사전 검사(`tools/auto_dev_precheck.py`, `origin/main` 버전)를 돌려 할 일이 있을 때만 시작합니다.
-- **안전장치**: `auto-dev/*` PR 은 CI 가 main 의 `tools/auto_dev_guard.sh` 로 보호 경로(주문·거래 쓰기,
-  CI·릴리즈, 설치·셀프업데이트, 인증 헬퍼, 의존성, 자동화 자신) 변경을 막습니다. 멈춘 이슈는
+- **안전장치**: `auto-dev/*` PR 은 `Auto-dev Guard`(`pull_request_target` — 기준 브랜치의 정의로 실행돼 PR 이
+  고칠 수 없음)가 main 의 `tools/auto_dev_guard.sh` 로 보호 경로(주문·거래 쓰기, CI·릴리즈, 설치·셀프업데이트,
+  인증 헬퍼, 의존성, 자동화 자신) 변경을 검사해, 위반이면 PR 을 닫아 머지를 막습니다(이름 변경도 양쪽 경로로
+  검사). CI 의 같은 단계는 이중 방어입니다. 멈춘 이슈는
   `ready-for-human` 라벨과 macOS 알림으로 넘어옵니다. 배포는 하루 1회까지, `verify-live` 가 초록이어야 끝입니다.
 
 ## API 회귀 감시 (`tossctl monitor api`)

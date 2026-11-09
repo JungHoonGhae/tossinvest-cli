@@ -74,6 +74,8 @@
 - PR 을 연다. 본문: 배경(이슈·분석 링크), 변경, 확인(테스트·리뷰 결과). `Closes #<번호>`.
 - `gh pr checks --watch` 로 CI 를 기다린다. 실패하면 원인을 고쳐 다시 푸시(최대 2회). 계속 실패하면 ready-for-human.
 - main 이 앞서 나가 "최신 브랜치 아님"이면 `gh pr update-branch` 후 다시 기다린다.
+- PR 이 닫혔거나(closed) 초안이거나 `ready-for-human` 이 붙었으면 **즉시 멈춘다.** `Auto-dev Guard`
+  워크플로가 보호 경로 변경을 잡은 것이다. 다시 열거나 ready 로 돌리지 말고 ready-for-human 처리로 간다.
 - 통과하면 `gh pr merge --squash --delete-branch`.
 
 ### 6. 릴리즈 (하루 1회)
