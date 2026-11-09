@@ -9,6 +9,8 @@ Version history below (source: the Korean-language [CHANGELOG.md](https://github
 
 ## [Unreleased]
 
+## [0.58.0] - 2026-11-09
+
 ### 새 기능
 - **공식 거래내역** — 공식 Open API 1.2.28 에 추가된 계좌 거래내역을 `transactions ledger` 와 MCP `transaction_ledger` 로 조회합니다. 매매·입출금·환전·배당·이자·수수료·증권 입출고를 국내·미국 구분 없이 한 목록으로 보여 주며, 옵션·채권 거래도 포함합니다. `--from`/`--to` 는 결제일 기준이고 미결제 매매가 먼저 나옵니다. `--type BUY,SELL` 처럼 유형으로 거를 수 있고, 한 번에 한 페이지(기본 20건, `--limit` 최대 100)를 가져와 다음 페이지는 `--cursor` 로 넘깁니다. 금액은 받은 값 그대로(부호 없음) 보여 주며 방향은 유형이 정합니다. 공식 키가 필요하고, 종목명·잔고는 포함되지 않습니다. 시장별 목록과 종목명·잔고는 기존 `transactions list` 를 쓰세요. 안정 오퍼레이션은 127개입니다.
 
