@@ -28,6 +28,7 @@ FILES = [
 # Longest keys are matched first so e.g. "market ranking" never matches a
 # "community rankings" row. Date = CHANGELOG version date of first appearance.
 FEATURE_DATES = {
+    "transactions ledger": "2026-11-09",
     "market investor-rankings": "2026-11-03",
     "sector list": "2026-10-11",
     "sector rankings": "2026-10-11",

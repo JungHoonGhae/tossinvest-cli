@@ -47,7 +47,7 @@ session 은 deprecate" 였다. 이는 *"공식 = 상위호환"* 이라는 잘못
 
 | | tossctl (비공식 web session) | 토스 공식 API |
 |---|---|---|
-| 데이터 표면 | **넓음** — transactions ledger·watchlist·push(SSE) 포함 | 좁음 — 시세·계좌·주문만 (ledger/watchlist/push **없음**) |
+| 데이터 표면 | **넓음** — transactions ledger·watchlist·push(SSE) 포함 | 좁음 — 시세·계좌·주문 중심 (watchlist/push **없음**, 거래내역은 1.2.28 부터 결제일 기준 ledger 만) |
 | rate limit | 사실상 없음 | 그룹별 초당 1~10회 (공식 명시, [상세 ↓](#rate-limit-실측)) |
 | 진입 | `auth login` 1회 | 사전신청→승인→토큰 24h 재발급 |
 | 합법성·안정성 | 약함 (TOS 리스크, 예고 없는 변경) | 강함 (계약된 versioned spec) |
@@ -123,7 +123,7 @@ capacity), `X-RateLimit-Remaining`(남은 토큰 수, 429 시 0), `X-RateLimit-R
 별도 레포로 쪼개지 않는다 ("별도 사유 생기기 전까지"). tossctl **이 레포 안에서**,
 web 을 주력으로 두고 공식 API 를 **선택적 보완 fallback** 으로만 흡수한다.
 
-- **web session = 주력.** 넓은 표면(transactions·watchlist·push)은 web 만 가능 →
+- **web session = 주력.** 넓은 표면(watchlist·push, 시장별 거래내역·현금 overview)은 web 만 가능 →
   계속 web RE 로 표면 확장 (지금까지 trades·limits·warnings·hours·fx 추가한 흐름 유지).
 - **공식 토큰 = 보완.** 딱 두 가지 가치에서만 끌어온다:
 
@@ -143,7 +143,7 @@ web 을 주력으로 두고 공식 API 를 **선택적 보완 fallback** 으로�
      반대로 대화형·넓은표면은 web 이 정답.
 
 - **NOT 통짜 백엔드 교체.** 공식 토큰은 공식 endpoint 만 인증한다 — web 전용 표면
-  (transactions·watchlist·push)은 여전히 web 쿠키 필수. 하이브리드는 *endpoint 별*.
+  (watchlist·push·`transactions list/overview`)은 여전히 web 쿠키 필수. 하이브리드는 *endpoint 별*.
 
 ## 분리 기준 — 어느 백엔드를 언제 쓰나
 
@@ -153,7 +153,8 @@ web 을 주력으로 두고 공식 API 를 **선택적 보완 fallback** 으로�
 
 | 기능 | web | 공식 | 라우팅 |
 |---|---|---|---|
-| transactions ledger · watchlist · push(SSE) | ✅ | ❌ | **web 전용** (선택 불가) |
+| watchlist · push(SSE) · 시장별 거래내역·현금 overview (`transactions list/overview`) | ✅ | ❌ | **web 전용** (선택 불가) |
+| 결제일 기준 국내·미국 통합 거래내역 (`transactions ledger`) | 다른 계약 | ✅ (1.2.28~) | **공식 전용** — 날짜 기준·필드·페이지 방식이 달라 web 목록과 서로 대체하지 않음 |
 | 분봉 5종(3/5/15/30/60m) · 체결강도 등 풍부한 시세 | ✅ | 일부(1m·일봉만) | **web 우선** |
 | account · holdings · quote · orders · candle(겹침) | ✅ | ✅ | **모드로 결정 ↓** |
 | 선물옵션 · 해외 깊이 · 채권 | ❌ | ❌(토스) | 둘 다 없음 (KIS future) |
@@ -199,6 +200,7 @@ web 을 주력으로 두고 공식 API 를 **선택적 보완 fallback** 으로�
 - **2026-06-02** — 공식 개발자 문서 + OpenAPI spec 공개 확인 (제보: @skyisle). `developers.tossinvest.com/docs` + `openapi.tossinvest.com/openapi-docs/.../openapi.json` (v1.0.3, 20 endpoints, OAuth2 Client Credentials). 모니터링 신호를 corp 페이지 chunk hash → spec version + endpoint 목록 hash 로 교체 (훨씬 강한 신호). endpoint 표면이 tossctl 명령과 거의 1:1 매핑 확인.
 - **2026-06-03a** — **이주·deprecation 계획 철회.** 공식 API 가 상위호환이 아니라 다른 trade-off (표면 좁고 rate limit 있음) 임이 spec 으로 확인됨. tossctl 이 공식으로 갈아타면 고유 강점(transactions·watchlist·push·무제한)을 스스로 버림. → web session 영구 주력.
 - **2026-06-03b** — **단일 레포 하이브리드로 확정 (별도 레포 보류).** 같은 날 잠깐 "공식은 별도 investctl 레포로" 를 적었으나 (06-03a 후속), 재검토 끝에 **이 레포 안에서 web 주력 + 공식 보완 fallback** 으로 정정. 이유: ① 공식이 좁아 별도 제품화 동인 약함 ② 공식 토큰의 진짜 가치는 "통합"이 아니라 **무인 자가갱신**(24h no-refresh 지만 client_secret 로 사람 없이 재발급 → cron/agent 가 web 의 QR+폰 재인증 없이 영구 운영) + 안정성 fallback. 이 둘은 별도 레포가 아니라 tossctl 안 hybrid 로 흡수가 맞음. multi-broker/investctl 분리는 **"별도 사유 생기기 전까지" 보류** ([multi-broker.md](./multi-broker.md) = future-option). 착수는 토스 토큰 승인 후.
+- **2026-11-09** — 공식 스펙 1.2.28(2026-11-04 스냅샷, 버전 문자열은 그대로)에 계좌 거래내역 `GET /api/v1/transactions` 가 추가됨 ([분석](../reverse-engineering/change-analysis/2026-11-04.md)). "공식에는 transactions ledger 없음" 전제가 깨져 위 표를 고쳤다. 결제일 기준·국내·미국 통합·불투명 커서라 WTS `transactions list` 와 계약이 달라 합치지 않고 `transactions ledger`(MCP `transaction_ledger`)로 따로 노출한다. 현금 overview 와 history 동기화는 계속 web 이다(공식 응답에 거래 ID 가 없고 미결제 1건이 결제 후 여러 건으로 바뀌어 키를 만들 수 없다).
 
 ## 외부 contributor / 사용자에게 부탁
 

@@ -210,6 +210,7 @@ func assertOfficialOnlyUnavailable(t *testing.T, c *Client) {
 		}},
 		{"Supply", func() error { _, err := c.Supply(ctx, "005930", domain.SupplyInvestor, 0, ""); return err }},
 		{"InvestorTradingRankings", func() error { _, err := c.InvestorTradingRankings(ctx, 0); return err }},
+		{"TransactionLedger", func() error { _, err := c.TransactionLedger(ctx, official.TransactionsFilter{}); return err }},
 		{"ListStocks", func() error { _, err := c.ListStocks(ctx, "KOSPI", "", "", false); return err }},
 	}
 	for _, tc := range calls {
@@ -238,6 +239,11 @@ func TestNewOfficialOnlyReadsDelegateToOfficial(t *testing.T) {
 				t.Errorf("symbols query = %q, want AAPL,005930", got)
 			}
 			_, _ = io.WriteString(w, `{"result":[{"symbol":"AAPL","name":"애플","englishName":"Apple Inc.","isinCode":"US0378331005","market":"NASDAQ","securityType":"STOCK","isCommonShare":true,"status":"ACTIVE","currency":"USD","sharesOutstanding":"14702703000"}]}`)
+		case "/api/v1/transactions":
+			if got := r.Header.Get("X-Tossinvest-Account"); got != "7" {
+				t.Errorf("account header = %q, want 7", got)
+			}
+			_, _ = io.WriteString(w, `{"result":{"transactions":[{"transactionType":"DEPOSIT","isCancellation":false,"settled":true,"settlementDate":"2026-09-01","transactionTime":"2026-09-01T10:00:00+09:00","marketCountry":"KR","currency":"KRW","assetClass":null,"symbol":null,"isinCode":null,"quantity":null,"filledPrice":null,"amount":"10000","commission":"0","tax":"0","netAmount":"10000","exchangeRate":null}],"nextCursor":null,"hasNext":false}}`)
 		default:
 			http.NotFound(w, r)
 		}
@@ -264,6 +270,10 @@ func TestNewOfficialOnlyReadsDelegateToOfficial(t *testing.T) {
 	stocks, err := c.Stocks(context.Background(), []string{"AAPL", "005930"})
 	if err != nil || len(stocks) != 1 || stocks[0].ISINCode != "US0378331005" {
 		t.Fatalf("Stocks delegation = %+v, %v", stocks, err)
+	}
+	ledger, err := c.TransactionLedger(context.Background(), official.TransactionsFilter{})
+	if err != nil || len(ledger.Transactions) != 1 || ledger.Transactions[0].TransactionType != "DEPOSIT" {
+		t.Fatalf("TransactionLedger delegation = %+v, %v", ledger, err)
 	}
 }
 

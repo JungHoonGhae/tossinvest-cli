@@ -171,6 +171,12 @@ func TestJSONOutputLanguageInvariant(t *testing.T) {
 				return WriteNotificationStatus(w, FormatJSON, domain.NotificationStatus{})
 			},
 		},
+		{
+			name: "ledgerTransactions",
+			render: func(w *bytes.Buffer) error {
+				return WriteLedgerTransactions(w, FormatJSON, ledgerFixture())
+			},
+		},
 	}
 
 	for _, r := range renderers {
@@ -335,6 +341,12 @@ func TestCSVOutputLanguageInvariant(t *testing.T) {
 			name: "notificationStatus",
 			render: func(w *bytes.Buffer) error {
 				return WriteNotificationStatus(w, FormatCSV, domain.NotificationStatus{})
+			},
+		},
+		{
+			name: "ledgerTransactions",
+			render: func(w *bytes.Buffer) error {
+				return WriteLedgerTransactions(w, FormatCSV, ledgerFixture())
 			},
 		},
 	}
