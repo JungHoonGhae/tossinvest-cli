@@ -83,6 +83,12 @@ jobs:
       - name: Build CLI
         run: make build
 
+      # The tossctl agent skill ships a generated operation catalog. Enforce it
+      # tracks the ops registry so adding/renaming an operation can't silently
+      # leave the skill stale — regenerate with `python3 tools/build_skill.py`.
+      - name: 에이전트 스킬 동기화 체크
+        run: python3 tools/build_skill.py --check --bin bin/tossctl
+
       # Exercise the same multi-file archive format used by releases without
       # publishing a release or uploading credentials/build directories.
       # NOTE: keep at least two paths from different directories. With a single
