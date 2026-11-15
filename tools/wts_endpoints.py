@@ -31,6 +31,12 @@ import urllib.parse
 import urllib.request
 
 BASE = "https://www.tossinvest.com"
+# 모바일 앱 WebView 가 함께 로드하는 추가 프런트엔드(2026-11-15 발견). `.tossinvest.com`
+# 세션과 `/assets/v2/_next` 청크 레이아웃을 www 와 공유하지만 라우트 집합이 더 크다 —
+# 이들만 선언하는 엔드포인트도 같은 WTS 세션으로 호출된다(최초 측정 시 service 가
+# www 에 없는 641 개를 더했다). BASE 와 함께 크롤해 한 카탈로그로 병합한다.
+# 증권 섹션은 `im/toss/tosssecurities/webview` 가 service·mts 호스트를 로드한다.
+EXTRA_BASES = ["https://service.tossinvest.com"]
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36")
 CATALOG = os.path.join("docs", "reverse-engineering", "wts-endpoints.json")
@@ -977,13 +983,19 @@ def _fetch_many(paths, fetcher, max_workers):
         executor.shutdown(wait=True, cancel_futures=True)
 
 
-def collect_paths():
-    byte_budget = DiscoveryByteBudget()
+def _crawl_base(byte_budget):
+    """현재 모듈 BASE 한 곳을 fixed point 까지 크롤한다.
+
+    `(root_build_id, build_ids:set, chunks:set, routes:set, chunk_bodies:dict)` 반환.
+    `fetch()` 가 읽는 모듈 전역 BASE/BASE_ORIGIN 에 의존하므로 호출 전에 호출자가
+    그 둘을 대상 베이스로 설정해야 한다.
+    """
     idx = fetch("/", byte_budget)
     require_fetched_assets(["/"], [idx])
     root_build_id = _html_build_id(idx)
     if not root_build_id:
-        raise RuntimeError("WTS root response is missing buildId; refusing partial discovery")
+        raise RuntimeError(
+            f"WTS root response is missing buildId; refusing partial discovery ({BASE})")
     build_ids = {root_build_id} - {""}
     # Each build's manifest lives under the asset prefix of the HTML that
     # declared it; a rolling deploy can serve builds from different prefixes.
@@ -1044,20 +1056,49 @@ def collect_paths():
         if not progressed:
             break
     else:
-        raise RuntimeError("WTS build/route discovery did not converge after 32 passes")
+        raise RuntimeError(
+            f"WTS build/route discovery did not converge after 32 passes ({BASE})")
 
-    # 정렬해서 받는다 — `chunks` 는 set 이라 순회 순서가 실행마다 달라지고, 그러면
-    # 같은 번들에서 매번 다른 카탈로그가 나온다(한 경로가 PATCH/DELETE 를 둘 다 선언할 때
-    # 먼저 읽힌 쪽이 이겼다). CI 가 매 실행 diff 를 만들어낸다.
-    blob = "\n".join(chunk_bodies[path] for path in sorted(chunk_bodies))
-    globals()["_ROUTE_COUNT"] = len(routes)
+    return root_build_id, build_ids, chunks, routes, chunk_bodies
+
+
+def collect_paths():
+    # www 와 추가 프런트엔드(service)를 각자 origin guard 아래서 크롤해 하나의 blob 으로
+    # 병합한다. BASE/BASE_ORIGIN 을 베이스마다 바꿔 끼우고, 하나의 byte budget 으로 전체
+    # 발굴량을 묶는다(DISCOVERY_MAX_* 는 합산 상한이 된다). blob 키는 (base, 청크경로) 라
+    # 다른 빌드의 동명 청크가 충돌하지 않고, 정렬 덕에 출력은 입력 순서에 무관하다
+    # (derive_paths 의 불변식). 끝나면 전역을 원복해 모듈 상태를 더럽히지 않는다.
+    byte_budget = DiscoveryByteBudget()
+    saved_base, saved_origin = BASE, BASE_ORIGIN
+    primary_build_id = None
+    all_build_ids, all_bodies = set(), {}
+    chunk_total = route_total = 0
+    try:
+        for index, base in enumerate([BASE, *EXTRA_BASES]):
+            globals()["BASE"] = base
+            globals()["BASE_ORIGIN"] = _origin(base)
+            root_build_id, build_ids, chunks, routes, chunk_bodies = _crawl_base(byte_budget)
+            if index == 0:
+                primary_build_id = root_build_id
+            all_build_ids |= build_ids
+            chunk_total += len(chunks)
+            route_total += len(routes)
+            for path, body in chunk_bodies.items():
+                all_bodies[(base, path)] = body
+    finally:
+        globals()["BASE"], globals()["BASE_ORIGIN"] = saved_base, saved_origin
+
+    # 정렬해서 받는다 — set 순회 순서가 실행마다 달라지면 같은 번들에서 매번 다른
+    # 카탈로그가 나온다(한 경로가 PATCH/DELETE 를 둘 다 선언할 때 먼저 읽힌 쪽이 이겼다).
+    blob = "\n".join(all_bodies[key] for key in sorted(all_bodies))
+    globals()["_ROUTE_COUNT"] = route_total
     globals()["_ROLLING_MARKER_PRESENCE"] = {
         marker: marker in blob
         for feature in ROLLING_FEATURES.values()
         for marker in feature["bundle_markers"]
     }
     norm, meta = derive_paths(blob)
-    return root_build_id, sorted(build_ids), len(chunks), norm, meta
+    return primary_build_id, sorted(all_build_ids), chunk_total, norm, meta
 
 
 def rolling_feature_snapshot(bundle_paths, marker_presence, build_ids, previous, checked_at):
@@ -1457,7 +1498,7 @@ def main():
     removed = sorted(prev_eps - paths)
 
     out = {
-        "source": "tossinvest.com web bundles",
+        "source": "tossinvest.com web bundles (www + service)",
         "build_id": build_id,
         "build_ids": build_ids,
         "chunk_count": n_chunks,

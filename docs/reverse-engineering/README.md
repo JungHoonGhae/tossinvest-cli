@@ -8,7 +8,7 @@
 | 파일 | 내용 |
 |---|---|
 | **[capture-workflow.md](capture-workflow.md)** | **신규 기능 발굴 실전 플레이북** — 세션 주입 → 번들에서 경로 추출 → 라이브 프로브 → POST 바디 캡처 → 웹UI 유무 판정 → 구현. 새 기능을 붙인다면 여기서 시작한다. "막힌 방법" 절도 함께 읽을 것 |
-| [wts-endpoints.json](wts-endpoints.json) | WTS API 전체 카탈로그(구현/후보/의도적 제외)와 `rolling_features` 수명주기. `tools/wts_endpoints.py` 로 갱신, 주간 `wts-monitor.yml` 이 endpoint·UI flag·활성 build·승격 기준 변화를 추적 |
+| [wts-endpoints.json](wts-endpoints.json) | WTS API 전체 카탈로그(구현/후보/의도적 제외)와 `rolling_features` 수명주기. `www` + `service`(모바일 앱 WebView 호스트) 번들을 함께 파싱해 `tools/wts_endpoints.py` 로 갱신, 주간 `wts-monitor.yml` 이 endpoint·UI flag·활성 build·승격 기준 변화를 추적 |
 | [mutation-inventory.md](mutation-inventory.md) | 호출 가능한 쓰기와 정적 분석에서 발견만 된 쓰기를 분리하고 위험·복구·승인 방식을 기록 |
 | [android-app.json](android-app.json) | 일반 Toss Android 앱의 마지막 정적 감사 artifact와 최신 공개 후보. 후보가 새로우면 감사 stale로 표시하되 자동 신뢰하지 않음 |
 | [rpc-catalog.md](rpc-catalog.md) | 엔드포인트별 요청/응답 형태 메모 |
@@ -17,6 +17,7 @@
 | [change-analysis/](change-analysis/) | 서버 변경이 관측된 날의 분석 기록 |
 | [change-analysis/2026-09-28-wts.md](change-analysis/2026-09-28-wts.md) | gzip 수집·호스트 검증·가격 API 감시 보완, 지수 AI·실적 본문/분석·폴더 뉴스 구현과 라이브 검증 |
 | [change-analysis/2026-09-02-android-static.md](change-analysis/2026-09-02-android-static.md) | Android 5.275.0 정적 계약 감사: WTS 교차검증, 은행/MyData 인증 경계, 쓰기 후보 정책 |
+| [change-analysis/2026-11-15-android-card-banking-mtls.md](change-analysis/2026-11-15-android-card-banking-mtls.md) | 카드·은행 조회 계약 전체(응답 필드) + mTLS 전송 심화(왜 호출이 막히는가·추출/빌드 경로). 정적 인벤토리, 미구현 |
 | [change-analysis/2026-09-16-asc-opportunities.md](change-analysis/2026-09-16-asc-opportunities.md) | ASC로 대조한 고도화 후보: 실적 발표 내용·개인화 일정·관심종목 폴더, 정적 근거와 남은 라이브 검증 |
 
 ## 도구
@@ -26,7 +27,7 @@
 node tools/capture_post_bodies.mjs /account/profit
 node tools/capture_post_bodies.mjs /feed/news --get
 
-# 엔드포인트 카탈로그 갱신 (JS 번들 전수 파싱, stdlib only)
+# 엔드포인트 카탈로그 갱신 (www + service 앱 webview 호스트 번들 전수 파싱)
 python3 tools/wts_endpoints.py
 
 # 일반 Toss Android 공개 후보와 마지막 감사 버전 비교
