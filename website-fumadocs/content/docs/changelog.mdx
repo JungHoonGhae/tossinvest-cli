@@ -9,6 +9,9 @@ description: tossctl 버전별 변경 사항 (사용자 관점)
 
 ## [Unreleased]
 
+### 새 기능
+- **에이전트 스킬을 CLI로 설치** — `tossctl skill install` 로 바이너리에 내장된 `tossctl` 에이전트 스킬을 Claude 스킬 디렉터리(`~/.claude/skills`, 또는 `$CLAUDE_SKILLS_DIR`·`--dir`)에 바로 설치합니다. 네트워크 없이 동작하고 설치된 바이너리와 같은 버전의 스킬을 넣으므로, tossctl 을 올린 뒤 다시 실행하면 스킬도 최신이 됩니다. `tossctl doctor` 는 스킬이 아직 없을 때 설치를 안내합니다. (CLI 없이 쓰려면 기존 `curl … skills/install.sh | sh` 한 줄도 그대로 됩니다.)
+
 ## [0.58.0] - 2026-11-09
 
 ### 새 기능
