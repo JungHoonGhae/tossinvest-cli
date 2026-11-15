@@ -811,7 +811,9 @@ class TestClassify(unittest.TestCase):
         }
 
         def fake_fetch(path, *_args, **_kwargs):
-            table = svc if "service.tossinvest.com" in W.BASE else www
+            # Exact-match the base (not a substring check) so this stays a clean
+            # host comparison, not URL-substring sanitization.
+            table = svc if W.BASE == "https://service.tossinvest.com" else www
             return table.get(path, "")
 
         with mock.patch.object(W, "fetch", side_effect=fake_fetch), \
