@@ -17,7 +17,17 @@ registry — see "Staying in sync" below.
 
 ## Install
 
-**One line (skills.sh style), no clone:**
+**With the CLI (installs the copy embedded in your `tossctl` binary):**
+
+```sh
+tossctl skill install
+```
+
+Offline, no network fetch, and always the skill that matches the installed
+binary. Target: `--dir`, else `$CLAUDE_SKILLS_DIR`, else `~/.claude/skills`.
+Re-run after upgrading `tossctl` to refresh the skill.
+
+**One line (skills.sh style), no clone — when you run the MCP without the CLI:**
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/skills/install.sh | sh
@@ -43,16 +53,21 @@ The skill's operation catalog is not hand-maintained — it is generated from th
 adding or renaming an operation updates the skill in one step:
 
 ```sh
-python3 tools/build_skill.py          # regenerate tossctl/references/operations.md
-python3 tools/build_skill.py --check  # verify it is in sync (CI runs this)
+python3 tools/build_skill.py          # regenerate the catalog + sync the embedded copy
+python3 tools/build_skill.py --check  # verify every managed path is in sync (CI runs this)
 ```
 
-CI (`에이전트 스킬 동기화 체크`) fails any PR whose skill catalog has drifted
-from the registry, so the skill can't quietly go stale.
+The same script also mirrors this skill into `internal/skill/assets/`, the copy
+the binary embeds for `tossctl skill install` — so the embedded skill and the
+distributable one can never drift apart. CI (`에이전트 스킬 동기화 체크`) fails
+any PR whose catalog or embedded copy has drifted from the registry / canonical
+source, so the skill can't quietly go stale.
 
 ## Follow-ups (not yet built)
 
-- `tossctl skill install` — a CLI-native installer (embeds this skill in the
-  binary via `go:embed`) plus a nudge from `tossctl doctor`.
-- An `npx` package for users who run the MCP without the CLI.
-- Publishing the skill as a release asset on tag.
+- An `npx` package for users who run the MCP without the CLI. Low priority: the
+  curl|sh one-liner above already installs without the Go CLI.
+
+`tossctl skill install` (CLI-native, via `go:embed`) and the `tossctl doctor`
+nudge are built. A separate release-asset download is unnecessary now that the
+binary carries the skill.
