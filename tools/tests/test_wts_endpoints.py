@@ -711,7 +711,8 @@ class TestClassify(unittest.TestCase):
             return responses.get(path, "")
 
         with mock.patch.object(W, "fetch", side_effect=fake_fetch), \
-                mock.patch.object(W, "fetch_route", return_value=None):
+                mock.patch.object(W, "fetch_route", return_value=None), \
+                mock.patch.object(W, "EXTRA_BASES", []):
             _, _, chunk_count, _, _ = W.collect_paths()
         self.assertIn("/assets/v3/_next/static/build-a/_buildManifest.js", requested)
         self.assertIn(page_chunk, requested)
@@ -772,7 +773,8 @@ class TestClassify(unittest.TestCase):
             fetched.append(path)
             return responses.get(path, "")
 
-        with mock.patch.object(W, "fetch", side_effect=fake_fetch):
+        with mock.patch.object(W, "fetch", side_effect=fake_fetch), \
+                mock.patch.object(W, "EXTRA_BASES", []):
             build_id, build_ids, chunk_count, paths, _ = W.collect_paths()
 
         self.assertEqual(build_id, "build-b")
@@ -790,6 +792,40 @@ class TestClassify(unittest.TestCase):
             "/api/v1/third-view",
         ):
             self.assertIn(path, paths)
+
+    def test_collect_paths_merges_extra_bases(self):
+        # www 와 service 를 각자 origin 으로 크롤해 양쪽 엔드포인트를 한 blob 으로
+        # 병합한다. mock fetch 는 collect_paths 가 베이스마다 설정하는 W.BASE 를 읽어
+        # 어느 사이트를 흉내낼지 고른다.
+        www_chunk = "/assets/v2/_next/static/chunks/www.js"
+        svc_chunk = "/assets/v2/_next/static/chunks/svc.js"
+        www = {
+            "/": '{"buildId":"www-b"}<script src="' + www_chunk + '">',
+            "/assets/v2/_next/static/www-b/_buildManifest.js": '""',
+            www_chunk: triple("info", "GET", "/api/v1/www-only"),
+        }
+        svc = {
+            "/": '{"buildId":"svc-b"}<script src="' + svc_chunk + '">',
+            "/assets/v2/_next/static/svc-b/_buildManifest.js": '""',
+            svc_chunk: triple("info", "GET", "/api/v1/svc-only"),
+        }
+
+        def fake_fetch(path, *_args, **_kwargs):
+            table = svc if "service.tossinvest.com" in W.BASE else www
+            return table.get(path, "")
+
+        with mock.patch.object(W, "fetch", side_effect=fake_fetch), \
+                mock.patch.object(W, "fetch_route", return_value=None), \
+                mock.patch.object(W, "EXTRA_BASES", ["https://service.tossinvest.com"]):
+            build_id, build_ids, chunk_count, paths, _ = W.collect_paths()
+
+        self.assertEqual(build_id, "www-b", "primary build id is the first base")
+        self.assertEqual(set(build_ids), {"www-b", "svc-b"})
+        self.assertEqual(chunk_count, 2, "one chunk from each base, summed")
+        self.assertIn("/api/v1/www-only", paths)
+        self.assertIn("/api/v1/svc-only", paths)
+        # 크롤 후 전역 BASE 는 원복돼야 한다(다른 테스트 오염 방지).
+        self.assertEqual(W.BASE, "https://www.tossinvest.com")
 
     def test_discovery_budget_fails_closed_with_frontier_counts(self):
         with self.assertRaisesRegex(RuntimeError, r"routes=2001>2000"):
