@@ -2,7 +2,7 @@
 
 # tossctl operations
 
-135 operations, grouped by category. Each is callable by `id` via `call_operation` (MCP) or `tossctl ops call <id>`. Always confirm the current parameter schema with `describe_operation` before calling — this list is a map, not the contract.
+127 operations, grouped by category. Each is callable by `id` via `call_operation` (MCP) or `tossctl ops call <id>`. Always confirm the current parameter schema with `describe_operation` before calling — this list is a map, not the contract.
 
 Columns: **backend** = credential channel (`wts` web session · `official` Open API · `auto` either · `none` local); **write** = mutates state (preview-then-confirm, gated); **required** = params you must pass.
 
@@ -131,19 +131,6 @@ Columns: **backend** = credential channel (`wts` web session · `official` Open 
 | `place_conditional_order` | wts | yes | symbol, quantity, expire_date, first_side, first_trigger | Place a conditional order. Gated; preview unless execute=true. |
 | `place_order` | wts | yes | symbol, side | Place a new order (US/KR, limit or US fractional market). Gated; preview unless execute=true. |
 | `sellable_quantity` | auto |  | symbol | Sellable quantity for a symbol. Served by either backend (official first, web-session fallback). |
-
-## paper-trading
-
-| id | backend | write | required | summary |
-| --- | --- | --- | --- | --- |
-| `cancel_all_paper_orders` | wts | yes |  | Preview or cancel all matching pending simulated orders. |
-| `cancel_paper_order` | wts | yes | order_id | Preview or cancel one pending simulated order. |
-| `deposit_paper_cash` | wts | yes | amount | Add simulated cash to the isolated paper ledger; preview unless execute=true. |
-| `get_paper_trading_status` | wts |  |  | Read simulated US-options cash and server-side eligibility/progress flags. |
-| `initialize_paper_trading` | wts | yes |  | Initialize/apply for the server's paper-options environment; preview unless execute=true. |
-| `list_completed_paper_orders` | wts |  |  | List completed or cancelled simulated US-options orders. |
-| `list_pending_paper_orders` | wts |  |  | List pending simulated US-options orders. |
-| `place_paper_order` | wts | yes | stock_code, side, quantity | Preview or place an isolated simulated US-options order; never reaches a live account. |
 
 ## portfolio
 

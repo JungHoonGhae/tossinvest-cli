@@ -36,10 +36,19 @@ GENERATED_NOTE = (
 
 
 def load_operations(bin_cmd: str) -> list[dict]:
-    argv = shlex.split(bin_cmd) + ["ops", "list"]
-    proc = subprocess.run(
-        argv, cwd=REPO_ROOT, capture_output=True, text=True, timeout=300
-    )
+    # Pin an empty config directory so the catalog is the stable DEFAULT surface,
+    # identical in CI and on any machine. A developer's local config (e.g.
+    # experimental.paper_trading=true) otherwise adds opt-in operations that CI's
+    # clean environment lacks, flapping the sync check. Opt-in and experimental
+    # operations are intentionally excluded from the written catalog — an agent
+    # discovers them live via list_operations once they are enabled. --config-dir
+    # (not HOME) keeps go-run's module/build caches intact.
+    import tempfile
+    with tempfile.TemporaryDirectory() as cfg:
+        argv = shlex.split(bin_cmd) + ["ops", "list", "--config-dir", cfg]
+        proc = subprocess.run(
+            argv, cwd=REPO_ROOT, capture_output=True, text=True, timeout=300
+        )
     if proc.returncode != 0:
         sys.exit(f"`{' '.join(argv)}` failed (exit {proc.returncode}):\n{proc.stderr.strip()}")
     try:
