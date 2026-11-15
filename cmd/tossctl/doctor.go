@@ -1,9 +1,13 @@
 package main
 
 import (
+	"fmt"
+	"io"
+
 	"github.com/JungHoonGhae/tossinvest-cli/internal/doctor"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/i18n"
 	"github.com/JungHoonGhae/tossinvest-cli/internal/output"
+	"github.com/JungHoonGhae/tossinvest-cli/internal/skill"
 	"github.com/spf13/cobra"
 )
 
@@ -50,11 +54,31 @@ func newDoctorCmd(opts *rootOptions) *cobra.Command {
 			// Graceful Open API summary — never fails doctor.
 			report.OpenAPISummary = computeDoctorOpenAPISummary(cmd.Context(), opts, app)
 
-			return output.WriteDoctorReport(cmd.OutOrStdout(), app.format, report)
+			if err := output.WriteDoctorReport(cmd.OutOrStdout(), app.format, report); err != nil {
+				return err
+			}
+			writeSkillInstallHintIfNeeded(cmd.ErrOrStderr(), app.format)
+			return nil
 		},
 	}
 
 	cmd.Flags().BoolVar(&reportMode, "report", false, "Emit a JSON diagnostic bundle suitable for bug reports (runs endpoint probes, redacts paths)")
 
 	return cmd
+}
+
+// writeSkillInstallHintIfNeeded nudges the user toward `tossctl skill install`
+// when the agent skill is not yet present in their default skills directory.
+// Advisory only: human (table) output just ran, so this prints one stderr line,
+// and it stays silent on any error (the skills directory may be unreadable or
+// not applicable) — a diagnostic must never fail on a cosmetic hint.
+func writeSkillInstallHintIfNeeded(w io.Writer, format output.Format) {
+	if format != output.FormatTable {
+		return
+	}
+	dir, err := skill.DefaultDir()
+	if err != nil || skill.IsInstalled(dir) {
+		return
+	}
+	fmt.Fprintln(w, "\nTip: install the tossctl agent skill for Claude with `tossctl skill install`.")
 }

@@ -158,10 +158,11 @@ claude mcp add tossctl tossctl mcp
 
 Codex·Cursor 등 앱별 등록 방법은 [MCP 가이드](https://tossinvest-cli.vercel.app/docs/guide/mcp)를 참고하세요.
 
-**(선택) 에이전트 스킬.** 스킬을 지원하는 에이전트(Claude Code 등)라면, 오퍼레이션 탐색·인증·안전 규칙(읽기 우선·거래 게이트·실계좌 데이터 비노출)을 담은 `tossctl` 스킬을 설치하면 더 정확하게 동작합니다. 설치·동기화는 [`skills/`](skills/) 참고:
+**(선택) 에이전트 스킬.** 스킬을 지원하는 에이전트(Claude Code 등)라면, 오퍼레이션 탐색·인증·안전 규칙(읽기 우선·거래 게이트·실계좌 데이터 비노출)을 담은 `tossctl` 스킬을 설치하면 더 정확하게 동작합니다. CLI가 이미 있으면 바이너리에 내장된 스킬을 바로 설치할 수 있고(오프라인·버전 일치), 없으면 curl 한 줄로도 됩니다. 설치·동기화는 [`skills/`](skills/) 참고:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/skills/install.sh | sh
+tossctl skill install                                                                              # CLI 내장본 설치
+curl -fsSL https://raw.githubusercontent.com/JungHoonGhae/tossinvest-cli/main/skills/install.sh | sh  # CLI 없이
 ```
 
 <details>

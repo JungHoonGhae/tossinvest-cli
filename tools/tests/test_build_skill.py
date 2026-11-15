@@ -67,5 +67,29 @@ class TestRender(unittest.TestCase):
         self.assertTrue(B.render(OPS).startswith(B.GENERATED_NOTE))
 
 
+class TestManagedFiles(unittest.TestCase):
+    """managed_files() decides what gets written where. The embedded copy the
+    binary ships must receive the same catalog as the distributable one, or
+    `tossctl skill install` would hand agents a stale skill."""
+
+    def test_catalog_goes_to_both_homes(self):
+        files = B.managed_files("CATALOG", "SKILLMD")
+        self.assertEqual(files[B.OUT], "CATALOG")
+        self.assertEqual(files[B.EMBED_OPS], "CATALOG")
+
+    def test_skill_md_mirrored_verbatim(self):
+        files = B.managed_files("CATALOG", "SKILLMD")
+        self.assertEqual(files[B.EMBED_SKILL], "SKILLMD")
+
+    def test_exactly_three_managed_paths(self):
+        files = B.managed_files("c", "s")
+        self.assertEqual(set(files), {B.OUT, B.EMBED_OPS, B.EMBED_SKILL})
+
+    def test_source_skill_is_never_written(self):
+        # SRC_SKILL is hand-authored input, not an output this script owns —
+        # writing it would let the generator clobber the canonical source.
+        self.assertNotIn(B.SRC_SKILL, B.managed_files("c", "s"))
+
+
 if __name__ == "__main__":
     unittest.main()

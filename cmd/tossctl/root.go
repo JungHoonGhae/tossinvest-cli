@@ -208,6 +208,7 @@ func newRootCmd() *cobra.Command {
 		newMonitorCmd(opts),
 		newMCPCmd(opts),
 		newOpsCmd(opts),
+		newSkillCmd(opts),
 	)
 
 	// Experimental commands remain addressable so an opted-out invocation can
