@@ -16251,7 +16251,7 @@
     "paper-trading-us-options": {
       "lifecycle": "rolling_out",
       "stability": "experimental",
-      "checked_at": "2026-11-15",
+      "checked_at": "2026-11-16",
       "active_build_ids": [
         "dDS4CX8HbL4H9OvCUf9So",
         "jla_Ldxj04YF3DAnp_31x"
@@ -16361,5 +16361,5 @@
       ]
     }
   },
-  "updated_at": "2026-11-15"
+  "updated_at": "2026-11-16"
 }
